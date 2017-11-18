@@ -11,8 +11,13 @@ import sys
 
 
 def main(old_path, new_path):
-    with open(old_path, 'rb') as f:
-        old_contents = f.read()
+    try:
+        f = open(old_path, 'rb')
+    except FileNotFoundError:
+        old_contents = None
+    else:
+        with f:
+            old_contents = f.read()
     with open(new_path, 'rb') as f:
         new_contents = f.read()
     if old_contents != new_contents:
