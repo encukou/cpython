@@ -4907,6 +4907,7 @@ ascii_decode(const char *start, const char *end, Py_UCS1 *dest)
      * won't work; also, tests have shown that skipping the "optimised
      * version" will even speed up m68k.
      */
+#if 0
 #if !defined(__m68k__)
 #if SIZEOF_LONG <= SIZEOF_VOID_P
     assert(_Py_IS_ALIGNED(dest, SIZEOF_LONG));
@@ -4934,7 +4935,9 @@ ascii_decode(const char *start, const char *end, Py_UCS1 *dest)
     }
 #endif
 #endif
+#endif
     while (p < end) {
+#if 0
         /* Fast path, see in STRINGLIB(utf8_decode) in stringlib/codecs.h
            for an explanation. */
         if (_Py_IS_ALIGNED(p, SIZEOF_LONG)) {
@@ -4950,6 +4953,7 @@ ascii_decode(const char *start, const char *end, Py_UCS1 *dest)
             if (_p == end)
                 break;
         }
+#endif
         if ((unsigned char)*p & 0x80)
             break;
         ++p;
