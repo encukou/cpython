@@ -1575,6 +1575,7 @@ initfsencoding(PyInterpreterState *interp)
     }
 #endif
 
+#if 0
     /* the encoding is mbcs, utf-8 or ascii */
     codec = _PyCodec_Lookup(Py_FileSystemDefaultEncoding);
     if (!codec) {
@@ -1585,6 +1586,7 @@ initfsencoding(PyInterpreterState *interp)
     }
     Py_DECREF(codec);
     interp->fscodec_initialized = 1;
+#endif
     return _Py_INIT_OK();
 }
 
@@ -2222,6 +2224,7 @@ Py_FdIsInteractive(FILE *fp, const char *filename)
 PyOS_sighandler_t
 PyOS_getsig(int sig)
 {
+    return SIG_ERR;
 #ifdef HAVE_SIGACTION
     struct sigaction context;
     if (sigaction(sig, NULL, &context) == -1)
@@ -2261,6 +2264,7 @@ PyOS_getsig(int sig)
 PyOS_sighandler_t
 PyOS_setsig(int sig, PyOS_sighandler_t handler)
 {
+    return NULL;
 #ifdef HAVE_SIGACTION
     /* Some code in Modules/signalmodule.c depends on sigaction() being
      * used here if HAVE_SIGACTION is defined.  Fix that if this code

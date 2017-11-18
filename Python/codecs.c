@@ -1529,11 +1529,13 @@ static int _PyCodecRegistry_Init(void)
         interp->codec_error_registry == NULL)
         Py_FatalError("can't initialize codec registry");
 
+    /*
     mod = PyImport_ImportModuleNoBlock("encodings");
     if (mod == NULL) {
         return -1;
     }
     Py_DECREF(mod);
+    */
     interp->codecs_initialized = 1;
     return 0;
 }
