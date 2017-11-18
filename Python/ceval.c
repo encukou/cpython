@@ -6,6 +6,8 @@
    XXX document it!
    */
 
+#define USE_COMPUTED_GOTOS 0
+
 /* enable more aggressive intra-module optimizations, where available */
 #define PY_LOCAL_AGGRESSIVE
 
