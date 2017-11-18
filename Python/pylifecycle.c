@@ -1595,12 +1595,14 @@ initfsencoding(PyInterpreterState *interp)
 static _PyInitError
 initsite(void)
 {
+#if 0
     PyObject *m;
     m = PyImport_ImportModule("site");
     if (m == NULL) {
         return _Py_INIT_USER_ERR("Failed to import the site module");
     }
     Py_DECREF(m);
+#endif
     return _Py_INIT_OK();
 }
 

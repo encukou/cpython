@@ -4,6 +4,12 @@
 #include "Python.h"
 #include "importlib.h"
 #include "importlib_external.h"
+#include "frozen_codecs.h"
+#include "frozen_encodings.h"
+#include "frozen_encodings_aliases.h"
+#include "frozen_utf_8.h"
+#include "frozen_latin_1.h"
+#include "frozen_io.h"
 
 /* In order to test the support for frozen modules, by default we
    define a single frozen module, __hello__.  Loading it will print
@@ -29,9 +35,17 @@ static unsigned char M___hello__[] = {
 
 static const struct _frozen _PyImport_FrozenModules[] = {
     /* importlib */
-    {"_frozen_importlib", _Py_M__importlib, (int)sizeof(_Py_M__importlib)},
-    {"_frozen_importlib_external", _Py_M__importlib_external,
-        (int)sizeof(_Py_M__importlib_external)},
+    {"_frozen_importlib", _Py_M_importlib__bootstrap,
+        (int)sizeof(_Py_M_importlib__bootstrap)},
+    {"_frozen_importlib_external", _Py_M_importlib__bootstrap_external,
+        (int)sizeof(_Py_M_importlib__bootstrap_external)},
+    /* codecs */
+    {"codecs", _Py_M_codecs, (int)sizeof(_Py_M_codecs)},
+    {"encodings", _Py_M_encodings, -(int)sizeof(_Py_M_encodings)},
+    {"encodings.utf_8", _Py_M_encodings_utf8, (int)sizeof(_Py_M_encodings_utf8)},
+    {"encodings.aliases", _Py_M_encodings_aliases, (int)sizeof(_Py_M_encodings_aliases)},
+    {"encodings.latin_1", _Py_M_encodings_latin_1, (int)sizeof(_Py_M_encodings_latin_1)},
+    {"io", _Py_M_io, (int)sizeof(_Py_M_io)},
     /* Test module */
     {"__hello__", M___hello__, SIZE},
     /* Test package (negative size indicates package-ness) */

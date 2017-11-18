@@ -710,14 +710,53 @@ regen-importlib: Programs/_freeze_importlib
 	# from Lib/importlib/_bootstrap_external.py using _freeze_importlib
 	./Programs/_freeze_importlib \
 	    $(srcdir)/Lib/importlib/_bootstrap_external.py \
-	    $(srcdir)/Python/importlib_external.h.new
+	    $(srcdir)/Python/importlib_external.h.new \
+	    importlib._bootstrap_external
 	$(UPDATE_FILE) $(srcdir)/Python/importlib_external.h $(srcdir)/Python/importlib_external.h.new
+
 	# Regenerate Python/importlib.h from Lib/importlib/_bootstrap.py
 	# using _freeze_importlib
 	./Programs/_freeze_importlib \
 	    $(srcdir)/Lib/importlib/_bootstrap.py \
-	    $(srcdir)/Python/importlib.h.new
+	    $(srcdir)/Python/importlib.h.new \
+	    importlib._bootstrap
 	$(UPDATE_FILE) $(srcdir)/Python/importlib.h $(srcdir)/Python/importlib.h.new
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/codecs.py \
+	    $(srcdir)/Python/frozen_codecs.h.new \
+	    codecs
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_codecs.h $(srcdir)/Python/frozen_codecs.h.new
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/encodings/__init__.py \
+	    $(srcdir)/Python/frozen_encodings.h.new \
+	    encodings
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_encodings.h $(srcdir)/Python/frozen_encodings.h.new
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/encodings/utf_8.py \
+	    $(srcdir)/Python/frozen_utf_8.h.new \
+	    encodings.utf8
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_utf_8.h $(srcdir)/Python/frozen_utf_8.h.new
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/encodings/latin_1.py \
+	    $(srcdir)/Python/frozen_latin_1.h.new \
+	    encodings.latin_1
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_latin_1.h $(srcdir)/Python/frozen_latin_1.h.new
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/encodings/aliases.py \
+	    $(srcdir)/Python/frozen_encodings_aliases.h.new \
+	    encodings.aliases
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_encodings_aliases.h $(srcdir)/Python/frozen_encodings_aliases.h.new 
+
+	./Programs/_freeze_importlib \
+	    $(srcdir)/Lib/io.py \
+	    $(srcdir)/Python/frozen_io.h.new \
+	    io
+	$(UPDATE_FILE) $(srcdir)/Python/frozen_io.h $(srcdir)/Python/frozen_io.h.new 
 
 
 ############################################################################

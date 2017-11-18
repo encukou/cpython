@@ -49,7 +49,7 @@ __all__ = ["BlockingIOError", "open", "IOBase", "RawIOBase", "FileIO",
 
 
 import _io
-import abc
+#import abc
 
 from _io import (DEFAULT_BUFFER_SIZE, BlockingIOError, UnsupportedOperation,
                  open, FileIO, BytesIO, StringIO, BufferedReader,
@@ -69,7 +69,7 @@ SEEK_END = 2
 # Declaring ABCs in C is tricky so we do it here.
 # Method descriptions and default implementations are inherited from the C
 # version however.
-class IOBase(_io._IOBase, metaclass=abc.ABCMeta):
+class IOBase(_io._IOBase) :#: , metaclass=abc.ABCMeta):
     __doc__ = _io._IOBase.__doc__
 
 class RawIOBase(_io._RawIOBase, IOBase):
@@ -80,6 +80,8 @@ class BufferedIOBase(_io._BufferedIOBase, IOBase):
 
 class TextIOBase(_io._TextIOBase, IOBase):
     __doc__ = _io._TextIOBase.__doc__
+
+"""" No registering please
 
 RawIOBase.register(FileIO)
 
@@ -97,3 +99,5 @@ except ImportError:
     pass
 else:
     RawIOBase.register(_WindowsConsoleIO)
+
+"""
