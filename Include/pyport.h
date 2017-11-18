@@ -573,6 +573,10 @@ extern char * _getpty(int *, int, mode_t, int);
 #endif
 #endif
 
+#if SIZEOF_WCHAR_T == 0
+#undef SIZEOF_WCHAR_T
+#define SIZEOF_WCHAR_T 4
+#endif
 
 #if defined(__APPLE__)
 # define _PY_PORT_CTYPE_UTF8_ISSUE
@@ -706,7 +710,8 @@ extern char * _getpty(int *, int, mode_t, int);
  * rather than waiting for integer multiplication to trigger bogus
  * overflows.
  */
-#error "LONG_BIT definition appears wrong for platform (bad gcc/glibc config?)."
+#undef LONG_BIT
+#define LONG_BIT (8 * SIZEOF_LONG)
 #endif
 
 #ifdef __cplusplus
