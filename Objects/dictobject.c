@@ -2982,9 +2982,9 @@ PyDoc_STRVAR(copy__doc__,
 "D.copy() -> a shallow copy of D");
 
 /* Forward */
-static PyObject *dictkeys_new(PyObject *);
-static PyObject *dictitems_new(PyObject *);
-static PyObject *dictvalues_new(PyObject *);
+static PyObject *dictkeys_new(PyObject *, PyObject *args);
+static PyObject *dictitems_new(PyObject *, PyObject *args);
+static PyObject *dictvalues_new(PyObject *, PyObject *args);
 
 PyDoc_STRVAR(keys__doc__,
              "D.keys() -> a set-like object providing a view on D's keys");
@@ -4015,7 +4015,7 @@ PyTypeObject PyDictKeys_Type = {
 };
 
 static PyObject *
-dictkeys_new(PyObject *dict)
+dictkeys_new(PyObject *dict, PyObject *Py_UNUSED(args))
 {
     return _PyDictView_New(dict, &PyDictKeys_Type);
 }
@@ -4105,7 +4105,7 @@ PyTypeObject PyDictItems_Type = {
 };
 
 static PyObject *
-dictitems_new(PyObject *dict)
+dictitems_new(PyObject *dict, PyObject *Py_UNUSED(args))
 {
     return _PyDictView_New(dict, &PyDictItems_Type);
 }
@@ -4170,7 +4170,7 @@ PyTypeObject PyDictValues_Type = {
 };
 
 static PyObject *
-dictvalues_new(PyObject *dict)
+dictvalues_new(PyObject *dict, PyObject *Py_UNUSED(args))
 {
     return _PyDictView_New(dict, &PyDictValues_Type);
 }

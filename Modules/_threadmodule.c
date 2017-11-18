@@ -163,7 +163,7 @@ and the return value reflects whether the lock is acquired.\n\
 The blocking operation is interruptible.");
 
 static PyObject *
-lock_PyThread_release_lock(lockobject *self)
+lock_PyThread_release_lock(lockobject *self, PyObject *Py_UNUSED(args))
 {
     /* Sanity check: the lock must be locked */
     if (!self->locked) {
@@ -185,7 +185,7 @@ the lock to acquire the lock.  The lock must be in the locked state,\n\
 but it needn't be locked by the same thread that unlocks it.");
 
 static PyObject *
-lock_locked_lock(lockobject *self)
+lock_locked_lock(lockobject *self, PyObject *Py_UNUSED(args))
 {
     return PyBool_FromLong((long)self->locked);
 }
@@ -197,7 +197,7 @@ PyDoc_STRVAR(locked_doc,
 Return whether the lock is in the locked state.");
 
 static PyObject *
-lock_repr(lockobject *self)
+lock_repr(lockobject *self, PyObject *Py_UNUSED(args))
 {
     return PyUnicode_FromFormat("<%s %s object at %p>",
         self->locked ? "locked" : "unlocked", Py_TYPE(self)->tp_name, self);
@@ -1085,7 +1085,7 @@ when the function raises an unhandled exception; a stack trace will be\n\
 printed unless the exception is SystemExit.\n");
 
 static PyObject *
-thread_PyThread_exit_thread(PyObject *self)
+thread_PyThread_exit_thread(PyObject *self, PyObject *Py_UNUSED(args))
 {
     PyErr_SetNone(PyExc_SystemExit);
     return NULL;
@@ -1099,7 +1099,7 @@ This is synonymous to ``raise SystemExit''.  It will cause the current\n\
 thread to exit silently unless the exception is caught.");
 
 static PyObject *
-thread_PyThread_interrupt_main(PyObject * self)
+thread_PyThread_interrupt_main(PyObject * self, PyObject *Py_UNUSED(args))
 {
     PyErr_SetInterrupt();
     Py_RETURN_NONE;
@@ -1115,7 +1115,7 @@ A subthread can use this function to interrupt the main thread."
 static lockobject *newlockobject(void);
 
 static PyObject *
-thread_PyThread_allocate_lock(PyObject *self)
+thread_PyThread_allocate_lock(PyObject *self, PyObject *Py_UNUSED(args))
 {
     return (PyObject *) newlockobject();
 }
@@ -1128,7 +1128,7 @@ Create a new lock object. See help(type(threading.Lock())) for\n\
 information about locks.");
 
 static PyObject *
-thread_get_ident(PyObject *self)
+thread_get_ident(PyObject *self, PyObject *Py_UNUSED(args))
 {
     unsigned long ident = PyThread_get_thread_ident();
     if (ident == PYTHREAD_INVALID_THREAD_ID) {
@@ -1150,7 +1150,7 @@ be relied upon, and the number should be seen purely as a magic cookie.\n\
 A thread's identity may be reused for another thread after it exits.");
 
 static PyObject *
-thread__count(PyObject *self)
+thread__count(PyObject *self, PyObject *Py_UNUSED(args))
 {
     PyThreadState *tstate = PyThreadState_Get();
     return PyLong_FromLong(tstate->interp->num_threads);
