@@ -20,6 +20,8 @@
 #  endif
 #endif
 
+#include <emscripten.h>
+
 #ifdef Py_DEBUG
 int _Py_HashSecret_Initialized = 0;
 #else
@@ -260,128 +262,12 @@ py_getentropy(char *buffer, Py_ssize_t size, int raise)
 #endif /* defined(HAVE_GETENTROPY) && !defined(sun) */
 
 
-static struct {
-    int fd;
-    dev_t st_dev;
-    ino_t st_ino;
-} urandom_cache = { -1 };
-
-/* Read random bytes from the /dev/urandom device:
-
-   - Return 0 on success
-   - Raise an exception (if raise is non-zero) and return -1 on error
-
-   Possible causes of errors:
-
-   - open() failed with ENOENT, ENXIO, ENODEV, EACCES: the /dev/urandom device
-     was not found. For example, it was removed manually or not exposed in a
-     chroot or container.
-   - open() failed with a different error
-   - fstat() failed
-   - read() failed or returned 0
-
-   read() is retried if it failed with EINTR: interrupted by a signal.
-
-   The file descriptor of the device is kept open between calls to avoid using
-   many file descriptors when run in parallel from multiple threads:
-   see the issue #18756.
-
-   st_dev and st_ino fields of the file descriptor (from fstat()) are cached to
-   check if the file descriptor was replaced by a different file (which is
-   likely a bug in the application): see the issue #21207.
-
-   If the file descriptor was closed or replaced, open a new file descriptor
-   but don't close the old file descriptor: it probably points to something
-   important for some third-party code. */
 static int
 dev_urandom(char *buffer, Py_ssize_t size, int raise)
 {
-    int fd;
-    Py_ssize_t n;
-
-    if (raise) {
-        struct _Py_stat_struct st;
-
-        if (urandom_cache.fd >= 0) {
-            /* Does the fd point to the same thing as before? (issue #21207) */
-            if (_Py_fstat_noraise(urandom_cache.fd, &st)
-                || st.st_dev != urandom_cache.st_dev
-                || st.st_ino != urandom_cache.st_ino) {
-                /* Something changed: forget the cached fd (but don't close it,
-                   since it probably points to something important for some
-                   third-party code). */
-                urandom_cache.fd = -1;
-            }
-        }
-        if (urandom_cache.fd >= 0)
-            fd = urandom_cache.fd;
-        else {
-            fd = _Py_open("/dev/urandom", O_RDONLY);
-            if (fd < 0) {
-                if (errno == ENOENT || errno == ENXIO ||
-                    errno == ENODEV || errno == EACCES) {
-                    PyErr_SetString(PyExc_NotImplementedError,
-                                    "/dev/urandom (or equivalent) not found");
-                }
-                /* otherwise, keep the OSError exception raised by _Py_open() */
-                return -1;
-            }
-            if (urandom_cache.fd >= 0) {
-                /* urandom_fd was initialized by another thread while we were
-                   not holding the GIL, keep it. */
-                close(fd);
-                fd = urandom_cache.fd;
-            }
-            else {
-                if (_Py_fstat(fd, &st)) {
-                    close(fd);
-                    return -1;
-                }
-                else {
-                    urandom_cache.fd = fd;
-                    urandom_cache.st_dev = st.st_dev;
-                    urandom_cache.st_ino = st.st_ino;
-                }
-            }
-        }
-
-        do {
-            n = _Py_read(fd, buffer, (size_t)size);
-            if (n == -1)
-                return -1;
-            if (n == 0) {
-                PyErr_Format(PyExc_RuntimeError,
-                        "Failed to read %zi bytes from /dev/urandom",
-                        size);
-                return -1;
-            }
-
-            buffer += n;
-            size -= n;
-        } while (0 < size);
-    }
-    else {
-        fd = _Py_open_noraise("/dev/urandom", O_RDONLY);
-        if (fd < 0) {
-            return -1;
-        }
-
-        while (0 < size)
-        {
-            do {
-                n = read(fd, buffer, (size_t)size);
-            } while (n < 0 && errno == EINTR);
-
-            if (n <= 0) {
-                /* stop on error or if read(size) returned 0 */
-                close(fd);
-                return -1;
-            }
-
-            buffer += n;
-            size -= n;
-        }
-        close(fd);
+    Py_ssize_t i;
+    for (i=0; i<size; i++) {
+        buffer[i] = (char) (emscripten_random() * 256);
     }
     return 0;
 }
@@ -389,10 +275,6 @@ dev_urandom(char *buffer, Py_ssize_t size, int raise)
 static void
 dev_urandom_close(void)
 {
-    if (urandom_cache.fd >= 0) {
-        close(urandom_cache.fd);
-        urandom_cache.fd = -1;
-    }
 }
 #endif /* !MS_WINDOWS */
 
