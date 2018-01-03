@@ -371,6 +371,10 @@ given type object has a specified feature.
 /* Type structure has tp_finalize member (3.4) */
 #define Py_TPFLAGS_HAVE_FINALIZE (1UL << 0)
 
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x03070000
+/* Heap type structure has non-NULL ht_module member (3.7) */
+#define Py_TPFLAGS_HEAP_IMMUTABLE (1UL << 1)
+#endif
 
 /*
 The macros Py_INCREF(op) and Py_DECREF(op) are used to increment or decrement
