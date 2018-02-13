@@ -3511,8 +3511,9 @@ class TextIOWrapperTest(unittest.TestCase):
     def test_create_at_shutdown_without_encoding(self):
         rc, out, err = self._check_create_at_shutdown()
         if err:
-            # Can error out with a RuntimeError if the module state
+            # Can error out with a Lookup if the encoding
             # isn't found.
+            # self.assertIn(self.shutdown_error, err.decode())
             self.assertIn(self.shutdown_error, err.decode())
         else:
             self.assertEqual("ok", out.decode().strip())
@@ -3699,7 +3700,11 @@ def _to_memoryview(buf):
 
 class CTextIOWrapperTest(TextIOWrapperTest):
     io = io
-    shutdown_error = "LookupError: unknown encoding: ascii"
+
+    # Since port to multiphase init, state can be found as
+    # long as module lives, so Lookup error will be raised
+    # because ascii no longer exists
+    shutdown_error = "LookupError: unknown encoding:"
 
     def test_initialization(self):
         r = self.BytesIO(b"\xc3\xa9\n\n")
