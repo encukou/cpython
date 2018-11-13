@@ -92,6 +92,9 @@ Type Objects
    from a type's base class.  Return ``0`` on success, or return ``-1`` and sets an
    exception on error.
 
+Heap Types
+~~~~~~~~~~
+
 .. c:function:: PyObject* PyType_FromSpec(PyType_Spec *spec)
 
    Creates and returns a heap type object from the *spec* passed to the function.
@@ -104,6 +107,57 @@ Type Objects
 
    .. versionadded:: 3.3
 
+.. c:type:: PyType_Spec
+
+   Description of a type to be created by :c:func:`PyType_FromSpec`.
+
+   .. c:member:: const char* name
+
+      Fully qualified name of the type, e.g. ``"module.MyType"``.
+      Used to set ``__module__`` and ``__name__`` attributes of the type.
+      Should be statically allocated (or otherwise guaranteed to outlive
+      the created type).
+
+   .. c:member:: int basicsize
+
+      Size of the instance structure, in bytes.
+      See :c:member:~PyTypeObject.`tp_basicsize`.
+
+   .. c:member:: int itemsize
+
+      Size of item of a variable-length type, in bytes.
+      See to :c:member:`~PyTypeObject.tp_itemsize`.
+
+   .. c:member:: unsigned int flags
+
+      Type flags.
+      See :c:member:`~PyTypeObject.tp_flags`.
+
+   .. c:member:: PyType_Slot *slots
+
+      Array of slot definitions, terminated by ``{0, NULL}``.
+
+      For all slots not given in this array, the slot function is inherited
+      from the base type(s).
+
+.. c:type:: PyType_Slot
+
+   Description of a slot for :c:member:`PyType_Spec.slots`.
+
+   .. c:member:: int slot
+
+      Slot ID.
+
+      Constants for slot IDs are named like the
+      :ref:`field names <tp-slots-table>` that hold the pointers, with an
+      added ``Py_`` prefix (for example, ``Py_tp_dealloc`` for
+      :c:member:`~PyTypeObject.tp_dealloc` or ``Py_nb_negative`` for
+      :c:member:`~PyNumberMethods.nb_negative`).
+
+   .. c:member:: void *pfunc;
+
+      Slot pointer. May not be NULL.
+
 .. c:function:: void* PyType_GetSlot(PyTypeObject *type, int slot)
 
    Return the function pointer stored in the given slot. If the
@@ -111,5 +165,7 @@ Type Objects
    or that the function was called with invalid parameters.
    Callers will typically cast the result pointer into the appropriate
    function type.
+
+   Raise an exception if called on a non-heap type.
 
    .. versionadded:: 3.4

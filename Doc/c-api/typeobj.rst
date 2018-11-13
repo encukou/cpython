@@ -1820,17 +1820,41 @@ objects on the thread which called tp_dealloc will not violate any assumptions
 of the library.
 
 
+.. _heap-types:
+
 Heap Types
 ----------
 
 In addition to defining Python types statically, you can define them
-dynamically (i.e. to the heap) using  :c:func:`PyType_FromSpec` and
+dynamically (i.e. allocated on the heap) using :c:func:`PyType_FromSpec` and
 :c:func:`PyType_FromSpecWithBases`.
 
-.. XXX Explain how to use PyType_FromSpec().
+Types created this way act more like Python classes than the static types.
+For example:
 
-.. XXX Document PyType_Spec.
+* The type objects themselves are mutable (it is possible to set class
+  attributes from Python).
+* Heap types allow multiple inheritance.
+* Heap types are created dynamically, on demand, and destroyed when not
+  referenced any more.
 
+To create a heap type, fill a :c:type:`PyType_Spec` structure containing the
+description of the new type, then call :c:func:`PyType_FromSpecWithBases`.
+(This indirection allows the memory layout of :c:type:`PyTypeObject` to evolve
+across Python versions, as required for CPython's :ref:`stable ABI <stable>`
+guarantee.)
+
+The :c:type:`PyType_Spec` and :c:type:`PyType_Slot` structures are used once
+and not referenced afterwards, so they may be allocated dynamically and freed
+after the :c:func:`PyType_FromSpec` call.
+The same goes for the member defintions in ``Py_tp_members`` slots.
+However, ``char *`` fields (i.e. the type name and member names in
+``Py_tp_members``) and contents of ``Py_tp_methods`` and ``Py_tp_getset``,
+must not be freed or modified during the type's lifetime.
+
+.. versionchanged:: 3.8
+   Previously, contents of the ``Py_tp_members`` slot must also have been
+   available throughtout the new type's lifetime.
 
 .. _number-structs:
 
