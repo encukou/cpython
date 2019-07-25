@@ -930,6 +930,7 @@ class KDFTests(unittest.TestCase):
             iterations=1, dklen=None)
         self.assertEqual(out, self.pbkdf2_results['sha1'][0][0])
 
+    @unittest.skip("The python implementation of pbkdf2_hmac has been removed")
     def test_pbkdf2_hmac_py(self):
         self._test_pbkdf2_hmac(py_hashlib.pbkdf2_hmac)
 
