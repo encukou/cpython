@@ -122,7 +122,10 @@ if not get_fips_mode():
 
 def __get_openssl_constructor(name):
     if not get_fips_mode():
-        if name in {'blake2b', 'blake2s'}:
+        if name in {
+            'blake2b', 'blake2s', 'shake_256', 'shake_128',
+            #'sha3_224', 'sha3_256', 'sha3_384', 'sha3_512',
+        }:
             # Prefer our blake2 implementation.
             return __get_builtin_constructor(name)
     try:

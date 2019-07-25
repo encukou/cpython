@@ -179,7 +179,9 @@ class HashLibTestCase(unittest.TestCase):
         a = array.array("b", range(10))
         for cons in self.hash_constructors:
             c = cons(a)
-            if c.name in self.shakes:
+            if (c.name in self.shakes
+                and not cons.__name__.startswith('openssl_')
+            ):
                 c.hexdigest(16)
             else:
                 c.hexdigest()
@@ -226,7 +228,9 @@ class HashLibTestCase(unittest.TestCase):
     def test_hexdigest(self):
         for cons in self.hash_constructors:
             h = cons()
-            if h.name in self.shakes:
+            if (h.name in self.shakes
+                and not cons.__name__.startswith('openssl_')
+            ):
                 self.assertIsInstance(h.digest(16), bytes)
                 self.assertEqual(hexstr(h.digest(16)), h.hexdigest(16))
             else:
@@ -239,6 +243,8 @@ class HashLibTestCase(unittest.TestCase):
         for cons in self.hash_constructors:
             h = cons()
             if h.name not in self.shakes:
+                continue
+            if cons.__name__.startswith('openssl_'):
                 continue
             for digest in h.digest, h.hexdigest:
                 with self.assertRaises((ValueError, OverflowError)):
@@ -269,7 +275,9 @@ class HashLibTestCase(unittest.TestCase):
             m1.update(bees)
             m1.update(cees)
             m1.update(dees)
-            if m1.name in self.shakes:
+            if (m1.name in self.shakes
+                and not cons.__name__.startswith('openssl_')
+            ):
                 args = (16,)
             else:
                 args = ()
@@ -296,15 +304,36 @@ class HashLibTestCase(unittest.TestCase):
         # 2 is for hashlib.name(...) and hashlib.new(name, ...)
         self.assertGreaterEqual(len(constructors), 2)
         for hash_object_constructor in constructors:
+            if (
+                kwargs
+                and hash_object_constructor.__name__.startswith('openssl_')
+            ):
+                return
             m = hash_object_constructor(data, **kwargs)
-            computed = m.hexdigest() if not shake else m.hexdigest(length)
+            if shake:
+                if hash_object_constructor.__name__.startswith('openssl_'):
+                    if length > m.digest_size:
+                        # OpenSSL doesn't give long digests
+                        return
+                    computed = m.hexdigest()[:length*2]
+                    hexdigest = hexdigest[:length*2]
+                else:
+                    computed = m.hexdigest(length)
+            else:
+                computed = m.hexdigest()
             self.assertEqual(
                     computed, hexdigest,
                     "Hash algorithm %s constructed using %s returned hexdigest"
                     " %r for %d byte input data that should have hashed to %r."
                     % (name, hash_object_constructor,
                        computed, len(data), hexdigest))
-            computed = m.digest() if not shake else m.digest(length)
+            if shake:
+                if hash_object_constructor.__name__.startswith('openssl_'):
+                    computed = m.digest()[:length]
+                else:
+                    computed = m.digest(length)
+            else:
+                computed = m.digest()
             digest = bytes.fromhex(hexdigest)
             self.assertEqual(computed, digest)
             if not shake:
@@ -344,12 +373,14 @@ class HashLibTestCase(unittest.TestCase):
         for hash_object_constructor in constructors:
             m = hash_object_constructor()
             self.assertEqual(m.block_size, block_size)
-            self.assertEqual(m.digest_size, digest_size)
+            if not hash_object_constructor.__name__.startswith('openssl_'):
+                self.assertEqual(m.digest_size, digest_size)
             if digest_length:
-                self.assertEqual(len(m.digest(digest_length)),
-                                 digest_length)
-                self.assertEqual(len(m.hexdigest(digest_length)),
-                                 2*digest_length)
+                if not hash_object_constructor.__name__.startswith('openssl_'):
+                    self.assertEqual(len(m.digest(digest_length)),
+                                    digest_length)
+                    self.assertEqual(len(m.hexdigest(digest_length)),
+                                    2*digest_length)
             else:
                 self.assertEqual(len(m.digest()), digest_size)
                 self.assertEqual(len(m.hexdigest()), 2*digest_size)
@@ -379,9 +410,10 @@ class HashLibTestCase(unittest.TestCase):
         for hash_object_constructor in constructors:
             m = hash_object_constructor()
             self.assertEqual(capacity + rate, 1600)
-            self.assertEqual(m._capacity_bits, capacity)
-            self.assertEqual(m._rate_bits, rate)
-            self.assertEqual(m._suffix, suffix)
+            if not hash_object_constructor.__name__.startswith('openssl_'):
+                self.assertEqual(m._capacity_bits, capacity)
+                self.assertEqual(m._rate_bits, rate)
+                self.assertEqual(m._suffix, suffix)
 
     @requires_sha3
     def test_extra_sha3(self):
