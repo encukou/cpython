@@ -901,31 +901,30 @@ class PyBuildExt(build_ext):
         have_usable_openssl = (have_any_openssl and
                                openssl_ver >= min_openssl_ver)
 
+        if not have_usable_openssl:
+            raise ValueError('Cannot build for RHEL without OpenSSL')
+
+        ssl_args = {
+            'include_dirs': ssl_incs,
+            'library_dirs': ssl_libs,
+            'libraries': ['ssl', 'crypto'],
+        }
+
         if have_any_openssl:
             if have_usable_openssl:
                 # The _hashlib module wraps optimized implementations
                 # of hash functions from the OpenSSL library.
                 exts.append( Extension('_hashlib', ['_hashopenssl.c'],
                                        depends = ['hashlib.h'],
-                                       include_dirs = ssl_incs,
-                                       library_dirs = ssl_libs,
-                                       libraries = ['ssl', 'crypto']) )
+                                       **ssl_args))
             else:
                 print("warning: openssl 0x%08x is too old for _hashlib" %
                       openssl_ver)
                 missing.append('_hashlib')
 
-        # We always compile these even when OpenSSL is available (issue #14693).
-        # It's harmless and the object code is tiny (40-50 KB per module,
-        # only loaded when actually used).
-        exts.append( Extension('_sha256', ['sha256module.c'],
-                               depends=['hashlib.h']) )
-        exts.append( Extension('_sha512', ['sha512module.c'],
-                               depends=['hashlib.h']) )
-        exts.append( Extension('_md5', ['md5module.c'],
-                               depends=['hashlib.h']) )
-        exts.append( Extension('_sha1', ['sha1module.c'],
-                               depends=['hashlib.h']) )
+        # RHEL: Always force OpenSSL for md5, sha1, sha256, sha512;
+        # don't build Python's implementations.
+        # sha3 and blake2 have extra functionality, so do build those:
 
         blake2_deps = glob(os.path.join(os.getcwd(), srcdir,
                                         'Modules/_blake2/impl/*'))
@@ -944,6 +943,7 @@ class PyBuildExt(build_ext):
                                 '_blake2/blake2b_impl.c',
                                 '_blake2/blake2s_impl.c'],
                                define_macros=blake2_macros,
+                               **ssl_args,
                                depends=blake2_deps) )
 
         sha3_deps = glob(os.path.join(os.getcwd(), srcdir,
@@ -951,7 +951,8 @@ class PyBuildExt(build_ext):
         sha3_deps.append('hashlib.h')
         exts.append( Extension('_sha3',
                                ['_sha3/sha3module.c'],
-                               depends=sha3_deps))
+                               **ssl_args,
+                               depends=sha3_deps + ['hashlib.h']))
 
         # Modules that provide persistent dictionary-like semantics.  You will
         # probably want to arrange for at least one of them to be available on

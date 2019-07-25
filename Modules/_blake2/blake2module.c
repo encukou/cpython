@@ -9,6 +9,7 @@
  */
 
 #include "Python.h"
+#include "_hashopenssl.h"
 
 #include "impl/blake2.h"
 
@@ -56,6 +57,8 @@ PyInit__blake2(void)
 {
     PyObject *m;
     PyObject *d;
+
+    FAIL_RETURN_IN_FIPS_MODE("blake2");
 
     m = PyModule_Create(&blake2_module);
     if (m == NULL)

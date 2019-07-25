@@ -14,6 +14,7 @@
  */
 
 #include "Python.h"
+#include "_hashopenssl.h"
 #include "pystrhex.h"
 #ifdef WITH_THREAD
 #include "pythread.h"
@@ -102,6 +103,8 @@ py_blake2s_new_impl(PyTypeObject *type, PyObject *data, int digest_size,
 
     unsigned long leaf_size = 0;
     unsigned long long node_offset = 0;
+
+    FAIL_RETURN_IN_FIPS_MODE("_blake2");
 
     self = new_BLAKE2sObject(type);
     if (self == NULL) {
@@ -292,6 +295,8 @@ _blake2_blake2s_update(BLAKE2sObject *self, PyObject *data)
 /*[clinic end generated code: output=757dc087fec37815 input=97500db2f9de4aaa]*/
 {
     Py_buffer buf;
+
+    FAIL_RETURN_IN_FIPS_MODE("_blake2");
 
     GET_BUFFER_VIEW_OR_ERROUT(data, &buf);
 
