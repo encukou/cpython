@@ -938,6 +938,13 @@ init_hashlib(void)
         return;
     }
 
+    if (getenv("OPENSSL_FIPS")) {
+        if (!FIPS_mode_set(1)) {
+            _setException(PyExc_ValueError);
+            return;
+        }
+    }
+
     /* these constants are used by the convenience constructors */
     INIT_CONSTRUCTOR_CONSTANTS(md5);
     INIT_CONSTRUCTOR_CONSTANTS(sha1);
