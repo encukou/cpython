@@ -2283,6 +2283,12 @@ static struct PyModuleDef _hashlibmodule = {
 PyMODINIT_FUNC
 PyInit__hashlib(void)
 {
+    if (getenv("OPENSSL_FIPS")) {
+        if (!FIPS_mode_set(1)) {
+            return _setException(PyExc_ValueError);
+        }
+    }
+
     PyObject *m = PyState_FindModule(&_hashlibmodule);
     if (m != NULL) {
         Py_INCREF(m);
