@@ -2313,7 +2313,7 @@ class PyBuildExt(build_ext):
                            sources=sources,
                            depends=depends))
 
-    def detect_openssl_hashlib(self):
+    def detect_openssl_args(self):
         # Detect SSL support for the socket module (via _ssl)
         config_vars = sysconfig.get_config_vars()
 
@@ -2333,16 +2333,14 @@ class PyBuildExt(build_ext):
         openssl_libs = split_var('OPENSSL_LIBS', '-l')
         if not openssl_libs:
             # libssl and libcrypto not found
-            self.missing.extend(['_ssl', '_hashlib'])
-            return None, None
+            raise ValueError('Cannot build for RHEL without OpenSSL')
 
         # Find OpenSSL includes
         ssl_incs = find_file(
             'openssl/ssl.h', self.inc_dirs, openssl_includes
         )
         if ssl_incs is None:
-            self.missing.extend(['_ssl', '_hashlib'])
-            return None, None
+            raise ValueError('Cannot build for RHEL without OpenSSL')
 
         # OpenSSL 1.0.2 uses Kerberos for KRB5 ciphers
         krb5_h = find_file(
@@ -2352,12 +2350,20 @@ class PyBuildExt(build_ext):
         if krb5_h:
             ssl_incs.extend(krb5_h)
 
+        return {
+            'include_dirs': openssl_includes,
+            'library_dirs': openssl_libdirs,
+            'libraries': openssl_libs,
+        }
+
+    def detect_openssl_hashlib(self):
+
+        config_vars = sysconfig.get_config_vars()
+
         if config_vars.get("HAVE_X509_VERIFY_PARAM_SET1_HOST"):
             self.add(Extension(
                 '_ssl', ['_ssl.c'],
-                include_dirs=openssl_includes,
-                library_dirs=openssl_libdirs,
-                libraries=openssl_libs,
+                **self.detect_openssl_args(),
                 depends=[
                     'socketmodule.h',
                     '_ssl/debughelpers.c',
@@ -2370,9 +2376,7 @@ class PyBuildExt(build_ext):
 
         self.add(Extension('_hashlib', ['_hashopenssl.c'],
                            depends=['hashlib.h'],
-                           include_dirs=openssl_includes,
-                           library_dirs=openssl_libdirs,
-                           libraries=openssl_libs))
+                           **self.detect_openssl_args()) )
 
     def detect_hash_builtins(self):
         # By default we always compile these even when OpenSSL is available
@@ -2429,6 +2433,7 @@ class PyBuildExt(build_ext):
                     '_blake2/blake2b_impl.c',
                     '_blake2/blake2s_impl.c'
                 ],
+                **self.detect_openssl_args(),  # for FIPS_mode verification
                 depends=blake2_deps
             ))
 

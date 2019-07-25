@@ -116,6 +116,12 @@ class HashLibTestCase(unittest.TestCase):
         except ModuleNotFoundError as error:
             if self._warn_on_extension_import and module_name in builtin_hashes:
                 warnings.warn('Did a C extension fail to compile? %s' % error)
+        except ImportError:
+            if get_fips_mode() and module_name == '_blake2':
+                # blake2b & blake2s disabled under FIPS
+                return None
+            else:
+                raise
         return None
 
     def __init__(self, *args, **kwargs):

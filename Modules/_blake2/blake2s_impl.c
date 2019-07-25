@@ -96,6 +96,8 @@ py_blake2s_new_impl(PyTypeObject *type, PyObject *data, int digest_size,
     BLAKE2sObject *self = NULL;
     Py_buffer buf;
 
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_blake2");
+
     self = new_BLAKE2sObject(type);
     if (self == NULL) {
         goto error;
@@ -273,6 +275,8 @@ _blake2_blake2s_update(BLAKE2sObject *self, PyObject *data)
 /*[clinic end generated code: output=757dc087fec37815 input=97500db2f9de4aaa]*/
 {
     Py_buffer buf;
+
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_blake2");
 
     GET_BUFFER_VIEW_OR_ERROUT(data, &buf);
 
