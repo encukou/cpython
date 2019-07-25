@@ -66,12 +66,9 @@ static PyTypeObject EVPtype;
     static PyObject *CONST_ ## Name ## _name_obj = NULL; \
     static EVP_MD_CTX *CONST_new_ ## Name ## _ctx_p = NULL;
 
-DEFINE_CONSTS_FOR_NEW(md5)
-DEFINE_CONSTS_FOR_NEW(sha1)
-DEFINE_CONSTS_FOR_NEW(sha224)
-DEFINE_CONSTS_FOR_NEW(sha256)
-DEFINE_CONSTS_FOR_NEW(sha384)
-DEFINE_CONSTS_FOR_NEW(sha512)
+#define _HASH(py_name, openssl_name) DEFINE_CONSTS_FOR_NEW(py_name)
+#include "_hashopenssl_list.h"
+#undef _HASH
 
 
 static EVPobject *
@@ -896,7 +893,7 @@ generate_hash_name_list(void)
  *  The first call will lazy-initialize, which reports an exception
  *  if initialization fails.
  */
-#define GEN_CONSTRUCTOR(NAME)  \
+#define GEN_CONSTRUCTOR(NAME, SSL_NAME)  \
     static PyObject * \
     EVP_new_ ## NAME (PyObject *self, PyObject *args) \
     { \
@@ -910,8 +907,8 @@ generate_hash_name_list(void)
      \
         if (CONST_new_ ## NAME ## _ctx_p == NULL) { \
             EVP_MD_CTX *ctx_p = EVP_MD_CTX_new(); \
-            if (!EVP_get_digestbyname(#NAME) || \
-                !EVP_DigestInit(ctx_p, EVP_get_digestbyname(#NAME))) { \
+            if (!EVP_get_digestbyname(SSL_NAME) || \
+                !EVP_DigestInit(ctx_p, EVP_get_digestbyname(SSL_NAME))) { \
                 _setException(PyExc_ValueError); \
                 EVP_MD_CTX_free(ctx_p); \
                 return NULL; \
@@ -939,7 +936,7 @@ generate_hash_name_list(void)
     {"openssl_" #NAME, (PyCFunction)EVP_new_ ## NAME, METH_VARARGS, \
         PyDoc_STR("Returns a " #NAME \
                   " hash object; optionally initialized with a string") \
-    }
+    },
 
 /* used in the init function to setup a constructor: initialize OpenSSL
    constructor constants if they haven't been initialized already.  */
@@ -949,12 +946,9 @@ generate_hash_name_list(void)
     } \
 } while (0);
 
-GEN_CONSTRUCTOR(md5)
-GEN_CONSTRUCTOR(sha1)
-GEN_CONSTRUCTOR(sha224)
-GEN_CONSTRUCTOR(sha256)
-GEN_CONSTRUCTOR(sha384)
-GEN_CONSTRUCTOR(sha512)
+#define _HASH(py_name, openssl_name) GEN_CONSTRUCTOR(py_name, openssl_name)
+#include "_hashopenssl_list.h"
+#undef _HASH
 
 /*[clinic input]
 _hashlib.get_fips_mode
@@ -998,12 +992,9 @@ static struct PyMethodDef EVP_functions[] = {
 #endif
     _HASHLIB_SCRYPT_METHODDEF
     _HASHLIB_GET_FIPS_MODE_METHODDEF
-    CONSTRUCTOR_METH_DEF(md5),
-    CONSTRUCTOR_METH_DEF(sha1),
-    CONSTRUCTOR_METH_DEF(sha224),
-    CONSTRUCTOR_METH_DEF(sha256),
-    CONSTRUCTOR_METH_DEF(sha384),
-    CONSTRUCTOR_METH_DEF(sha512),
+#define _HASH(py_name, openssl_name) CONSTRUCTOR_METH_DEF(py_name)
+#include "_hashopenssl_list.h"
+#undef _HASH
     {NULL,      NULL}            /* Sentinel */
 };
 
@@ -1067,11 +1058,8 @@ PyInit__hashlib(void)
     }
 
     /* these constants are used by the convenience constructors */
-    INIT_CONSTRUCTOR_CONSTANTS(md5);
-    INIT_CONSTRUCTOR_CONSTANTS(sha1);
-    INIT_CONSTRUCTOR_CONSTANTS(sha224);
-    INIT_CONSTRUCTOR_CONSTANTS(sha256);
-    INIT_CONSTRUCTOR_CONSTANTS(sha384);
-    INIT_CONSTRUCTOR_CONSTANTS(sha512);
+#define _HASH(py_name, openssl_name) INIT_CONSTRUCTOR_CONSTANTS(py_name)
+#include "_hashopenssl_list.h"
+#undef _HASH
     return m;
 }
