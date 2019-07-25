@@ -1060,6 +1060,12 @@ PyInit__hashlib(void)
     Py_INCREF((PyObject *)&EVPtype);
     PyModule_AddObject(m, "HASH", (PyObject *)&EVPtype);
 
+    if (getenv("OPENSSL_FIPS")) {
+        if (!FIPS_mode_set(1)) {
+            return _setException(PyExc_ValueError);
+        }
+    }
+
     /* these constants are used by the convenience constructors */
     INIT_CONSTRUCTOR_CONSTANTS(md5);
     INIT_CONSTRUCTOR_CONSTANTS(sha1);
