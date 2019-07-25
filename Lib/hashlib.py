@@ -70,14 +70,17 @@ __all__ = __always_supported + ('new', 'algorithms_guaranteed',
 
 __builtin_constructor_cache = {}
 
-# Prefer our blake2 implementation
+# Prefer our blake2 implementation (unless in FIPS mode)
 # OpenSSL 1.1.0 comes with a limited implementation of blake2b/s. The OpenSSL
 # implementations neither support keyed blake2 (blake2 MAC) nor advanced
 # features like salt, personalization, or tree hashing. OpenSSL hash-only
 # variants are available as 'blake2b512' and 'blake2s256', though.
-__block_openssl_constructor = {
-    'blake2b', 'blake2s',
-}
+import _hashlib
+if _hashlib.get_fips_mode():
+    __block_openssl_constructor = set()
+else:
+    __block_openssl_constructor = {'blake2b', 'blake2s'}
+
 
 def __get_builtin_constructor(name):
     cache = __builtin_constructor_cache
