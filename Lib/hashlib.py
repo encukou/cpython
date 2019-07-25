@@ -236,6 +236,11 @@ try:
 except ImportError:
     pass
 
+try:
+    from _hashlib import get_fips_mode
+except ImportError:
+    pass
+
 
 for __func_name in __always_supported:
     # try them all, some may not work due to the OpenSSL
