@@ -132,12 +132,14 @@ def __get_openssl_constructor(name):
         f = getattr(_hashlib, 'openssl_' + name)
         # Allow the C module to raise ValueError.  The function will be
         # defined but the hash not actually available thanks to OpenSSL.
-        f()
+        if not get_fips_mode():
+            # N.B. In "FIPS mode", there is no fallback.
+            # If this test fails, we want to export the broken hash
+            # constructor anyway.
+            f()
         # Use the C function directly (very fast)
         return f
     except (AttributeError, ValueError):
-        if get_fips_mode():
-            raise
         return __get_builtin_constructor(name)
 
 if not get_fips_mode():
