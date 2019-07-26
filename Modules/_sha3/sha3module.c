@@ -163,7 +163,7 @@ static PyTypeObject SHAKE256type;
 static SHA3object *
 newSHA3object(PyTypeObject *type)
 {
-    FAIL_RETURN_IN_FIPS_MODE("_sha3");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_sha3");
     SHA3object *newobj;
     newobj = (SHA3object *)PyObject_New(SHA3object, type);
     if (newobj == NULL) {
@@ -179,7 +179,7 @@ newSHA3object(PyTypeObject *type)
 static PyObject *
 py_sha3_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    FAIL_RETURN_IN_FIPS_MODE("_sha3");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_sha3");
     SHA3object *self = NULL;
     Py_buffer buf = {NULL, NULL};
     HashReturn res;
@@ -727,7 +727,7 @@ PyInit__sha3(void)
 {
     PyObject *m = NULL;
 
-    FAIL_RETURN_IN_FIPS_MODE("_sha3");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ImportError, "_sha3");
 
     if ((m = PyModule_Create(&_SHA3module)) == NULL) {
         return NULL;

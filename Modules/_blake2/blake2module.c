@@ -58,7 +58,7 @@ PyInit__blake2(void)
     PyObject *m;
     PyObject *d;
 
-    FAIL_RETURN_IN_FIPS_MODE("blake2");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ImportError, "blake2");
 
     m = PyModule_Create(&blake2_module);
     if (m == NULL)

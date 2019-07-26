@@ -39,7 +39,7 @@ _setException(PyObject *exc)
 
 __attribute__((__unused__))
 static int
-_Py_hashlib_fips_error(char *name) {
+_Py_hashlib_fips_error(PyObject *exc, char *name) {
     int result = FIPS_mode();
     if (result == 0) {
         // "If the library was built without support of the FIPS Object Module,
@@ -49,18 +49,17 @@ _Py_hashlib_fips_error(char *name) {
 
         unsigned long errcode = ERR_peek_last_error();
         if (errcode) {
-            _setException(PyExc_ValueError);
+            _setException(exc);
             return 1;
         }
         return 0;
     }
-    PyErr_Format(PyExc_ValueError, "%s is not available in FIPS mode",
-                 name);
+    PyErr_Format(exc, "%s is not available in FIPS mode", name);
     return 1;
 }
 
-#define FAIL_RETURN_IN_FIPS_MODE(name) do { \
-    if (_Py_hashlib_fips_error(name)) return NULL; \
+#define FAIL_RETURN_IN_FIPS_MODE(exc, name) do { \
+    if (_Py_hashlib_fips_error(exc, name)) return NULL; \
 } while (0)
 
 #endif  // !Py_HASHOPENSSL_H

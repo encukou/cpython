@@ -104,7 +104,7 @@ py_blake2b_new_impl(PyTypeObject *type, PyObject *data, int digest_size,
     unsigned long leaf_size = 0;
     unsigned long long node_offset = 0;
 
-    FAIL_RETURN_IN_FIPS_MODE("_blake2");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_blake2");
 
     self = new_BLAKE2bObject(type);
     if (self == NULL) {
@@ -296,7 +296,7 @@ _blake2_blake2b_update(BLAKE2bObject *self, PyObject *data)
 {
     Py_buffer buf;
 
-    FAIL_RETURN_IN_FIPS_MODE("_blake2");
+    FAIL_RETURN_IN_FIPS_MODE(PyExc_ValueError, "_blake2");
 
     GET_BUFFER_VIEW_OR_ERROUT(data, &buf);
 
