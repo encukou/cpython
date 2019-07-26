@@ -922,6 +922,10 @@ class PyBuildExt(build_ext):
                       openssl_ver)
                 missing.append('_hashlib')
 
+        exts.append( Extension('_hmacopenssl', ['_hmacopenssl.c'],
+                                depends = ['hashlib.h'],
+                                **ssl_args))
+
         # RHEL: Always force OpenSSL for md5, sha1, sha256, sha512;
         # don't build Python's implementations.
         # sha3 and blake2 have extra functionality, so do build those:
