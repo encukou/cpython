@@ -363,7 +363,7 @@ static PyType_Slot HmacType_slots[] = {
 PyType_Spec HmacType_spec = {
     "_hmacopenssl.HMAC",    /* name */
     sizeof(HmacObject),     /* basicsize */
-    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,     
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .slots = HmacType_slots,
 };
 
@@ -407,7 +407,7 @@ static PyModuleDef_Slot hmacopenssl_slots[] = {
 };
 
 static struct PyModuleDef _hmacopenssl_def = {
-    PyModuleDef_HEAD_INIT,  /* m_base */ 
+    PyModuleDef_HEAD_INIT,  /* m_base */
     .m_name = "_hmacopenssl",
     .m_methods = hmacopenssl_functions,
     .m_slots = hmacopenssl_slots,

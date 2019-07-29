@@ -42,7 +42,7 @@ class HMAC:
         if _hashlib.get_fips_mode():
             raise ValueError(
                 'hmac.HMAC is not available in FIPS mode. '
-                'Use hmac.new().'
+                + 'Use hmac.new().'
             )
 
         if not isinstance(key, (bytes, bytearray)):
