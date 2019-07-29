@@ -24,7 +24,10 @@
 
 #include <openssl/hmac.h>
 
-static PyTypeObject HmacType;
+typedef struct hmacopenssl_state {
+    PyTypeObject *HmacType;
+} hmacopenssl_state;
+
 
 typedef struct {
     PyObject_HEAD
@@ -36,9 +39,9 @@ typedef struct {
 #include "clinic/_hmacopenssl.c.h"
 /*[clinic input]
 module _hmacopenssl
-class _hmacopenssl.HMAC "HmacObject *" "&HmacType"
+class _hmacopenssl.HMAC "HmacObject *" "PyModule_GetState(module)->HmacType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=c98d3f2af591c085]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=204b7f45847f57b4]*/
 
 
 /*[clinic input]
@@ -56,8 +59,15 @@ _hmacopenssl_new_impl(PyObject *module, Py_buffer *key,
                       const char *digestmod)
 /*[clinic end generated code: output=46f1cb4e02921922 input=be8c0c2e4fad508c]*/
 {
+    hmacopenssl_state *state;
+
     if (digestmod == NULL) {
         PyErr_SetString(PyExc_ValueError, "digestmod must be specified");
+        return NULL;
+    }
+
+    state = PyModule_GetState(module);
+    if (state == NULL) {
         return NULL;
     }
 
@@ -105,7 +115,7 @@ _hmacopenssl_new_impl(PyObject *module, Py_buffer *key,
         goto error;
     }
 
-    retval = (HmacObject *)PyObject_New(HmacObject, &HmacType);
+    retval = (HmacObject *)PyObject_New(HmacObject, state->HmacType);
     if (retval == NULL) {
         goto error;
     }
@@ -133,7 +143,9 @@ static PyObject *
 _hmacopenssl_HMAC_copy_impl(HmacObject *self)
 /*[clinic end generated code: output=fe5ee41faf30dcf0 input=f5ed20feec42d8d0]*/
 {
-    HmacObject *retval = (HmacObject *)PyObject_New(HmacObject, &HmacType);
+    HmacObject *retval;
+
+    retval = (HmacObject *)PyObject_New(HmacObject, (PyTypeObject *)PyObject_Type((PyObject *)self));
     if (retval == NULL) {
         return NULL;
     }
@@ -147,7 +159,7 @@ _hmacopenssl_HMAC_copy_impl(HmacObject *self)
         return _setException(PyExc_ValueError);
     }
 
-    return (PyObject*)retval;
+    return (PyObject *)retval;
 }
 
 static void
@@ -338,18 +350,23 @@ Attributes:\n\
 name -- the name, including the hash algorithm used by this object\n\
 digest_size -- number of bytes in digest() output\n");
 
-static PyTypeObject HmacType = {
-    PyVarObject_HEAD_INIT(NULL, 0)
-    "_hmacopenssl.HMAC",    /*tp_name*/
-    sizeof(HmacObject),  /*tp_basicsize*/
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    .tp_doc = hmactype_doc,
-    .tp_repr = (reprfunc)_hmac_repr,
-    .tp_dealloc = (destructor)_hmac_dealloc,
-    .tp_methods = Hmac_methods,
-    .tp_getset = Hmac_getset,
-    .tp_members = Hmac_members,
+static PyType_Slot HmacType_slots[] = {
+    {Py_tp_doc, hmactype_doc},
+    {Py_tp_repr, (reprfunc)_hmac_repr},
+    {Py_tp_dealloc,(destructor)_hmac_dealloc},
+    {Py_tp_methods, Hmac_methods},
+    {Py_tp_getset, Hmac_getset},
+    {Py_tp_members, Hmac_members},
+    {0, NULL}
 };
+
+PyType_Spec HmacType_spec = {
+    "_hmacopenssl.HMAC",    /* name */
+    sizeof(HmacObject),     /* basicsize */
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,     
+    .slots = HmacType_slots,
+};
+
 
 static struct PyMethodDef hmacopenssl_functions[] = {
     _HMACOPENSSL_NEW_METHODDEF
@@ -360,37 +377,46 @@ static struct PyMethodDef hmacopenssl_functions[] = {
 
 /* Initialize this module. */
 
+static int
+hmacopenssl_exec(PyObject *m) {
+    /* TODO build EVP_functions openssl_* entries dynamically based
+     * on what hashes are supported rather than listing many
+     * and having some unsupported.  Only init appropriate
+     * constants. */
+    PyObject *temp;
 
-static struct PyModuleDef _hmacopenssl_module = {
-    PyModuleDef_HEAD_INIT,
-    "_hmacopenssl",
-    NULL,
-    -1,
-    hmacopenssl_functions,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    temp = PyType_FromSpec(&HmacType_spec);
+    if (temp == NULL) {
+        goto fail;
+    }
+
+    if (PyModule_AddObject(m, "HMAC", temp) == -1) {
+        goto fail;
+    }
+
+    return 0;
+
+fail:
+    Py_XDECREF(temp);
+    return -1;
+}
+
+static PyModuleDef_Slot hmacopenssl_slots[] = {
+    {Py_mod_exec, hmacopenssl_exec},
+    {0, NULL},
 };
+
+static struct PyModuleDef _hmacopenssl_def = {
+    PyModuleDef_HEAD_INIT,  /* m_base */ 
+    .m_name = "_hmacopenssl",
+    .m_methods = hmacopenssl_functions,
+    .m_slots = hmacopenssl_slots,
+    .m_size = sizeof(hmacopenssl_state)
+};
+
 
 PyMODINIT_FUNC
 PyInit__hmacopenssl(void)
 {
-    /* TODO build EVP_functions openssl_* entries dynamically based
-     * on what hashes are supported rather than listing many
-     * but having some be unsupported.  Only init appropriate
-     * constants. */
-
-    Py_TYPE(&HmacType) = &PyType_Type;
-    if (PyType_Ready(&HmacType) < 0)
-        return NULL;
-
-    PyObject *m = PyModule_Create(&_hmacopenssl_module);
-    if (m == NULL)
-        return NULL;
-
-    Py_INCREF((PyObject *)&HmacType);
-    PyModule_AddObject(m, "HMAC", (PyObject *)&HmacType);
-
-    return m;
+    return PyModuleDef_Init(&_hmacopenssl_def);
 }
