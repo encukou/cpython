@@ -20,6 +20,7 @@ import warnings
 from test import support
 from test.support import _4G, bigmemtest, import_fresh_module
 from http.client import HTTPException
+from functools import partial
 
 # Were we compiled --with-pydebug or with #define Py_DEBUG?
 COMPILED_WITH_PYDEBUG = hasattr(sys, 'gettotalrefcount')
@@ -53,6 +54,11 @@ except ImportError:
 
     def get_fips_mode():
         return 0
+
+if get_fips_mode():
+    FIPS_DISABLED = {'md5'}
+else:
+    FIPS_DISABLED = set()
 
 try:
     import _blake2
@@ -94,6 +100,11 @@ def read_vectors(hash_name):
             parts = line.split(',')
             parts[0] = bytes.fromhex(parts[0])
             yield parts
+
+def _is_blake2_constructor(constructor):
+    if isinstance(constructor, partial):
+        constructor = constructor.func
+    return  getattr(constructor, '__name__', '').startswith('openssl_blake2')
 
 
 class HashLibTestCase(unittest.TestCase):
@@ -137,15 +148,21 @@ class HashLibTestCase(unittest.TestCase):
         for algorithm in algorithms:
             self.constructors_to_test[algorithm] = set()
 
+        def _add_constructor(algorithm, constructor):
+            constructors.add(partial(constructor, usedforsecurity=False))
+            if algorithm not in FIPS_DISABLED:
+                constructors.add(constructor)
+                constructors.add(partial(constructor, usedforsecurity=True))
+
         # For each algorithm, test the direct constructor and the use
         # of hashlib.new given the algorithm name.
         for algorithm, constructors in self.constructors_to_test.items():
-            constructors.add(getattr(hashlib, algorithm))
+            _add_constructor(algorithm, getattr(hashlib, algorithm))
             def _test_algorithm_via_hashlib_new(data=None, _alg=algorithm, **kwargs):
                 if data is None:
                     return hashlib.new(_alg, **kwargs)
                 return hashlib.new(_alg, data, **kwargs)
-            constructors.add(_test_algorithm_via_hashlib_new)
+            _add_constructor(algorithm, _test_algorithm_via_hashlib_new)
 
         _hashlib = self._conditional_import_module('_hashlib')
         self._hashlib = _hashlib
@@ -157,13 +174,7 @@ class HashLibTestCase(unittest.TestCase):
             for algorithm, constructors in self.constructors_to_test.items():
                 constructor = getattr(_hashlib, 'openssl_'+algorithm, None)
                 if constructor:
-                    try:
-                        constructor()
-                    except ValueError:
-                        # default constructor blocked by crypto policy
-                        pass
-                    else:
-                        constructors.add(constructor)
+                    _add_constructor(algorithm, constructor)
 
         def add_builtin_constructor(name):
             try:
@@ -336,6 +347,8 @@ class HashLibTestCase(unittest.TestCase):
                 self.assertIn(h.name, self.supported_hash_names)
             else:
                 self.assertNotIn(h.name, self.supported_hash_names)
+            if not h.name.startswith('blake2') and h.name not in FIPS_DISABLED:
+                self.assertEqual(h.name, hashlib.new(h.name).name)
             self.assertEqual(
                 h.name,
                 hashlib.new(h.name, usedforsecurity=False).name
@@ -382,8 +395,10 @@ class HashLibTestCase(unittest.TestCase):
         for hash_object_constructor in constructors:
 
             # OpenSSL's blake2s & blake2d don't support `key`
-            _name = hash_object_constructor.__name__
-            if 'key' in kwargs and _name.startswith('openssl_blake2'):
+            if (
+                'key' in kwargs
+                and _is_blake2_constructor(hash_object_constructor)
+            ):
                 return
 
             m = hash_object_constructor(data, **kwargs)
@@ -964,6 +979,15 @@ class HashLibTestCase(unittest.TestCase):
         ):
             HASHXOF()
 
+    @unittest.skipUnless(get_fips_mode(), 'Needs FIPS mode.')
+    def test_usedforsecurity_repeat(self):
+        """Make sure usedforsecurity flag isn't copied to other contexts"""
+        for i in range(3):
+            for cons in hashlib.md5, partial(hashlib.new, 'md5'):
+                self.assertRaises(ValueError, cons)
+                self.assertRaises(ValueError, partial(cons, usedforsecurity=True))
+                self.assertEqual(cons(usedforsecurity=False).hexdigest(),
+                                'd41d8cd98f00b204e9800998ecf8427e')
 
 class KDFTests(unittest.TestCase):
 
