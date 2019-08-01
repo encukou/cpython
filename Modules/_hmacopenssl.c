@@ -22,12 +22,12 @@
 #include "_hashopenssl.h"
 
 
-#include <openssl/hmac.h>
 
 typedef struct hmacopenssl_state {
     PyTypeObject *HmacType;
 } hmacopenssl_state;
 
+#include <openssl/hmac.h>
 
 typedef struct {
     PyObject_HEAD
@@ -39,7 +39,7 @@ typedef struct {
 #include "clinic/_hmacopenssl.c.h"
 /*[clinic input]
 module _hmacopenssl
-class _hmacopenssl.HMAC "HmacObject *" "PyModule_GetState(module)->HmacType"
+class _hmacopenssl.HMAC "HmacObject *" "((hmacopenssl_state *)PyModule_GetState(module))->HmacType"
 [clinic start generated code]*/
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=204b7f45847f57b4]*/
 
@@ -71,7 +71,7 @@ _hmacopenssl_new_impl(PyObject *module, Py_buffer *key,
         return NULL;
     }
 
-    /* name mut be lowercase */
+    /* name must be lowercase */
     for (int i=0; digestmod[i]; i++) {
         if (
             ((digestmod[i] < 'a') || (digestmod[i] > 'z'))
@@ -383,7 +383,8 @@ hmacopenssl_exec(PyObject *m) {
      * on what hashes are supported rather than listing many
      * and having some unsupported.  Only init appropriate
      * constants. */
-    PyObject *temp;
+    PyObject *temp = NULL;
+    hmacopenssl_state *state;
 
     temp = PyType_FromSpec(&HmacType_spec);
     if (temp == NULL) {
@@ -393,6 +394,9 @@ hmacopenssl_exec(PyObject *m) {
     if (PyModule_AddObject(m, "HMAC", temp) == -1) {
         goto fail;
     }
+
+    state = PyModule_GetState(m);
+    state->HmacType = (PyTypeObject *)temp;
 
     return 0;
 
