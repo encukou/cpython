@@ -16,8 +16,9 @@ else:
 
 import hashlib as _hashlib
 
-trans_5C = bytes((x ^ 0x5C) for x in range(256))
-trans_36 = bytes((x ^ 0x36) for x in range(256))
+if not _hashopenssl.get_fips_mode():
+    trans_5C = bytes((x ^ 0x5C) for x in range(256))
+    trans_36 = bytes((x ^ 0x36) for x in range(256))
 
 # The size of the digests returned by HMAC depends on the underlying
 # hashing module used.  Use digest_size from the instance of HMAC instead.
@@ -48,17 +49,18 @@ class HMAC:
                    msg argument.  Passing it as a keyword argument is
                    recommended, though not required for legacy API reasons.
         """
-
         if not isinstance(key, (bytes, bytearray)):
             raise TypeError("key: expected bytes or bytearray, but got %r" % type(key).__name__)
 
         if not digestmod:
             raise TypeError("Missing required parameter 'digestmod'.")
 
-        if _hashopenssl and isinstance(digestmod, (str, _functype)):
+        if _hashopenssl.get_fips_mode() or (_hashopenssl and isinstance(digestmod, (str, _functype))):
             try:
                 self._init_hmac(key, msg, digestmod)
             except _hashopenssl.UnsupportedDigestmodError:
+                if _hashopenssl.get_fips_mode():
+                    raise
                 self._init_old(key, msg, digestmod)
         else:
             self._init_old(key, msg, digestmod)
@@ -69,6 +71,9 @@ class HMAC:
         self.block_size = self._hmac.block_size
 
     def _init_old(self, key, msg, digestmod):
+        if _hashopenssl.get_fips_mode():
+            # In FIPS mode, use OpenSSL anyway: raise the appropriate error
+            return self._init_hmac(key, msg, digestmod)
         if callable(digestmod):
             digest_cons = digestmod
         elif isinstance(digestmod, str):
