@@ -860,10 +860,32 @@ GEN_CONSTRUCTOR(sha384)
 GEN_CONSTRUCTOR(sha512)
 #endif
 
+static PyObject *
+_hashlib_get_fips_mode(PyObject *module, PyObject *unused)
+{
+    // XXX: This function skips error checking.
+    // This is only appropriate for RHEL.
+
+    // From the OpenSSL docs:
+    // "If the library was built without support of the FIPS Object Module,
+    // then the function will return 0 with an error code of
+    // CRYPTO_R_FIPS_MODE_NOT_SUPPORTED (0x0f06d065)."
+    // In RHEL:
+    // * we do build with FIPS, so the function always succeeds
+    // * even if it didn't, people seem used to errors being left on the
+    //   OpenSSL error stack.
+
+    // For more info, see:
+    //  https://bugzilla.redhat.com/show_bug.cgi?id=1745499
+
+    return PyInt_FromLong(FIPS_mode());
+}
+
 /* List of functions exported by this module */
 
 static struct PyMethodDef EVP_functions[] = {
     {"new", (PyCFunction)EVP_new, METH_VARARGS|METH_KEYWORDS, EVP_new__doc__},
+    {"get_fips_mode", (PyCFunction)_hashlib_get_fips_mode, METH_NOARGS, NULL},
     CONSTRUCTOR_METH_DEF(md5),
     CONSTRUCTOR_METH_DEF(sha1),
 #ifdef _OPENSSL_SUPPORTS_SHA2
