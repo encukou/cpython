@@ -48,10 +48,6 @@
  * to allow the user to optimize based on the platform they're using. */
 #define HASHLIB_GIL_MINSIZE 2048
 
-#ifndef HASH_OBJ_CONSTRUCTOR
-#define HASH_OBJ_CONSTRUCTOR 0
-#endif
-
 #if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x00908000)
 #define _OPENSSL_SUPPORTS_SHA2
 #endif
@@ -384,53 +380,6 @@ EVP_repr(PyObject *self)
     return PyString_FromString(buf);
 }
 
-#if HASH_OBJ_CONSTRUCTOR
-static int
-EVP_tp_init(EVPobject *self, PyObject *args, PyObject *kwds)
-{
-    static char *kwlist[] = {"name", "string", NULL};
-    PyObject *name_obj = NULL;
-    Py_buffer view = { 0 };
-    char *nameStr;
-    const EVP_MD *digest;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|s*:HASH", kwlist,
-                                     &name_obj, &view)) {
-        return -1;
-    }
-
-    if (!PyArg_Parse(name_obj, "s", &nameStr)) {
-        PyErr_SetString(PyExc_TypeError, "name must be a string");
-        PyBuffer_Release(&view);
-        return -1;
-    }
-
-    digest = EVP_get_digestbyname(nameStr);
-    if (!digest) {
-        PyErr_SetString(PyExc_ValueError, "unknown hash function");
-        PyBuffer_Release(&view);
-        return -1;
-    }
-    EVP_DigestInit(self->ctx, digest);
-
-    self->name = name_obj;
-    Py_INCREF(self->name);
-
-    if (view.obj) {
-        if (view.len >= HASHLIB_GIL_MINSIZE) {
-            Py_BEGIN_ALLOW_THREADS
-            EVP_hash(self, view.buf, view.len);
-            Py_END_ALLOW_THREADS
-        } else {
-            EVP_hash(self, view.buf, view.len);
-        }
-        PyBuffer_Release(&view);
-    }
-
-    return 0;
-}
-#endif
-
 
 PyDoc_STRVAR(hashtype_doc,
 "A hash represents the object used to calculate a checksum of a\n\
@@ -486,9 +435,6 @@ static PyTypeObject EVPtype = {
     0,                  /* tp_descr_get */
     0,                  /* tp_descr_set */
     0,                  /* tp_dictoffset */
-#endif
-#if HASH_OBJ_CONSTRUCTOR
-    (initproc)EVP_tp_init, /* tp_init */
 #endif
 };
 
@@ -927,11 +873,6 @@ init_hashlib(void)
     if (PyModule_AddObject(m, "openssl_md_meth_names", openssl_md_meth_names)) {
         return;
     }
-
-#if HASH_OBJ_CONSTRUCTOR
-    Py_INCREF(&EVPtype);
-    PyModule_AddObject(m, "HASH", (PyObject *)&EVPtype);
-#endif
 
     /* these constants are used by the convenience constructors */
     INIT_CONSTRUCTOR_CONSTANTS(md5);
