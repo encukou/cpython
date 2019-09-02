@@ -441,7 +441,7 @@ static PyTypeObject EVPtype = {
 static PyObject *
 EVPnew(PyObject *name_obj,
        const EVP_MD *digest, const EVP_MD_CTX *initial_ctx,
-       const unsigned char *cp, Py_ssize_t len)
+       const unsigned char *cp, Py_ssize_t len, int usedforsecurity)
 {
     EVPobject *self;
 
@@ -456,7 +456,23 @@ EVPnew(PyObject *name_obj,
     if (initial_ctx) {
         EVP_MD_CTX_copy(self->ctx, initial_ctx);
     } else {
-        EVP_DigestInit(self->ctx, digest);
+        EVP_MD_CTX_init(self->ctx);
+
+        /*
+        If the user has declared that this digest is being used in a
+        non-security role (e.g. indexing into a data structure), set
+        the exception flag for openssl to allow it
+        */
+        if (!usedforsecurity) {
+#ifdef EVP_MD_CTX_FLAG_NON_FIPS_ALLOW
+            EVP_MD_CTX_set_flags(self->ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+#endif
+        }
+        if (!EVP_DigestInit_ex(self->ctx, digest, NULL)) {
+            _setException(PyExc_ValueError);
+            Py_DECREF(self);
+            return NULL;
+        }
     }
 
     if (cp && len) {
@@ -485,15 +501,16 @@ The MD5 and SHA1 algorithms are always supported.\n");
 static PyObject *
 EVP_new(PyObject *self, PyObject *args, PyObject *kwdict)
 {
-    static char *kwlist[] = {"name", "string", NULL};
+    static char *kwlist[] = {"name", "string", "usedforsecurity", NULL};
     PyObject *name_obj = NULL;
     Py_buffer view = { 0 };
     PyObject *ret_obj;
     char *name;
     const EVP_MD *digest;
+    int usedforsecurity = 1;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "O|s*:new", kwlist,
-                                     &name_obj, &view)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwdict, "O|s*i:new", kwlist,
+                                     &name_obj, &view, &usedforsecurity)) {
         return NULL;
     }
 
@@ -506,7 +523,7 @@ EVP_new(PyObject *self, PyObject *args, PyObject *kwdict)
     digest = EVP_get_digestbyname(name);
 
     ret_obj = EVPnew(name_obj, digest, NULL, (unsigned char*)view.buf,
-                     view.len);
+                     view.len, usedforsecurity);
     PyBuffer_Release(&view);
 
     return ret_obj;
@@ -771,30 +788,46 @@ generate_hash_name_list(void)
  *  the generic one passing it a python string and are noticeably
  *  faster than calling a python new() wrapper.  Thats important for
  *  code that wants to make hashes of a bunch of small strings.
+ *
+ *  For usedforsecurity=False, the optimization is not used.
  */
 #define GEN_CONSTRUCTOR(NAME)  \
     static PyObject * \
-    EVP_new_ ## NAME (PyObject *self, PyObject *args) \
+    EVP_new_ ## NAME (PyObject *self, PyObject *args, PyObject *kwdict) \
     { \
+        static char *kwlist[] = {"string", "usedforsecurity", NULL}; \
         Py_buffer view = { 0 }; \
         PyObject *ret_obj; \
+        int usedforsecurity=1; \
      \
-        if (!PyArg_ParseTuple(args, "|s*:" #NAME , &view)) { \
+        if (!PyArg_ParseTupleAndKeywords( \
+            args, kwdict, "|s*i:" #NAME, kwlist, \
+            &view, &usedforsecurity \
+        )) { \
             return NULL; \
         } \
-     \
-        ret_obj = EVPnew( \
-                    CONST_ ## NAME ## _name_obj, \
-                    NULL, \
-                    CONST_new_ ## NAME ## _ctx_p, \
-                    (unsigned char*)view.buf, view.len); \
+        if (usedforsecurity == 0) { \
+            ret_obj = EVPnew( \
+                        CONST_ ## NAME ## _name_obj, \
+                        EVP_get_digestbyname(#NAME), \
+                        NULL, \
+                        (unsigned char*)view.buf, view.len, \
+                        usedforsecurity); \
+        } else { \
+            ret_obj = EVPnew( \
+                        CONST_ ## NAME ## _name_obj, \
+                        NULL, \
+                        CONST_new_ ## NAME ## _ctx_p, \
+                        (unsigned char*)view.buf, view.len, \
+                        usedforsecurity); \
+        } \
         PyBuffer_Release(&view); \
         return ret_obj; \
     }
 
 /* a PyMethodDef structure for the constructor */
 #define CONSTRUCTOR_METH_DEF(NAME)  \
-    {"openssl_" #NAME, (PyCFunction)EVP_new_ ## NAME, METH_VARARGS, \
+    {"openssl_" #NAME, (PyCFunction)EVP_new_ ## NAME, METH_VARARGS|METH_KEYWORDS, \
         PyDoc_STR("Returns a " #NAME \
                   " hash object; optionally initialized with a string") \
     }
