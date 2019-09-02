@@ -813,7 +813,7 @@ generate_hash_name_list(void)
         )) { \
             return NULL; \
         } \
-        if (usedforsecurity == 0) { \
+        if (usedforsecurity == 0 || CONST_new_ ## NAME ## _ctx_p == NULL) { \
             ret_obj = EVPnew( \
                         CONST_ ## NAME ## _name_obj, \
                         EVP_get_digestbyname(#NAME), \
@@ -846,7 +846,9 @@ generate_hash_name_list(void)
     CONST_ ## NAME ## _name_obj = PyString_FromString(#NAME); \
         if (EVP_get_digestbyname(#NAME)) { \
             CONST_new_ ## NAME ## _ctx_p = EVP_MD_CTX_new(); \
-            EVP_DigestInit(CONST_new_ ## NAME ## _ctx_p, EVP_get_digestbyname(#NAME)); \
+            if (!EVP_DigestInit(CONST_new_ ## NAME ## _ctx_p, EVP_get_digestbyname(#NAME))) { \
+                CONST_new_ ## NAME ## _ctx_p = NULL; \
+            } \
         } \
     } \
 } while (0);
