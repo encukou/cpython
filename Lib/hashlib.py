@@ -6,9 +6,12 @@
 
 __doc__ = """hashlib module - A common interface to many hash functions.
 
-new(name, string='') - returns a new hash object implementing the
-                       given hash function; initializing the hash
-                       using the given string data.
+new(name, string='', usedforsecurity=True)
+     - returns a new hash object implementing the given hash function;
+       initializing the hash using the given string data.
+
+       "usedforsecurity" is a non-standard extension for better supporting
+       FIPS-compliant environments (see below)
 
 Named constructor functions are also available, these are much faster
 than using new():
@@ -24,6 +27,20 @@ the zlib module.
 
 Choose your hash function wisely.  Some have known collision weaknesses.
 sha384 and sha512 will be slow on 32 bit platforms.
+
+Our implementation of hashlib uses OpenSSL.
+
+OpenSSL has a "FIPS mode", which, if enabled, may restrict the available hashes
+to only those that are compliant with FIPS regulations.  For example, it may
+deny the use of MD5, on the grounds that this is not secure for uses such as
+authentication, system integrity checking, or digital signatures.
+
+If you need to use such a hash for non-security purposes (such as indexing into
+a data structure for speed), you can override the keyword argument
+"usedforsecurity" from True to False to signify that your code is not relying
+on the hash for security purposes, and this will allow the hash to be usable
+even in FIPS mode.  This is not a standard feature of Python 2.7's hashlib, and
+is included here to better support FIPS mode.
 
 Hash objects have these methods:
  - update(arg): Update the hash object with the string arg. Repeated calls
@@ -82,6 +99,7 @@ def __get_openssl_constructor(name):
         # Use the C function directly (very fast)
         return f
     except (AttributeError, ValueError):
+        # RHEL only: Fallbacks removed; we always use OpenSSL for hashes.
         raise
 
 
@@ -95,10 +113,7 @@ def __hash_new(name, string='', usedforsecurity=True):
     try:
         return _hashlib.new(name, string, usedforsecurity)
     except ValueError:
-        # If the _hashlib module (OpenSSL) doesn't support the named
-        # hash, try using our builtin implementations.
-        # This allows for SHA224/256 and SHA384/512 support even though
-        # the OpenSSL library prior to 0.9.8 doesn't provide them.
+        # RHEL only: Fallbacks removed; we always use OpenSSL for hashes.
         raise
 
 

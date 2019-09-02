@@ -496,7 +496,14 @@ PyDoc_STRVAR(EVP_new__doc__,
 An optional string argument may be provided and will be\n\
 automatically hashed.\n\
 \n\
-The MD5 and SHA1 algorithms are always supported.\n");
+The MD5 and SHA1 algorithms are always supported.\n \
+\n\
+An optional \"usedforsecurity=True\" keyword argument is provided for use in\n\
+environments that enforce FIPS-based restrictions.  Some implementations of\n\
+OpenSSL can be configured to prevent the usage of non-secure algorithms (such\n\
+as MD5).  If you have a non-security use for these algorithms (e.g. a hash\n\
+table), you can override this argument by marking the callsite as\n\
+\"usedforsecurity=False\".");
 
 static PyObject *
 EVP_new(PyObject *self, PyObject *args, PyObject *kwdict)
