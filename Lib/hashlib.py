@@ -69,65 +69,37 @@ __all__ = __always_supported + ('new', 'algorithms_guaranteed',
                                 'pbkdf2_hmac')
 
 
-def __get_builtin_constructor(name):
-    try:
-        if name in ('SHA1', 'sha1'):
-            import _sha
-            return _sha.new
-        elif name in ('MD5', 'md5'):
-            import _md5
-            return _md5.new
-        elif name in ('SHA256', 'sha256', 'SHA224', 'sha224'):
-            import _sha256
-            bs = name[3:]
-            if bs == '256':
-                return _sha256.sha256
-            elif bs == '224':
-                return _sha256.sha224
-        elif name in ('SHA512', 'sha512', 'SHA384', 'sha384'):
-            import _sha512
-            bs = name[3:]
-            if bs == '512':
-                return _sha512.sha512
-            elif bs == '384':
-                return _sha512.sha384
-    except ImportError:
-        pass  # no extension module, this hash is unsupported.
-
-    raise ValueError('unsupported hash type ' + name)
-
-
 def __get_openssl_constructor(name):
     try:
         f = getattr(_hashlib, 'openssl_' + name)
         # Allow the C module to raise ValueError.  The function will be
         # defined but the hash not actually available thanks to OpenSSL.
-        f()
+        #
+        # We pass "usedforsecurity=False" to disable FIPS-based restrictions:
+        # at this stage we're merely seeing if the function is callable,
+        # rather than using it for actual work.
+        f(usedforsecurity=False)
         # Use the C function directly (very fast)
         return f
     except (AttributeError, ValueError):
-        return __get_builtin_constructor(name)
+        raise
 
 
-def __py_new(name, string=''):
-    """new(name, string='') - Return a new hashing object using the named algorithm;
-    optionally initialized with a string.
-    """
-    return __get_builtin_constructor(name)(string)
-
-
-def __hash_new(name, string=''):
-    """new(name, string='') - Return a new hashing object using the named algorithm;
-    optionally initialized with a string.
+def __hash_new(name, string='', usedforsecurity=True):
+    """new(name, string='', usedforsecurity=True) - Return a new hashing object
+    using the named algorithm; optionally initialized with a string.
+    
+    Override 'usedforsecurity' to False when using for non-security purposes in
+    a FIPS environment
     """
     try:
-        return _hashlib.new(name, string)
+        return _hashlib.new(name, string, usedforsecurity)
     except ValueError:
         # If the _hashlib module (OpenSSL) doesn't support the named
         # hash, try using our builtin implementations.
         # This allows for SHA224/256 and SHA384/512 support even though
         # the OpenSSL library prior to 0.9.8 doesn't provide them.
-        return __get_builtin_constructor(name)(string)
+        raise
 
 
 try:
@@ -218,4 +190,4 @@ except ImportError:
 
 # Cleanup locals()
 del __always_supported, __func_name, __get_hash
-del __py_new, __hash_new, __get_openssl_constructor
+del __hash_new, __get_openssl_constructor
