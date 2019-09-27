@@ -361,6 +361,34 @@ class ContextTest(unittest.TestCase):
             tp.shutdown()
         self.assertEqual(results, list(range(10)))
 
+    @isolated_context
+    def test_context_contextmanager(self):
+        cvar = contextvars.ContextVar('cvar', default='original')
+
+        with cvar.set('inner'):
+            self.assertEqual(cvar.get(), 'inner')
+
+        self.assertEqual(cvar.get(), 'original')
+
+    @isolated_context
+    def test_context_contextmanager_error(self):
+        cvar = contextvars.ContextVar('cvar')
+
+        with self.assertRaises(ValueError):
+            with cvar.set('inner'):
+                self.assertEqual(cvar.get(), 'inner')
+                raise ValueError('an exception')
+
+        with self.assertRaises(LookupError):
+            cvar.get()
+
+    @isolated_context
+    def test_context_contextmanager_as_self(self):
+        cvar = contextvars.ContextVar('cvar', default='original')
+
+        token = cvar.set('inner')
+        with token as cm:
+            assert token is cm
 
 # HAMT Tests
 

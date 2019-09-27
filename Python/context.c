@@ -1158,6 +1158,48 @@ token_get_old_value(PyContextToken *self, void *Py_UNUSED(ignored))
     return self->tok_oldval;
 }
 
+/*[clinic input]
+_contextvars.Token.__enter__
+
+Enter a 'with' block. Does nothing.
+[clinic start generated code]*/
+
+static PyObject *
+_contextvars_Token___enter___impl(PyContextToken *self)
+/*[clinic end generated code: output=9b2c70c2836ffdce input=eeb92871c64a24ff]*/
+{
+    Py_INCREF(self);
+    return (PyObject *)self;
+}
+
+/*[clinic input]
+_contextvars.Token.__exit__
+
+    exc_type: object
+    exc_value: object
+    exc_traceback: object
+
+Exit a 'with' block. Calls `reset()` on the associated context variable.
+[clinic start generated code]*/
+
+static PyObject *
+_contextvars_Token___exit___impl(PyContextToken *self, PyObject *exc_type,
+                                 PyObject *exc_value,
+                                 PyObject *exc_traceback)
+/*[clinic end generated code: output=39b0bb0e20ffb831 input=f0e0832d99f31ceb]*/
+{
+    if (PyContextVar_Reset((PyObject *)self->tok_var, (PyObject *)self) != 0) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef PyContextToken_methods[] = {
+    _CONTEXTVARS_TOKEN___ENTER___METHODDEF
+    _CONTEXTVARS_TOKEN___EXIT___METHODDEF
+    {NULL, NULL}
+};
+
 static PyGetSetDef PyContextTokenType_getsetlist[] = {
     {"var", (getter)token_get_var, NULL, NULL},
     {"old_value", (getter)token_get_old_value, NULL, NULL},
@@ -1178,6 +1220,7 @@ PyTypeObject PyContextToken_Type = {
     .tp_free = PyObject_GC_Del,
     .tp_hash = PyObject_HashNotImplemented,
     .tp_repr = (reprfunc)token_tp_repr,
+    .tp_methods = PyContextToken_methods,
 };
 
 static PyContextToken *

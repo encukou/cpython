@@ -177,4 +177,60 @@ PyDoc_STRVAR(_contextvars_ContextVar_reset__doc__,
 
 #define _CONTEXTVARS_CONTEXTVAR_RESET_METHODDEF    \
     {"reset", (PyCFunction)_contextvars_ContextVar_reset, METH_O, _contextvars_ContextVar_reset__doc__},
-/*[clinic end generated code: output=f2e42f34e358e179 input=a9049054013a1b77]*/
+
+PyDoc_STRVAR(_contextvars_Token___enter____doc__,
+"__enter__($self, /)\n"
+"--\n"
+"\n"
+"No-op");
+
+#define _CONTEXTVARS_TOKEN___ENTER___METHODDEF    \
+    {"__enter__", (PyCFunction)_contextvars_Token___enter__, METH_NOARGS, _contextvars_Token___enter____doc__},
+
+static PyObject *
+_contextvars_Token___enter___impl(PyContextToken *self);
+
+static PyObject *
+_contextvars_Token___enter__(PyContextToken *self, PyObject *Py_UNUSED(ignored))
+{
+    return _contextvars_Token___enter___impl(self);
+}
+
+PyDoc_STRVAR(_contextvars_Token___exit____doc__,
+"__exit__($self, /, exc_type, exc_value, exc_traceback)\n"
+"--\n"
+"\n"
+"No-op");
+
+#define _CONTEXTVARS_TOKEN___EXIT___METHODDEF    \
+    {"__exit__", (PyCFunction)(void(*)(void))_contextvars_Token___exit__, METH_FASTCALL|METH_KEYWORDS, _contextvars_Token___exit____doc__},
+
+static PyObject *
+_contextvars_Token___exit___impl(PyContextToken *self, PyObject *exc_type,
+                                 PyObject *exc_value,
+                                 PyObject *exc_traceback);
+
+static PyObject *
+_contextvars_Token___exit__(PyContextToken *self, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"exc_type", "exc_value", "exc_traceback", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "__exit__", 0};
+    PyObject *argsbuf[3];
+    PyObject *exc_type;
+    PyObject *exc_value;
+    PyObject *exc_traceback;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 3, 3, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    exc_type = args[0];
+    exc_value = args[1];
+    exc_traceback = args[2];
+    return_value = _contextvars_Token___exit___impl(self, exc_type, exc_value, exc_traceback);
+
+exit:
+    return return_value;
+}
+/*[clinic end generated code: output=e3753782fe4ab454 input=a9049054013a1b77]*/

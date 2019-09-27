@@ -74,8 +74,15 @@ Context Variables
       variable.
 
       Returns a :class:`~contextvars.Token` object that can be used
-      to restore the variable to its previous value via the
-      :meth:`ContextVar.reset` method.
+      to restore the variable to its previous value either via the
+      :meth:`ContextVar.reset` method, or as a context manager::
+
+          var = ContextVar('var')
+
+          with var.set('new value'):
+              var.get()  # returns 'new value'
+
+          # now var.get() would raise LookupError.
 
    .. method:: reset(token)
 
@@ -100,6 +107,9 @@ Context Variables
    They can be passed to the :meth:`ContextVar.reset` method to revert
    the value of the variable to what it was before the corresponding
    *set*.
+
+   Token objects may be used as :ref:`context-managers`, calling
+   :meth:`ContextVar.reset` when the ``with`` block is exited.
 
    .. attribute:: Token.var
 
