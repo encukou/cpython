@@ -269,51 +269,6 @@ class MultiPhaseExtensionModuleTests(abc.LoaderTests):
                 self.assertEqual(module.__name__, name)
                 self.assertEqual(module.__doc__, "Module named in %s" % lang)
 
-    def test_pseudostatic_exception(self):
-        mod_name = "_testmultiphase"
-
-        a = self.load_module_by_name(mod_name)
-        b = self.load_module_by_name(mod_name)
-
-        # Static errors should be shared between different instances
-        self.assertIsNot(a, b)
-        self.assertIs(a.StaticError, b.StaticError)
-
-
-        # test the opposite instances' exceptions catching
-        expected_catchcount = 2
-        catchcount = 0
-        try:
-            raise(a.StaticError)
-        except b.StaticError:
-            catchcount += 1
-
-        try:
-            raise(b.StaticError)
-        except a.StaticError:
-            catchcount += 1
-
-        self.assertEqual(catchcount, expected_catchcount)
-
-        # make sure the exception gets deallocated
-        del a
-        del b
-        gc.collect()
-        a = self.load_module_by_name("_testmultiphase_check_staterr")
-
-        self.assertTrue(a.check_staterr_null())
-
-    def test_immutable_exception_multiple_inheritance(self):
-        mod_name = "_testmultiphase_immutable_exc_multip_inheritance"
-
-        m = self.load_module_by_name(mod_name)
-
-        def raise_exc():
-            raise m.Staterr
-
-        self.assertRaises(TypeError, raise_exc)
-        self.assertRaises(BufferError, raise_exc)
-
     def test_subclass_get_module(self):
         testmultiphase = self.load_module_by_name("_testmultiphase_meth_state_access")
 

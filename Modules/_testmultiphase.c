@@ -15,9 +15,6 @@ module _testmultiphase
 [clinic start generated code]*/
 /*[clinic end generated code: output=da39a3ee5e6b4b0d input=a11493b5ab5f8846]*/
 
-static PyObject *staterr = NULL;
-static PyObject *staterr_multiple_inheritance = NULL;
-
 /*[clinic input]
 class _testmultiphase.Example "ExampleObject *" "!Example"
 [clinic start generated code]*/
@@ -787,17 +784,6 @@ meth_state_access_exec(PyObject *m) {
         return -1;
     }
 
-    if (PyErr_PrepareStaticException((PyTypeObject **)&staterr,
-                                      "_testmultiphase.staterr",
-                                      "A pseudo-static exception",
-                                      NULL)) {
-        return -1;
-    }
-
-    if (PyModule_AddObject(m, "StaticError", staterr) != 0) {
-        return -1;
-    }
-
 
     return 0;
 }
@@ -825,49 +811,6 @@ PyInit__testmultiphase_meth_state_access(PyObject *spec) {
     return PyModuleDef_Init(&def_meth_state_access);
 }
 
-static int
-immutable_exc_multip_inheritance_exec(PyObject *m) {
-    int retval = 0;
-    PyObject *base_tuple;
-
-    base_tuple = PyTuple_Pack(2, PyExc_TypeError, PyExc_BufferError);
-    if (base_tuple == NULL) {
-        retval = -1;
-        goto exit;
-    }
-
-    if (PyErr_PrepareStaticException((PyTypeObject **)&staterr_multiple_inheritance,
-                                      "_testmultiphase.staterr_multiple_inheritance",
-                                      "Immutable exception for testing of multiple inheritance",
-                                      base_tuple)) {
-        retval = -1;
-        goto exit;
-    }
-
-    if (PyModule_AddObject(m, "Staterr", staterr_multiple_inheritance) != 0) {
-        retval = -1;
-        goto exit;
-    }
-
-exit:
-    Py_XDECREF(base_tuple);
-    return retval;
-}
-
-static PyModuleDef_Slot immutable_exc_multip_inheritance_slots[] = {
-    {Py_mod_exec, immutable_exc_multip_inheritance_exec},
-    {0, NULL}
-};
-
-static PyModuleDef def_immutable_exc_multip_inheritance = TEST_MODULE_DEF(
-                                                          "_testmultiphase_immutable_exc_multip_inheritance",
-                                                          immutable_exc_multip_inheritance_slots,
-                                                          NULL);
-
-PyMODINIT_FUNC
-PyInit__testmultiphase_immutable_exc_multip_inheritance(PyObject *spec) {
-    return PyModuleDef_Init(&def_immutable_exc_multip_inheritance);
-}
 
 /*** Helper for imp test ***/
 

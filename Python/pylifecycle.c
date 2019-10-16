@@ -1836,7 +1836,7 @@ create_stdio(const PyConfig *config, PyObject* io,
          * was set. In this case, it is okay and just means this IO
          * is not of Windows console type. */
         PyErr_Clear();
-    } 
+    }
 #endif
 
     text = PyUnicode_FromString(name);
