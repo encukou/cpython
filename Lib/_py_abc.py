@@ -45,7 +45,7 @@ class ABCMeta(type):
                     abstracts.add(name)
         cls.__abstractmethods__ = frozenset(abstracts)
         # Set up inheritance registry
-        cls._abc_registry = WeakSet()
+        cls._abc_registry = set()
         cls._abc_cache = WeakSet()
         cls._abc_negative_cache = WeakSet()
         cls._abc_negative_cache_version = ABCMeta._abc_invalidation_counter
