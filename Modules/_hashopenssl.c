@@ -294,6 +294,12 @@ py_digest_by_name(const char *name)
         else if (!strcmp(name, "blake2b512")) {
             digest = EVP_blake2b512();
         }
+        else if (!strcmp(name, "blake2s")) {
+            digest = EVP_blake2s256();
+        }
+        else if (!strcmp(name, "blake2b")) {
+            digest = EVP_blake2b512();
+        }
 #endif
     }
 
@@ -1035,6 +1041,41 @@ _hashlib_openssl_sha512_impl(PyObject *module, PyObject *data_obj,
 /*[clinic end generated code: output=2c744c9e4a40d5f6 input=c5c46a2a817aa98f]*/
 {
     return EVP_fast_new(module, data_obj, EVP_sha512(), usedforsecurity);
+}
+
+
+/*[clinic input]
+_hashlib.openssl_blake2b
+    string as data_obj: object(py_default="b''") = NULL
+    *
+    usedforsecurity: bool = True
+Returns a blake2b hash object; optionally initialized with a string
+[clinic start generated code]*/
+
+static PyObject *
+_hashlib_openssl_blake2b_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity)
+/*[clinic end generated code: output=7a838b1643cde13e input=4ad7fd54268f3689]*/
+
+{
+    return EVP_fast_new(module, data_obj, EVP_blake2b512(), usedforsecurity);
+}
+
+/*[clinic input]
+_hashlib.openssl_blake2s
+    string as data_obj: object(py_default="b''") = NULL
+    *
+    usedforsecurity: bool = True
+Returns a blake2s hash object; optionally initialized with a string
+[clinic start generated code]*/
+
+static PyObject *
+_hashlib_openssl_blake2s_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity)
+/*[clinic end generated code: output=4eda6b40757471da input=1ed39481ffa4e26a]*/
+
+{
+    return EVP_fast_new(module, data_obj, EVP_blake2s256(), usedforsecurity);
 }
 
 
@@ -2022,6 +2063,8 @@ static struct PyMethodDef EVP_functions[] = {
     _HASHLIB_OPENSSL_SHA256_METHODDEF
     _HASHLIB_OPENSSL_SHA384_METHODDEF
     _HASHLIB_OPENSSL_SHA512_METHODDEF
+    _HASHLIB_OPENSSL_BLAKE2B_METHODDEF
+    _HASHLIB_OPENSSL_BLAKE2S_METHODDEF
     _HASHLIB_OPENSSL_SHA3_224_METHODDEF
     _HASHLIB_OPENSSL_SHA3_256_METHODDEF
     _HASHLIB_OPENSSL_SHA3_384_METHODDEF
