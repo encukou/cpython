@@ -540,6 +540,110 @@ exit:
     return return_value;
 }
 
+PyDoc_STRVAR(_hashlib_openssl_blake2b__doc__,
+"openssl_blake2b($module, /, string=b\'\', *, usedforsecurity=True)\n"
+"--\n"
+"\n"
+"Returns a blake2b hash object; optionally initialized with a string");
+
+#define _HASHLIB_OPENSSL_BLAKE2B_METHODDEF    \
+    {"openssl_blake2b", (PyCFunction)(void(*)(void))_hashlib_openssl_blake2b, METH_FASTCALL|METH_KEYWORDS, _hashlib_openssl_blake2b__doc__},
+
+static PyObject *
+_hashlib_openssl_blake2b_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity);
+
+static PyObject *
+_hashlib_openssl_blake2b(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"string", "usedforsecurity", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "openssl_blake2b", 0};
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
+    PyObject *data_obj = NULL;
+    int usedforsecurity = 1;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[0]) {
+        data_obj = args[0];
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+skip_optional_pos:
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    usedforsecurity = PyObject_IsTrue(args[1]);
+    if (usedforsecurity < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = _hashlib_openssl_blake2b_impl(module, data_obj, usedforsecurity);
+
+exit:
+    return return_value;
+}
+
+PyDoc_STRVAR(_hashlib_openssl_blake2s__doc__,
+"openssl_blake2s($module, /, string=b\'\', *, usedforsecurity=True)\n"
+"--\n"
+"\n"
+"Returns a blake2s hash object; optionally initialized with a string");
+
+#define _HASHLIB_OPENSSL_BLAKE2S_METHODDEF    \
+    {"openssl_blake2s", (PyCFunction)(void(*)(void))_hashlib_openssl_blake2s, METH_FASTCALL|METH_KEYWORDS, _hashlib_openssl_blake2s__doc__},
+
+static PyObject *
+_hashlib_openssl_blake2s_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity);
+
+static PyObject *
+_hashlib_openssl_blake2s(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    static const char * const _keywords[] = {"string", "usedforsecurity", NULL};
+    static _PyArg_Parser _parser = {NULL, _keywords, "openssl_blake2s", 0};
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 0;
+    PyObject *data_obj = NULL;
+    int usedforsecurity = 1;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser, 0, 1, 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    if (args[0]) {
+        data_obj = args[0];
+        if (!--noptargs) {
+            goto skip_optional_pos;
+        }
+    }
+skip_optional_pos:
+    if (!noptargs) {
+        goto skip_optional_kwonly;
+    }
+    usedforsecurity = PyObject_IsTrue(args[1]);
+    if (usedforsecurity < 0) {
+        goto exit;
+    }
+skip_optional_kwonly:
+    return_value = _hashlib_openssl_blake2s_impl(module, data_obj, usedforsecurity);
+
+exit:
+    return return_value;
+}
+
 #if defined(PY_OPENSSL_HAS_SHA3)
 
 PyDoc_STRVAR(_hashlib_openssl_sha3_224__doc__,
@@ -1418,4 +1522,4 @@ exit:
 #ifndef _HASHLIB_GET_FIPS_MODE_METHODDEF
     #define _HASHLIB_GET_FIPS_MODE_METHODDEF
 #endif /* !defined(_HASHLIB_GET_FIPS_MODE_METHODDEF) */
-/*[clinic end generated code: output=7ff9aad0bd53e7ce input=a9049054013a1b77]*/
+/*[clinic end generated code: output=fab05055e982f112 input=a9049054013a1b77]*/

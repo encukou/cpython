@@ -1137,6 +1137,41 @@ _hashlib_openssl_sha512_impl(PyObject *module, PyObject *data_obj,
 }
 
 
+/*[clinic input]
+_hashlib.openssl_blake2b
+    string as data_obj: object(py_default="b''") = NULL
+    *
+    usedforsecurity: bool = True
+Returns a blake2b hash object; optionally initialized with a string
+[clinic start generated code]*/
+
+static PyObject *
+_hashlib_openssl_blake2b_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity)
+/*[clinic end generated code: output=7a838b1643cde13e input=4ad7fd54268f3689]*/
+
+{
+    return py_evp_fromname(module, Py_hash_blake2b, data_obj, usedforsecurity);
+}
+
+/*[clinic input]
+_hashlib.openssl_blake2s
+    string as data_obj: object(py_default="b''") = NULL
+    *
+    usedforsecurity: bool = True
+Returns a blake2s hash object; optionally initialized with a string
+[clinic start generated code]*/
+
+static PyObject *
+_hashlib_openssl_blake2s_impl(PyObject *module, PyObject *data_obj,
+                              int usedforsecurity)
+/*[clinic end generated code: output=4eda6b40757471da input=1ed39481ffa4e26a]*/
+
+{
+    return py_evp_fromname(module, Py_hash_blake2s, data_obj, usedforsecurity);
+}
+
+
 #ifdef PY_OPENSSL_HAS_SHA3
 
 /*[clinic input]
@@ -2123,6 +2158,8 @@ static struct PyMethodDef EVP_functions[] = {
     _HASHLIB_OPENSSL_SHA256_METHODDEF
     _HASHLIB_OPENSSL_SHA384_METHODDEF
     _HASHLIB_OPENSSL_SHA512_METHODDEF
+    _HASHLIB_OPENSSL_BLAKE2B_METHODDEF
+    _HASHLIB_OPENSSL_BLAKE2S_METHODDEF
     _HASHLIB_OPENSSL_SHA3_224_METHODDEF
     _HASHLIB_OPENSSL_SHA3_256_METHODDEF
     _HASHLIB_OPENSSL_SHA3_384_METHODDEF
