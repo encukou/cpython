@@ -519,6 +519,7 @@ PyObject_Repr(PyObject *v)
         return PyUnicode_FromFormat("<%s object at %p>",
                                     v->ob_type->tp_name, v);
 
+    if (PyErr_Occurred()) return PyUnicode_FromString("???");
 #ifdef Py_DEBUG
     /* PyObject_Repr() must not be called with an exception set,
        because it can clear it (directly or indirectly) and so the
