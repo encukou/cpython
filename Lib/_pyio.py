@@ -15,8 +15,9 @@ if sys.platform in {'win32', 'cygwin'}:
 else:
     _setmode = None
 
-import io
-from io import (__all__, SEEK_SET, SEEK_CUR, SEEK_END)
+SEEK_SET = 0
+SEEK_CUR = 1
+SEEK_END = 2
 
 valid_seek_flags = {0, 1, 2}  # Hardwired values
 if hasattr(os, 'SEEK_HOLE') :
@@ -272,11 +273,6 @@ def _open_code_with_warning(path):
                   RuntimeWarning, 2)
     return open(path, "rb")
 
-try:
-    open_code = io.open_code
-except AttributeError:
-    open_code = _open_code_with_warning
-
 
 class DocDescriptor:
     """Helper for builtins.open.__doc__
@@ -299,15 +295,6 @@ class OpenWrapper:
 
     def __new__(cls, *args, **kwargs):
         return open(*args, **kwargs)
-
-
-# In normal operation, both `UnsupportedOperation`s should be bound to the
-# same object.
-try:
-    UnsupportedOperation = io.UnsupportedOperation
-except AttributeError:
-    class UnsupportedOperation(OSError, ValueError):
-        pass
 
 
 class IOBase(metaclass=abc.ABCMeta):
@@ -600,8 +587,6 @@ class IOBase(metaclass=abc.ABCMeta):
         for line in lines:
             self.write(line)
 
-io.IOBase.register(IOBase)
-
 
 class RawIOBase(IOBase):
 
@@ -663,10 +648,6 @@ class RawIOBase(IOBase):
         length of b in bytes.
         """
         self._unsupported("write")
-
-io.RawIOBase.register(RawIOBase)
-from _io import FileIO
-RawIOBase.register(FileIO)
 
 
 class BufferedIOBase(IOBase):
@@ -771,8 +752,6 @@ class BufferedIOBase(IOBase):
         state.
         """
         self._unsupported("detach")
-
-io.BufferedIOBase.register(BufferedIOBase)
 
 
 class _BufferedIOMixin(BufferedIOBase):
@@ -1699,7 +1678,7 @@ class FileIO(RawIOBase):
         except BlockingIOError:
             return None
 
-    def seek(self, pos, whence=SEEK_SET):
+    def seek(self, pos, whence=None):
         """Move to new file position.
 
         Argument offset is a byte count.  Optional argument whence defaults to
@@ -1710,6 +1689,8 @@ class FileIO(RawIOBase):
 
         Note that not all file objects are seekable.
         """
+        if whence is None:
+            whence = SEEK_SET
         if isinstance(pos, float):
             raise TypeError('an integer is required')
         self._checkClosed()
@@ -1870,8 +1851,6 @@ class TextIOBase(IOBase):
 
         Subclasses should override."""
         return None
-
-io.TextIOBase.register(TextIOBase)
 
 
 class IncrementalNewlineDecoder(codecs.IncrementalDecoder):
@@ -2679,3 +2658,38 @@ class StringIO(TextIOWrapper):
     def detach(self):
         # This doesn't make sense on StringIO.
         self._unsupported("detach")
+
+
+import io
+from io import __all__
+
+try:
+    open_code = io.open_code
+except AttributeError:
+    open_code = _open_code_with_warning
+
+# In normal operation, both `UnsupportedOperation`s should be bound to the
+# same object.
+try:
+    UnsupportedOperation = io.UnsupportedOperation
+except AttributeError:
+    class UnsupportedOperation(OSError, ValueError):
+        pass
+
+# Register our classes with io ABCs, and vice versa.
+# If _pyio is used as the _io implementation, io doesn't have these classes
+# defined yet. In that case, do nothing.
+
+for io_name, pyio_class in {
+    'IOBase': IOBase,
+    'RawIOBase': RawIOBase,
+    'BufferedIOBase': BufferedIOBase,
+    'TextIOBase': TextIOBase,
+}.items():
+    io_class = getattr(io, io_name, None)
+    if io_class is not None:
+        io_class.register(pyio_class)
+
+io_FileIO = getattr(io, 'FileIO', None)
+if io_FileIO is not None:
+    RawIOBase.register(io_FileIO)

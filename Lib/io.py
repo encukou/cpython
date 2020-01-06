@@ -54,17 +54,13 @@ import abc
 from _io import (DEFAULT_BUFFER_SIZE, BlockingIOError, UnsupportedOperation,
                  open, open_code, FileIO, BytesIO, StringIO, BufferedReader,
                  BufferedWriter, BufferedRWPair, BufferedRandom,
-                 IncrementalNewlineDecoder, TextIOWrapper)
+                 IncrementalNewlineDecoder, TextIOWrapper,
+                 SEEK_SET, SEEK_CUR, SEEK_END)
 
 OpenWrapper = _io.open # for compatibility with _pyio
 
 # Pretend this exception was created here.
 UnsupportedOperation.__module__ = "io"
-
-# for seek()
-SEEK_SET = 0
-SEEK_CUR = 1
-SEEK_END = 2
 
 # Declaring ABCs in C is tricky so we do it here.
 # Method descriptions and default implementations are inherited from the C

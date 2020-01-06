@@ -788,6 +788,16 @@ PyInit__io(void)
     ADD_INTERNED(write)
     ADD_INTERNED(writable)
 
+    if (PyModule_AddIntConstant(m, "SEEK_SET", 0)) {
+        goto fail;
+    }
+    if (PyModule_AddIntConstant(m, "SEEK_CUR", 1)) {
+        goto fail;
+    }
+    if (PyModule_AddIntConstant(m, "SEEK_END", 2)) {
+        goto fail;
+    }
+
     if (!_PyIO_str_nl &&
         !(_PyIO_str_nl = PyUnicode_InternFromString("\n")))
         goto fail;
