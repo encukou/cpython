@@ -29,7 +29,7 @@ PyDoc_STRVAR(_testmultiphase_StateAccessType_increment_count__doc__,
 "increment_count($self, /)\n"
 "--\n"
 "\n"
-"This method returns module of the defining class.");
+"This method adds 1 to the module-state counter.");
 
 #define _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_METHODDEF    \
     {"increment_count", (PyCFunction)(void(*)(void))_testmultiphase_StateAccessType_increment_count, METH_METHOD|METH_VARARGS|METH_KEYWORDS, _testmultiphase_StateAccessType_increment_count__doc__},
@@ -52,7 +52,7 @@ PyDoc_STRVAR(_testmultiphase_StateAccessType_decrement_count__doc__,
 "decrement_count($self, /)\n"
 "--\n"
 "\n"
-"This method returns module of the defining class.");
+"This method subtracts 1 from the module-state counter.");
 
 #define _TESTMULTIPHASE_STATEACCESSTYPE_DECREMENT_COUNT_METHODDEF    \
     {"decrement_count", (PyCFunction)(void(*)(void))_testmultiphase_StateAccessType_decrement_count, METH_METHOD|METH_VARARGS|METH_KEYWORDS, _testmultiphase_StateAccessType_decrement_count__doc__},
@@ -75,7 +75,7 @@ PyDoc_STRVAR(_testmultiphase_StateAccessType_get_count__doc__,
 "get_count($self, /)\n"
 "--\n"
 "\n"
-"This method returns module of the defining class.");
+"This method returns the number that is currently on the module-state counter.");
 
 #define _TESTMULTIPHASE_STATEACCESSTYPE_GET_COUNT_METHODDEF    \
     {"get_count", (PyCFunction)(void(*)(void))_testmultiphase_StateAccessType_get_count, METH_METHOD|METH_VARARGS|METH_KEYWORDS, _testmultiphase_StateAccessType_get_count__doc__},
@@ -93,4 +93,4 @@ _testmultiphase_StateAccessType_get_count(StateAccessTypeObject *self, PyTypeObj
 
     return return_value;
 }
-/*[clinic end generated code: output=a0f151546315d767 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=819a0df3aea0e3f9 input=a9049054013a1b77]*/

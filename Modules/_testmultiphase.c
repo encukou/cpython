@@ -159,7 +159,7 @@ This method adds 1 to the module-state counter.
 static PyObject *
 _testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self,
                                                      PyTypeObject *cls)
-/*[clinic end generated code: output=b78c77b78c6882e4 input=d16fc099c496938e]*/
+/*[clinic end generated code: output=b78c77b78c6882e4 input=5624f62959c72a98]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     m_state->counter++;
@@ -178,7 +178,7 @@ This method subtracts 1 from the module-state counter.
 static PyObject *
 _testmultiphase_StateAccessType_decrement_count_impl(StateAccessTypeObject *self,
                                                      PyTypeObject *cls)
-/*[clinic end generated code: output=d16695f10b1a3d28 input=d4dcaa0687f8ea4a]*/
+/*[clinic end generated code: output=d16695f10b1a3d28 input=c6ab4ed6d6cef524]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     m_state->counter--;
@@ -191,14 +191,13 @@ _testmultiphase.StateAccessType.get_count
 
     cls: defining_class
 
-This method returns the number that is currently on the module-state
-counter.
+This method returns the number that is currently on the module-state counter.
 [clinic start generated code]*/
 
 static PyObject *
 _testmultiphase_StateAccessType_get_count_impl(StateAccessTypeObject *self,
                                                PyTypeObject *cls)
-/*[clinic end generated code: output=64600f95b499a319 input=fc53e3e1b7eb4743]*/
+/*[clinic end generated code: output=64600f95b499a319 input=17a02b7b735c051c]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     return PyLong_FromLong(m_state->counter);
