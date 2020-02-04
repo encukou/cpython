@@ -771,6 +771,12 @@ class CLanguage(Language):
                 add(field)
             return linear_format(output(), parser_declarations=declarations)
 
+        def insert_keywords(s):
+            return linear_format(s, declarations=
+                'static const char * const _keywords[] = {{{keywords}, NULL}};\n'
+                'static _PyArg_Parser _parser = {{"{format_units}:{name}", _keywords, 0}};\n'
+                '{declarations}')
+
         if not parameters:
             # no parameters, METH_NOARGS
 
