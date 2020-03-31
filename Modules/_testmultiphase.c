@@ -131,7 +131,7 @@ _testmultiphase.StateAccessType.get_defining_module
 
     cls: defining_class
 
-This method returns module of the defining class.
+Return the module of the defining class.
 [clinic start generated code]*/
 
 static PyObject *
@@ -153,7 +153,7 @@ _testmultiphase.StateAccessType.increment_count
 
     cls: defining_class
 
-This method adds 1 to the module-state counter.
+Add 1 to the module-state counter.
 [clinic start generated code]*/
 
 static PyObject *
@@ -172,7 +172,7 @@ _testmultiphase.StateAccessType.decrement_count
 
     cls: defining_class
 
-This method subtracts 1 from the module-state counter.
+Subtract 1 from the module-state counter.
 [clinic start generated code]*/
 
 static PyObject *
@@ -191,7 +191,7 @@ _testmultiphase.StateAccessType.get_count
 
     cls: defining_class
 
-This method returns the number that is currently on the module-state counter.
+Return the value of the module-state counter.
 [clinic start generated code]*/
 
 static PyObject *
