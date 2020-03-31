@@ -314,6 +314,20 @@ class MultiPhaseExtensionModuleTests(abc.LoaderTests):
         self.assertEquals(a.get_count(), b.get_count())
         self.assertEquals(a.get_count(), 0)
 
+        a.decrement_count(2)
+        self.assertEquals(a.get_count(), b.get_count())
+        self.assertEquals(a.get_count(), -2)
+
+        a.decrement_count(3, twice=True)
+        self.assertEquals(a.get_count(), b.get_count())
+        self.assertEquals(a.get_count(), -8)
+
+        with self.assertRaises(TypeError):
+            a.decrement_count(thrice=3)
+
+        with self.assertRaises(TypeError):
+            a.decrement_count(1, 2, 3)
+
 
 (Frozen_MultiPhaseExtensionModuleTests,
  Source_MultiPhaseExtensionModuleTests
