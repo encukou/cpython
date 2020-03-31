@@ -3513,7 +3513,6 @@ class TextIOWrapperTest(unittest.TestCase):
         if err:
             # Can error out with a RuntimeError if the module state
             # isn't found.
-            # self.assertIn(self.shutdown_error, err.decode())
             self.assertIn(self.shutdown_error, err.decode())
         else:
             self.assertEqual("ok", out.decode().strip())
@@ -3700,7 +3699,6 @@ def _to_memoryview(buf):
 
 class CTextIOWrapperTest(TextIOWrapperTest):
     io = io
-
     shutdown_error = "RuntimeError: could not find io module state"
 
     def test_initialization(self):
