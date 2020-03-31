@@ -89,7 +89,9 @@ PyAPI_FUNC(PyObject *) PyCMethod_New(PyMethodDef *, PyObject *,
  * May not be combined with METH_NOARGS, METH_O, METH_CLASS or METH_STATIC.
  */
 
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x03090000
 #define METH_METHOD 0x0200
+#endif
 
 
 #ifndef Py_LIMITED_API
