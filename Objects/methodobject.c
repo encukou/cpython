@@ -7,6 +7,8 @@
 #include "pycore_pyerrors.h"
 #include "pycore_pymem.h"
 #include "pycore_pystate.h"
+#include "pycore_tupleobject.h"
+#include "pycore_call.h"
 #include "structmember.h"
 
 /* undefine macro trampoline to PyCFunction_NewEx */
@@ -538,8 +540,25 @@ cfunction_call(PyObject *func, PyObject *args, PyObject *kwargs)
 
     PyObject *result;
     if (flags & METH_METHOD) {
-        PyTypeObject *cls = PyCMethod_GetClass(func);
-        result = (*(PyCMethod)(void(*)(void))meth)(self, cls, args, kwargs);
+        PyTypeObject *cls = PyCFunction_GET_CLASS(func);
+        Py_ssize_t nargs = PyTuple_GET_SIZE(args);
+        if (kwargs == NULL || PyDict_GET_SIZE(kwargs) == 0) {
+            /* Fast path for no keywords */
+            result = (*(PyCMethod)(void(*)(void))meth)(
+                self, cls, _PyTuple_ITEMS(args), nargs, NULL);
+        } else {
+            /* Convert arguments & call */
+            PyObject *const *argvector;
+            PyObject *kwnames;
+            argvector = _PyStack_UnpackDict(tstate, _PyTuple_ITEMS(args), nargs,
+                                            kwargs, &kwnames);
+            if (argvector == NULL) {
+                return NULL;
+            }
+            result = (*(PyCMethod)(void(*)(void))meth)(self, cls, argvector,
+                                    nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, kwnames);
+            _PyStack_UnpackDict_Free(argvector, nargs, kwnames);
+        }
     }
     else if (flags & METH_KEYWORDS) {
         result = (*(PyCFunctionWithKeywords)(void(*)(void))meth)(self, args, kwargs);

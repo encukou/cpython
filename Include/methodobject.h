@@ -22,7 +22,8 @@ typedef PyObject *(*PyCFunctionWithKeywords)(PyObject *, PyObject *,
 typedef PyObject *(*_PyCFunctionFastWithKeywords) (PyObject *,
                                                    PyObject *const *, Py_ssize_t,
                                                    PyObject *);
-typedef PyObject *(*PyCMethod)(PyObject *, PyTypeObject *, PyObject *, PyObject *);
+typedef PyObject *(*PyCMethod)(PyObject *, PyTypeObject *, PyObject *const *,
+                               size_t, PyObject *);
 
 PyAPI_FUNC(PyCFunction) PyCFunction_GetFunction(PyObject *);
 PyAPI_FUNC(PyObject *) PyCFunction_GetSelf(PyObject *);

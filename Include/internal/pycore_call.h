@@ -33,6 +33,15 @@ _PyObject_CallNoArgTstate(PyThreadState *tstate, PyObject *func) {
     return _PyObject_VectorcallTstate(tstate, func, NULL, 0, NULL);
 }
 
+PyObject *const *
+_PyStack_UnpackDict(PyThreadState *tstate,
+                    PyObject *const *args, Py_ssize_t nargs,
+                    PyObject *kwargs, PyObject **p_kwnames);
+
+void
+_PyStack_UnpackDict_Free(PyObject *const *stack, Py_ssize_t nargs,
+                         PyObject *kwnames);
+
 #ifdef __cplusplus
 }
 #endif

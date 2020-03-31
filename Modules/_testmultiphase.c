@@ -7,7 +7,7 @@
 /* State for testing module state access from methods */
 
 typedef struct {
-    unsigned int counter;
+    int counter;
 } meth_state;
 
 /*[clinic input]
@@ -137,7 +137,7 @@ Return the module of the defining class.
 static PyObject *
 _testmultiphase_StateAccessType_get_defining_module_impl(StateAccessTypeObject *self,
                                                          PyTypeObject *cls)
-/*[clinic end generated code: output=ba2a14284a5d0921 input=32e9d85349eb4aa2]*/
+/*[clinic end generated code: output=ba2a14284a5d0921 input=946149f91cf72c0d]*/
 {
     PyObject *retval;
     retval = PyType_GetModule(cls);
@@ -154,12 +154,13 @@ _testmultiphase.StateAccessType.increment_count
     cls: defining_class
 
 Add 1 to the module-state counter.
+This tests Argument Clinic support for defining_class.
 [clinic start generated code]*/
 
 static PyObject *
 _testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self,
                                                      PyTypeObject *cls)
-/*[clinic end generated code: output=b78c77b78c6882e4 input=5624f62959c72a98]*/
+/*[clinic end generated code: output=b78c77b78c6882e4 input=6a856a0b454e4d09]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     m_state->counter++;
@@ -167,21 +168,50 @@ _testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self
     Py_RETURN_NONE;
 }
 
-/*[clinic input]
-_testmultiphase.StateAccessType.decrement_count
+PyDoc_STRVAR(_StateAccessType_decrement_count__doc__,
+"decrement_count($self, /, n=1, *, twice=None)\n"
+"--\n"
+"\n"
+"Subtract 'n' from the module-state counter.\n"
+"Pass 'twice' to double that amount.\n"
+"(This is to test both positional and keyword arguments.");
 
-    cls: defining_class
-
-Subtract 1 from the module-state counter.
-[clinic start generated code]*/
-
+// Intentionally does not use Argument Clinic
 static PyObject *
-_testmultiphase_StateAccessType_decrement_count_impl(StateAccessTypeObject *self,
-                                                     PyTypeObject *cls)
-/*[clinic end generated code: output=d16695f10b1a3d28 input=c6ab4ed6d6cef524]*/
+_StateAccessType_decrement_count(StateAccessTypeObject *self,
+                                 PyTypeObject *defining_class,
+                                 PyObject *const *args,
+                                 size_t nargsf,
+                                 PyObject *kwnames)
 {
-    meth_state *m_state = PyType_GetModuleState(cls);
-    m_state->counter--;
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    if (!_PyArg_CheckPositional("StateAccessTypeObject.decrement_count", nargs, 0, 1)) {
+        return NULL;
+    }
+    int coefficient = 1;
+    if (kwnames && PyTuple_Check(kwnames)) {
+        if (PyTuple_GET_SIZE(kwnames) > 1 ||
+            PyUnicode_CompareWithASCIIString(
+                PyTuple_GET_ITEM(kwnames, 0),
+                "twice"
+            )) {
+            PyErr_SetString(
+                PyExc_TypeError,
+                "decrement_count only takes 'twice' keyword argument"
+            );
+            return NULL;
+        }
+        coefficient = 2;
+    }
+    long n = 1;
+    if (nargs) {
+        n = PyLong_AsLong(args[0]);
+        if (PyErr_Occurred()) {
+            return NULL;
+        }
+    }
+    meth_state *m_state = PyType_GetModuleState(defining_class);
+    m_state->counter -= n * coefficient;
 
     Py_RETURN_NONE;
 }
@@ -197,7 +227,7 @@ Return the value of the module-state counter.
 static PyObject *
 _testmultiphase_StateAccessType_get_count_impl(StateAccessTypeObject *self,
                                                PyTypeObject *cls)
-/*[clinic end generated code: output=64600f95b499a319 input=17a02b7b735c051c]*/
+/*[clinic end generated code: output=64600f95b499a319 input=d5d181f12384849f]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     return PyLong_FromLong(m_state->counter);
@@ -207,7 +237,12 @@ static PyMethodDef StateAccessType_methods[] = {
     _TESTMULTIPHASE_STATEACCESSTYPE_GET_DEFINING_MODULE_METHODDEF
     _TESTMULTIPHASE_STATEACCESSTYPE_GET_COUNT_METHODDEF
     _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_METHODDEF
-    _TESTMULTIPHASE_STATEACCESSTYPE_DECREMENT_COUNT_METHODDEF
+    {
+        "decrement_count",
+        (PyCFunction)(void(*)(void))_StateAccessType_decrement_count,
+        METH_METHOD|METH_VARARGS|METH_KEYWORDS,
+        _StateAccessType_decrement_count__doc__
+    },
     {NULL,              NULL}           /* sentinel */
 };
 

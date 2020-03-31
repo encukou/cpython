@@ -360,29 +360,17 @@ method_vectorcall_METH_METHOD(
     if (method_check_args(func, args, nargs, NULL)) {
         return NULL;
     }
-    PyObject *argstuple = _PyTuple_FromArray(args+1, nargs-1);
-    if (argstuple == NULL) {
-        return NULL;
-    }
     PyObject *result = NULL;
     /* Create a temporary dict for keyword arguments */
-    PyObject *kwdict = NULL;
-    if (kwnames != NULL && PyTuple_GET_SIZE(kwnames) > 0) {
-        kwdict = _PyStack_AsDict(args + nargs, kwnames);
-        if (kwdict == NULL) {
-            goto exit;
-        }
-    }
-    PyCMethod meth = (PyCFunctionWithKeywords)
-                                   method_enter_call(tstate, func);
+    PyCMethod meth = (PyCMethod) method_enter_call(tstate, func);
     if (meth == NULL) {
         goto exit;
     }
-    result = meth(args[0], ((PyMethodDescrObject *)func)->d_common.d_type, argstuple, kwdict);
+    size_t new_nargsf = (nargs-1)|PY_VECTORCALL_ARGUMENTS_OFFSET;
+    result = meth(args[0], ((PyMethodDescrObject *)func)->d_common.d_type,
+                  args+1, new_nargsf, kwnames);
     Py_LeaveRecursiveCall();
 exit:
-    Py_DECREF(argstuple);
-    Py_XDECREF(kwdict);
     return result;
 }
 
