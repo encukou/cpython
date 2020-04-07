@@ -4,7 +4,7 @@
 
 #include "Python.h"
 
-/* State for testing access from type slot methods */
+/* State for testing module state access from methods */
 
 typedef struct {
     unsigned int counter;
