@@ -148,7 +148,7 @@ method_get(PyMethodDescrObject *descr, PyObject *obj, PyObject *type)
             PyErr_Format(PyExc_TypeError,
                         "descriptor '%V' needs a type, not '%s', as arg 2",
                         descr_name((PyDescrObject *)descr),
-                        type->ob_type->tp_name);
+                        Py_TYPE(type)->tp_name);
             return NULL;
         }
     } else {
@@ -361,14 +361,12 @@ method_vectorcall_METH_METHOD(
         return NULL;
     }
     PyObject *result = NULL;
-    /* Create a temporary dict for keyword arguments */
     PyCMethod meth = (PyCMethod) method_enter_call(tstate, func);
     if (meth == NULL) {
         goto exit;
     }
-    size_t new_nargsf = (nargs-1)|PY_VECTORCALL_ARGUMENTS_OFFSET;
     result = meth(args[0], ((PyMethodDescrObject *)func)->d_common.d_type,
-                  args+1, new_nargsf, kwnames);
+                  args+1, nargs-1, kwnames);
     Py_LeaveRecursiveCall();
 exit:
     return result;
@@ -915,9 +913,6 @@ PyDescr_NewMethod(PyTypeObject *type, PyMethodDef *method)
         case METH_VARARGS | METH_KEYWORDS:
             vectorcall = method_vectorcall_VARARGS_KEYWORDS;
             break;
-        case METH_VARARGS | METH_KEYWORDS | METH_METHOD:
-            vectorcall = method_vectorcall_METH_METHOD;
-            break;
         case METH_FASTCALL:
             vectorcall = method_vectorcall_FASTCALL;
             break;
@@ -929,6 +924,9 @@ PyDescr_NewMethod(PyTypeObject *type, PyMethodDef *method)
             break;
         case METH_O:
             vectorcall = method_vectorcall_O;
+            break;
+        case METH_FASTCALL | METH_KEYWORDS | METH_METHOD:
+            vectorcall = method_vectorcall_METH_METHOD;
             break;
         default:
             PyErr_Format(PyExc_SystemError,

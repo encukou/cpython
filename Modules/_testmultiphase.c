@@ -154,13 +154,14 @@ _testmultiphase.StateAccessType.increment_count
     cls: defining_class
 
 Add 1 to the module-state counter.
+
 This tests Argument Clinic support for defining_class.
 [clinic start generated code]*/
 
 static PyObject *
 _testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self,
                                                      PyTypeObject *cls)
-/*[clinic end generated code: output=b78c77b78c6882e4 input=6a856a0b454e4d09]*/
+/*[clinic end generated code: output=b78c77b78c6882e4 input=baa6b8c0525ccde3]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
     m_state->counter++;
@@ -181,10 +182,9 @@ static PyObject *
 _StateAccessType_decrement_count(StateAccessTypeObject *self,
                                  PyTypeObject *defining_class,
                                  PyObject *const *args,
-                                 size_t nargsf,
+                                 Py_ssize_t nargs,
                                  PyObject *kwnames)
 {
-    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
     if (!_PyArg_CheckPositional("StateAccessTypeObject.decrement_count", nargs, 0, 1)) {
         return NULL;
     }
@@ -240,7 +240,7 @@ static PyMethodDef StateAccessType_methods[] = {
     {
         "decrement_count",
         (PyCFunction)(void(*)(void))_StateAccessType_decrement_count,
-        METH_METHOD|METH_VARARGS|METH_KEYWORDS,
+        METH_METHOD|METH_FASTCALL|METH_KEYWORDS,
         _StateAccessType_decrement_count__doc__
     },
     {NULL,              NULL}           /* sentinel */
@@ -785,30 +785,6 @@ PyMODINIT_FUNC
 PyInit__testmultiphase_exec_unreported_exception(PyObject *spec)
 {
     return PyModuleDef_Init(&def_exec_unreported_exception);
-}
-
-PyDoc_STRVAR(check_staterr_doc,
-"Check that staterr is NULL");
-
-static PyObject *
-check_staterr_null(PyObject *self) {
-    if (staterr == NULL) {
-        return Py_True;
-    }
-    return Py_False;
-}
-
-static PyMethodDef check_staterr_methods[] = {
-    {"check_staterr_null", (PyCFunction) check_staterr_null, METH_NOARGS, check_staterr_doc},
-    {NULL, NULL}           /* sentinel */
-};
-
-static PyModuleDef check_staterr = TEST_MODULE_DEF(
-    "_testmultiphase_check_staterr", NULL, check_staterr_methods);
-
-PyMODINIT_FUNC
-PyInit__testmultiphase_check_staterr(PyObject *spec) {
-    return PyModuleDef_Init(&check_staterr);
 }
 
 static int

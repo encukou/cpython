@@ -119,13 +119,11 @@ static int
 elementtree_clear(PyObject *m)
 {
     elementtreestate *st = get_elementtree_state(m);
-    if (st) {
-        Py_CLEAR(st->parseerror_obj);
-        Py_CLEAR(st->deepcopy_obj);
-        Py_CLEAR(st->elementpath_obj);
-        Py_CLEAR(st->comment_factory);
-        Py_CLEAR(st->pi_factory);
-    }
+    Py_CLEAR(st->parseerror_obj);
+    Py_CLEAR(st->deepcopy_obj);
+    Py_CLEAR(st->elementpath_obj);
+    Py_CLEAR(st->comment_factory);
+    Py_CLEAR(st->pi_factory);
     return 0;
 }
 
@@ -133,13 +131,11 @@ static int
 elementtree_traverse(PyObject *m, visitproc visit, void *arg)
 {
     elementtreestate *st = get_elementtree_state(m);
-    if (st) {
-        Py_VISIT(st->parseerror_obj);
-        Py_VISIT(st->deepcopy_obj);
-        Py_VISIT(st->elementpath_obj);
-        Py_VISIT(st->comment_factory);
-        Py_VISIT(st->pi_factory);
-    }
+    Py_VISIT(st->parseerror_obj);
+    Py_VISIT(st->deepcopy_obj);
+    Py_VISIT(st->elementpath_obj);
+    Py_VISIT(st->comment_factory);
+    Py_VISIT(st->pi_factory);
     return 0;
 }
 
@@ -219,8 +215,9 @@ typedef struct {
 } ElementObject;
 
 
-#define Element_CheckExact(op) Py_IS_TYPE(op, m_state->Element_Type)
-#define Element_Check(op) PyObject_TypeCheck(op, m_state->Element_Type)
+#define Element_CheckExact(op) Py_IS_TYPE(op, &Element_Type)
+#define Element_Check(op) PyObject_TypeCheck(op, &Element_Type)
+
 
 /* -------------------------------------------------------------------- */
 /* Element constructors and destructor */
@@ -621,7 +618,7 @@ subelement(PyObject *self, PyObject *args, PyObject *kwds)
     }
 
     elem = create_new_element(tag, attrib);
-    Py_DECREF(attrib);
+    Py_XDECREF(attrib);
     if (elem == NULL)
         return NULL;
 
@@ -736,7 +733,7 @@ _elementtree_Element___copy___impl(ElementObject *self)
     ElementObject* element;
 
     element = (ElementObject*) create_new_element(
-        self->tag, (self->extra) ? self->extra->attrib : Py_None);
+        self->tag, self->extra ? self->extra->attrib : NULL);
     if (!element)
         return NULL;
 
@@ -793,7 +790,7 @@ _elementtree_Element___deepcopy___impl(ElementObject *self, PyObject *memo)
         return NULL;
 
     if (self->extra && self->extra->attrib) {
-        attrib = deepcopy(cls, self->extra->attrib, memo);
+        attrib = deepcopy(self->extra->attrib, memo);
         if (!attrib) {
             Py_DECREF(tag);
             return NULL;
@@ -1568,7 +1565,7 @@ _elementtree.Element.makeelement
 static PyObject *
 _elementtree_Element_makeelement_impl(ElementObject *self, PyObject *tag,
                                       PyObject *attrib)
-/*[clinic end generated code: output=4109832d5bb789ef input=9480d1d2e3e68235]*/
+/*[clinic end generated code: output=4109832d5bb789ef input=2279d974529c3861]*/
 {
     PyObject* elem;
 
@@ -2360,7 +2357,7 @@ typedef struct {
     char insert_pis;
 } TreeBuilderObject;
 
-#define TreeBuilder_CheckExact(op) Py_IS_TYPE((op), self->m_state->treebuilder_type)
+#define TreeBuilder_CheckExact(op) Py_IS_TYPE((op), &TreeBuilder_Type)
 
 /* -------------------------------------------------------------------- */
 /* constructor and destructor */
@@ -2689,8 +2686,9 @@ treebuilder_handle_start(TreeBuilderObject* self, PyObject* tag,
         return NULL;
     }
 
+    if (!self->element_factory) {
         node = create_new_element(tag, attrib);
-    } else if (attrib == Py_None) {
+    } else if (attrib == NULL) {
         attrib = PyDict_New();
         if (!attrib)
             return NULL;
@@ -3039,7 +3037,7 @@ _elementtree.TreeBuilder.start
 static PyObject *
 _elementtree_TreeBuilder_start_impl(TreeBuilderObject *self, PyObject *tag,
                                     PyObject *attrs)
-/*[clinic end generated code: output=e7e9dc2861349411 input=95fc1758dd042c65]*/
+/*[clinic end generated code: output=e7e9dc2861349411 input=7288e9e38e63b2b6]*/
 {
     return treebuilder_handle_start(self, tag, attrs);
 }
@@ -4385,7 +4383,7 @@ PyInit__elementtree(void)
     m = PyModule_Create(&elementtreemodule);
     if (!m)
         return NULL;
-    st = ET_STATE(m);
+    st = get_elementtree_state(m);
 
     if (!(temp = PyImport_ImportModule("copy")))
         return NULL;
@@ -4421,16 +4419,22 @@ PyInit__elementtree(void)
         "xml.etree.ElementTree.ParseError", PyExc_SyntaxError, NULL
         );
     Py_INCREF(st->parseerror_obj);
-    PyModule_AddObject(m, "ParseError", st->parseerror_obj);
+    if (PyModule_AddObject(m, "ParseError", st->parseerror_obj) < 0) {
+        Py_DECREF(st->parseerror_obj);
+        return NULL;
+    }
 
-    Py_INCREF((PyObject *)&Element_Type);
-    PyModule_AddObject(m, "Element", (PyObject *)&Element_Type);
+    PyTypeObject *types[] = {
+        &Element_Type,
+        &TreeBuilder_Type,
+        &XMLParser_Type
+    };
 
-    Py_INCREF((PyObject *)&TreeBuilder_Type);
-    PyModule_AddObject(m, "TreeBuilder", (PyObject *)&TreeBuilder_Type);
-
-    Py_INCREF((PyObject *)&XMLParser_Type);
-    PyModule_AddObject(m, "XMLParser", (PyObject *)&XMLParser_Type);
+    for (size_t i = 0; i < Py_ARRAY_LENGTH(types); i++) {
+        if (PyModule_AddType(m, types[i]) < 0) {
+            return NULL;
+        }
+    }
 
     return m;
 }

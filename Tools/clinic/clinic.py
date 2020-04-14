@@ -657,9 +657,15 @@ class CLanguage(Language):
                 if not p.is_optional():
                     min_pos = i
 
+        requires_defining_class = any(
+            isinstance(p.converter, defining_class_converter)
+            for p in parameters)
+
         meth_o = (len(parameters) == 1 and
               parameters[0].is_positional_only() and
               not converters[0].is_optional() and
+              not requires_defining_class and
+              not has_option_groups and
               not new_or_init)
 
         # we have to set these things before we're done:
@@ -719,7 +725,7 @@ class CLanguage(Language):
 
         parser_prototype_def_class = normalize_snippet("""
             static PyObject *
-            {c_basename}({self_type}{self_name}, PyTypeObject *cls, PyObject *args, PyObject *kwargs)
+            {c_basename}({self_type}{self_name}, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
         """)
 
         body_keyword = normalize_snippet("""
@@ -727,7 +733,7 @@ class CLanguage(Language):
                 {parse_arguments})) {{
                 goto exit;
             }}
-            """, indent=4)
+        """, indent=4)
 
 
 
@@ -735,10 +741,6 @@ class CLanguage(Language):
         # previous call to parser_body. this is used for an awful hack.
         parser_body_fields = ()
         parser_body_declarations = ''
-        requires_defining_class = any(
-                                isinstance(p.converter,
-                                           defining_class_converter)
-                                for p in parameters)
 
         def parser_body(prototype, *fields, declarations=''):
             nonlocal parser_body_fields, parser_body_declarations
@@ -770,12 +772,6 @@ class CLanguage(Language):
                 add('\n')
                 add(field)
             return linear_format(output(), parser_declarations=declarations)
-
-        def insert_keywords(s):
-            return linear_format(s, declarations=
-                'static const char * const _keywords[] = {{{keywords}, NULL}};\n'
-                'static _PyArg_Parser _parser = {{"{format_units}:{name}", _keywords, 0}};\n'
-                '{declarations}')
 
         if not parameters:
             # no parameters, METH_NOARGS
@@ -839,19 +835,6 @@ class CLanguage(Language):
                 parser_definition = parser_body(parser_prototype,
                                                 normalize_snippet(parsearg, indent=4))
 
-        elif requires_defining_class:
-            # As METH_METHOD supports all of these, we may leave these
-            # flags enabled all
-            flags = 'METH_METHOD|METH_VARARGS|METH_KEYWORDS'
-            parser_prototype = parser_prototype_def_class
-
-            # Only defining class is required, so no need of parsing
-            if len(parameters) > 1:
-                parser_definition = parser_body(parser_prototype, body_keyword)
-                parser_definition = insert_keywords(parser_definition)
-            else:
-                parser_definition = parser_body(parser_prototype)
-
         elif has_option_groups:
             # positional parameters with option groups
             # (we have to generate lots of PyArg_ParseTuple calls
@@ -862,7 +845,7 @@ class CLanguage(Language):
 
             parser_definition = parser_body(parser_prototype, '    {option_group_parsing}')
 
-        elif pos_only == len(parameters):
+        elif not requires_defining_class and pos_only == len(parameters):
             if not new_or_init:
                 # positional-only, but no option groups
                 # we only need one call to _PyArg_ParseStack
@@ -929,7 +912,7 @@ class CLanguage(Language):
                 parser_prototype = parser_prototype_fastcall_keywords
                 argname_fmt = 'args[%d]'
                 declarations = normalize_snippet("""
-                    static const char * const _keywords[] = {{{keywords}, NULL}};
+                    static const char * const _keywords[] = {{{keywords} NULL}};
                     static _PyArg_Parser _parser = {{NULL, _keywords, "{name}", 0}};
                     PyObject *argsbuf[%s];
                     """ % len(converters))
@@ -947,7 +930,7 @@ class CLanguage(Language):
                 parser_prototype = parser_prototype_keyword
                 argname_fmt = 'fastargs[%d]'
                 declarations = normalize_snippet("""
-                    static const char * const _keywords[] = {{{keywords}, NULL}};
+                    static const char * const _keywords[] = {{{keywords} NULL}};
                     static _PyArg_Parser _parser = {{NULL, _keywords, "{name}", 0}};
                     PyObject *argsbuf[%s];
                     PyObject * const *fastargs;
@@ -961,6 +944,9 @@ class CLanguage(Language):
                         goto exit;
                     }}
                     """ % (min_pos, max_pos, min_kw_only), indent=4)]
+            if requires_defining_class:
+                flags = 'METH_METHOD|' + flags
+                parser_prototype = parser_prototype_def_class
 
             add_label = None
             for i, p in enumerate(parameters):
@@ -1021,11 +1007,11 @@ class CLanguage(Language):
                     parser_code.append("%s:" % add_label)
             else:
                 declarations = (
-                    'static const char * const _keywords[] = {{{keywords}, NULL}};\n'
+                    'static const char * const _keywords[] = {{{keywords} NULL}};\n'
                     'static _PyArg_Parser _parser = {{"{format_units}:{name}", _keywords, 0}};')
                 if not new_or_init:
                     parser_code = [normalize_snippet("""
-                        if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+                        if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser{parse_arguments_comma}
                             {parse_arguments})) {{
                             goto exit;
                         }}
@@ -1338,9 +1324,13 @@ class CLanguage(Language):
         template_dict['declarations'] = format_escape("\n".join(data.declarations))
         template_dict['initializers'] = "\n\n".join(data.initializers)
         template_dict['modifications'] = '\n\n'.join(data.modifications)
-        template_dict['keywords'] = '"' + '", "'.join(data.keywords) + '"'
+        template_dict['keywords'] = ' '.join('"' + k + '",' for k in data.keywords)
         template_dict['format_units'] = ''.join(data.format_units)
         template_dict['parse_arguments'] = ', '.join(data.parse_arguments)
+        if data.parse_arguments:
+            template_dict['parse_arguments_comma'] = ',';
+        else:
+            template_dict['parse_arguments_comma'] = '';
         template_dict['impl_parameters'] = ", ".join(data.impl_parameters)
         template_dict['impl_arguments'] = ", ".join(data.impl_arguments)
         template_dict['return_conversion'] = format_escape("".join(data.return_conversion).rstrip())
@@ -3645,6 +3635,7 @@ class self_converter(CConverter):
         cls = self.function.cls
 
         if ((kind in (METHOD_NEW, METHOD_INIT)) and cls and cls.typedef):
+            type_object = self.function.cls.type_object
             if kind == METHOD_NEW:
                 type_check = '({} == {})'.format(self.name, type_object)
             else:
@@ -3652,7 +3643,6 @@ class self_converter(CConverter):
 
             line = '{} &&\n        '.format(type_check)
             template_dict['self_type_check'] = line
-
 
 def add_c_return_converter(f, name=None):
     if not name:

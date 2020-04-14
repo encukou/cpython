@@ -22,6 +22,8 @@ static PyObject * cfunction_vectorcall_FASTCALL(
     PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * cfunction_vectorcall_FASTCALL_KEYWORDS(
     PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
+static PyObject * cfunction_vectorcall_FASTCALL_KEYWORDS_METHOD(
+    PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * cfunction_vectorcall_NOARGS(
     PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 static PyObject * cfunction_vectorcall_O(
@@ -51,7 +53,6 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
     {
         case METH_VARARGS:
         case METH_VARARGS | METH_KEYWORDS:
-        case METH_VARARGS | METH_KEYWORDS | METH_METHOD:
             /* For METH_VARARGS functions, it's more efficient to use tp_call
              * instead of vectorcall. */
             vectorcall = NULL;
@@ -68,6 +69,9 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
         case METH_O:
             vectorcall = cfunction_vectorcall_O;
             break;
+        case METH_FASTCALL | METH_KEYWORDS | METH_METHOD:
+            vectorcall = cfunction_vectorcall_FASTCALL_KEYWORDS_METHOD;
+            break;
         default:
             PyErr_Format(PyExc_SystemError,
                          "%s() method: bad call flags", ml->ml_name);
@@ -77,21 +81,13 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
     PyCFunctionObject *op = NULL;
 
     if (ml->ml_flags & METH_METHOD) {
-        PyCMethodObject *om;
-        if (ml->ml_flags & (METH_NOARGS | METH_O | METH_CLASS | METH_STATIC | METH_FASTCALL)) {
-            PyErr_SetString(PyExc_SystemError,
-                            "METH_METHOD cannot be used with METH_NOARGS, "
-                            "METH_O, METH_CLASS, nor METH_STATIC");
-            return NULL;
-        }
-        else if (!(ml->ml_flags & METH_VARARGS) || !(ml->ml_flags & METH_KEYWORDS))
         if (!cls) {
             PyErr_SetString(PyExc_SystemError,
                             "attempting to create PyCMethod with a METH_METHOD "
                             "flag but no class");
             return NULL;
         }
-        om = PyObject_GC_New(PyCMethodObject, &PyCMethod_Type);
+        PyCMethodObject *om = PyObject_GC_New(PyCMethodObject, &PyCMethod_Type);
         if (om == NULL) {
             return NULL;
         }
@@ -391,6 +387,7 @@ PyTypeObject PyCMethod_Type = {
     .tp_members = meth_members,
     .tp_getset = meth_getsets,
     .tp_base = &PyCFunction_Type,
+    .tp_vectorcall_offset = offsetof(PyCFunctionObject, vectorcall),
 };
 
 /* Vectorcall functions for each of the PyCFunction calling conventions,
@@ -460,6 +457,22 @@ cfunction_vectorcall_FASTCALL_KEYWORDS(
         return NULL;
     }
     PyObject *result = meth(PyCFunction_GET_SELF(func), args, nargs, kwnames);
+    _Py_LeaveRecursiveCall(tstate);
+    return result;
+}
+
+static PyObject *
+cfunction_vectorcall_FASTCALL_KEYWORDS_METHOD(
+    PyObject *func, PyObject *const *args, size_t nargsf, PyObject *kwnames)
+{
+    PyThreadState *tstate = _PyThreadState_GET();
+    PyTypeObject *cls = PyCFunction_GET_CLASS(func);
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    PyCMethod meth = (PyCMethod)cfunction_enter_call(tstate, func);
+    if (meth == NULL) {
+        return NULL;
+    }
+    PyObject *result = meth(PyCFunction_GET_SELF(func), cls, args, nargs, kwnames);
     _Py_LeaveRecursiveCall(tstate);
     return result;
 }
@@ -539,28 +552,7 @@ cfunction_call(PyObject *func, PyObject *args, PyObject *kwargs)
     PyObject *self = PyCFunction_GET_SELF(func);
 
     PyObject *result;
-    if (flags & METH_METHOD) {
-        PyTypeObject *cls = PyCFunction_GET_CLASS(func);
-        Py_ssize_t nargs = PyTuple_GET_SIZE(args);
-        if (kwargs == NULL || PyDict_GET_SIZE(kwargs) == 0) {
-            /* Fast path for no keywords */
-            result = (*(PyCMethod)(void(*)(void))meth)(
-                self, cls, _PyTuple_ITEMS(args), nargs, NULL);
-        } else {
-            /* Convert arguments & call */
-            PyObject *const *argvector;
-            PyObject *kwnames;
-            argvector = _PyStack_UnpackDict(tstate, _PyTuple_ITEMS(args), nargs,
-                                            kwargs, &kwnames);
-            if (argvector == NULL) {
-                return NULL;
-            }
-            result = (*(PyCMethod)(void(*)(void))meth)(self, cls, argvector,
-                                    nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, kwnames);
-            _PyStack_UnpackDict_Free(argvector, nargs, kwnames);
-        }
-    }
-    else if (flags & METH_KEYWORDS) {
+    if (flags & METH_KEYWORDS) {
         result = (*(PyCFunctionWithKeywords)(void(*)(void))meth)(self, args, kwargs);
     }
     else {

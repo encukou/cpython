@@ -2867,9 +2867,8 @@ PyType_FromModuleAndSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
 {
     PyHeapTypeObject *res;
     PyMemberDef *memb;
-    PyTypeObject *type, *base;
-
     PyObject *modname;
+    PyTypeObject *type, *base;
 
     PyType_Slot *slot;
     Py_ssize_t nmembers, weaklistoffset, dictoffset;
@@ -2926,7 +2925,6 @@ PyType_FromModuleAndSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
     type->tp_name = spec->name;
 
     Py_XINCREF(module);
-
     res->ht_module = module;
 
     /* Adjust for empty tuple bases */
@@ -3087,7 +3085,10 @@ PyObject *
 PyType_GetModule(PyTypeObject *type) {
     PyHeapTypeObject* et = (PyHeapTypeObject*)type;
     if (!et->ht_module) {
-        PyErr_BadInternalCall();
+        PyErr_Format(
+            PyExc_TypeError,
+            "Type '%s' has no associated module",
+            type->tp_name);
         return NULL;
     }
     return et->ht_module;

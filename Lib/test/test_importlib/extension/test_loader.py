@@ -294,32 +294,32 @@ class MultiPhaseExtensionModuleTests(abc.LoaderTests):
         a = testmultiphase.StateAccessType()
         b = testmultiphase.StateAccessType()
 
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), 0)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 0)
 
         a.increment_count()
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), 1)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 1)
 
         b.increment_count()
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), 2)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 2)
 
         a.decrement_count()
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), 1)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 1)
 
         b.decrement_count()
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), 0)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 0)
 
         a.decrement_count(2)
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), -2)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), -2)
 
         a.decrement_count(3, twice=True)
-        self.assertEquals(a.get_count(), b.get_count())
-        self.assertEquals(a.get_count(), -8)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), -8)
 
         with self.assertRaises(TypeError):
             a.decrement_count(thrice=3)
