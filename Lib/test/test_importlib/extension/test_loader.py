@@ -267,6 +267,66 @@ class MultiPhaseExtensionModuleTests(abc.LoaderTests):
                 self.assertEqual(module.__name__, name)
                 self.assertEqual(module.__doc__, "Module named in %s" % lang)
 
+    def test_subclass_get_module(self):
+        testmultiphase = self.load_module_by_name("_testmultiphase_meth_state_access")
+
+        class StateAccessType_Subclass(testmultiphase.StateAccessType):
+            pass
+
+        ex = StateAccessType_Subclass()
+
+        self.assertIs(ex.get_defining_module(), testmultiphase)
+
+    def test_subclass_get_module_with_super(self):
+        testmultiphase = self.load_module_by_name("_testmultiphase_meth_state_access")
+
+        class StateAccessType_Subclass(testmultiphase.StateAccessType):
+            def get_defining_module(self):
+                return super().get_defining_module()
+
+        ex = StateAccessType_Subclass()
+
+        self.assertIs(ex.get_defining_module(), testmultiphase)
+
+    def test_state_counter(self):
+        testmultiphase = self.load_module_by_name("_testmultiphase_meth_state_access")
+
+        a = testmultiphase.StateAccessType()
+        b = testmultiphase.StateAccessType()
+
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 0)
+
+        a.increment_count()
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 1)
+
+        b.increment_count()
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 2)
+
+        a.decrement_count()
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 1)
+
+        b.decrement_count()
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), 0)
+
+        a.decrement_count(2)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), -2)
+
+        a.decrement_count(3, twice=True)
+        self.assertEqual(a.get_count(), b.get_count())
+        self.assertEqual(a.get_count(), -8)
+
+        with self.assertRaises(TypeError):
+            a.decrement_count(thrice=3)
+
+        with self.assertRaises(TypeError):
+            a.decrement_count(1, 2, 3)
+
 
 (Frozen_MultiPhaseExtensionModuleTests,
  Source_MultiPhaseExtensionModuleTests
