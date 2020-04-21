@@ -3080,6 +3080,41 @@ PyType_GetSlot(PyTypeObject *type, int slot)
     return  *(void**)(((char*)type) + slotoffsets[slot]);
 }
 
+PyObject *
+PyType_GetModule(PyTypeObject *type) {
+    if (!PyType_Check(type) || !PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+        PyErr_Format(
+            PyExc_TypeError,
+            "PyType_GetModule: Type '%s' is not a heap type",
+            type->tp_name);
+        return NULL;
+    }
+
+    PyHeapTypeObject* et = (PyHeapTypeObject*)type;
+    if (!et->ht_module) {
+        PyErr_Format(
+            PyExc_TypeError,
+            "PyType_GetModule: Type '%s' has no associated module",
+            type->tp_name);
+        return NULL;
+    }
+    return et->ht_module;
+
+}
+
+void *
+PyType_GetModuleState(PyTypeObject *type) {
+    PyObject *m;
+
+    m = PyType_GetModule(type);
+
+    if (m == NULL) {
+        return NULL;
+    }
+
+    return PyModule_GetState(m);
+}
+
 /* Internal API to look for a name through the MRO, bypassing the method cache.
    This returns a borrowed reference, and might set an exception.
    'error' is set to: -1: error with exception; 1: error without exception; 0: ok */
