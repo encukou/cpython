@@ -84,7 +84,10 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
                             "flag but no class");
             return NULL;
         }
-        PyCMethodObject *om = PyObject_GC_New(PyCMethodObject, &PyCMethod_Type);
+        PyCMethodObject *om = PyObject_GC_NewVar(
+            PyCMethodObject,
+            &PyCFunction_Type,
+            sizeof(PyCMethodObject) - sizeof(PyCFunctionObject));
         if (om == NULL) {
             return NULL;
         }
@@ -99,7 +102,7 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
             return NULL;
         }
         else {
-            op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
+            op = PyObject_GC_NewVar(PyCFunctionObject, &PyCFunction_Type, 0);
             if (op == NULL)
                 return NULL;
         }
@@ -334,7 +337,7 @@ PyTypeObject PyCFunction_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "builtin_function_or_method",
     sizeof(PyCFunctionObject),
-    0,
+    1,
     (destructor)meth_dealloc,                   /* tp_dealloc */
     offsetof(PyCFunctionObject, vectorcall),    /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
@@ -364,26 +367,6 @@ PyTypeObject PyCFunction_Type = {
     meth_getsets,                               /* tp_getset */
     0,                                          /* tp_base */
     0,                                          /* tp_dict */
-};
-
-PyTypeObject PyCMethod_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    .tp_name = "builtin_c_method",
-    .tp_basicsize = sizeof(PyCMethodObject),
-    .tp_dealloc = (destructor)meth_dealloc,
-    .tp_repr = (reprfunc)meth_repr,
-    .tp_hash = (hashfunc)meth_hash,
-    .tp_call = cfunction_call,
-    .tp_getattro = PyObject_GenericGetAttr,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
-    .tp_traverse = (traverseproc)meth_traverse,
-    .tp_richcompare = meth_richcompare,
-    .tp_weaklistoffset = offsetof(PyCFunctionObject, m_weakreflist),
-    .tp_methods = meth_methods,
-    .tp_members = meth_members,
-    .tp_getset = meth_getsets,
-    .tp_base = &PyCFunction_Type,
-    .tp_vectorcall_offset = offsetof(PyCFunctionObject, vectorcall),
 };
 
 /* Vectorcall functions for each of the PyCFunction calling conventions,

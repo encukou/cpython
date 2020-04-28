@@ -2,8 +2,6 @@
 #  error "this header file must not be included directly"
 #endif
 
-PyAPI_DATA(PyTypeObject) PyCMethod_Type;
-
 /* Macros for direct access to these values. Type checks are *not*
    done, so use with care. */
 #define PyCFunction_GET_FUNCTION(func) \
@@ -18,7 +16,7 @@ PyAPI_DATA(PyTypeObject) PyCMethod_Type;
          ((PyCMethodObject *)func) -> mm_class : NULL)
 
 typedef struct {
-    PyObject_HEAD
+    PyObject_VAR_HEAD
     PyMethodDef *m_ml; /* Description of the C function to call */
     PyObject    *m_self; /* Passed as 'self' arg to the C func, can be NULL */
     PyObject    *m_module; /* The __module__ attribute, can be anything */

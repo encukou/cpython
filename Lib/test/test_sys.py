@@ -1117,7 +1117,7 @@ class SizeofTest(unittest.TestCase):
         # buffer
         # XXX
         # builtin_function_or_method
-        check(len, size('5P'))
+        check(len, vsize('5P'))
         # bytearray
         samples = [b'', b'u'*100000]
         for sample in samples:
