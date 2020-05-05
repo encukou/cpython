@@ -66,7 +66,7 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
         case METH_O:
             vectorcall = cfunction_vectorcall_O;
             break;
-        case METH_FASTCALL | METH_KEYWORDS | METH_METHOD:
+        case METH_METHOD | METH_FASTCALL | METH_KEYWORDS:
             vectorcall = cfunction_vectorcall_FASTCALL_KEYWORDS_METHOD;
             break;
         default:

@@ -95,7 +95,6 @@ descr_check(PyDescrObject *descr, PyObject *obj, PyObject **pres)
 static PyObject *
 classmethod_get(PyMethodDescrObject *descr, PyObject *obj, PyObject *type)
 {
-    PyTypeObject *cls = NULL;
     /* Ensure a valid type.  Class methods ignore obj. */
     if (type == NULL) {
         if (obj != NULL)
@@ -128,6 +127,7 @@ classmethod_get(PyMethodDescrObject *descr, PyObject *obj, PyObject *type)
                      ((PyTypeObject *)type)->tp_name);
         return NULL;
     }
+    PyTypeObject *cls = NULL;
     if (descr->d_method->ml_flags & METH_METHOD) {
         cls = descr->d_common.d_type;
     }
@@ -926,7 +926,7 @@ PyDescr_NewMethod(PyTypeObject *type, PyMethodDef *method)
         case METH_O:
             vectorcall = method_vectorcall_O;
             break;
-        case METH_FASTCALL | METH_KEYWORDS | METH_METHOD:
+        case METH_METHOD | METH_FASTCALL | METH_KEYWORDS:
             vectorcall = method_vectorcall_FASTCALL_KEYWORDS_METHOD;
             break;
         default:
