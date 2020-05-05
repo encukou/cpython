@@ -792,7 +792,8 @@ PyInit__testmultiphase_exec_unreported_exception(PyObject *spec)
 }
 
 static int
-meth_state_access_exec(PyObject *m) {
+meth_state_access_exec(PyObject *m)
+{
     PyObject *temp;
     meth_state *m_state;
 
@@ -832,7 +833,8 @@ static PyModuleDef def_meth_state_access = {
 };
 
 PyMODINIT_FUNC
-PyInit__testmultiphase_meth_state_access(PyObject *spec) {
+PyInit__testmultiphase_meth_state_access(PyObject *spec)
+{
     return PyModuleDef_Init(&def_meth_state_access);
 }
 
