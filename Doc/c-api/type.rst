@@ -109,7 +109,7 @@ Type Objects
 
    .. versionadded:: 3.4
 
-.. c:function:: void* PyType_GetModule(PyTypeObject *type)
+.. c:function:: PyObject* PyType_GetModule(PyTypeObject *type)
 
    Return the module object associated with the given type when the type was
    created using :c:func:`PyType_FromModuleAndSpec`.
@@ -161,7 +161,7 @@ The following functions and structs are used to create
 
 .. c:function:: PyObject* PyType_FromSpecWithBases(PyType_Spec *spec, PyObject *bases)
 
-   Equivalent to ``PyType_FromModuleAndSpec(NULL, spec, NULL)``.
+   Equivalent to ``PyType_FromModuleAndSpec(NULL, spec, bases)``.
 
    .. versionadded:: 3.3
 
