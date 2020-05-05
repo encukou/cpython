@@ -98,10 +98,9 @@ PyCMethod_New(PyMethodDef *ml, PyObject *self, PyObject *module, PyTypeObject *c
                             "but no METH_METHOD flag");
             return NULL;
         }
-        else {
-            op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
-            if (op == NULL)
-                return NULL;
+        op = PyObject_GC_New(PyCFunctionObject, &PyCFunction_Type);
+        if (op == NULL) {
+            return NULL;
         }
     }
 
@@ -247,7 +246,6 @@ meth_traverse(PyCFunctionObject *m, visitproc visit, void *arg)
     Py_VISIT(m->m_self);
     Py_VISIT(m->m_module);
     Py_VISIT(PyCFunction_GET_CLASS(m));
-
     return 0;
 }
 
