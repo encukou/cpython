@@ -32,33 +32,38 @@ exit:
     return return_value;
 }
 
-PyDoc_STRVAR(_testmultiphase_StateAccessType_increment_count__doc__,
-"increment_count($self, /)\n"
+PyDoc_STRVAR(_testmultiphase_StateAccessType_increment_count_clinic__doc__,
+"increment_count_clinic($self, /, n=1, *, twice=False)\n"
 "--\n"
 "\n"
-"Add 1 to the module-state counter.\n"
+"Add \'n\' from the module-state counter.\n"
+"\n"
+"Pass \'twice\' to double that amount.\n"
 "\n"
 "This tests Argument Clinic support for defining_class.");
 
-#define _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_METHODDEF    \
-    {"increment_count", (PyCFunction)(void(*)(void))_testmultiphase_StateAccessType_increment_count, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, _testmultiphase_StateAccessType_increment_count__doc__},
+#define _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_CLINIC_METHODDEF    \
+    {"increment_count_clinic", (PyCFunction)(void(*)(void))_testmultiphase_StateAccessType_increment_count_clinic, METH_METHOD|METH_FASTCALL|METH_KEYWORDS, _testmultiphase_StateAccessType_increment_count_clinic__doc__},
 
 static PyObject *
-_testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self,
-                                                     PyTypeObject *cls);
+_testmultiphase_StateAccessType_increment_count_clinic_impl(StateAccessTypeObject *self,
+                                                            PyTypeObject *cls,
+                                                            int n, int twice);
 
 static PyObject *
-_testmultiphase_StateAccessType_increment_count(StateAccessTypeObject *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+_testmultiphase_StateAccessType_increment_count_clinic(StateAccessTypeObject *self, PyTypeObject *cls, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
 {
     PyObject *return_value = NULL;
-    static const char * const _keywords[] = { NULL};
-    static _PyArg_Parser _parser = {":increment_count", _keywords, 0};
+    static const char * const _keywords[] = {"n", "twice", NULL};
+    static _PyArg_Parser _parser = {"|i$p:increment_count_clinic", _keywords, 0};
+    int n = 1;
+    int twice = 0;
 
-    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser
-        )) {
+    if (!_PyArg_ParseStackAndKeywords(args, nargs, kwnames, &_parser,
+        &n, &twice)) {
         goto exit;
     }
-    return_value = _testmultiphase_StateAccessType_increment_count_impl(self, cls);
+    return_value = _testmultiphase_StateAccessType_increment_count_clinic_impl(self, cls, n, twice);
 
 exit:
     return return_value;
@@ -93,4 +98,4 @@ _testmultiphase_StateAccessType_get_count(StateAccessTypeObject *self, PyTypeObj
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=0a316f45389bb323 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=39eea487e94e7f5d input=a9049054013a1b77]*/

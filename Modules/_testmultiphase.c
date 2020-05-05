@@ -12,9 +12,10 @@ typedef struct {
 
 /*[clinic input]
 module _testmultiphase
-class _testmultiphase.Example "ExampleObject *" "!Example"
+
+class _testmultiphase.StateAccessType "StateAccessTypeObject *" "!StateAccessType"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=cf7bf661ca0179b9]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=bab9f2fe3bd312ff]*/
 
 /* Example objects */
 typedef struct {
@@ -25,11 +26,6 @@ typedef struct {
 typedef struct {
     PyObject *integer;
 } testmultiphase_state;
-
-/*[clinic input]
-class _testmultiphase.StateAccessType "StateAccessTypeObject *" "!StateAccessType"
-[clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=5279c64c0c9ef77f]*/
 
 typedef struct {
     PyObject_HEAD
@@ -106,7 +102,6 @@ Example_setattr(ExampleObject *self, const char *name, PyObject *v)
         return PyDict_SetItemString(self->x_attr, name, v);
 }
 
-
 static PyType_Slot Example_Type_slots[] = {
     {Py_tp_doc, "The Example type"},
     {Py_tp_finalize, Example_finalize},
@@ -121,7 +116,7 @@ static PyType_Spec Example_Type_spec = {
     "_testimportexec.Example",
     sizeof(ExampleObject),
     0,
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_BASETYPE,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
     Example_Type_slots
 };
 
@@ -149,22 +144,32 @@ _testmultiphase_StateAccessType_get_defining_module_impl(StateAccessTypeObject *
 }
 
 /*[clinic input]
-_testmultiphase.StateAccessType.increment_count
+_testmultiphase.StateAccessType.increment_count_clinic
 
     cls: defining_class
+    /
+    n: int = 1
+    *
+    twice: bool = False
 
-Add 1 to the module-state counter.
+Add 'n' from the module-state counter.
+
+Pass 'twice' to double that amount.
 
 This tests Argument Clinic support for defining_class.
 [clinic start generated code]*/
 
 static PyObject *
-_testmultiphase_StateAccessType_increment_count_impl(StateAccessTypeObject *self,
-                                                     PyTypeObject *cls)
-/*[clinic end generated code: output=b78c77b78c6882e4 input=baa6b8c0525ccde3]*/
+_testmultiphase_StateAccessType_increment_count_clinic_impl(StateAccessTypeObject *self,
+                                                            PyTypeObject *cls,
+                                                            int n, int twice)
+/*[clinic end generated code: output=3b34f86bc5473204 input=551d482e1fe0b8f5]*/
 {
     meth_state *m_state = PyType_GetModuleState(cls);
-    m_state->counter++;
+    if (twice) {
+        n *= 2;
+    }
+    m_state->counter += n;
 
     Py_RETURN_NONE;
 }
@@ -173,22 +178,28 @@ PyDoc_STRVAR(_StateAccessType_decrement_count__doc__,
 "decrement_count($self, /, n=1, *, twice=None)\n"
 "--\n"
 "\n"
-"Subtract 'n' from the module-state counter.\n"
+"Add 'n' from the module-state counter.\n"
 "Pass 'twice' to double that amount.\n"
 "(This is to test both positional and keyword arguments.");
 
 // Intentionally does not use Argument Clinic
 static PyObject *
-_StateAccessType_decrement_count(StateAccessTypeObject *self,
-                                 PyTypeObject *defining_class,
-                                 PyObject *const *args,
-                                 Py_ssize_t nargs,
-                                 PyObject *kwnames)
+_StateAccessType_increment_count_noclinic(StateAccessTypeObject *self,
+                                          PyTypeObject *defining_class,
+                                          PyObject *const *args,
+                                          Py_ssize_t nargs,
+                                          PyObject *kwnames)
 {
     if (!_PyArg_CheckPositional("StateAccessTypeObject.decrement_count", nargs, 0, 1)) {
         return NULL;
     }
-    int coefficient = 1;
+    long n = 1;
+    if (nargs) {
+        n = PyLong_AsLong(args[0]);
+        if (PyErr_Occurred()) {
+            return NULL;
+        }
+    }
     if (kwnames && PyTuple_Check(kwnames)) {
         if (PyTuple_GET_SIZE(kwnames) > 1 ||
             PyUnicode_CompareWithASCIIString(
@@ -201,17 +212,10 @@ _StateAccessType_decrement_count(StateAccessTypeObject *self,
             );
             return NULL;
         }
-        coefficient = 2;
-    }
-    long n = 1;
-    if (nargs) {
-        n = PyLong_AsLong(args[0]);
-        if (PyErr_Occurred()) {
-            return NULL;
-        }
+        n *= 2;
     }
     meth_state *m_state = PyType_GetModuleState(defining_class);
-    m_state->counter -= n * coefficient;
+    m_state->counter += n;
 
     Py_RETURN_NONE;
 }
@@ -236,10 +240,10 @@ _testmultiphase_StateAccessType_get_count_impl(StateAccessTypeObject *self,
 static PyMethodDef StateAccessType_methods[] = {
     _TESTMULTIPHASE_STATEACCESSTYPE_GET_DEFINING_MODULE_METHODDEF
     _TESTMULTIPHASE_STATEACCESSTYPE_GET_COUNT_METHODDEF
-    _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_METHODDEF
+    _TESTMULTIPHASE_STATEACCESSTYPE_INCREMENT_COUNT_CLINIC_METHODDEF
     {
-        "decrement_count",
-        (PyCFunction)(void(*)(void))_StateAccessType_decrement_count,
+        "increment_count_noclinic",
+        (PyCFunction)(void(*)(void))_StateAccessType_increment_count_noclinic,
         METH_METHOD|METH_FASTCALL|METH_KEYWORDS,
         _StateAccessType_decrement_count__doc__
     },
