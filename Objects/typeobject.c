@@ -3082,7 +3082,8 @@ PyType_GetSlot(PyTypeObject *type, int slot)
 
 PyObject *
 PyType_GetModule(PyTypeObject *type) {
-    if (!PyType_Check(type) || !PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
+    assert(PyType_Check(type));
+    if (!_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
         PyErr_Format(
             PyExc_TypeError,
             "PyType_GetModule: Type '%s' is not a heap type",
@@ -3104,14 +3105,10 @@ PyType_GetModule(PyTypeObject *type) {
 
 void *
 PyType_GetModuleState(PyTypeObject *type) {
-    PyObject *m;
-
-    m = PyType_GetModule(type);
-
+    PyObject *m = PyType_GetModule(type);
     if (m == NULL) {
         return NULL;
     }
-
     return PyModule_GetState(m);
 }
 
