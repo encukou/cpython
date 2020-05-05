@@ -368,22 +368,9 @@ PyTypeObject PyCFunction_Type = {
 
 PyTypeObject PyCMethod_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    .tp_name = "builtin_c_method",
+    .tp_name = "builtin_method",
     .tp_basicsize = sizeof(PyCMethodObject),
-    .tp_dealloc = (destructor)meth_dealloc,
-    .tp_repr = (reprfunc)meth_repr,
-    .tp_hash = (hashfunc)meth_hash,
-    .tp_call = cfunction_call,
-    .tp_getattro = PyObject_GenericGetAttr,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
-    .tp_traverse = (traverseproc)meth_traverse,
-    .tp_richcompare = meth_richcompare,
-    .tp_weaklistoffset = offsetof(PyCFunctionObject, m_weakreflist),
-    .tp_methods = meth_methods,
-    .tp_members = meth_members,
-    .tp_getset = meth_getsets,
     .tp_base = &PyCFunction_Type,
-    .tp_vectorcall_offset = offsetof(PyCFunctionObject, vectorcall),
 };
 
 /* Vectorcall functions for each of the PyCFunction calling conventions,
