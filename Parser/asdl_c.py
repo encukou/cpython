@@ -1452,7 +1452,6 @@ def write_source(f, mod):
     f.write('#include "Python.h"\n')
     f.write('#include "%s-ast.h"\n' % mod.name)
     f.write('#include "structmember.h"         // PyMemberDef\n')
-    f.write('#include "pycore_pylifecycle.h"   // export _PyAST_Fini()\n')
     f.write('\n')
 
     generate_module_def(f, mod)

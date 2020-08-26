@@ -5,7 +5,6 @@
 #include "Python.h"
 #include "Python-ast.h"
 #include "structmember.h"         // PyMemberDef
-#include "pycore_pylifecycle.h"   // export _PyAST_Fini()
 
 typedef struct {
     int initialized;
