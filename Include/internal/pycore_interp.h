@@ -255,6 +255,9 @@ struct _is {
     struct _Py_async_gen_state async_gen;
     struct _Py_context_state context;
     struct _Py_exc_state exc_state;
+
+    // _ast module state, allocated on demand (see Python/Python-ast.c)
+    struct _Py_ast_state *ast_state;
 };
 
 /* Used by _PyImport_Cleanup() */

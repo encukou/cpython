@@ -1057,6 +1057,17 @@ class ASTModuleVisitor(PickleVisitor):
         self.emit("astmodule_exec(PyObject *m)", 0)
         self.emit("{", 0)
         self.emit('astmodulestate *state = get_ast_state(m);', 1)
+        self.emit("if (state == NULL) {", 1)
+        self.emit("return -1;", 2)
+        self.emit("}", 1)
+        self.emit("#ifndef Py_BUILD_CORE", 0)
+        self.emit('if (state->initialized) {', 1)
+        self.emit('PyErr_SetString(', 2)
+        self.emit('PyExc_ImportError,', 3)
+        self.emit('"cannot load non-core _ast module more than once per process");', 3)
+        self.emit("return -1;", 2)
+        self.emit('}', 1)
+        self.emit("#endif", 0)
         self.emit("", 0)
 
         self.emit("if (!init_types(state)) {", 1)
@@ -1089,7 +1100,7 @@ static PyModuleDef_Slot astmodule_slots[] = {
 static struct PyModuleDef _astmodule = {
     PyModuleDef_HEAD_INIT,
     .m_name = "_ast",
-    // The _ast module uses a global state (global_ast_state).
+    // The _ast module uses a per-interpreter state (see get_global_ast_state)
     .m_size = 0,
     .m_slots = astmodule_slots,
 };
@@ -1366,7 +1377,7 @@ def generate_module_def(f, mod):
             module_state.add(tp)
     state_strings = sorted(state_strings)
     module_state = sorted(module_state)
-    f.write('typedef struct {\n')
+    f.write('typedef struct _Py_ast_state {\n')
     f.write('    int initialized;\n')
     for s in module_state:
         f.write('    PyObject *' + s + ';\n')
@@ -1374,9 +1385,51 @@ def generate_module_def(f, mod):
     f.write("""
 // Forward declaration
 static int init_types(astmodulestate *state);
+static void fini_types(astmodulestate *state);
 
-// bpo-41194, bpo-41261, bpo-41631: The _ast module uses a global state.
-static astmodulestate global_ast_state = {0};
+#ifdef Py_BUILD_CORE
+
+// bpo-41194, bpo-41261, bpo-41631: The _ast module uses a per-interpreter
+// state; if several _ast module objects are created, they share the state
+// including all AST types.
+// The state is allocated and initialized on demand.
+
+static astmodulestate*
+get_global_ast_state(void)
+{
+    PyInterpreterState* interp = _PyInterpreterState_Get();
+    if (interp->ast_state == NULL) {
+        interp->ast_state = (astmodulestate*)PyMem_Calloc(1, sizeof(astmodulestate));
+    }
+    if (interp->ast_state == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    if (!init_types(interp->ast_state)) {
+        PyMem_Free(interp->ast_state);
+        interp->ast_state = NULL;
+        return NULL;
+    }
+    return interp->ast_state;
+}
+
+void
+_PyAST_Fini(PyThreadState *tstate)
+{
+    PyInterpreterState* interp = tstate->interp;
+    fini_types(interp->ast_state);
+    PyMem_Free(interp->ast_state);
+    interp->ast_state = NULL;
+}
+
+#else
+
+// HACK: If we're not building CPython core (as happens in pegen tests),
+// we use a static global module state object.
+// In astmodule_exec, we limit such modules to be only importable once
+// per process, so the state doesn't end up shared across interpreters.
+
+static astmodulestate global_ast_state;
 
 static astmodulestate*
 get_global_ast_state(void)
@@ -1388,6 +1441,14 @@ get_global_ast_state(void)
     return state;
 }
 
+void
+_PyAST_Fini(PyThreadState *tstate)
+{
+    fini_types(&global_ast_state);
+}
+
+#endif
+
 static astmodulestate*
 get_ast_state(PyObject* Py_UNUSED(module))
 {
@@ -1398,9 +1459,12 @@ get_ast_state(PyObject* Py_UNUSED(module))
     return state;
 }
 
-void _PyAST_Fini(PyThreadState *tstate)
+static void
+fini_types(astmodulestate* state)
 {
-    astmodulestate* state = &global_ast_state;
+    if (state == NULL || !state->initialized) {
+        return;
+    }
 """)
     for s in module_state:
         f.write("    Py_CLEAR(state->" + s + ');\n')
@@ -1452,6 +1516,9 @@ def write_source(f, mod):
     f.write('#include "Python.h"\n')
     f.write('#include "%s-ast.h"\n' % mod.name)
     f.write('#include "structmember.h"         // PyMemberDef\n')
+    f.write('#if Py_BUILD_CORE\n')
+    f.write('#include "pycore_interp.h"        // _PyInterpreterState.ast_state\n')
+    f.write('#endif\n')
     f.write('\n')
 
     generate_module_def(f, mod)
