@@ -922,21 +922,26 @@ class SourceLoader(_LoaderBasics):
             source_bytes = self.get_data(source_path)
         code_object = self.source_to_code(source_bytes, source_path)
         _bootstrap._verbose_message('code object from {}', source_path)
-        source_dir = _path_split(source_path)[0]
-        pycache_marker = _path_join(source_dir, "nocache_marker")
-        marker_exists = _path_isfile(pycache_marker)
         if (not sys.dont_write_bytecode and bytecode_path is not None and
-                source_mtime is not None and not marker_exists):
-            if hash_based:
-                if source_hash is None:
-                    source_hash = _imp.source_hash(source_bytes)
-                data = _code_to_hash_pyc(code_object, source_hash, check_source)
-            else:
-                data = _code_to_timestamp_pyc(code_object, source_mtime,
-                                              len(source_bytes))
+                source_mtime is not None):
+            source_dir = _path_split(source_path)[0]
+            pycache_marker = _path_join(source_dir, "nocache_marker")
             try:
-                self._cache_bytecode(source_path, bytecode_path, data)
-            except NotImplementedError:
+                self.path_stats(pycache_marker)
+            except OSError:
+                if hash_based:
+                    if source_hash is None:
+                        source_hash = _imp.source_hash(source_bytes)
+                    data = _code_to_hash_pyc(code_object, source_hash,
+                                             check_source)
+                else:
+                    data = _code_to_timestamp_pyc(code_object, source_mtime,
+                                                  len(source_bytes))
+                try:
+                    self._cache_bytecode(source_path, bytecode_path, data)
+                except NotImplementedError:
+                    pass
+            else:
                 pass
         return code_object
 
