@@ -924,8 +924,8 @@ class SourceLoader(_LoaderBasics):
         _bootstrap._verbose_message('code object from {}', source_path)
         if (not sys.dont_write_bytecode and bytecode_path is not None and
                 source_mtime is not None):
-            source_dir = _path_split(source_path)[0]
-            pycache_marker = _path_join(source_dir, "nocache_marker")
+            bytecode_dir = _path_split(bytecode_path)[0]
+            pycache_marker = _path_join(bytecode_dir, 'dont_write_bytecode')
             try:
                 self.path_stats(pycache_marker)
             except OSError:
