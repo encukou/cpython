@@ -1054,8 +1054,17 @@ class SourcelessFileLoader(FileLoader, _LoaderBasics):
         )
 
     def get_source(self, fullname):
-        """Return None as there is no source code."""
-        return None
+        path = self.get_filename(fullname)
+        parent, part = _path_split(path)
+        parent, sep, modname = fullname.rpartition('.')
+        source_path = _path_join(parent, '__pysource__', modname + '.zpy')
+        try:
+            data = self.get_data(source_path)
+        except OSError:
+            return None
+        import zlib
+        source_bytes = zlib.decompress(data)
+        return decode_source(source_bytes)
 
 
 # Filled in by _setup().

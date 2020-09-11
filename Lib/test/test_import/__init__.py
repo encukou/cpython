@@ -841,9 +841,10 @@ class PycacheTests(unittest.TestCase):
 
     def setUp(self):
         self.source = TESTFN + '.py'
+        self.content = '# This is a test file written by test_import.py'
         self._clean()
         with open(self.source, 'w') as fp:
-            print('# This is a test file written by test_import.py', file=fp)
+            print(self.content, file=fp)
         sys.path.insert(0, os.curdir)
         importlib.invalidate_caches()
 
@@ -990,6 +991,31 @@ class PycacheTests(unittest.TestCase):
             print("x = 5", file=fp)
         m = __import__(TESTFN)
         self.assertEqual(m.x, 5)
+
+    def test_pysource(self):
+        try:
+            import zlib
+            m = __import__(TESTFN)
+            os.rename(m.__cached__, TESTFN + '.pyc')
+            os.rmdir('__pycache__')
+            os.mkdir('__pysource__')
+            zpy_path = os.path.join('__pysource__', TESTFN + '.zpy')
+            with open(self.source, 'rb') as f_in:
+                data = zlib.compress(f_in.read())
+            with open(zpy_path, 'wb') as f_out:
+                f_out.write(data)
+            unlink(self.source)
+            unload(TESTFN)
+            importlib.invalidate_caches()
+
+            m = __import__(TESTFN)
+
+            source = m.__loader__.get_source(TESTFN)
+            assert source == self.content + '\n', source
+
+        finally:
+            rmtree('__pysource__')
+            unlink(TESTFN + '.pyc')
 
 
 class TestSymbolicallyLinkedPackage(unittest.TestCase):
