@@ -991,6 +991,16 @@ class PycacheTests(unittest.TestCase):
         m = __import__(TESTFN)
         self.assertEqual(m.x, 5)
 
+    def test_dont_write_bytecode_marker(self):
+        os.mkdir('__pycache__')
+        with open(os.path.join('__pycache__', 'dont_write_bytecode'), 'w'):
+            pass
+        m = __import__(TESTFN)
+        contents = os.listdir('__pycache__')
+        assert contents == ['dont_write_bytecode'], (contents, self.source)
+        pyc_path = importlib.util.cache_from_source(self.source)
+        self.assertFalse(os.path.exists(pyc_path))
+
 
 class TestSymbolicallyLinkedPackage(unittest.TestCase):
     package_name = 'sample'
