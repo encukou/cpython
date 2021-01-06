@@ -70,6 +70,10 @@ class FunctionInfo:
                 changes.append(ChangeInfo)
             elif isinstance(entry, AbiOnly):
                 abi_only = True
+            elif isinstance(entry, ArgInfo):
+                pass
+            elif isinstance(entry, ReturnInfo):
+                pass
             else:
                 raise TypeError(type(entry))
         return cls(name, abi_only)
@@ -128,6 +132,42 @@ class MacroInfo:
                 raise TypeError(type(entry))
         return cls(name, abi_only)
 
+@dataclasses.dataclass
+class ArgInfo:
+    name: str
+    abi_only: bool = False
+
+    @classmethod
+    def make(cls, name, entries=()):
+        changes = []
+        abi_only = False
+        for entry in entries:
+            if isinstance(entry, ChangeInfo):
+                changes.append(ChangeInfo)
+            elif isinstance(entry, AbiOnly):
+                abi_only = True
+            else:
+                raise TypeError(type(entry))
+        return cls(name, abi_only)
+
+@dataclasses.dataclass
+class ReturnInfo:
+    name: str
+    abi_only: bool = False
+
+    @classmethod
+    def make(cls, name, entries=()):
+        changes = []
+        abi_only = False
+        for entry in entries:
+            if isinstance(entry, ChangeInfo):
+                changes.append(ChangeInfo)
+            elif isinstance(entry, AbiOnly):
+                abi_only = True
+            else:
+                raise TypeError(type(entry))
+        return cls(name, abi_only)
+
 
 @dataclasses.dataclass
 class AbiOnly:
@@ -145,41 +185,41 @@ class Pointer:
     type: object
 """
 
-start: (entry)* ENDMARKER
-entry: struct { struct } | function { function } | data { data } | typedef { typedef }
-    | macro { macro }
-struct: 'struct' name=NAME NEWLINE INDENT entries=struct_entry* DEDENT {
-    StructInfo.make(name.string, entries[0]) }
-struct_entry: change { change } | field { field }
+start: entries ENDMARKER { entries }
+entries: entries entry { entries + [entry] }
+    | entry { [entry] }
+entry: struct { struct } | function { function } | data { data }
+    | typedef { typedef } | macro { macro }
+    | change { change } | abi_only { abi_only }
+    | field { field }
+    | arg { arg } | ret=returnspec { ret } 
+
+struct: 'struct' name=NAME NEWLINE e=subentries? {
+    StructInfo.make(name.string, e or []) }
+function: 'function' ~ NAME NEWLINE e=subentries? {
+        FunctionInfo.make(name.string, e or []) }
+data: 'data' ~ NAME NEWLINE e=subentries? {
+        DataInfo.make(name.string, e or []) }
+typedef: 'typedef' ~ NAME NEWLINE e=subentries? {
+        TypedefInfo.make(name.string, e or []) }
+macro: 'macro' ~ NAME NEWLINE e=subentries? {
+        MacroInfo.make(name.string, e or []) }
+
+subentries: INDENT ~ entries DEDENT { entries }
 change: 'added' ~ ver=NUMBER NEWLINE { ChangeInfo.make('added', ver.string) }
     | 'removed' ~ ver=NUMBER NEWLINE { ChangeInfo.make('removed', ver.string) }
-field: 'field' ~ c_declaration NEWLINE e=(INDENT entries=field_entry* DEDENT {entries[0]})? {
+field: 'field' ~ c_declaration NEWLINE e=subentries? {
         FieldInfo.make('demo', c_declaration, e or []) }
-field_entry: abi_only {abi_only}
 abi_only: 'abi_only' ~ NEWLINE { AbiOnly() }
-function: 'function' ~ NAME NEWLINE INDENT entries=func_entry* DEDENT {
-        FunctionInfo.make(name, entries[0]) }
-func_entry: arg { arg } | ret=returnspec { ret } | change { change } | abi_only { abi_only }
-arg: 'arg' ~ c_declaration NEWLINE
-returnspec: 'return' ~ c_declaration NEWLINE
-data: 'data' ~ NAME NEWLINE INDENT entries=data_entry* DEDENT {
-        DataInfo.make(name, entries[0]) }
-data_entry: change { change } | abi_only { abi_only }
-typedef: 'typedef' ~ NAME NEWLINE INDENT entries=typedef_entry* DEDENT {
-        TypedefInfo.make(name, entries[0]) }
-typedef_entry: change { change } | abi_only { abi_only }
-macro: 'macro' ~ NAME NEWLINE INDENT entries=macro_entry* DEDENT {
-        MacroInfo.make(name, entries[0]) }
-macro_entry: change { change } | abi_only { abi_only }
+arg: 'arg' ~ c_declaration NEWLINE { ArgInfo.make(c_declaration) }
+returnspec: 'return' ~ c_declaration NEWLINE { ReturnInfo.make(c_declaration) }
 
 c_declaration: c_specqual c_declarator?
 c_specqual: c_qualifier c_specqual
     | c_typespec
-c_typespec: 'void'
-    | ('signed' | 'unsigned')? 'char'
-    | ('signed' | 'unsigned' | 'short' | 'long')* 'int'
-    | 'float'
-    | 'long'? 'double'
+c_typespec: 'void' { TypeName('void') }
+    | ('signed' | 'unsigned' | 'short' | 'long')* name=('int' | 'char' | 'float' | 'double') {
+            TypeName(name) }
     | name=NAME { TypeName(name.string) }
 c_declarator: NAME { name.string }
     | c_pointerdecl { c_pointerdecl }
