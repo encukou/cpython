@@ -1,192 +1,11 @@
 @subheader """\
-import dataclasses
-import typing
-
-@dataclasses.dataclass
-class StructInfo:
-    name: str
-    fields: typing.Iterable
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries):
-        fields = []
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, FieldInfo):
-                fields.append(entry)
-            elif isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, fields, abi_only)
-
-@dataclasses.dataclass
-class TypeInfo:
-    pass
-
-@dataclasses.dataclass
-class ChangeInfo:
-    type: str
-    version_info: tuple
-    
-    @classmethod
-    def make(cls, name, version_string):
-        return cls(name, tuple(int(v) for v in version_string.split('.')))
-
-@dataclasses.dataclass
-class FieldInfo:
-    name: str
-    type: TypeInfo
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, typ, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, typ, abi_only)
-
-@dataclasses.dataclass
-class FunctionInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            elif isinstance(entry, ArgInfo):
-                pass
-            elif isinstance(entry, ReturnInfo):
-                pass
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-@dataclasses.dataclass
-class DataInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-@dataclasses.dataclass
-class TypedefInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-@dataclasses.dataclass
-class MacroInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-@dataclasses.dataclass
-class ArgInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-@dataclasses.dataclass
-class ReturnInfo:
-    name: str
-    abi_only: bool = False
-
-    @classmethod
-    def make(cls, name, entries=()):
-        changes = []
-        abi_only = False
-        for entry in entries:
-            if isinstance(entry, ChangeInfo):
-                changes.append(ChangeInfo)
-            elif isinstance(entry, AbiOnly):
-                abi_only = True
-            else:
-                raise TypeError(type(entry))
-        return cls(name, abi_only)
-
-
-@dataclasses.dataclass
-class AbiOnly:
-    pass
-
-
-@dataclasses.dataclass
-class TypeName:
-    name: str
-
-
-@dataclasses.dataclass
-class Pointer:
-    qualifiers: list
-    type: object
+from nodes import StructInfo, ChangeInfo, TypeName, AbiOnly, FieldInfo
+from nodes import Pointer, ArgInfo, ReturnInfo, FunctionInfo, DataInfo
+from nodes import TypedefInfo, MacroInfo, TypeDecl, FuncDecl, NoParams
 """
 
 start: entries ENDMARKER { entries }
-entries: entries entry { entries + [entry] }
+entries: entries entry { [*entries, entry] }
     | entry { [entry] }
 entry: struct { struct } | function { function } | data { data }
     | typedef { typedef } | macro { macro }
@@ -209,27 +28,26 @@ subentries: INDENT ~ entries DEDENT { entries }
 change: 'added' ~ ver=NUMBER NEWLINE { ChangeInfo.make('added', ver.string) }
     | 'removed' ~ ver=NUMBER NEWLINE { ChangeInfo.make('removed', ver.string) }
 field: 'field' ~ c_declaration NEWLINE e=subentries? {
-        FieldInfo.make('demo', c_declaration, e or []) }
+        FieldInfo.make(c_declaration, e or []) }
 abi_only: 'abi_only' ~ NEWLINE { AbiOnly() }
 arg: 'arg' ~ c_declaration NEWLINE { ArgInfo.make(c_declaration) }
 returnspec: 'return' ~ c_declaration NEWLINE { ReturnInfo.make(c_declaration) }
 
-c_declaration: c_specqual c_declarator?
-c_specqual: c_qualifier c_specqual
-    | c_typespec
+c_declaration: c_specqual d=c_declarator? { TypeDecl(c_specqual, d) }
+c_specqual: c_qualifier c_specqual { TypeName(c_specqual.name, [c_qualifier, *c_specqual.qualifiers] ) }
+    | c_typespec { c_typespec }
 c_typespec: 'void' { TypeName('void') }
     | ('signed' | 'unsigned' | 'short' | 'long')* name=('int' | 'char' | 'float' | 'double') {
-            TypeName(name) }
+            TypeName(name[0].string) }
     | name=NAME { TypeName(name.string) }
-c_declarator: NAME { name.string }
+c_declarator: NAME { TypeName(name.string) }
     | c_pointerdecl { c_pointerdecl }
     | c_arraydecl { c_arraydecl }
     | c_funcdecl { c_funcdecl }
     | '(' c_declarator ')' { c_declarator }
 c_pointerdecl: '*' q=c_qualifier* d=c_declarator? { Pointer(q, d) }
 c_arraydecl: c_declarator '[' NUMBER ']'
-c_funcdecl: c_declarator '(' c_params ')' { (c_declarator, '(', c_params, ')') }
-c_qualifier: 'const' | 'volatile' | 'restrict'
-c_params: 'void'
-    # XXX: in the ABI list, function parameters need to be named
+c_funcdecl: c_declarator '(' c_params ')' { FuncDecl(c_declarator, c_params) }
+c_qualifier: 'const' {'const'} | 'volatile' {'volatile'} | 'restrict' {'restrict'}
+c_params: 'void' { NoParams() }
     | ','.c_declaration+ '...'? {c_declaration}
