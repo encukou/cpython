@@ -4,7 +4,8 @@
 # It is designed to be read only by scripts in Tools/stable_abi.
 
 # For the history of the stable ABI prior to this file,
-# see the history of PC/python3dll.c and before that, PC/python3.def
+# see the history of PC/python3dll.c and before that, PC/python3.def,
+# and PC/pythonXYstub.def
 
 # XXX Check that this file has no duplicates
 
@@ -123,143 +124,143 @@ function PyType_FromSpec
     arg PyType_Spec* spec
     return PyObject*
 
-data Py_tp_dealloc
+const Py_tp_dealloc
     added 3.2
-data Py_tp_getattr
+const Py_tp_getattr
     added 3.2
-data Py_tp_setattr
+const Py_tp_setattr
     added 3.2
-data Py_tp_repr
+const Py_tp_repr
     added 3.2
-data Py_tp_hash
+const Py_tp_hash
     added 3.2
-data Py_tp_call
+const Py_tp_call
     added 3.2
-data Py_tp_str
+const Py_tp_str
     added 3.2
-data Py_tp_getattro
+const Py_tp_getattro
     added 3.2
-data Py_tp_setattro
+const Py_tp_setattro
     added 3.2
-data Py_tp_doc
+const Py_tp_doc
     added 3.2
-data Py_tp_traverse
+const Py_tp_traverse
     added 3.2
-data Py_tp_clear
+const Py_tp_clear
     added 3.2
-data Py_tp_richcompare
+const Py_tp_richcompare
     added 3.2
-data Py_tp_iter
+const Py_tp_iter
     added 3.2
-data Py_tp_iternext
+const Py_tp_iternext
     added 3.2
-data Py_tp_methods
+const Py_tp_methods
     added 3.2
-data Py_tp_base
+const Py_tp_base
     added 3.2
-data Py_tp_descr_get
+const Py_tp_descr_get
     added 3.2
-data Py_tp_descr_set
+const Py_tp_descr_set
     added 3.2
-data Py_tp_init
+const Py_tp_init
     added 3.2
-data Py_tp_alloc
+const Py_tp_alloc
     added 3.2
-data Py_tp_new
+const Py_tp_new
     added 3.2
-data Py_tp_is_gc
+const Py_tp_is_gc
     added 3.2
-data Py_tp_bases
+const Py_tp_bases
     added 3.2
-data Py_tp_del
+const Py_tp_del
     added 3.2
-data Py_nb_add
+const Py_nb_add
     added 3.2
-data Py_nb_subtract
+const Py_nb_subtract
     added 3.2
-data Py_nb_multiply
+const Py_nb_multiply
     added 3.2
-data Py_nb_remainder
+const Py_nb_remainder
     added 3.2
-data Py_nb_divmod
+const Py_nb_divmod
     added 3.2
-data Py_nb_power
+const Py_nb_power
     added 3.2
-data Py_nb_negative
+const Py_nb_negative
     added 3.2
-data Py_nb_positive
+const Py_nb_positive
     added 3.2
-data Py_nb_absolute
+const Py_nb_absolute
     added 3.2
-data Py_nb_bool
+const Py_nb_bool
     added 3.2
-data Py_nb_invert
+const Py_nb_invert
     added 3.2
-data Py_nb_lshift
+const Py_nb_lshift
     added 3.2
-data Py_nb_rshift
+const Py_nb_rshift
     added 3.2
-data Py_nb_and
+const Py_nb_and
     added 3.2
-data Py_nb_xor
+const Py_nb_xor
     added 3.2
-data Py_nb_or
+const Py_nb_or
     added 3.2
-data Py_nb_int
+const Py_nb_int
     added 3.2
-data Py_nb_float
+const Py_nb_float
     added 3.2
-data Py_nb_inplace_add
+const Py_nb_inplace_add
     added 3.2
-data Py_nb_inplace_subtract
+const Py_nb_inplace_subtract
     added 3.2
-data Py_nb_inplace_multiply
+const Py_nb_inplace_multiply
     added 3.2
-data Py_nb_inplace_remainder
+const Py_nb_inplace_remainder
     added 3.2
-data Py_nb_inplace_power
+const Py_nb_inplace_power
     added 3.2
-data Py_nb_inplace_lshift
+const Py_nb_inplace_lshift
     added 3.2
-data Py_nb_inplace_rshift
+const Py_nb_inplace_rshift
     added 3.2
-data Py_nb_inplace_and
+const Py_nb_inplace_and
     added 3.2
-data Py_nb_inplace_xor
+const Py_nb_inplace_xor
     added 3.2
-data Py_nb_inplace_or
+const Py_nb_inplace_or
     added 3.2
-data Py_nb_floor_divide
+const Py_nb_floor_divide
     added 3.2
-data Py_nb_true_divide
+const Py_nb_true_divide
     added 3.2
-data Py_nb_inplace_floor_divide
+const Py_nb_inplace_floor_divide
     added 3.2
-data Py_nb_inplace_true_divide
+const Py_nb_inplace_true_divide
     added 3.2
-data Py_nb_index
+const Py_nb_index
     added 3.2
-data Py_sq_length
+const Py_sq_length
     added 3.2
-data Py_sq_concat
+const Py_sq_concat
     added 3.2
-data Py_sq_repeat
+const Py_sq_repeat
     added 3.2
-data Py_sq_item
+const Py_sq_item
     added 3.2
-data Py_sq_ass_item
+const Py_sq_ass_item
     added 3.2
-data Py_sq_contains
+const Py_sq_contains
     added 3.2
-data Py_sq_inplace_concat
+const Py_sq_inplace_concat
     added 3.2
-data Py_sq_inplace_repeat
+const Py_sq_inplace_repeat
     added 3.2
-data Py_mp_length
+const Py_mp_length
     added 3.2
-data Py_mp_subscript
+const Py_mp_subscript
     added 3.2
-data Py_mp_ass_subscript
+const Py_mp_ass_subscript
     added 3.2
 
 typedef Py_uintptr_t
@@ -427,6 +428,7 @@ function PyCFunction_Call
 function PyCFunction_ClearFreeList
     added 3.2
     removed 3.9  # in commit ae00a5a88534fd45939f86c12e038da9fa6f9ed6
+    hard_removed
 function PyCFunction_GetFlags
     added 3.2
 function PyCFunction_GetFunction
@@ -525,15 +527,15 @@ data PyDictIterItem_Type
     added 3.2
 data PyDictIterKey_Type
     added 3.2
-function PyDictIterValue_Type
+data PyDictIterValue_Type
     added 3.2
-function PyDictKeys_Type
+data PyDictKeys_Type
     added 3.2
 function PyDictProxy_New
     added 3.2
-function PyDictProxy_Type
+data PyDictProxy_Type
     added 3.2
-function PyDictValues_Type
+data PyDictValues_Type
     added 3.2
 function PyDict_Clear
     added 3.2
@@ -575,9 +577,9 @@ function PyDict_Update
     added 3.2
 function PyDict_Values
     added 3.2
-function PyEllipsis_Type
+data PyEllipsis_Type
     added 3.2
-function PyEnum_Type
+data PyEnum_Type
     added 3.2
 function PyErr_BadArgument
     added 3.2
@@ -685,105 +687,107 @@ function PyEval_SaveThread
     added 3.2
 function PyEval_ThreadsInitialized
     added 3.2
-function PyExc_ArithmeticError
+data PyExc_ArithmeticError
     added 3.2
-function PyExc_AssertionError
+data PyExc_AssertionError
     added 3.2
-function PyExc_AttributeError
+data PyExc_AttributeError
     added 3.2
-function PyExc_BaseException
+data PyExc_BaseException
     added 3.2
-function PyExc_BufferError
+data PyExc_BufferError
     added 3.2
-function PyExc_BytesWarning
+data PyExc_BytesWarning
     added 3.2
-function PyExc_DeprecationWarning
+data PyExc_DeprecationWarning
     added 3.2
-function PyExc_EOFError
+data PyExc_EOFError
     added 3.2
-function PyExc_EnvironmentError
+data PyExc_EnvironmentError
     added 3.2
-function PyExc_Exception
+data PyExc_Exception
     added 3.2
-function PyExc_FloatingPointError
+data PyExc_FloatingPointError
     added 3.2
-function PyExc_FutureWarning
+data PyExc_FutureWarning
     added 3.2
-function PyExc_GeneratorExit
+data PyExc_GeneratorExit
     added 3.2
-function PyExc_IOError
+data PyExc_IOError
     added 3.2
-function PyExc_ImportError
+data PyExc_ImportError
     added 3.2
-function PyExc_ImportWarning
+data PyExc_ImportWarning
     added 3.2
-function PyExc_IndentationError
+data PyExc_IndentationError
     added 3.2
-function PyExc_IndexError
+data PyExc_IndexError
     added 3.2
-function PyExc_KeyError
+data PyExc_KeyError
     added 3.2
-function PyExc_KeyboardInterrupt
+data PyExc_KeyboardInterrupt
     added 3.2
-function PyExc_LookupError
+data PyExc_LookupError
     added 3.2
-function PyExc_MemoryError
+data PyExc_MemoryError
     added 3.2
-function PyExc_MemoryErrorInst
+data PyExc_MemoryErrorInst
     added 3.2
     removed 3.5  # in commit d54d3d3d904ed22c292b1bfc5ec55b5323a4d5e2
-function PyExc_NameError
+    hard_removed
+data PyExc_NameError
     added 3.2
-function PyExc_NotImplementedError
+data PyExc_NotImplementedError
     added 3.2
-function PyExc_OSError
+data PyExc_OSError
     added 3.2
-function PyExc_OverflowError
+data PyExc_OverflowError
     added 3.2
-function PyExc_PendingDeprecationWarning
+data PyExc_PendingDeprecationWarning
     added 3.2
-function PyExc_RecursionErrorInst
+data PyExc_RecursionErrorInst
     added 3.2
     removed 3.7  # in commit 56d1f5ca32892c7643eb8cee49c40c1644f1abfe
-function PyExc_ReferenceError
+    hard_removed
+data PyExc_ReferenceError
     added 3.2
-function PyExc_RuntimeError
+data PyExc_RuntimeError
     added 3.2
-function PyExc_RuntimeWarning
+data PyExc_RuntimeWarning
     added 3.2
-function PyExc_StopIteration
+data PyExc_StopIteration
     added 3.2
-function PyExc_SyntaxError
+data PyExc_SyntaxError
     added 3.2
-function PyExc_SyntaxWarning
+data PyExc_SyntaxWarning
     added 3.2
-function PyExc_SystemError
+data PyExc_SystemError
     added 3.2
-function PyExc_SystemExit
+data PyExc_SystemExit
     added 3.2
-function PyExc_TabError
+data PyExc_TabError
     added 3.2
-function PyExc_TypeError
+data PyExc_TypeError
     added 3.2
-function PyExc_UnboundLocalError
+data PyExc_UnboundLocalError
     added 3.2
-function PyExc_UnicodeDecodeError
+data PyExc_UnicodeDecodeError
     added 3.2
-function PyExc_UnicodeEncodeError
+data PyExc_UnicodeEncodeError
     added 3.2
-function PyExc_UnicodeError
+data PyExc_UnicodeError
     added 3.2
-function PyExc_UnicodeTranslateError
+data PyExc_UnicodeTranslateError
     added 3.2
-function PyExc_UnicodeWarning
+data PyExc_UnicodeWarning
     added 3.2
-function PyExc_UserWarning
+data PyExc_UserWarning
     added 3.2
-function PyExc_ValueError
+data PyExc_ValueError
     added 3.2
-function PyExc_Warning
+data PyExc_Warning
     added 3.2
-function PyExc_ZeroDivisionError
+data PyExc_ZeroDivisionError
     added 3.2
 function PyException_GetCause
     added 3.2
@@ -805,7 +809,7 @@ function PyFile_WriteObject
     added 3.2
 function PyFile_WriteString
     added 3.2
-function PyFilter_Type
+data PyFilter_Type
     added 3.2
 function PyFloat_AsDouble
     added 3.2
@@ -819,11 +823,11 @@ function PyFloat_GetMax
     added 3.2
 function PyFloat_GetMin
     added 3.2
-function PyFloat_Type
+data PyFloat_Type
     added 3.2
 function PyFrozenSet_New
     added 3.2
-function PyFrozenSet_Type
+data PyFrozenSet_Type
     added 3.2
 function PyGC_Collect
     added 3.2
@@ -833,7 +837,7 @@ function PyGILState_GetThisThreadState
     added 3.2
 function PyGILState_Release
     added 3.2
-function PyGetSetDescr_Type
+data PyGetSetDescr_Type
     added 3.2
 function PyImport_AddModule
     added 3.2
@@ -875,9 +879,9 @@ function PyInterpreterState_New
     added 3.2
 function PyIter_Next
     added 3.2
-function PyListIter_Type
+data PyListIter_Type
     added 3.2
-function PyListRevIter_Type
+data PyListRevIter_Type
     added 3.2
 function PyList_Append
     added 3.2
@@ -901,9 +905,9 @@ function PyList_Size
     added 3.2
 function PyList_Sort
     added 3.2
-function PyList_Type
+data PyList_Type
     added 3.2
-function PyLongRangeIter_Type
+data PyLongRangeIter_Type
     added 3.2
 function PyLong_AsDouble
     added 3.2
@@ -949,9 +953,9 @@ function PyLong_FromVoidPtr
     added 3.2
 function PyLong_GetInfo
     added 3.2
-function PyLong_Type
+data PyLong_Type
     added 3.2
-function PyMap_Type
+data PyMap_Type
     added 3.2
 function PyMapping_Check
     added 3.2
@@ -979,15 +983,15 @@ function PyMem_Malloc
     added 3.2
 function PyMem_Realloc
     added 3.2
-function PyMemberDescr_Type
+data PyMemberDescr_Type
     added 3.2
 function PyMemoryView_FromObject
     added 3.2
 function PyMemoryView_GetContiguous
     added 3.2
-function PyMemoryView_Type
+data PyMemoryView_Type
     added 3.2
-function PyMethodDescr_Type
+data PyMethodDescr_Type
     added 3.2
 function PyModule_AddIntConstant
     added 3.2
@@ -1011,9 +1015,9 @@ function PyModule_GetState
     added 3.2
 function PyModule_New
     added 3.2
-function PyModule_Type
+data PyModule_Type
     added 3.2
-function PyNullImporter_Type
+data PyNullImporter_Type
     added 3.2
 function PyNumber_Absolute
     added 3.2
@@ -1089,11 +1093,11 @@ function PyOS_AfterFork
     added 3.2
 function PyOS_InitInterrupts
     added 3.2
-function PyOS_InputHook
+data PyOS_InputHook
     added 3.2
 function PyOS_InterruptOccurred
     added 3.2
-function PyOS_ReadlineFunctionPointer
+data PyOS_ReadlineFunctionPointer
     added 3.2
 function PyOS_double_to_string
     added 3.2
@@ -1120,14 +1124,17 @@ function PyObject_ASCII
 function PyObject_AsCharBuffer
     added 3.2
     removed 3.9
+    hard_removed
 function PyObject_AsFileDescriptor
     added 3.2
 function PyObject_AsReadBuffer
     added 3.2
     removed 3.9
+    hard_removed
 function PyObject_AsWriteBuffer
     added 3.2
     removed 3.9
+    hard_removed
 function PyObject_Bytes
     added 3.2
 function PyObject_Call
@@ -1145,6 +1152,7 @@ function PyObject_CallObject
 function PyObject_CheckReadBuffer
     added 3.2
     removed 3.9
+    hard_removed
 function PyObject_ClearWeakRefs
     added 3.2
 function PyObject_DelItem
@@ -1225,17 +1233,17 @@ function PyParser_SimpleParseFileFlags
     added 3.2
 function PyParser_SimpleParseStringFlags
     added 3.2
-function PyProperty_Type
+data PyProperty_Type
     added 3.2
-function PyRangeIter_Type
+data PyRangeIter_Type
     added 3.2
-function PyRange_Type
+data PyRange_Type
     added 3.2
-function PyReversed_Type
+data PyReversed_Type
     added 3.2
 function PySeqIter_New
     added 3.2
-function PySeqIter_Type
+data PySeqIter_Type
     added 3.2
 function PySequence_Check
     added 3.2
@@ -1277,7 +1285,7 @@ function PySequence_Size
     added 3.2
 function PySequence_Tuple
     added 3.2
-function PySetIter_Type
+data PySetIter_Type
     added 3.2
 function PySet_Add
     added 3.2
@@ -1293,7 +1301,7 @@ function PySet_Pop
     added 3.2
 function PySet_Size
     added 3.2
-function PySet_Type
+data PySet_Type
     added 3.2
 function PySlice_GetIndices
     added 3.2
@@ -1301,9 +1309,9 @@ function PySlice_GetIndicesEx
     added 3.2
 function PySlice_New
     added 3.2
-function PySlice_Type
+data PySlice_Type
     added 3.2
-function PySortWrapper_Type
+data PySortWrapper_Type
     added 3.2
 function PyState_FindModule
     added 3.2
@@ -1315,7 +1323,7 @@ function PyStructSequence_NewType
     added 3.2
 function PyStructSequence_SetItem
     added 3.2
-function PySuper_Type
+data PySuper_Type
     added 3.2
 function PySys_AddWarnOption
     added 3.2
@@ -1363,13 +1371,14 @@ function PyTraceBack_Here
     added 3.2
 function PyTraceBack_Print
     added 3.2
-function PyTraceBack_Type
+data PyTraceBack_Type
     added 3.2
-function PyTupleIter_Type
+data PyTupleIter_Type
     added 3.2
 function PyTuple_ClearFreeList
     # XXX added when?
     removed 3.9  # in commit ae00a5a88534fd45939f86c12e038da9fa6f9ed6
+    hard_removed
 function PyTuple_GetItem
     added 3.2
 function PyTuple_GetSlice
@@ -1382,7 +1391,7 @@ function PyTuple_SetItem
     added 3.2
 function PyTuple_Size
     added 3.2
-function PyTuple_Type
+data PyTuple_Type
     added 3.2
 function PyType_ClearCache
     added 3.2
@@ -1398,7 +1407,7 @@ function PyType_Modified
     added 3.2
 function PyType_Ready
     added 3.2
-function PyType_Type
+data PyType_Type
     added 3.2
 function PyUnicodeDecodeError_Create
     added 3.2
@@ -1434,7 +1443,7 @@ function PyUnicodeEncodeError_SetReason
     added 3.2
 function PyUnicodeEncodeError_SetStart
     added 3.2
-function PyUnicodeIter_Type
+data PyUnicodeIter_Type
     added 3.2
 function PyUnicodeTranslateError_GetEnd
     added 3.2
@@ -1485,6 +1494,7 @@ function PyUnicode_AsWideChar
 function PyUnicode_ClearFreeList
     added 3.2
     removed 3.9   # in commit d68b592dd67cb87c4fa862a8d3b3fd0a7d05e113
+    hard_removed
 function PyUnicode_Compare
     added 3.2
 function PyUnicode_Concat
@@ -1565,9 +1575,6 @@ function PyUnicode_Resize
     added 3.2
 function PyUnicode_RichCompare
     added 3.2
-function PyUnicode_SetDefaultEncoding
-    added 3.2
-    removed 3.5  # in commit d54d3d3d904ed22c292b1bfc5ec55b5323a4d5e2
 function PyUnicode_Split
     added 3.2
 function PyUnicode_Splitlines
@@ -1592,7 +1599,7 @@ function PyUnicode_InternImmortal
     added 3.2
 function PyUnicode_InternInPlace
     added 3.2
-function PyUnicode_Type
+data PyUnicode_Type
     added 3.2
 function PyWeakref_GetObject
     added 3.2
@@ -1600,11 +1607,11 @@ function PyWeakref_NewProxy
     added 3.2
 function PyWeakref_NewRef
     added 3.2
-function PyWrapperDescr_Type
+data PyWrapperDescr_Type
     added 3.2
 function PyWrapper_New
     added 3.2
-function PyZip_Type
+data PyZip_Type
     added 3.2
 function Py_AddPendingCall
     added 3.2
@@ -1743,8 +1750,8 @@ function _Py_BuildValue_SizeT
     abi_only
 function _Py_CheckRecursionLimit
     added 3.2
-    removed 3.9
-    abi_only
+    removed 3.9  # removed in 19c3ac92bf73f1902cff846988552fd7bb8a8621
+    hard_removed
 function _Py_CheckRecursiveCall
     added 3.2
     abi_only
@@ -1772,6 +1779,11 @@ data _Py_TrueStruct
 function _Py_VaBuildValue_SizeT
     added 3.2
     abi_only
+
+# Removed in bpo-9549:
+#function PyUnicode_SetDefaultEncoding
+#    added 3.2
+#    removed 3.5  # in commit d54d3d3d904ed22c292b1bfc5ec55b5323a4d5e2
 
 # The following were added in PC/python3.def in Python 3.3:
 # 7800f75827b1be557be16f3b18f5170fbf9fae08
@@ -1816,7 +1828,7 @@ function PyErr_FormatV
     added 3.5
 function PyModuleDef_Init
     added 3.5
-function PyModuleDef_Type
+data PyModuleDef_Type
     added 3.5
 function PyODict_DelItem
     added 3.5
@@ -1824,20 +1836,29 @@ function PyODict_New
     added 3.5
 function PyODict_SetItem
     added 3.5
-function PyODict_Type
+data PyODict_Type
     added 3.5
-function PyODictItems_Type
+data PyODictItems_Type
     added 3.5
-function PyODictIter_Type
+data PyODictIter_Type
     added 3.5
-function PyODictKeys_Type
+data PyODictKeys_Type
     added 3.5
-function PyODictValues_Type
+data PyODictValues_Type
     added 3.5
 
 # The following were added in PC/python3.def in Python 3.6:
 
 function Py_FinalizeEx
+    added 3.6
+
+function PyOS_FSPath
+    added 3.6
+function PyErr_ResourceWarning
+    added 3.6
+function PyErr_SetImportErrorSubclass
+    added 3.6
+data PyExc_ModuleNotFoundError
     added 3.6
 
 # The following were added in PC/python3.def in Python 3.6.1 and 3.5.3/3.5.4:
@@ -1854,41 +1875,41 @@ function PyErr_SetImportError
     added 3.7  # (and 3.6.1 and 3.5.3)
 function PyErr_SyntaxLocationEx
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_BlockingIOError
+data PyExc_BlockingIOError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_BrokenPipeError
+data PyExc_BrokenPipeError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ChildProcessError
+data PyExc_ChildProcessError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ConnectionAbortedError
+data PyExc_ConnectionAbortedError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ConnectionError
+data PyExc_ConnectionError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ConnectionRefusedError
+data PyExc_ConnectionRefusedError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ConnectionResetError
+data PyExc_ConnectionResetError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_FileExistsError
+data PyExc_FileExistsError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_FileNotFoundError
+data PyExc_FileNotFoundError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_InterruptedError
+data PyExc_InterruptedError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_IsADirectoryError
+data PyExc_IsADirectoryError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_NotADirectoryError
+data PyExc_NotADirectoryError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_PermissionError
+data PyExc_PermissionError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ProcessLookupError
+data PyExc_ProcessLookupError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_RecursionError
+data PyExc_RecursionError
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_ResourceWarning
+data PyExc_ResourceWarning
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_StopAsyncIteration
+data PyExc_StopAsyncIteration
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_TimeoutError
+data PyExc_TimeoutError
     added 3.7  # (and 3.6.1 and 3.5.3)
 function PyImport_AddModuleObject
     added 3.7  # (and 3.6.1 and 3.5.3)
@@ -1972,7 +1993,7 @@ function PyErr_SetFromWindowsErr
     added 3.7  # (and 3.6.1 and 3.5.3)
 function PyErr_SetFromWindowsErrWithFilename
     added 3.7  # (and 3.6.1 and 3.5.3)
-function PyExc_WindowsError
+data PyExc_WindowsError
     added 3.7  # (and 3.6.1 and 3.5.3)
 function PyOS_CheckStack
     added 3.7  # (and 3.6.1 and 3.5.3)

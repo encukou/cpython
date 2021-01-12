@@ -1,18 +1,18 @@
 @subheader """\
-from nodes import StructInfo, ChangeInfo, TypeName, AbiOnly, FieldInfo
+from nodes import StructInfo, ChangeInfo, TypeName, FlagInfo, FieldInfo
 from nodes import Pointer, ArgInfo, ReturnInfo, FunctionInfo, DataInfo
 from nodes import TypedefInfo, MacroInfo, TypeDecl, FuncDecl, NoParams
-from nodes import ABIDef
+from nodes import ABIDef, ConstInfo
 """
 
 start: entries ENDMARKER { ABIDef(entries) }
 entries: entries entry { [*entries, entry] }
     | entry { [entry] }
 entry: struct { struct } | function { function } | data { data }
-    | typedef { typedef } | macro { macro }
-    | change { change } | abi_only { abi_only }
+    | typedef { typedef } | macro { macro } | const { const }
+    | change { change } | flag { flag }
     | field { field }
-    | arg { arg } | ret=returnspec { ret } 
+    | arg { arg } | ret=returnspec { ret }
 
 struct: 'struct' name=NAME NEWLINE e=subentries? {
     StructInfo.make(name.string, e or []) }
@@ -20,6 +20,8 @@ function: 'function' ~ NAME NEWLINE e=subentries? {
         FunctionInfo.make(name.string, e or []) }
 data: 'data' ~ NAME NEWLINE e=subentries? {
         DataInfo.make(name.string, e or []) }
+const: 'const' ~ NAME NEWLINE e=subentries? {
+        ConstInfo.make(name.string, e or []) }
 typedef: 'typedef' ~ NAME NEWLINE e=subentries? {
         TypedefInfo.make(name.string, e or []) }
 macro: 'macro' ~ NAME NEWLINE e=subentries? {
@@ -30,7 +32,7 @@ change: 'added' ~ ver=NUMBER NEWLINE { ChangeInfo.make('added', ver.string) }
     | 'removed' ~ ver=NUMBER NEWLINE { ChangeInfo.make('removed', ver.string) }
 field: 'field' ~ c_declaration NEWLINE e=subentries? {
         FieldInfo.make(c_declaration, e or []) }
-abi_only: 'abi_only' ~ NEWLINE { AbiOnly() }
+flag: name=('abi_only' | 'hard_removed') ~ NEWLINE { FlagInfo(name[0].string) }
 arg: 'arg' ~ c_declaration NEWLINE { ArgInfo.make(c_declaration) }
 returnspec: 'return' ~ c_declaration NEWLINE { ReturnInfo.make(c_declaration) }
 

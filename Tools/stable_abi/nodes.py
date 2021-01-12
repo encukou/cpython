@@ -25,12 +25,27 @@ class ABIDef(collections.abc.Mapping):
     def dump(self):
         return ''.join(e.dump() for e in self.entries.values())
 
+    @property
+    def functions(self):
+        return (
+            e for e in self.entries.values()
+            if isinstance(e, FunctionInfo) and not e.hard_removed
+        )
+
+    @property
+    def data(self):
+        return (
+            e for e in self.entries.values()
+            if isinstance(e, DataInfo) and not e.hard_removed
+        )
+
 @dataclasses.dataclass
 class StructInfo:
     name: str
     changes: typing.Sequence = ()
     fields: typing.Sequence = ()
     abi_only: bool = False
+    hard_removed: bool = False
 
     @classmethod
     def make(cls, name, entries):
@@ -38,7 +53,7 @@ class StructInfo:
 
     def dump(self):
         return f'struct {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
             + (''.join(e.dump() for e in self.fields.values()) if self.fields else '')
         )
@@ -63,6 +78,7 @@ class ChangeInfo:
 class FieldInfo:
     type: TypeInfo
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -75,7 +91,7 @@ class FieldInfo:
 
     def dump(self):
         return f'field {self.type.dump()} # {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
@@ -85,6 +101,7 @@ class FunctionInfo:
     return_type: object = None  # XXX
     args: typing.Mapping = dataclasses.field(default_factory=dict)
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -93,7 +110,7 @@ class FunctionInfo:
 
     def dump(self):
         return f'function {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
             + ''.join(e.dump() for e in self.args.values())
             + (self.return_type.dump() + '\n' if self.return_type else '')
@@ -103,6 +120,7 @@ class FunctionInfo:
 class DataInfo:
     name: str
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -111,7 +129,24 @@ class DataInfo:
 
     def dump(self):
         return f'data {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
+            + ''.join(e.dump() for e in self.changes)
+        )
+
+@dataclasses.dataclass
+class ConstInfo:
+    name: str
+    abi_only: bool = False
+    hard_removed: bool = False
+    changes: typing.Sequence = ()
+
+    @classmethod
+    def make(cls, name, entries=()):
+        return cls(name, **handle_entries(entries))
+
+    def dump(self):
+        return f'const {self.name}\n' + _indent(
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
@@ -119,6 +154,7 @@ class DataInfo:
 class TypedefInfo:
     name: str
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -126,7 +162,7 @@ class TypedefInfo:
         return cls(name, **handle_entries(entries))
     def dump(self):
         return f'typedef {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
@@ -134,6 +170,7 @@ class TypedefInfo:
 class MacroInfo:
     name: str
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -143,7 +180,7 @@ class MacroInfo:
 
     def dump(self):
         return f'macro {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
@@ -151,6 +188,7 @@ class MacroInfo:
 class ArgInfo:
     type: str
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -163,7 +201,7 @@ class ArgInfo:
 
     def dump(self):
         return f'arg {self.type.dump()} # {self.name}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
@@ -171,6 +209,7 @@ class ArgInfo:
 class ReturnInfo:
     name: str
     abi_only: bool = False
+    hard_removed: bool = False
     changes: typing.Sequence = ()
 
     @classmethod
@@ -180,14 +219,14 @@ class ReturnInfo:
 
     def dump(self):
         return f'return {self.name.dump()}\n' + _indent(
-            _abionly_repr(self)
+            _flags_repr(self)
             + ''.join(e.dump() for e in self.changes)
         )
 
 
 @dataclasses.dataclass
-class AbiOnly:
-    pass
+class FlagInfo:
+    name: str
 
 
 @dataclasses.dataclass
@@ -248,10 +287,13 @@ class NoParams:
     def __iter__(self):
         return iter(())
 
-def _abionly_repr(node):
+def _flags_repr(node):
+    fr = []
     if node.abi_only:
-        return 'abi_only\n'
-    return ''
+        fr.append('abi_only\n')
+    if node.hard_removed:
+        fr.append('hard_removed\n')
+    return ''.join(fr)
 
 def _indent(string):
     if not string:
@@ -269,8 +311,8 @@ def _add_named_entry(mapping, entry, entry_category):
 def handle_entries(entries):
     result = {}
     for entry in entries:
-        if isinstance(entry, AbiOnly):
-            result['abi_only'] = True
+        if isinstance(entry, FlagInfo):
+            result[entry.name] = True
         elif isinstance(entry, ChangeInfo):
             result.setdefault('changes', []).append(entry)
         elif isinstance(entry, FieldInfo):
