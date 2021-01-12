@@ -1,5 +1,29 @@
 import dataclasses
 import typing
+import collections.abc
+
+@dataclasses.dataclass
+class ABIDef(collections.abc.Mapping):
+    entries: dict
+
+    def __init__(self, entries):
+        self.entries = {}
+        for entry in entries:
+            if entry.name in self.entries:
+                raise ValueError(f'Duplicate entry: {entry.name}')
+            self.entries[entry.name] = entry
+
+    def __getitem__(self, name):
+        return self.entries[name]
+
+    def __iter__(self):
+        return iter(self.entries)
+
+    def __len__(self):
+        return len(self.entries)
+
+    def dump(self):
+        return ''.join(e.dump() for e in self.entries.values())
 
 @dataclasses.dataclass
 class StructInfo:
@@ -59,7 +83,7 @@ class FieldInfo:
 class FunctionInfo:
     name: str
     return_type: object = None  # XXX
-    args: typing.Sequence = ()
+    args: typing.Mapping = dataclasses.field(default_factory=dict)
     abi_only: bool = False
     changes: typing.Sequence = ()
 
@@ -71,7 +95,7 @@ class FunctionInfo:
         return f'function {self.name}\n' + _indent(
             _abionly_repr(self)
             + ''.join(e.dump() for e in self.changes)
-            + (''.join(e.dump() for e in self.args) if self.args else '')
+            + ''.join(e.dump() for e in self.args.values())
             + (self.return_type.dump() + '\n' if self.return_type else '')
         )
 
@@ -237,6 +261,11 @@ def _indent(string):
         result = result[:-2]
     return result
 
+def _add_named_entry(mapping, entry, entry_category):
+    if entry.name in mapping:
+        raise ValueError(f'Repeated {entry_category} {entry.name}')
+    mapping[entry.name] = entry
+
 def handle_entries(entries):
     result = {}
     for entry in entries:
@@ -246,13 +275,10 @@ def handle_entries(entries):
             result.setdefault('changes', []).append(entry)
         elif isinstance(entry, FieldInfo):
             fields = result.setdefault('fields', {})
-            # XXX:
-            #if entry.name in fields:
-            #    raise ValueError(f'Repeated field {entry.name}')
-            fields[entry.name] = entry
+            _add_named_entry(fields, entry, 'field')
         elif isinstance(entry, ArgInfo):
-            # XXX: Handle repeats
-            result.setdefault('args', []).append(entry)
+            args = result.setdefault('args', {})
+            _add_named_entry(args, entry, 'arg')
         elif isinstance(entry, ReturnInfo):
             result['return_type'] = entry
         else:

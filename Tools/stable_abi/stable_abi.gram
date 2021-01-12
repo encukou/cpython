@@ -2,9 +2,10 @@
 from nodes import StructInfo, ChangeInfo, TypeName, AbiOnly, FieldInfo
 from nodes import Pointer, ArgInfo, ReturnInfo, FunctionInfo, DataInfo
 from nodes import TypedefInfo, MacroInfo, TypeDecl, FuncDecl, NoParams
+from nodes import ABIDef
 """
 
-start: entries ENDMARKER { entries }
+start: entries ENDMARKER { ABIDef(entries) }
 entries: entries entry { [*entries, entry] }
     | entry { [entry] }
 entry: struct { struct } | function { function } | data { data }

@@ -1,5 +1,8 @@
 # This file lists the contents of the Limited API and Stable ABI.
 
+# The syntax of this file is subject to change.
+# It is designed to be read only by scripts in Tools/stable_abi.
+
 # For the history of the stable ABI prior to this file,
 # see the history of PC/python3dll.c and before that, PC/python3.def
 
@@ -1383,8 +1386,6 @@ function PyTuple_Type
     added 3.2
 function PyType_ClearCache
     added 3.2
-function PyType_FromSpec
-    added 3.2
 function PyType_GenericAlloc
     added 3.2
 function PyType_GenericNew
@@ -1796,9 +1797,6 @@ function _PyArg_VaParse_SizeT
     added 3.3
     abi_only
 function _PyArg_VaParseTupleAndKeywords_SizeT
-    added 3.3
-    abi_only
-function _Py_BuildValue_SizeT
     added 3.3
     abi_only
 
