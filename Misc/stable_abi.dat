@@ -1730,10 +1730,12 @@ function _PyThreadState_Prealloc
     abi_only
 data _PyTrash_delete_later
     added 3.2
-    abi_only
+    removed 3.7 # https://bugs.python.org/issue30860
+    hard_removed
 data _PyTrash_delete_nesting
     added 3.2
-    abi_only
+    removed 3.7 # https://bugs.python.org/issue30860
+    hard_removed
 function _PyTrash_deposit_object
     added 3.2
     abi_only
@@ -2088,6 +2090,7 @@ function PyErr_SetExcFromWindowsErrWithFilenameObjects
     ifdef MS_WINDOWS
 function PyErr_SetFromWindowsErr
     added 3.7  # (and 3.6.1 and 3.5.3)
+    ifdef MS_WINDOWS
 function PyErr_SetFromWindowsErrWithFilename
     added 3.7  # (and 3.6.1 and 3.5.3)
     ifdef MS_WINDOWS
