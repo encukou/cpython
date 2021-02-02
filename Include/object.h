@@ -57,10 +57,6 @@ whose size is determined when the object is allocated.
 #define Py_REF_DEBUG
 #endif
 
-#if defined(Py_LIMITED_API) && defined(Py_REF_DEBUG)
-#error Py_LIMITED_API is incompatible with Py_DEBUG, Py_TRACE_REFS, and Py_REF_DEBUG
-#endif
-
 /* PyTypeObject structure is defined in cpython/object.h.
    In Py_LIMITED_API, PyTypeObject is an opaque structure. */
 typedef struct _typeobject PyTypeObject;
