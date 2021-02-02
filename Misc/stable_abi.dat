@@ -1,7 +1,8 @@
 # This file lists the contents of the Limited API and Stable ABI.
 
-# The syntax of this file is subject to change.
-# It is designed to be read only by scripts in Tools/stable_abi.
+# The syntax of this file is not fixed.
+# It is designed to be read only by Tools/stable_abi.py, which can change
+# without notice.
 
 # For the history of the stable ABI prior to this file,
 # see the history of PC/python3dll.c and before that, PC/python3.def,
@@ -13,40 +14,58 @@
 
 struct PyObject
     added 3.2
-    field Py_ssize_t ob_refcnt
+    field ob_refcnt
+        type Py_ssize_t
         abi_only
-    field void* ob_type
+    field ob_type
+        type void*
         abi_only
 
 struct PyVarObject
     added 3.2
-    field void* ob_base
+    field ob_base
+        type void*
         abi_only
-    field Py_ssize_t ob_size
+    field ob_size
+        type Py_ssize_t
         abi_only
 
 struct PyMethodDef
     added 3.2
-    field const char* ml_name
-    field PyCFunction ml_meth
-    field int ml_flags
-    field const char* ml_doc
+    field ml_name
+        type const char*
+    field ml_meth
+        type PyCFunction
+    field ml_flags
+        type int
+    field ml_doc
+        type const char*
 
 struct PyMemberDef
     added 3.2
-    field const char* name
+    field name
+        type const char*
     field int type
-    field Py_ssize_t offset
+        type int
+    field offset
+        type Py_ssize_t
     field int flags
-    field const char* doc
+        type int
+    field doc
+        type const char*
 
 struct PyGetSetDef
     added 3.2
-    field const char* name
-    field getter get
-    field setter set
-    field const char* doc
-    field void* closure
+    field name
+        type const char*
+    field get
+        type getter
+    field set
+        type setter
+    field doc
+        type const char*
+    field closure
+        type void*
 
 struct PyModuleDef_Base
     field PyObject ob_base
@@ -60,40 +79,62 @@ struct PyModuleDef_Base
 
 struct PyModuleDef
     added 3.2
-    field PyModuleDef_Base m_base
-    field const char* m_name
-    field const char* m_doc
-    field Py_ssize_t m_size
-    field PyMethodDef* m_methods
-    field PyModuleDef_Slot* m_slots
-    field traverseproc m_traverse
-    field inquiry m_clear
-    field freefunc m_free
+    field m_base
+        type PyModuleDef_Base
+    field m_name
+        type const char*
+    field m_doc
+        type const char*
+    field m_size
+        type Py_ssize_t
+    field m_methods
+        type PyMethodDef*
+    field m_slots
+        type PyModuleDef_Slot*
+    field m_traverse
+        type traverseproc
+    field m_clear
+        type inquiry
+    field m_free
+        type freefunc
 
 struct PyStructSequence_Field
     added 3.2
-    field const char* name
-    field const char* doc
+    field name
+        type const char*
+    field doc
+        type const char*
 
 struct PyStructSequence_Desc
     added 3.2
-    field const char* name
-    field const char* doc
-    field PyStructSequence_Field* fields
-    field int n_in_sequence
+    field name
+        type const char*
+    field doc
+        type const char*
+    field fields
+        type PyStructSequence_Field*
+    field n_in_sequence
+        type int
 
 struct PyType_Slot
     added 3.2
-    field int slot
-    field void* pfunc
+    field slot
+        type int
+    field pfunc
+        type void*
 
 struct PyType_Spec
     added 3.2
-    field const char* name
-    field int basicsize
-    field int itemsize
-    field unsigned int flags
-    field PyType_Slot* slots
+    field name
+        type const char*
+    field basicsize
+        type int
+    field itemsize
+        type int
+    field flags
+        type unsigned int
+    field slots
+        type PyType_Slot*
 
 struct PyThreadState
     added 3.2
@@ -121,7 +162,8 @@ struct PyTypeObject
 
 function PyType_FromSpec
     added 3.2
-    arg PyType_Spec* spec
+    arg spec
+        type PyType_Spec*
     return PyObject*
 
 const Py_tp_dealloc
