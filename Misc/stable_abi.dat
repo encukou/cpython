@@ -2280,5 +2280,13 @@ data Py_FileSystemDefaultEncodeErrors
 data PyCodec_Unregister
     added 3.10
 
-
 # XXX Valid as of commit fcc6935384b933fbe1a1ef659ed455a3b74c849a
+
+# XXX: Add new type slots, such as Py_am_aiter
+
+const Py_TPFLAGS_DEFAULT
+const Py_TPFLAGS_BASETYPE
+const Py_TPFLAGS_HAVE_GC
+const Py_TPFLAGS_METHOD_DESCRIPTOR
+
+# XXX: Add METH_* (except deprecated ones)
