@@ -169,7 +169,7 @@ def generator(var_name, default_path):
     return _decorator
 
 
-@generator("doc_file", 'Doc/data/stable_abi.dat')
+@generator("doc_file", 'Doc/data/stable_abi.txt')
 def gen_doc(manifest, args, outfile):
     """Generate/check the stable ABI list for documentation"""
     write = partial(print, file=outfile)
