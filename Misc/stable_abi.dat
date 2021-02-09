@@ -2074,8 +2074,10 @@ function Py_SetPath
     added 3.7  # (and 3.6.1 and 3.5.3)
 function _PyTrash_thread_deposit_object
     added 3.7  # (and 3.6.1 and 3.5.3)
+    abi_only
 function _PyTrash_thread_destroy_chain
     added 3.7  # (and 3.6.1 and 3.5.3)
+    abi_only
 function PyErr_SetExcFromWindowsErr
     added 3.7  # (and 3.6.1 and 3.5.3)
     ifdef MS_WINDOWS
