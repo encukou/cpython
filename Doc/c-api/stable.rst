@@ -36,3 +36,10 @@ missing symbols) on the older releases.
 As of Python 3.2, the set of functions available to the limited API is
 documented in :pep:`384`.  In the C API documentation, API elements that are not
 part of the limited API are marked as "Not part of the limited API."
+
+Contents of the Limited API
+===========================
+
+Currently, the Limited API includes the following items:
+
+.. include:: _stable_abi.rst
