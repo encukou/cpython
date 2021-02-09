@@ -32,6 +32,8 @@ PyBytes_FromStringAndSize
 PyBytes_Repr
 PyBytes_Size
 PyBytes_Type
+PyCFunction
+PyCFunctionWithKeywords
 PyCFunction_Call
 PyCFunction_GetFlags
 PyCFunction_GetFunction
@@ -43,6 +45,7 @@ PyCMethod_New
 PyCallIter_New
 PyCallIter_Type
 PyCallable_Check
+PyCapsule_Destructor
 PyCapsule_GetContext
 PyCapsule_GetDestructor
 PyCapsule_GetName
@@ -275,6 +278,8 @@ PyGC_Collect
 PyGILState_Ensure
 PyGILState_GetThisThreadState
 PyGILState_Release
+PyGILState_STATE
+PyGetSetDef
 PyGetSetDescr_Type
 PyImport_AddModule
 PyImport_AddModuleObject
@@ -297,6 +302,7 @@ PyImport_ImportModuleLevelObject
 PyImport_ImportModuleNoBlock
 PyImport_ReloadModule
 PyIndex_Check
+PyInterpreterState
 PyInterpreterState_Clear
 PyInterpreterState_Delete
 PyInterpreterState_Get
@@ -319,6 +325,7 @@ PyList_SetSlice
 PyList_Size
 PyList_Sort
 PyList_Type
+PyLongObject
 PyLongRangeIter_Type
 PyLong_AsDouble
 PyLong_AsLong
@@ -360,6 +367,7 @@ PyMem_Calloc
 PyMem_Free
 PyMem_Malloc
 PyMem_Realloc
+PyMemberDef
 PyMemberDescr_Type
 PyMember_GetOne
 PyMember_SetOne
@@ -367,7 +375,10 @@ PyMemoryView_FromMemory
 PyMemoryView_FromObject
 PyMemoryView_GetContiguous
 PyMemoryView_Type
+PyMethodDef
 PyMethodDescr_Type
+PyModuleDef
+PyModuleDef_Base
 PyModuleDef_Init
 PyModuleDef_Type
 PyModule_AddFunctions
@@ -441,11 +452,13 @@ PyOS_getsig
 PyOS_mystricmp
 PyOS_mystrnicmp
 PyOS_setsig
+PyOS_sighandler_t
 PyOS_snprintf
 PyOS_string_to_double
 PyOS_strtol
 PyOS_strtoul
 PyOS_vsnprintf
+PyObject
 PyObject_ASCII
 PyObject_AsFileDescriptor
 PyObject_Bytes
@@ -543,6 +556,8 @@ PySlice_Unpack
 PyState_AddModule
 PyState_FindModule
 PyState_RemoveModule
+PyStructSequence_Desc
+PyStructSequence_Field
 PyStructSequence_GetItem
 PyStructSequence_New
 PyStructSequence_NewType
@@ -563,6 +578,7 @@ PySys_SetObject
 PySys_SetPath
 PySys_WriteStderr
 PySys_WriteStdout
+PyThreadState
 PyThreadState_Clear
 PyThreadState_Delete
 PyThreadState_DeleteCurrent
@@ -611,6 +627,7 @@ PyTuple_Pack
 PyTuple_SetItem
 PyTuple_Size
 PyTuple_Type
+PyTypeObject
 PyType_ClearCache
 PyType_FromModuleAndSpec
 PyType_FromSpec
@@ -624,6 +641,8 @@ PyType_GetSlot
 PyType_IsSubtype
 PyType_Modified
 PyType_Ready
+PyType_Slot
+PyType_Spec
 PyType_Type
 PyUnicodeDecodeError_Create
 PyUnicodeDecodeError_GetEncoding
@@ -736,6 +755,8 @@ PyUnicode_Tailmatch
 PyUnicode_Translate
 PyUnicode_Type
 PyUnicode_WriteChar
+PyVarObject
+PyWeakReference
 PyWeakref_GetObject
 PyWeakref_NewProxy
 PyWeakref_NewRef
@@ -744,11 +765,14 @@ PyWrapper_New
 PyZip_Type
 Py_AddPendingCall
 Py_AtExit
+Py_BEGIN_ALLOW_THREADS
+Py_BLOCK_THREADS
 Py_BuildValue
 Py_BytesMain
 Py_CompileString
 Py_DecRef
 Py_DecodeLocale
+Py_END_ALLOW_THREADS
 Py_EncodeLocale
 Py_EndInterpreter
 Py_EnterRecursiveCall
@@ -791,6 +815,12 @@ Py_SetProgramName
 Py_SetPythonHome
 Py_SetRecursionLimit
 Py_SymtableString
+Py_TPFLAGS_BASETYPE
+Py_TPFLAGS_DEFAULT
+Py_TPFLAGS_HAVE_GC
+Py_TPFLAGS_METHOD_DESCRIPTOR
+Py_UCS4
+Py_UNBLOCK_THREADS
 Py_UTF8Mode
 Py_VaBuildValue
 Py_XNewRef
@@ -866,6 +896,8 @@ Py_tp_setattro
 Py_tp_str
 Py_tp_traverse
 Py_uintptr_t
+_PyTrash_thread_deposit_object
+_PyTrash_thread_destroy_chain
 _frame
 _node
 allocfunc
