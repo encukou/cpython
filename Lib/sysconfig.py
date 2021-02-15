@@ -59,6 +59,22 @@ _INSTALL_SCHEMES = {
     }
 
 
+if (not (hasattr(sys, 'real_prefix') or
+    sys.prefix != sys.base_prefix) and
+    'RPM_BUILD_ROOT' not in os.environ):
+        _INSTALL_SCHEMES['posix_prefix'] = {
+            'stdlib': '{installed_base}/local/{platlibdir}/python{py_version_short}',
+            'platstdlib': '{platbase}/local/{platlibdir}/python{py_version_short}',
+            'purelib': '{base}/local/lib/python{py_version_short}/site-packages',
+            'platlib': '{platbase}/local/{platlibdir}/python{py_version_short}/site-packages',
+            'include':
+                '{installed_base}/local/include/python{py_version_short}{abiflags}',
+            'platinclude':
+                '{installed_platbase}/local/include/python{py_version_short}{abiflags}',
+            'scripts': '{base}/local/bin',
+            'data': '{base}/local',
+        }
+
 # NOTE: site.py has copy of this function.
 # Sync it when modify this function.
 def _getuserbase():
