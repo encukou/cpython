@@ -2229,7 +2229,7 @@ function Py_GenericAlias
 function Py_GenericAliasType
     added 3.9
 function PyCMethod_New
-    added 3.9
+    added 3.9  # Windows: 3.10 & 3.9.2 -- https://bugs.python.org/issue43155
 function PyInterpreterState_Get
     added 3.9
 function PyObject_GC_IsFinalized
