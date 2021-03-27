@@ -260,6 +260,8 @@ typedef struct {
     PyTypeObject *EVPXOFtype;
 #endif
     _Py_hashtable_t *hashtable;
+    PyObject *constructs;
+    PyObject *unsupported_digestmod_error;
 } _hashlibstate;
 
 static inline _hashlibstate*
@@ -417,6 +419,48 @@ py_digest_by_name(PyObject *module, const char *name, enum Py_hash_type py_ht)
         return NULL;
     }
     return digest;
+}
+
+/* Get digest EVP from object
+ *
+ * * string
+ * * _hashopenssl builtin function
+ *
+ * on error returns NULL with exception set.
+ */
+static PY_EVP_MD*
+py_digest_by_digestmod(PyObject *module, PyObject *digestmod, enum Py_hash_type py_ht) {
+    PY_EVP_MD* evp;
+    PyObject *name_obj = NULL;
+    const char *name;
+
+    if (PyUnicode_Check(digestmod)) {
+        name_obj = digestmod;
+    } else {
+        _hashlibstate *state = get_hashlib_state(module);
+        // borrowed ref
+        name_obj = PyDict_GetItem(state->constructs, digestmod);
+    }
+    if (name_obj == NULL) {
+        _hashlibstate *state = get_hashlib_state(module);
+        PyErr_Clear();
+        PyErr_Format(
+            state->unsupported_digestmod_error,
+            "Unsupported digestmod %R", digestmod);
+        return NULL;
+    }
+
+    name = PyUnicode_AsUTF8(name_obj);
+    if (name == NULL) {
+        return NULL;
+    }
+
+    evp = py_digest_by_name(module, name, py_ht);
+    if (evp == NULL) {
+        return NULL;
+    }
+
+    return evp;
 }
 
 static EVPobject *
@@ -1237,7 +1281,6 @@ pbkdf2_hmac_impl(PyObject *module, const char *hash_name,
 
     PY_EVP_MD *digest = py_digest_by_name(module, hash_name, Py_ht_pbkdf2);
     if (digest == NULL) {
-        PyErr_SetString(PyExc_ValueError, "unsupported hash type");
         goto end;
     }
 
@@ -1442,25 +1485,21 @@ _hashlib.hmac_digest as _hashlib_hmac_singleshot
 
     key: Py_buffer
     msg: Py_buffer
-    digest: str
+    digest: object
 
 Single-shot HMAC.
 [clinic start generated code]*/
 
 static PyObject *
 _hashlib_hmac_singleshot_impl(PyObject *module, Py_buffer *key,
-                              Py_buffer *msg, const char *digest)
-/*[clinic end generated code: output=15658ede5ab98185 input=019dffc571909a46]*/
+                              Py_buffer *msg, PyObject *digest)
+/*[clinic end generated code: output=82f19965d12706ac input=0a0790cc3db45c2e]*/
 {
     unsigned char md[EVP_MAX_MD_SIZE] = {0};
     unsigned int md_len = 0;
     unsigned char *result;
     PY_EVP_MD *evp;
 
-    evp = py_digest_by_name(module, digest, Py_ht_mac);
-    if (evp == NULL) {
-        return NULL;
-    }
     if (key->len > INT_MAX) {
         PyErr_SetString(PyExc_OverflowError,
                         "key is too long.");
@@ -1472,7 +1511,7 @@ _hashlib_hmac_singleshot_impl(PyObject *module, Py_buffer *key,
         return NULL;
     }
 
-    evp = py_digest_by_name(module, digest, Py_ht_mac);
+    evp = py_digest_by_digestmod(module, digest, Py_ht_mac);
     if (evp == NULL) {
         return NULL;
     }
@@ -1504,15 +1543,15 @@ _hashlib.hmac_new
 
     key: Py_buffer
     msg as msg_obj: object(c_default="NULL") = b''
-    digestmod: str(c_default="NULL") = None
+    digestmod: object(c_default="NULL") = None
 
 Return a new hmac object.
 [clinic start generated code]*/
 
 static PyObject *
 _hashlib_hmac_new_impl(PyObject *module, Py_buffer *key, PyObject *msg_obj,
-                       const char *digestmod)
-/*[clinic end generated code: output=9a35673be0cbea1b input=a0878868eb190134]*/
+                       PyObject *digestmod)
+/*[clinic end generated code: output=c20d9e4d9ed6d219 input=5f4071dcc7f34362]*/
 {
     PyTypeObject *type = get_hashlib_state(module)->HMACtype;
     PY_EVP_MD *digest;
@@ -1526,14 +1565,14 @@ _hashlib_hmac_new_impl(PyObject *module, Py_buffer *key, PyObject *msg_obj,
         return NULL;
     }
 
-    if ((digestmod == NULL) || !strlen(digestmod)) {
+    if (digestmod == NULL) {
         PyErr_SetString(
             PyExc_TypeError, "Missing required parameter 'digestmod'.");
         return NULL;
     }
 
-    digest = py_digest_by_name(module, digestmod, Py_ht_mac);
-    if (!digest) {
+    digest = py_digest_by_digestmod(module, digestmod, Py_ht_mac);
+    if (digest == NULL) {
         return NULL;
     }
 
@@ -2105,6 +2144,8 @@ hashlib_traverse(PyObject *m, visitproc visit, void *arg)
 #ifdef PY_OPENSSL_HAS_SHAKE
     Py_VISIT(state->EVPXOFtype);
 #endif
+    Py_VISIT(state->constructs);
+    Py_VISIT(state->unsupported_digestmod_error);
     return 0;
 }
 
@@ -2117,10 +2158,14 @@ hashlib_clear(PyObject *m)
 #ifdef PY_OPENSSL_HAS_SHAKE
     Py_CLEAR(state->EVPXOFtype);
 #endif
+    Py_CLEAR(state->constructs);
+    Py_CLEAR(state->unsupported_digestmod_error);
+
     if (state->hashtable != NULL) {
         _Py_hashtable_destroy(state->hashtable);
         state->hashtable = NULL;
     }
+
     return 0;
 }
 
@@ -2215,6 +2260,79 @@ hashlib_init_hmactype(PyObject *module)
     return 0;
 }
 
+static int
+hashlib_init_constructors(PyObject *module)
+{
+    /* Create dict from builtin openssl_hash functions to name
+     * {_hashlib.openssl_sha256: "sha256", ...}
+     */
+    PyModuleDef *mdef;
+    PyMethodDef *fdef;
+    PyObject *proxy;
+    PyObject *func, *name_obj;
+    _hashlibstate *state = get_hashlib_state(module);
+
+    mdef = PyModule_GetDef(module);
+    if (mdef == NULL) {
+        return -1;
+    }
+
+    state->constructs = PyDict_New();
+    if (state->constructs == NULL) {
+        return -1;
+    }
+
+    for (fdef = mdef->m_methods; fdef->ml_name != NULL; fdef++) {
+        if (strncmp(fdef->ml_name, "openssl_", 8)) {
+            continue;
+        }
+        name_obj = PyUnicode_FromString(fdef->ml_name + 8);
+        if (name_obj == NULL) {
+            return -1;
+        }
+        func  = PyObject_GetAttrString(module, fdef->ml_name);
+        if (func == NULL) {
+            Py_DECREF(name_obj);
+            return -1;
+        }
+        int rc = PyDict_SetItem(state->constructs, func, name_obj);
+        Py_DECREF(func);
+        Py_DECREF(name_obj);
+        if (rc < 0) {
+            return -1;
+        }
+    }
+
+    proxy = PyDictProxy_New(state->constructs);
+    if (proxy == NULL) {
+        return -1;
+    }
+
+    int rc = _PyModule_AddObjectRef(module, "_constructors", proxy);
+    Py_DECREF(proxy);
+    if (rc < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int
+hashlib_exception(PyObject *module)
+{
+    _hashlibstate *state = get_hashlib_state(module);
+    state->unsupported_digestmod_error = PyErr_NewException(
+        "_hashlib.UnsupportedDigestmodError", PyExc_ValueError, NULL);
+    if (state->unsupported_digestmod_error == NULL) {
+        return -1;
+    }
+    if (_PyModule_AddObjectRef(module, "UnsupportedDigestmodError",
+                              state->unsupported_digestmod_error) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+
 static PyModuleDef_Slot hashlib_slots[] = {
     /* OpenSSL 1.0.2 and LibreSSL */
     {Py_mod_exec, hashlib_openssl_legacy_init},
@@ -2223,6 +2341,8 @@ static PyModuleDef_Slot hashlib_slots[] = {
     {Py_mod_exec, hashlib_init_evpxoftype},
     {Py_mod_exec, hashlib_init_hmactype},
     {Py_mod_exec, hashlib_md_meth_names},
+    {Py_mod_exec, hashlib_init_constructors},
+    {Py_mod_exec, hashlib_exception},
     {0, NULL}
 };
 
