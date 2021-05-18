@@ -207,8 +207,8 @@ modules.
 The driver script generates a Makefile that works with the Microsoft
 command line C compiler (CL).  To compile, run "nmake"; this will
 build a target "hello.exe" if the source was "hello.py".  Only the
-files frozenmain.c and frozen.c are used; no config.c is generated or
-used, since the standard DLL is used.
+file frozen.c is used; no config.c is generated or used, since the
+standard DLL is used.
 
 In order for this to work, you must have built Python using the VC++
 (Developer Studio) 5.0 compiler.  The provided project builds

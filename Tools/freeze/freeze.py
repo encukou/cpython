@@ -231,7 +231,6 @@ def main():
         incldir = os.path.join(prefix, 'Include')
         config_h_dir = exec_prefix
         config_c_in = os.path.join(prefix, 'Modules', 'config.c.in')
-        frozenmain_c = os.path.join(prefix, 'Python', 'frozenmain.c')
         makefile_in = os.path.join(exec_prefix, 'Makefile')
         if win:
             frozendllmain_c = os.path.join(exec_prefix, 'Pc\\frozen_dllmain.c')
@@ -241,7 +240,6 @@ def main():
         config_h_dir = os.path.join(exec_prefix, 'include',
                                     'python%s' % flagged_version)
         config_c_in = os.path.join(configdir, 'config.c.in')
-        frozenmain_c = os.path.join(configdir, 'frozenmain.c')
         makefile_in = os.path.join(configdir, 'Makefile')
         frozendllmain_c = os.path.join(configdir, 'frozen_dllmain.c')
     libdir = sysconfig.get_config_var('LIBDIR')
@@ -439,7 +437,7 @@ def main():
         checkextensions_win32.write_extension_table(extensions_c,
                                                     frozen_extensions)
         # Create a module definition for the bootstrap C code.
-        xtras = [frozenmain_c, os.path.basename(frozen_c),
+        xtras = [os.path.basename(frozen_c),
                  frozendllmain_c, os.path.basename(extensions_c)] + files
         maindefn = checkextensions_win32.CExtension( '__main__', xtras )
         frozen_extensions.append( maindefn )

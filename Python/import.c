@@ -1112,7 +1112,7 @@ is_frozen_package(PyObject *name)
 /* Initialize a frozen module.
    Return 1 for success, 0 if the module is not found, and -1 with
    an exception set if the initialization failed.
-   This function is also used from frozenmain.c */
+   */
 
 int
 PyImport_ImportFrozenModuleObject(PyObject *name)
