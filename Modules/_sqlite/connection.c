@@ -1713,46 +1713,41 @@ pysqlite_connection_create_collation_impl(pysqlite_Connection *self,
                                           PyObject *name, PyObject *callable)
 /*[clinic end generated code: output=0f63b8995565ae22 input=5c3898813a776cf2]*/
 {
-    PyObject* uppercase_name = 0;
     Py_ssize_t i, len;
-    _Py_IDENTIFIER(upper);
-    const char *uppercase_name_str;
+    char *uppercase_name_str = NULL;
+    const char *name_str;
     int rc;
-    unsigned int kind;
-    const void *data;
 
     if (!pysqlite_check_thread(self) || !pysqlite_check_connection(self)) {
         goto finally;
     }
 
-    uppercase_name = _PyObject_CallMethodIdOneArg((PyObject *)&PyUnicode_Type,
-                                                  &PyId_upper, name);
-    if (!uppercase_name) {
+    // Ensure name only has ASCII alphanumerics and '_'
+    // and convert it to uppercase
+    name_str = PyUnicode_AsUTF8AndSize(name, &len);
+    if (!name_str) {
         goto finally;
     }
-
-    if (PyUnicode_READY(uppercase_name))
+    uppercase_name_str = PyMem_Malloc(len);
+    if (uppercase_name_str == NULL) {
         goto finally;
-    len = PyUnicode_GET_LENGTH(uppercase_name);
-    kind = PyUnicode_KIND(uppercase_name);
-    data = PyUnicode_DATA(uppercase_name);
+    }
     for (i=0; i<len; i++) {
-        Py_UCS4 ch = PyUnicode_READ(kind, data, i);
+        Py_UCS4 ch = name_str[i];
         if ((ch >= '0' && ch <= '9')
          || (ch >= 'A' && ch <= 'Z')
          || (ch == '_'))
         {
-            continue;
+            uppercase_name_str[i] = ch;
+        } else if (ch >= 'a' && ch <= 'z') {
+            uppercase_name_str[i] = ch + 'A' - 'a';
         } else {
+            // This includes UTF-8 representations of non-ASCII characters
             PyErr_SetString(self->ProgrammingError,
                             "invalid character in collation name");
             goto finally;
         }
     }
-
-    uppercase_name_str = PyUnicode_AsUTF8(uppercase_name);
-    if (!uppercase_name_str)
-        goto finally;
 
     int flags = SQLITE_UTF8;
     if (callable == Py_None) {
@@ -1783,12 +1778,11 @@ pysqlite_connection_create_collation_impl(pysqlite_Connection *self,
     }
 
 finally:
-    Py_XDECREF(uppercase_name);
-
+    PyMem_Free(uppercase_name_str);
     if (PyErr_Occurred()) {
         return NULL;
     }
-    return Py_NewRef(Py_None);
+    Py_RETURN_NONE;
 }
 
 /*[clinic input]
