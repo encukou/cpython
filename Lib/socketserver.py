@@ -150,6 +150,12 @@ else:
     _ServerSelector = selectors.SelectSelector
 
 
+try:
+    _os_pipe = os.pipe
+except AttributeError:
+    _os_pipe = NONE
+
+
 class BaseServer:
 
     """Base class for server classes.
@@ -196,6 +202,7 @@ class BaseServer:
     """
 
     timeout = None
+    supports_fast_shutdown = bool(_os_pipe)
 
     def __init__(self, server_address, RequestHandlerClass):
         """Constructor.  May be extended, do not override."""
@@ -203,6 +210,7 @@ class BaseServer:
         self.RequestHandlerClass = RequestHandlerClass
         self.__is_shut_down = threading.Event()
         self.__shutdown_request = False
+        self.__shutdown_pipe = None
 
     def server_activate(self):
         """Called by constructor to activate the server.
@@ -212,7 +220,7 @@ class BaseServer:
         """
         pass
 
-    def serve_forever(self, poll_interval=0.5):
+    def serve_forever(self, poll_interval=None, fast_shutdown=True):
         """Handle one request at a time until shutdown.
 
         Polls for shutdown every poll_interval seconds. Ignores
@@ -220,13 +228,22 @@ class BaseServer:
         another thread.
         """
         self.__is_shut_down.clear()
+        shutdown_pipe_r = shutdown_pipe_w = None
+        if fast_shutdown and self.supports_fast_shutdown:
+            shutdown_pipe_r, shutdown_pipe_w = _os_pipe()
+        if poll_interval is None:
+            if shutdown_pipe_r:
+                # When fast shutdown doesn't work for any reason,
+                # fall-back to very slow polling
+                poll_interval = 60
+            else:
+                poll_interval = 0.5
         try:
-            # XXX: Consider using another file descriptor or connecting to the
-            # socket to wake this up instead of polling. Polling reduces our
-            # responsiveness to a shutdown request and wastes cpu at all other
-            # times.
+            self.__shutdown_pipe = shutdown_pipe_w
             with _ServerSelector() as selector:
                 selector.register(self, selectors.EVENT_READ)
+                if shutdown_pipe_r:
+                    selector.register(shutdown_pipe_r, selectors.EVENT_READ)
 
                 while not self.__shutdown_request:
                     ready = selector.select(poll_interval)
@@ -240,6 +257,11 @@ class BaseServer:
         finally:
             self.__shutdown_request = False
             self.__is_shut_down.set()
+            if shutdown_pipe_r:
+                os.close(shutdown_pipe_r)
+            if shutdown_pipe_w:
+                os.close(shutdown_pipe_w)
+                self.__shutdown_pipe = None
 
     def shutdown(self):
         """Stops the serve_forever loop.
@@ -249,6 +271,8 @@ class BaseServer:
         deadlock.
         """
         self.__shutdown_request = True
+        if self.__shutdown_pipe:
+            os.write(self.__shutdown_pipe, b'.')
         self.__is_shut_down.wait()
 
     def service_actions(self):

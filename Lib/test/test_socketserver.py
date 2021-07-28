@@ -12,6 +12,7 @@ import tempfile
 import threading
 import unittest
 import socketserver
+import time
 
 import test.support
 from test.support import reap_children, verbose
@@ -133,22 +134,40 @@ class SocketServerTest(unittest.TestCase):
             print("ADDR =", addr)
             print("CLASS =", svrcls)
 
-        t = threading.Thread(
-            name='%s serving' % svrcls,
-            target=server.serve_forever,
-            # Short poll interval to make the test finish quickly.
-            # Time between requests is short enough that we won't wake
-            # up spuriously too many times.
-            kwargs={'poll_interval':0.01})
-        t.daemon = True  # In case this function raises.
-        t.start()
-        if verbose: print("server running")
-        for i in range(3):
-            if verbose: print("test client", i)
-            testfunc(svrcls.address_family, addr)
-        if verbose: print("waiting for server")
-        server.shutdown()
-        t.join()
+        # Short poll interval to make the test finish quickly.
+        # Time between requests is short enough that we won't wake
+        # up spuriously too many times.
+        short_interval = 0.01
+        # Use a longer poll interval (used when polling shouldn't kick in)
+        long_interval = test.support.LOOPBACK_TIMEOUT * 2
+        cases = [{'fast_shutdown': False, 'poll_interval': short_interval}]
+        if server.supports_fast_shutdown:
+            cases.append({'poll_interval': long_interval})
+            cases.append({'fast_shutdown': True, 'poll_interval': long_interval})
+            cases.append({'fast_shutdown': True})
+        else:
+            # fast_shutdown argument doesn't matter
+            cases = [{'poll_interval': short_interval}]
+            cases = [{'fast_shutdown': True, 'poll_interval': short_interval}]
+
+        for kwargs in cases:
+            with self.subTest(kwargs):
+                t = threading.Thread(
+                    name='%s serving' % svrcls,
+                    target=server.serve_forever,
+                    kwargs=kwargs)
+                t.daemon = True  # In case this function raises.
+                t.start()
+                if verbose: print("server running")
+                for i in range(3):
+                    if verbose: print("test client", i)
+                    testfunc(svrcls.address_family, addr)
+                if verbose: print("waiting for server")
+                start_time = time.monotonic()
+                server.shutdown()
+                t.join()
+                time_taken = time.monotonic() - start_time
+                self.assertLess(time_taken, test.support.LOOPBACK_TIMEOUT)
         server.server_close()
         self.assertEqual(-1, server.socket.fileno())
         if HAVE_FORKING and isinstance(server, socketserver.ForkingMixIn):

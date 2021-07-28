@@ -212,19 +212,28 @@ Server Objects
       will return.
 
 
-   .. method:: serve_forever(poll_interval=0.5)
+   .. method:: serve_forever(poll_interval=None, fast_shutdown=True)
 
-      Handle requests until an explicit :meth:`shutdown` request.  Poll for
-      shutdown every *poll_interval* seconds.
+      Handle requests until an explicit :meth:`shutdown` request.
       Ignores the :attr:`timeout` attribute.  It
       also calls :meth:`service_actions`, which may be used by a subclass or mixin
       to provide actions specific to a given service.  For example, the
       :class:`ForkingMixIn` class uses :meth:`service_actions` to clean up zombie
       child processes.
 
+      Poll for shutdown every *poll_interval* seconds.
+      *poll_interval* defaults to 0.5.
+
+      If fast shutdown is supported (see :attr:`supports_fast_shutdown`)
+      and *fast_shutdown* is true, then :meth:`shutdown` will return almost
+      immediately.  In this case, polling is still used but *poll_interval*
+      defaults to 60.
+
       .. versionchanged:: 3.3
          Added ``service_actions`` call to the ``serve_forever`` method.
 
+      .. versionchanged:: 3.12
+         Added the *fast_shutdown* argument.
 
    .. method:: service_actions()
 
@@ -233,6 +242,13 @@ Server Objects
       a given service, such as cleanup actions.
 
       .. versionadded:: 3.3
+
+   .. attribute:: supports_fast_shutdown
+
+      True if the server supports fast shutdown.  True on platforms that
+      have :func:`os.pipe`.  May be set to False in subclasses.
+
+      .. versionadded:: 3.12
 
    .. method:: shutdown()
 
