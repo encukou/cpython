@@ -631,7 +631,7 @@ va_build_stack(PyObject **small_stack, Py_ssize_t small_stack_len,
 
 
 int
-PyModule_AddObject(PyObject *m, const char *name, PyObject *o)
+_PyModule_AddObjectRef(PyObject *m, const char *name, PyObject *o)
 {
     PyObject *dict;
     if (!PyModule_Check(m)) {
@@ -655,8 +655,17 @@ PyModule_AddObject(PyObject *m, const char *name, PyObject *o)
     }
     if (PyDict_SetItemString(dict, name, o))
         return -1;
-    Py_DECREF(o);
     return 0;
+}
+
+int
+PyModule_AddObject(PyObject *mod, const char *name, PyObject *value)
+{
+    int res = _PyModule_AddObjectRef(mod, name, value);
+    if (res == 0) {
+        Py_DECREF(value);
+    }
+    return res;
 }
 
 int
