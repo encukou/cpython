@@ -2085,7 +2085,6 @@ hashlib_init_hmactype(PyObject *module)
     return 0;
 }
 
-#if 0
 static PyModuleDef_Slot hashlib_slots[] = {
     /* OpenSSL 1.0.2 and LibreSSL */
     {Py_mod_exec, hashlib_openssl_legacy_init},
@@ -2095,7 +2094,6 @@ static PyModuleDef_Slot hashlib_slots[] = {
     {Py_mod_exec, hashlib_md_meth_names},
     {0, NULL}
 };
-#endif
 
 static struct PyModuleDef _hashlibmodule = {
     PyModuleDef_HEAD_INIT,
@@ -2123,25 +2121,11 @@ PyInit__hashlib(void)
         return NULL;
     }
 
-    if (hashlib_openssl_legacy_init(m) < 0) {
-        Py_DECREF(m);
-        return NULL;
-    }
-    if (hashlib_init_evptype(m) < 0) {
-        Py_DECREF(m);
-        return NULL;
-    }
-    if (hashlib_init_evpxoftype(m) < 0) {
-        Py_DECREF(m);
-        return NULL;
-    }
-    if (hashlib_init_hmactype(m) < 0) {
-        Py_DECREF(m);
-        return NULL;
-    }
-    if (hashlib_md_meth_names(m) == -1) {
-        Py_DECREF(m);
-        return NULL;
+    for (int i=0; hashlib_slots[i].slot; i++) {
+        if (((int (*)(PyObject*))hashlib_slots[i].value)(m) < 0) {
+            Py_DECREF(m);
+            return NULL;
+        }
     }
 
     return m;
