@@ -70,7 +70,8 @@ class PycInvalidationMode(enum.Enum):
 
 
 def _get_default_invalidation_mode():
-    if os.environ.get('SOURCE_DATE_EPOCH'):
+    import _hashlib
+    if os.environ.get('SOURCE_DATE_EPOCH') and not _hashlib.get_fips_mode():
         return PycInvalidationMode.CHECKED_HASH
     else:
         return PycInvalidationMode.TIMESTAMP
