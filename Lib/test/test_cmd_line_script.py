@@ -282,6 +282,7 @@ class CmdLineTest(unittest.TestCase):
             self._check_script(zip_name, run_name, zip_name, zip_name, '',
                                zipimport.zipimporter)
 
+    @support.fails_in_fips_mode(ImportError)
     def test_zipfile_compiled_checked_hash(self):
         with support.temp_dir() as script_dir:
             script_name = _make_test_script(script_dir, '__main__')
@@ -292,6 +293,7 @@ class CmdLineTest(unittest.TestCase):
             self._check_script(zip_name, run_name, zip_name, zip_name, '',
                                zipimport.zipimporter)
 
+    @support.fails_in_fips_mode(ImportError)
     def test_zipfile_compiled_unchecked_hash(self):
         with support.temp_dir() as script_dir:
             script_name = _make_test_script(script_dir, '__main__')

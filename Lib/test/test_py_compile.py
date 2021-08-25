@@ -139,13 +139,16 @@ class PyCompileTestsBase:
             importlib.util.cache_from_source(bad_coding)))
 
     def test_source_date_epoch(self):
+        import _hashlib
         py_compile.compile(self.source_path, self.pyc_path)
         self.assertTrue(os.path.exists(self.pyc_path))
         self.assertFalse(os.path.exists(self.cache_path))
         with open(self.pyc_path, 'rb') as fp:
             flags = importlib._bootstrap_external._classify_pyc(
                 fp.read(), 'test', {})
-        if os.environ.get('SOURCE_DATE_EPOCH'):
+        if _hashlib.get_fips_mode():
+            expected_flags = 0b00
+        elif os.environ.get('SOURCE_DATE_EPOCH'):
             expected_flags = 0b11
         else:
             expected_flags = 0b00
@@ -176,7 +179,8 @@ class PyCompileTestsBase:
         # Specifying optimized bytecode should lead to a path reflecting that.
         self.assertIn('opt-2', py_compile.compile(self.source_path, optimize=2))
 
-    def test_invalidation_mode(self):
+    @support.fails_in_fips_mode(ImportError)
+    def test_invalidation_mode_checked(self):
         py_compile.compile(
             self.source_path,
             invalidation_mode=py_compile.PycInvalidationMode.CHECKED_HASH,
@@ -185,6 +189,9 @@ class PyCompileTestsBase:
             flags = importlib._bootstrap_external._classify_pyc(
                 fp.read(), 'test', {})
         self.assertEqual(flags, 0b11)
+
+    @support.fails_in_fips_mode(ImportError)
+    def test_invalidation_mode_unchecked(self):
         py_compile.compile(
             self.source_path,
             invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH,

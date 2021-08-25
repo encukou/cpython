@@ -2354,6 +2354,26 @@ static PyObject *
 _imp_source_hash_impl(PyObject *module, long key, Py_buffer *source)
 /*[clinic end generated code: output=edb292448cf399ea input=9aaad1e590089789]*/
 {
+    PyObject *_hashlib = PyImport_ImportModule("_hashlib");
+    if (_hashlib == NULL) {
+        return NULL;
+    }
+    PyObject *fips_mode_obj = PyObject_CallMethod(_hashlib, "get_fips_mode", NULL);
+    Py_DECREF(_hashlib);
+    if (fips_mode_obj == NULL) {
+        return NULL;
+    }
+    int fips_mode = PyObject_IsTrue(fips_mode_obj);
+    Py_DECREF(fips_mode_obj);
+    if (fips_mode < 0) {
+        return NULL;
+    }
+    if (fips_mode) {
+        PyErr_SetString(
+            PyExc_ImportError,
+            "hash-based PYC validation (siphash24) not available in FIPS mode");
+        return NULL;
+    };
     union {
         uint64_t x;
         char data[sizeof(uint64_t)];

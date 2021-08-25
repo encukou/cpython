@@ -17,6 +17,7 @@ import types
 import unittest
 import warnings
 
+from test import support
 from test.support import make_legacy_pyc, unload
 
 from test.test_py_compile import without_source_date_epoch
@@ -239,6 +240,7 @@ class SimpleTest(abc.LoaderTests):
                 loader.load_module('bad name')
 
     @util.writes_bytecode_files
+    @support.fails_in_fips_mode(ImportError)
     def test_checked_hash_based_pyc(self):
         with util.create_modules('_temp') as mapping:
             source = mapping['_temp']
@@ -270,6 +272,7 @@ class SimpleTest(abc.LoaderTests):
             )
 
     @util.writes_bytecode_files
+    @support.fails_in_fips_mode(ImportError)
     def test_overridden_checked_hash_based_pyc(self):
         with util.create_modules('_temp') as mapping, \
              unittest.mock.patch('_imp.check_hash_based_pycs', 'never'):
@@ -295,6 +298,7 @@ class SimpleTest(abc.LoaderTests):
             self.assertEqual(mod.state, 'old')
 
     @util.writes_bytecode_files
+    @support.fails_in_fips_mode(ImportError)
     def test_unchecked_hash_based_pyc(self):
         with util.create_modules('_temp') as mapping:
             source = mapping['_temp']
@@ -325,6 +329,7 @@ class SimpleTest(abc.LoaderTests):
             )
 
     @util.writes_bytecode_files
+    @support.fails_in_fips_mode(ImportError)
     def test_overridden_unchecked_hash_based_pyc(self):
         with util.create_modules('_temp') as mapping, \
              unittest.mock.patch('_imp.check_hash_based_pycs', 'always'):
@@ -434,6 +439,7 @@ class BadBytecodeTest:
                                                del_source=del_source)
             test('_temp', mapping, bc_path)
 
+    @support.fails_in_fips_mode(ImportError)
     def _test_partial_hash(self, test, *, del_source=False):
         with util.create_modules('_temp') as mapping:
             bc_path = self.manipulate_bytecode(

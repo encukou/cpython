@@ -186,6 +186,7 @@ class UncompressedZipImportTestCase(ImportHooksBaseTestCase):
                  TESTMOD + pyc_ext: (NOW, test_pyc)}
         self.doTest(pyc_ext, files, TESTMOD)
 
+    @support.fails_in_fips_mode(ImportError)
     def testUncheckedHashBasedPyc(self):
         source = b"state = 'old'"
         source_hash = importlib.util.source_hash(source)
@@ -200,6 +201,7 @@ class UncompressedZipImportTestCase(ImportHooksBaseTestCase):
             self.assertEqual(mod.state, 'old')
         self.doTest(None, files, TESTMOD, call=check)
 
+    @support.fails_in_fips_mode(ImportError)
     @unittest.mock.patch('_imp.check_hash_based_pycs', 'always')
     def test_checked_hash_based_change_pyc(self):
         source = b"state = 'old'"

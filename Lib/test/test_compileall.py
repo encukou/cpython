@@ -773,14 +773,23 @@ class CommandLineTestsBase:
         out = self.assertRunOK('badfilename')
         self.assertRegex(out, b"Can't list 'badfilename'")
 
-    def test_pyc_invalidation_mode(self):
+    @support.fails_in_fips_mode(AssertionError)
+    def test_pyc_invalidation_mode_checked(self):
         script_helper.make_script(self.pkgdir, 'f1', '')
         pyc = importlib.util.cache_from_source(
             os.path.join(self.pkgdir, 'f1.py'))
+
         self.assertRunOK('--invalidation-mode=checked-hash', self.pkgdir)
         with open(pyc, 'rb') as fp:
             data = fp.read()
         self.assertEqual(int.from_bytes(data[4:8], 'little'), 0b11)
+
+    @support.fails_in_fips_mode(AssertionError)
+    def test_pyc_invalidation_mode_unchecked(self):
+        script_helper.make_script(self.pkgdir, 'f1', '')
+        pyc = importlib.util.cache_from_source(
+            os.path.join(self.pkgdir, 'f1.py'))
+
         self.assertRunOK('--invalidation-mode=unchecked-hash', self.pkgdir)
         with open(pyc, 'rb') as fp:
             data = fp.read()

@@ -3249,3 +3249,17 @@ def clear_ignored_deprecations(*tokens: object) -> None:
     if warnings.filters != new_filters:
         warnings.filters[:] = new_filters
         warnings._filters_mutated()
+
+
+def fails_in_fips_mode(expected_error):
+    import _hashlib
+    if _hashlib.get_fips_mode():
+        def _decorator(func):
+            def _wrapper(self, *args, **kwargs):
+                with self.assertRaises(expected_error):
+                    func(self, *args, **kwargs)
+            return _wrapper
+    else:
+        def _decorator(func):
+            return func
+    return _decorator
