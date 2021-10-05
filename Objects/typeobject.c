@@ -3419,16 +3419,57 @@ PyType_FromModuleAndSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
         }
     }
 
-    res = (PyHeapTypeObject*)PyType_GenericAlloc(&PyType_Type, nmembers);
-    if (res == NULL)
-        return NULL;
-    res_start = (char*)res;
-
     if (spec->name == NULL) {
         PyErr_SetString(PyExc_SystemError,
                         "Type spec does not define the name field.");
-        goto fail;
+        return NULL;
     }
+
+    /* Adjust for empty tuple bases */
+    if (!bases) {
+        base = &PyBaseObject_Type;
+        /* See whether Py_tp_base(s) was specified */
+        for (slot = spec->slots; slot->slot; slot++) {
+            if (slot->slot == Py_tp_base)
+                base = slot->pfunc;
+            else if (slot->slot == Py_tp_bases) {
+                bases = slot->pfunc;
+            }
+        }
+        if (!bases) {
+            bases = PyTuple_Pack(1, base);
+            if (!bases)
+                return NULL;
+        }
+        else if (!PyTuple_Check(bases)) {
+            PyErr_SetString(PyExc_SystemError, "Py_tp_bases is not a tuple");
+            return NULL;
+        }
+        else {
+            Py_INCREF(bases);
+        }
+    }
+    else if (!PyTuple_Check(bases)) {
+        bases = PyTuple_Pack(1, bases);
+        if (!bases)
+            return NULL;
+    }
+    else {
+        Py_INCREF(bases);
+    }
+
+    /* NOTE: Missing API to replace `&PyType_Type` below, see bpo-15870 */
+    PyTypeObject *metatype = _PyType_CalculateMetaclass(&PyType_Type, bases);
+    if (metatype == NULL) {
+        Py_DECREF(bases);
+        return NULL;
+    }
+    res = (PyHeapTypeObject*)metatype->tp_alloc(metatype, nmembers);
+    if (res == NULL) {
+        Py_DECREF(bases);
+        return NULL;
+    }
+    res_start = (char*)res;
 
     type = &res->ht_type;
     /* The flags must be initialized early, before the GC traverses us */
@@ -3441,6 +3482,12 @@ PyType_FromModuleAndSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
     }
     else {
         s++;
+    }
+
+    res->ht_name = PyUnicode_FromString(s);
+    if (!res->ht_name) {
+        Py_DECREF(bases);
+        goto fail;
     }
 
     res->ht_name = PyUnicode_FromString(s);
@@ -3466,39 +3513,6 @@ PyType_FromModuleAndSpec(PyObject *module, PyType_Spec *spec, PyObject *bases)
     type->tp_name = memcpy(res->_ht_tpname, spec->name, name_buf_len);
 
     res->ht_module = Py_XNewRef(module);
-
-    /* Adjust for empty tuple bases */
-    if (!bases) {
-        base = &PyBaseObject_Type;
-        /* See whether Py_tp_base(s) was specified */
-        for (slot = spec->slots; slot->slot; slot++) {
-            if (slot->slot == Py_tp_base)
-                base = slot->pfunc;
-            else if (slot->slot == Py_tp_bases) {
-                bases = slot->pfunc;
-            }
-        }
-        if (!bases) {
-            bases = PyTuple_Pack(1, base);
-            if (!bases)
-                goto fail;
-        }
-        else if (!PyTuple_Check(bases)) {
-            PyErr_SetString(PyExc_SystemError, "Py_tp_bases is not a tuple");
-            goto fail;
-        }
-        else {
-            Py_INCREF(bases);
-        }
-    }
-    else if (!PyTuple_Check(bases)) {
-        bases = PyTuple_Pack(1, bases);
-        if (!bases)
-            goto fail;
-    }
-    else {
-        Py_INCREF(bases);
-    }
 
     /* Calculate best base, and check that all bases are type objects */
     base = best_base(bases);
