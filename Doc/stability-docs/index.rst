@@ -59,6 +59,16 @@ See also the documentation for :data:`sys.version_info`,
 which expose version numbers in different formats.
 
 
+No "Semantic Versioning" (SemVer)
+---------------------------------
+
+Despite similarities, Python does **not** use the popular
+`semantic versioning`_ scheme, which was published several decades after
+Python.
+
+.. _semantic versioning: https://semver.org/
+
+
 .. _python-releases:
 
 Python Releases
@@ -114,9 +124,7 @@ Major Versions
 When Python 3.0.0 was released, most programs for Python 2 needed to be
 adjusted for compatibility.  The transition took several decades.
 
-There are currently no plans to release Python 4.  The expectation is that
-the transition to Python 4.0, if and when it happens, will be similar to
-the transition to a new minor version.
+There are currently no plans to release Python 4.
 
 
 Minor Versions
@@ -135,12 +143,6 @@ the deprecation period may be skipped.
 
 In new minor versions, Python may remove support for little-used platforms.
 See :pep:`11` for more details and the process to get a platform re-supported.
-
-.. note::
-   Despite similarities, Python does not use the popular `semantic versioning`_
-   scheme, which was published several decades after Python.
-
-.. _semantic versioning: https://semver.org/
 
 
 Micro Versions
@@ -179,8 +181,9 @@ of privilege escalation.
 
 Security releases are *source-only*: Windows and macOS installers for
 them are not available from `python.org`_, which means that users of these
-binaries should upgrade after the bugfix period ends.  (Other distributors
-of Python will have their own support periods.)
+binaries may need to upgrade to the next minor version after the bugfix
+period ends.  (Other distributors of Python will have their own support
+periods.)
 
 
 End-of-life
@@ -276,7 +279,6 @@ reason):
 * Inheritance patterns of internal classes.
 * Test suites. (Anything in the ``test`` package or ``test`` sub-packages.)
 * API that is explicitly documented as :term:`provisional <provisional API>`.
-* Features enabled by :ref:`future statements <future>`.
 * The exact text and formatting of error messages and tracebacks.
 * String representations of objects (results of ``str()`` and ``repr()``),
   unless documented.
