@@ -1176,9 +1176,9 @@ class SourceFileLoader(FileLoader, SourceLoader):
                                         exc)
 
 
-class SourcelessFileLoader(FileLoader, _LoaderBasics):
+class BytecodeFileLoader(FileLoader, _LoaderBasics):
 
-    """Loader which handles sourceless file imports."""
+    """Loader which handles bytecode file imports."""
 
     def get_code(self, fullname):
         path = self.get_filename(fullname)
@@ -1196,9 +1196,29 @@ class SourcelessFileLoader(FileLoader, _LoaderBasics):
             bytecode_path=path,
         )
 
-    def get_source(self, fullname):
+    def get_source_filename(self, fullname):
         """Return None as there is no source code."""
+        path = self.get_filename(fullname)
+        path = _os.fspath(path)
+        head, tail = _path_split(path)
+        base, sep, rest = tail.rpartition('.')
+        if rest == 'pyc' and '.' not in base:
+            return _path_join(head, '__pysource__', base + '.py')
         return None
+
+    def get_source(self, fullname):
+        """Concrete implementation of InspectLoader.get_source."""
+        path = self.get_source_filename(fullname)
+        if path is None:
+            return None
+        try:
+            source_bytes = self.get_data(path)
+        except OSError as exc:
+            return None
+        return decode_source(source_bytes)
+
+# Backwards compatibility alias
+SourcelessFileLoader = BytecodeFileLoader
 
 
 class ExtensionFileLoader(FileLoader, _LoaderBasics):
