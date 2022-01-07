@@ -1117,6 +1117,11 @@ class FileLoader:
     def __hash__(self):
         return hash(self.name) ^ hash(self.path)
 
+    def path_stats(self, path):
+        """Return the metadata for the path."""
+        st = _path_stat(path)
+        return {'mtime': st.st_mtime, 'size': st.st_size}
+
     @_check_name
     def load_module(self, fullname):
         """Load a module from a file.
@@ -1152,11 +1157,6 @@ class FileLoader:
 class SourceFileLoader(FileLoader, SourceLoader):
 
     """Concrete implementation of SourceLoader using the file system."""
-
-    def path_stats(self, path):
-        """Return the metadata for the path."""
-        st = _path_stat(path)
-        return {'mtime': st.st_mtime, 'size': st.st_size}
 
     def _cache_bytecode(self, source_path, bytecode_path, data):
         # Adapt between the two APIs
