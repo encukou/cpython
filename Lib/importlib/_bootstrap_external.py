@@ -1226,14 +1226,23 @@ class BytecodeFileLoader(FileLoader, _LoaderBasics):
 
     def get_source(self, fullname):
         """Concrete implementation of InspectLoader.get_source."""
-        path = self.get_source_filename(fullname)
-        if path is None:
+        bytecode_path = self.get_filename(fullname)
+        source_path = self.get_source_filename(fullname)
+        bytecode_data = self.get_data(path)
+        if source_path is None:
             return None
         try:
-            source_bytes = self.get_data(path)
-        except OSError as exc:
-            return None
-        return decode_source(source_bytes)
+            st = self.path_stats(source_path)
+        except OSError:
+            pass
+        ns = _PycCheckCache()
+        if _check_pyc(self, fullname, source_path, bytecode_path, ns):
+            try:
+                source_bytes = self.get_data(source_path)
+            except OSError as exc:
+                return None
+            return decode_source(source_bytes)
+        return None
 
 # Backwards compatibility alias
 SourcelessFileLoader = BytecodeFileLoader
