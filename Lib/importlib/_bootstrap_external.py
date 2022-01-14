@@ -1004,82 +1004,100 @@ class SourceLoader(_LoaderBasics):
 
         """
         source_path = self.get_filename(fullname)
-        source_mtime = None
-        source_bytes = None
-        source_hash = None
-        hash_based = False
-        check_source = True
+        ns = _PycCheckCache()
         try:
             bytecode_path = cache_from_source(source_path)
         except NotImplementedError:
             bytecode_path = None
         else:
-            try:
-                st = self.path_stats(source_path)
-            except OSError:
-                pass
-            else:
-                source_mtime = int(st['mtime'])
-                try:
-                    data = self.get_data(bytecode_path)
-                except OSError:
-                    pass
-                else:
-                    exc_details = {
-                        'name': fullname,
-                        'path': bytecode_path,
-                    }
-                    try:
-                        flags = _classify_pyc(data, fullname, exc_details)
-                        bytes_data = memoryview(data)[16:]
-                        hash_based = flags & 0b1 != 0
-                        if hash_based:
-                            check_source = flags & 0b10 != 0
-                            if (_imp.check_hash_based_pycs != 'never' and
-                                (check_source or
-                                 _imp.check_hash_based_pycs == 'always')):
-                                source_bytes = self.get_data(source_path)
-                                source_hash = _imp.source_hash(
-                                    _RAW_MAGIC_NUMBER,
-                                    source_bytes,
-                                )
-                                _validate_hash_pyc(data, source_hash, fullname,
-                                                   exc_details)
-                        else:
-                            _validate_timestamp_pyc(
-                                data,
-                                source_mtime,
-                                st['size'],
-                                fullname,
-                                exc_details,
-                            )
-                    except (ImportError, EOFError):
-                        pass
-                    else:
-                        _bootstrap._verbose_message('{} matches {}', bytecode_path,
-                                                    source_path)
-                        return _compile_bytecode(bytes_data, name=fullname,
-                                                 bytecode_path=bytecode_path,
-                                                 source_path=source_path)
-        if source_bytes is None:
-            source_bytes = self.get_data(source_path)
-        code_object = self.source_to_code(source_bytes, source_path)
+            if _check_pyc(self, fullname, source_path, bytecode_path, ns):
+                return _compile_bytecode(ns.bytes_data, name=fullname,
+                                         bytecode_path=bytecode_path,
+                                         source_path=source_path)
+
+        if ns.source_bytes is None:
+            ns.source_bytes = self.get_data(source_path)
+        code_object = self.source_to_code(ns.source_bytes, source_path)
         _bootstrap._verbose_message('code object from {}', source_path)
         if (not sys.dont_write_bytecode and bytecode_path is not None and
-                source_mtime is not None):
-            if hash_based:
-                if source_hash is None:
-                    source_hash = _imp.source_hash(source_bytes)
-                data = _code_to_hash_pyc(code_object, source_hash, check_source)
+                ns.source_mtime is not None):
+            if ns.hash_based:
+                if ns.source_hash is None:
+                    ns.source_hash = _imp.source_hash(ns.source_bytes)
+                data = _code_to_hash_pyc(code_object, ns.source_hash, ns.check_source)
             else:
-                data = _code_to_timestamp_pyc(code_object, source_mtime,
-                                              len(source_bytes))
+                data = _code_to_timestamp_pyc(code_object, ns.source_mtime,
+                                              len(ns.source_bytes))
             try:
                 self._cache_bytecode(source_path, bytecode_path, data)
             except NotImplementedError:
                 pass
         return code_object
 
+class _PycCheckCache(object):
+    """Cache for _check_pyc"""
+    source_mtime = None
+    source_bytes = None
+    source_hash = None
+    hash_based = False
+    check_source = True
+
+def _check_pyc(loader, fullname, source_path, bytecode_path, ns):
+
+    """Return true iff a source file corresponds to a pyc a file
+
+    *ns* must be a freshly created _PycCheckCache. It is filled with
+    information that may later be used in SourceLoader.get_code to
+    write a pyc file.
+
+    """
+
+    try:
+        st = loader.path_stats(source_path)
+    except OSError:
+        pass
+    else:
+        ns.source_mtime = int(st['mtime'])
+        try:
+            data = loader.get_data(bytecode_path)
+        except OSError:
+            pass
+        else:
+            exc_details = {
+                'name': fullname,
+                'path': bytecode_path,
+            }
+            try:
+                flags = _classify_pyc(data, fullname, exc_details)
+                ns.bytes_data = memoryview(data)[16:]
+                ns.hash_based = flags & 0b1 != 0
+                if ns.hash_based:
+                    ns.check_source = flags & 0b10 != 0
+                    if (_imp.check_hash_based_pycs != 'never' and
+                        (ns.check_source or
+                            _imp.check_hash_based_pycs == 'always')):
+                        ns.source_bytes = loader.get_data(source_path)
+                        ns.source_hash = _imp.source_hash(
+                            _RAW_MAGIC_NUMBER,
+                            ns.source_bytes,
+                        )
+                        _validate_hash_pyc(data, ns.source_hash, fullname,
+                                           exc_details)
+                else:
+                    _validate_timestamp_pyc(
+                        data,
+                        ns.source_mtime,
+                        st['size'],
+                        fullname,
+                        exc_details,
+                    )
+            except (ImportError, EOFError):
+                pass
+            else:
+                _bootstrap._verbose_message('{} matches {}', bytecode_path,
+                                            source_path)
+                return True
+    return False
 
 class FileLoader:
 
