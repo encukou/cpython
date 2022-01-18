@@ -39,6 +39,11 @@
 
 #include <openssl/crypto.h>       // FIPS_mode()
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+// For EVP_default_properties_enable_fips
+#include <openssl/evp.h>
+#endif
+
 #ifndef OPENSSL_THREADS
 #  error "OPENSSL_THREADS is not defined, Python requires thread-safe OpenSSL"
 #endif
@@ -2398,6 +2403,17 @@ static struct PyModuleDef _hashlibmodule = {
 PyMODINIT_FUNC
 PyInit__hashlib(void)
 {
+
+    if (getenv("OPENSSL_FIPS")) {
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+        if (!EVP_default_properties_enable_fips(NULL, 1)) {
+#else
+        if (!FIPS_mode_set(1)) {
+#endif
+            return _setException(PyExc_ValueError, NULL);
+        }
+    }
+
     PyObject *m = PyState_FindModule(&_hashlibmodule);
     if (m != NULL) {
         Py_INCREF(m);
