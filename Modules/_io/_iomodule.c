@@ -504,15 +504,8 @@ _io_text_encoding_impl(PyObject *module, PyObject *encoding, int stacklevel)
 /*[clinic end generated code: output=91b2cfea6934cc0c input=bf70231213e2a7b4]*/
 {
     if (encoding == NULL || encoding == Py_None) {
-        PyInterpreterState *interp = _PyInterpreterState_GET();
-        if (_PyInterpreterState_GetConfig(interp)->warn_default_encoding) {
-            if (PyErr_WarnEx(PyExc_EncodingWarning,
-                             "'encoding' argument not specified", stacklevel)) {
-                return NULL;
-            }
-        }
-        Py_INCREF(_PyIO_str_locale);
-        return _PyIO_str_locale;
+        PyErr_SetString(PyExc_EncodingWarning, "'encoding' argument not specified");
+        return NULL;
     }
     Py_INCREF(encoding);
     return encoding;
