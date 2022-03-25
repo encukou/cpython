@@ -1228,13 +1228,13 @@ class BytecodeFileLoader(FileLoader, _LoaderBasics):
         """Concrete implementation of InspectLoader.get_source."""
         bytecode_path = self.get_filename(fullname)
         source_path = self.get_source_filename(fullname)
-        bytecode_data = self.get_data(path)
         if source_path is None:
             return None
         try:
             st = self.path_stats(source_path)
         except OSError:
-            pass
+            return None
+        bytecode_data = self.get_data(source_path)
         ns = _PycCheckCache()
         if _check_pyc(self, fullname, source_path, bytecode_path, ns):
             try:
