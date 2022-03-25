@@ -15,6 +15,8 @@ import sys
 import types
 import unittest
 import warnings
+from pathlib import Path
+import contextlib
 
 from test.support.import_helper import make_legacy_pyc, unload
 
@@ -788,6 +790,85 @@ class SourcelessLoaderBadBytecodeTestPEP302(SourcelessLoaderBadBytecodeTest,
 (Frozen_SourcelessBadBytecodePEP302,
  Source_SourcelessBadBytecodePEP302
  ) = util.test_both(SourcelessLoaderBadBytecodeTestPEP302, importlib=importlib,
+                    machinery=machinery, abc=importlib_abc,
+                    util=importlib_util)
+
+
+class BytecodeLoaderTests:
+
+    @classmethod
+    def setUpClass(cls):
+        cls.loader = cls.machinery.BytecodeFileLoader
+
+    def import_(self, file, module_name):
+        loader = self.loader(module_name, file)
+        return loader.load_module()
+
+    @contextlib.contextmanager
+    def create_testmod(self):
+        with util.create_modules('testmod') as mapping:
+            orig_path = Path(mapping['testmod'])
+            dir_path = orig_path.parent
+            pyc_path = dir_path / 'testmod.pyc'
+            py_compile.compile(orig_path, pyc_path)
+            source_dir_path = dir_path / '__pysource__'
+            source_dir_path.mkdir()
+            source_path = source_dir_path / 'testmod.py'
+            orig_path.rename(source_path)
+            yield types.SimpleNamespace(
+                orig_path=orig_path,
+                dir_path=dir_path,
+                source_dir_path=source_dir_path,
+                source_path=source_path,
+                pyc_path=pyc_path,
+                loader=self.loader('testmod', str(pyc_path)),
+            )
+
+    def check_source(self, info, wanted_source):
+            self.assertEqual(
+                info.loader.get_source_filename('testmod'),
+                str(info.source_path))
+            self.assertEqual(
+                info.loader.get_source('testmod'),
+                wanted_source)
+
+            # Module is always usable
+            mod = types.ModuleType('testmod')
+            info.loader.exec_module(mod)
+            self.assertEqual(mod.attr, 'testmod')
+
+    def test_get_source(self):
+        """The source to a _pyc file should normally be found."""
+        with self.create_testmod() as info:
+            self.check_source(info, "attr = 'testmod'")
+
+
+    def test_get_source_tampered(self):
+        """If source doesn't match the pyc file, None should be returned."""
+        with self.create_testmod() as info:
+            with open(info.source_path, 'a') as f:
+                f.write(' ')
+            self.check_source(info, None)
+
+
+    def test_get_source_missing(self):
+        """If the source doesn't exist, None should be returned."""
+        with self.create_testmod() as info:
+            info.source_path.unlink()
+            self.check_source(info, None)
+            self.assertFalse(info.source_path.exists())
+
+    def test_get_source_dir_missing(self):
+        """If the __pysource__ dir doesn't exist, None should be returned."""
+        with self.create_testmod() as info:
+            info.source_path.unlink()
+            info.source_dir_path.rmdir()
+            self.check_source(info, None)
+
+
+(Frozen_BytecodeLoaderTests,
+ Source_BytecodeLoaderTests
+ ) = util.test_both(BytecodeLoaderTests, importlib=importlib,
                     machinery=machinery, abc=importlib_abc,
                     util=importlib_util)
 
