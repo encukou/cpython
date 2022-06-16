@@ -102,7 +102,7 @@ produced by :mod:`cgitb` provide information that can save you a lot of time in
 tracking down bugs.  You can always remove the ``cgitb`` line later when you
 have tested your script and are confident that it works correctly.
 
-To get at submitted form data, use the :class:`FieldStorage` class. If the form
+To get at submitted form data use the :class:`FieldStorage` class. If the form
 contains non-ASCII characters, use the *encoding* keyword parameter set to the
 value of the encoding defined for the document. It is usually contained in the
 META tag in the HEAD section of the HTML document or by the
