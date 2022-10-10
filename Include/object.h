@@ -264,6 +264,8 @@ PyAPI_FUNC(PyObject *) PyType_GetQualName(PyTypeObject *);
 #endif
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030C0000
 PyAPI_FUNC(PyObject *) PyType_FromMetaclass(PyTypeObject*, PyObject*, PyType_Spec*, PyObject*);
+PyAPI_FUNC(void *) PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls);
+PyAPI_FUNC(Py_ssize_t) PyObject_GetTypeDataSize(PyTypeObject *cls);
 #endif
 
 /* Generic type check */
