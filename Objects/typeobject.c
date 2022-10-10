@@ -17,6 +17,8 @@
 #include "structmember.h"         // PyMemberDef
 
 #include <ctype.h>
+#include <stdalign.h>             // alignof
+#include <stddef.h>               // ptrdiff_t
 
 /*[clinic input]
 class type "PyTypeObject *" "&PyType_Type"
@@ -3522,6 +3524,13 @@ static const PySlot_Offset pyslot_offsets[] = {
 #include "typeslots.inc"
 };
 
+/* Align up to the nearest multiple of alignof(max_align_t) */
+static Py_ssize_t
+_align_up(Py_ssize_t size) {
+    const Py_ssize_t alignment = alignof(max_align_t);
+    return (size + alignment - 1) & ~(alignment - 1);
+}
+
 /* Given a PyType_FromMetaclass `bases` argument (NULL, type, or tuple of
  * types), return a tuple of types.
  */
@@ -4089,6 +4098,24 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
     return NULL;
 }
 
+void *
+PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls) {
+    return (char *)obj + _align_up(cls->tp_base->tp_basicsize);
+}
+
+Py_ssize_t
+PyObject_GetTypeDataSize(PyTypeObject *cls) {
+    ptrdiff_t result = cls->tp_basicsize - _align_up(cls->tp_base->tp_basicsize);
+    if (result < 0) {
+        return 0;
+    }
+    return result;
+}
+
+void *
+PyObject_GetItemData(PyObject *obj) {
+    return (char *)obj + Py_TYPE(obj)->tp_basicsize;
+}
 
 /* Internal API to look for a name through the MRO, bypassing the method cache.
    This returns a borrowed reference, and might set an exception.
