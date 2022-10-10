@@ -524,6 +524,8 @@ SYMBOL_NAMES = (
     "PyObject_GetBuffer",
     "PyObject_GetItem",
     "PyObject_GetIter",
+    "PyObject_GetTypeData",
+    "PyObject_GetTypeDataSize",
     "PyObject_HasAttr",
     "PyObject_HasAttrString",
     "PyObject_Hash",
