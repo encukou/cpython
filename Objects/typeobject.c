@@ -3524,7 +3524,9 @@ static const PySlot_Offset pyslot_offsets[] = {
 #include "typeslots.inc"
 };
 
-/* Align up to the nearest multiple of alignof(max_align_t) */
+/* Align up to the nearest multiple of alignof(max_align_t)
+ * (like _Py_ALIGN_UP, but for a size rather than pointer)
+ */
 static Py_ssize_t
 _align_up(Py_ssize_t size) {
     const Py_ssize_t alignment = alignof(max_align_t);
@@ -3634,6 +3636,7 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
     Py_ssize_t nmembers = 0;
     Py_ssize_t weaklistoffset, dictoffset, vectorcalloffset;
     char *res_start;
+    int inherit_itemsize = 0;
 
     nmembers = weaklistoffset = dictoffset = vectorcalloffset = 0;
     for (slot = spec->slots; slot->slot; slot++) {
@@ -3670,6 +3673,12 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                     assert(memb->flags == READONLY);
                     vectorcalloffset = memb->offset;
                 }
+                if (memb->flags & Py_RELATIVE_OFFSET) {
+                    assert(spec->basicsize <= 0);
+                }
+                else {
+                    assert(spec->basicsize > 0);
+                }
             }
             break;
         case Py_tp_doc:
@@ -3693,6 +3702,21 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                     goto finally;
                 }
                 memcpy(tp_doc, slot->pfunc, len);
+            }
+            break;
+        case Py_tp_inherit_itemsize:
+            inherit_itemsize = 1;
+            if (spec->itemsize != 0) {
+                PyErr_SetString(
+                    PyExc_SystemError,
+                    "With Py_tp_inherit_itemsize, itemsize must be 0.");
+                goto finally;
+            }
+            if (slot->pfunc != NULL) {
+                PyErr_SetString(
+                    PyExc_SystemError,
+                    "pfunc for Py_tp_inherit_itemsize must be NULL.");
+                goto finally;
             }
             break;
         }
@@ -3799,6 +3823,25 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
     // here we just check its work
     assert(_PyType_HasFeature(base, Py_TPFLAGS_BASETYPE));
 
+    /* Calculate sizes */
+
+    Py_ssize_t basicsize = spec->basicsize;
+    Py_ssize_t type_data_offset = spec->basicsize;
+    if (basicsize == 0) {
+        /* Inherit */
+        basicsize = base->tp_basicsize;
+    }
+    else if (basicsize < 0) {
+        /* Extend */
+        type_data_offset = _align_up(base->tp_basicsize);
+        basicsize = type_data_offset + _align_up(-spec->basicsize);
+    }
+
+    Py_ssize_t itemsize = spec->itemsize;
+    if (inherit_itemsize) {
+        itemsize = spec->itemsize;
+    }
+
     /* Allocate the new type
      *
      * Between here and PyType_Ready, we should limit:
@@ -3846,8 +3889,8 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
 
     /* Copy the sizes */
 
-    type->tp_basicsize = spec->basicsize;
-    type->tp_itemsize = spec->itemsize;
+    type->tp_basicsize = basicsize;
+    type->tp_itemsize = itemsize;
 
     /* Copy all the ordinary slots */
 
@@ -3856,6 +3899,7 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
         case Py_tp_base:
         case Py_tp_bases:
         case Py_tp_doc:
+        case Py_tp_inherit_itemsize:
             /* Processed above */
             break;
         case Py_tp_members:
@@ -3864,6 +3908,15 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 size_t len = Py_TYPE(type)->tp_itemsize * nmembers;
                 memcpy(_PyHeapType_GET_MEMBERS(res), slot->pfunc, len);
                 type->tp_members = _PyHeapType_GET_MEMBERS(res);
+                PyMemberDef *memb;
+                unsigned i;
+                for (memb = _PyHeapType_GET_MEMBERS(res), i = nmembers;
+                        i > 0; ++memb, --i) {
+                    if (memb->flags & Py_RELATIVE_OFFSET) {
+                        memb->flags &= ~Py_RELATIVE_OFFSET;
+                        memb->offset += type_data_offset;
+                    }
+                }
             }
             break;
         default:
