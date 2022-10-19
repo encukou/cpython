@@ -3705,18 +3705,18 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 memcpy(tp_doc, slot->pfunc, len);
             }
             break;
-        case Py_tp_inherit_itemsize:
+        case Py_slot_inherit_itemsize:
             inherit_itemsize = 1;
             if (spec->itemsize != 0) {
                 PyErr_SetString(
                     PyExc_SystemError,
-                    "With Py_tp_inherit_itemsize, itemsize must be 0.");
+                    "With Py_slot_inherit_itemsize, itemsize must be 0.");
                 goto finally;
             }
             if (slot->pfunc != NULL) {
                 PyErr_SetString(
                     PyExc_SystemError,
-                    "pfunc for Py_tp_inherit_itemsize must be NULL.");
+                    "pfunc for Py_slot_inherit_itemsize must be NULL.");
                 goto finally;
             }
             break;
@@ -3900,7 +3900,7 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
         case Py_tp_base:
         case Py_tp_bases:
         case Py_tp_doc:
-        case Py_tp_inherit_itemsize:
+        case Py_slot_inherit_itemsize:
             /* Processed above */
             break;
         case Py_tp_members:
@@ -3926,9 +3926,14 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 PySlot_Offset slotoffsets = pyslot_offsets[slot->slot];
                 short slot_offset = slotoffsets.slot_offset;
                 if (slotoffsets.subslot_offset == -1) {
+                    /* "virtual" slots likePy_slot_inherit_itemsize should
+                     * be processed above */
+                    assert(slot_offset);
+                    /* Set a slot in the main PyTypeObject */
                     *(void**)((char*)res_start + slot_offset) = slot->pfunc;
                 }
                 else {
+                    /* Set a slot in one of the tp_as_* tables */
                     void *procs = *(void**)((char*)res_start + slot_offset);
                     short subslot_offset = slotoffsets.subslot_offset;
                     *(void**)((char*)procs + subslot_offset) = slot->pfunc;

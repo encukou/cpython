@@ -30,6 +30,8 @@ def generate_typeslots(out=sys.stdout):
         elif member.startswith("bf_"):
             member = (f'{{offsetof(PyBufferProcs, {member}),'+
                       ' offsetof(PyTypeObject, tp_as_buffer)}')
+        elif member.startswith("slot_"):
+            member = '{-1, 0} // "virtual", not stored'
         res[int(m.group(2))] = member
 
     M = max(res.keys())+1
