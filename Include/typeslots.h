@@ -88,5 +88,5 @@
 #endif
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030C0000
 /* New in 3.12 */
-#define Py_tp_inherit_itemsize 82
+#define Py_slot_inherit_itemsize 82
 #endif
