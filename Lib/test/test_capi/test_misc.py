@@ -895,6 +895,39 @@ class CAPITest(unittest.TestCase):
                 with self.subTest(**args):
                     check(**args)
 
+    @requires_limited_api
+    def test_HeapCCollection(self):
+        """Make sure HeapCCollection works properly by itself"""
+        collection = _testcapi.HeapCCollection(1, 2, 3)
+        self.assertEqual(list(collection), [1, 2, 3])
+
+    @requires_limited_api
+    def test_heaptype_itemsize_nope(self):
+        """Test invalid arguments around Py_slot_inherit_itemsize"""
+        with self.assertRaises(SystemError):
+            _testcapi.subclass_var_heaptype(_testcapi.HeapCCollection, 0, 0, 1)
+        with self.assertRaises(SystemError):
+            _testcapi.subclass_var_heaptype(_testcapi.HeapCCollection, 0, 1, 0)
+
+    @requires_limited_api
+    def test_heaptype_inherit_itemsize(self):
+        """Test HeapCCollection subclasses work properly"""
+        sizes = sorted({0, 1, 2, 3, 4, 7, 8, 123,
+                        object.__basicsize__,
+                        object.__basicsize__-1,
+                        object.__basicsize__+1})
+        for extra_size in sizes:
+            with self.subTest(extra_size=extra_size):
+                Sub = _testcapi.subclass_var_heaptype(
+                    _testcapi.HeapCCollection, -extra_size, 0, 0)
+                collection = Sub(1, 2, 3)
+                collection.set_data_to_3s()
+
+                self.assertEqual(list(collection), [1, 2, 3])
+                mem = collection.get_data()
+                self.assertGreaterEqual(len(mem), extra_size)
+                self.assertTrue(set(mem) <= {3}, f'got {mem}')
+
     def test_pynumber_tobase(self):
         from _testcapi import pynumber_tobase
         small_number = 123
