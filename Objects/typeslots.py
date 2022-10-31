@@ -14,30 +14,30 @@ def generate_typeslots(out=sys.stdout):
 
         member = m.group(1)
         if member.startswith("tp_"):
-            member = f'{{-1, offsetof(PyTypeObject, {member})}}'
+            member = f'{{-1, offsetof(PyTypeObject, {member})}},'
         elif member.startswith("am_"):
             member = (f'{{offsetof(PyAsyncMethods, {member}),'+
-                      ' offsetof(PyTypeObject, tp_as_async)}')
+                      ' offsetof(PyTypeObject, tp_as_async)},')
         elif member.startswith("nb_"):
             member = (f'{{offsetof(PyNumberMethods, {member}),'+
-                      ' offsetof(PyTypeObject, tp_as_number)}')
+                      ' offsetof(PyTypeObject, tp_as_number)},')
         elif member.startswith("mp_"):
             member = (f'{{offsetof(PyMappingMethods, {member}),'+
-                      ' offsetof(PyTypeObject, tp_as_mapping)}')
+                      ' offsetof(PyTypeObject, tp_as_mapping)},')
         elif member.startswith("sq_"):
             member = (f'{{offsetof(PySequenceMethods, {member}),'+
-                      ' offsetof(PyTypeObject, tp_as_sequence)}')
+                      ' offsetof(PyTypeObject, tp_as_sequence)},')
         elif member.startswith("bf_"):
             member = (f'{{offsetof(PyBufferProcs, {member}),'+
-                      ' offsetof(PyTypeObject, tp_as_buffer)}')
+                      ' offsetof(PyTypeObject, tp_as_buffer)},')
         elif member.startswith("slot_"):
-            member = '{-1, 0} // "virtual", not stored'
+            member = '{-1, 0}, // "virtual", not stored'
         res[int(m.group(2))] = member
 
     M = max(res.keys())+1
     for i in range(1,M):
         if i in res:
-            out.write("%s,\n" % res[i])
+            out.write("%s\n" % res[i])
         else:
             out.write("{0, 0},\n")
 
