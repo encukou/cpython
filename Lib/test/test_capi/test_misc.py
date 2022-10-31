@@ -928,7 +928,7 @@ class CAPITest(unittest.TestCase):
                 self.assertEqual(list(collection), [1, 2, 3])
                 mem = collection.get_data()
                 self.assertGreaterEqual(len(mem), extra_size)
-                self.assertTrue(set(mem) <= {3}, f'got {mem}')
+                self.assertTrue(set(mem) <= {3}, f'got {mem!r}')
 
     def test_pynumber_tobase(self):
         from _testcapi import pynumber_tobase
