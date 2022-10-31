@@ -3677,9 +3677,6 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 if (memb->flags & Py_RELATIVE_OFFSET) {
                     assert(spec->basicsize <= 0);
                 }
-                else {
-                    assert(spec->basicsize > 0);
-                }
             }
             break;
         case Py_tp_doc:
