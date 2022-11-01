@@ -930,6 +930,22 @@ class CAPITest(unittest.TestCase):
                 self.assertGreaterEqual(len(mem), extra_size)
                 self.assertTrue(set(mem) <= {3}, f'got {mem!r}')
 
+    def test_pytype_getslot(self):
+        with self.assertRaisesRegex(
+                SystemError,
+                "PyType_GetSlot: slot out of range"):
+            _testcapi.pytype_getslot(int, 0)
+
+        with self.assertRaisesRegex(
+                SystemError,
+                "PyType_GetSlot: slot out of range"):
+            _testcapi.pytype_getslot(int, -1)
+
+        with self.assertRaisesRegex(
+                SystemError,
+                "PyType_GetSlot: incompatible slot"):
+            _testcapi.pytype_getslot(int, 82)  # Py_slot_inherit_itemsize
+
     def test_pynumber_tobase(self):
         from _testcapi import pynumber_tobase
         small_number = 123

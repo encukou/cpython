@@ -4066,16 +4066,24 @@ PyType_GetSlot(PyTypeObject *type, int slot)
     int slots_len = Py_ARRAY_LENGTH(pyslot_offsets);
 
     if (slot <= 0 || slot >= slots_len) {
-        PyErr_BadInternalCall();
+        PyErr_SetString(PyExc_SystemError,
+                        "PyType_GetSlot: slot out of range");
         return NULL;
     }
 
-    parent_slot = *(void**)((char*)type + pyslot_offsets[slot].slot_offset);
+    int slot_offset = pyslot_offsets[slot].slot_offset;
+
+    parent_slot = *(void**)((char*)type + slot_offset);
     if (parent_slot == NULL) {
         return NULL;
     }
     /* Return slot directly if we have no sub slot. */
     if (pyslot_offsets[slot].subslot_offset == -1) {
+        if (slot_offset == 0) {
+            PyErr_SetString(PyExc_SystemError,
+                            "PyType_GetSlot: incompatible slot");
+            return NULL;
+        }
         return parent_slot;
     }
     return *(void**)((char*)parent_slot + pyslot_offsets[slot].subslot_offset);

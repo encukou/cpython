@@ -90,3 +90,6 @@
 /* New in 3.12 */
 #define Py_slot_inherit_itemsize 82
 #endif
+
+/* Do renumber this one */
+#define _Py_slot_max 82
