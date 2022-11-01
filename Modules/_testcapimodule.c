@@ -587,9 +587,16 @@ test_get_statictype_slots(PyObject *self, PyObject *Py_UNUSED(ignored))
         return NULL;
     }
 
-    void *over_value = PyType_GetSlot(&PyLong_Type, Py_bf_releasebuffer + 1);
+    void *over_value = PyType_GetSlot(&PyLong_Type, _Py_slot_max + 1);
     if (over_value != NULL) {
         PyErr_SetString(PyExc_AssertionError, "mismatch: max+1 of long");
+        return NULL;
+    }
+    if (PyErr_ExceptionMatches(PyExc_SystemError)) {
+        // This is the right exception
+        PyErr_Clear();
+    }
+    else {
         return NULL;
     }
 
@@ -609,6 +616,22 @@ test_get_statictype_slots(PyObject *self, PyObject *Py_UNUSED(ignored))
     Py_RETURN_NONE;
 }
 
+static PyObject *
+pytype_getslot(PyObject *self, PyObject *args)
+{
+    PyTypeObject *type;
+    int slot;
+    int res = PyArg_ParseTuple(args, "O!i:pytype_getslot",
+                               &PyType_Type, &type, &slot);
+    if (!res) {
+        return NULL;
+    }
+    void *pfunc = PyType_GetSlot(type, slot);
+    if (PyErr_Occurred()) {
+        return NULL;
+    }
+    return pfunc ? Py_NewRef(Py_True) : Py_NewRef(Py_None);
+}
 
 static PyType_Slot HeapTypeNameType_slots[] = {
     {0},
@@ -3174,6 +3197,7 @@ static PyMethodDef TestMethods[] = {
     {"test_buildvalue_N",        test_buildvalue_N,              METH_NOARGS},
     {"test_buildvalue_issue38913", test_buildvalue_issue38913,   METH_NOARGS},
     {"test_get_statictype_slots", test_get_statictype_slots,     METH_NOARGS},
+    {"pytype_getslot",            pytype_getslot,                METH_VARARGS},
     {"test_get_type_name",        test_get_type_name,            METH_NOARGS},
     {"test_get_type_qualname",    test_get_type_qualname,        METH_NOARGS},
     {"_test_thread_state",      test_thread_state,               METH_VARARGS},
