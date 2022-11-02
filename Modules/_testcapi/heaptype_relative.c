@@ -141,10 +141,119 @@ subclass_var_heaptype(PyObject *module, PyObject *args)
     return result;
 }
 
+static PyMemberDef *
+heaptype_with_member_extract_and_check_memb(PyObject *self)
+{
+    PyMemberDef *def = PyType_GetSlot(Py_TYPE(self), Py_tp_members);
+    if (!def) {
+        if (!PyErr_Occurred()) {
+            PyErr_SetString(PyExc_ValueError, "tp_members is NULL");
+        }
+        return NULL;
+    }
+    if (!def[0].name) {
+        PyErr_SetString(PyExc_ValueError, "tp_members[0] is NULL");
+        return NULL;
+    }
+    if (def[1].name) {
+        PyErr_SetString(PyExc_ValueError, "tp_members[1] is not NULL");
+        return NULL;
+    }
+    if (strcmp(def[0].name, "memb")) {
+        PyErr_SetString(PyExc_ValueError, "tp_members[0] is not for `memb`");
+        return NULL;
+    }
+    if (def[0].flags) {
+        PyErr_SetString(PyExc_ValueError, "tp_members[0] has flags set");
+        return NULL;
+    }
+    return def;
+}
+
+static PyObject *
+heaptype_with_member_get_memb(PyObject *self, PyObject *Py_UNUSED(ignored))
+{
+    PyMemberDef *def = heaptype_with_member_extract_and_check_memb(self);
+    return PyMember_GetOne((const char *)self, def);
+}
+
+static PyObject *
+heaptype_with_member_set_memb(PyObject *self, PyObject *value)
+{
+    PyMemberDef *def = heaptype_with_member_extract_and_check_memb(self);
+    int r = PyMember_SetOne((char *)self, def, value);
+    if (r < 0) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+get_memb_offset(PyObject *self, PyObject *Py_UNUSED(ignored))
+{
+    PyMemberDef *def = heaptype_with_member_extract_and_check_memb(self);
+    return PyLong_FromSsize_t(def->offset);
+}
+
+static PyMethodDef heaptype_with_member_methods[] = {
+    {"get_memb", heaptype_with_member_get_memb, METH_NOARGS},
+    {"set_memb", heaptype_with_member_set_memb, METH_O},
+    {"get_memb_offset", get_memb_offset, METH_NOARGS},
+    {NULL},
+};
+
+static PyObject *
+make_heaptype_with_member(PyObject *module, PyObject *args)
+{
+    PyObject *base = NULL;
+    PyObject *result = NULL;
+
+    int extra_base_size, basicsize, offset, add_flag;
+
+    int r = PyArg_ParseTuple(args, "iiip", &extra_base_size, &basicsize, &offset, &add_flag);
+    if (!r) {
+        goto finally;
+    }
+
+    PyType_Spec base_spec = {
+        .name = "_testcapi.Base",
+        .basicsize = sizeof(PyObject) + extra_base_size,
+        .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+        .slots = empty_slots,
+    };
+    base = PyType_FromMetaclass(NULL, module, &base_spec, NULL);
+    if (!base) {
+        goto finally;
+    }
+
+    PyMemberDef members[] = {
+        {"memb", Py_T_BYTE, offset, add_flag ? Py_RELATIVE_OFFSET : 0},
+        {0},
+    };
+    PyType_Slot slots[] = {
+        {Py_tp_members, members},
+        {Py_tp_methods, heaptype_with_member_methods},
+        {0, NULL},
+    };
+
+    PyType_Spec sub_spec = {
+        .name = "_testcapi.Sub",
+        .basicsize = basicsize,
+        .flags = Py_TPFLAGS_DEFAULT,
+        .slots = slots,
+    };
+
+    result = PyType_FromMetaclass(NULL, module, &sub_spec, base);
+  finally:
+    Py_XDECREF(base);
+    return result;
+}
+
 
 static PyMethodDef TestMethods[] = {
     {"make_sized_heaptypes", make_sized_heaptypes, METH_VARARGS},
     {"subclass_var_heaptype", subclass_var_heaptype, METH_VARARGS},
+    {"make_heaptype_with_member", make_heaptype_with_member, METH_VARARGS},
     {NULL},
 };
 
