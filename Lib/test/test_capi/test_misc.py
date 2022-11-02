@@ -928,6 +928,43 @@ class CAPITest(unittest.TestCase):
                 self.assertGreaterEqual(len(mem), extra_size)
                 self.assertTrue(set(mem) <= {3}, f'got {mem!r}')
 
+    @requires_limited_api
+    def test_heaptype_relative_members(self):
+        """Test HeapCCollection subclasses work properly"""
+        sizes = sorted({0, 1, 2, 3, 4, 7, 8, 123,
+                        object.__basicsize__,
+                        object.__basicsize__-1,
+                        object.__basicsize__+1})
+        for extra_base_size in sizes:
+            for extra_size in sizes:
+                for offset in sizes:
+                    with self.subTest(extra_base_size=extra_base_size, extra_size=extra_size, offset=offset):
+                        if offset < extra_size:
+                            Sub = _testcapi.make_heaptype_with_member(
+                                extra_base_size, -extra_size, offset, True)
+                            Base = Sub.mro()[1]
+                            instance = Sub()
+                            self.assertEqual(instance.memb, instance.get_memb())
+                            instance.set_memb(13)
+                            self.assertEqual(instance.memb, instance.get_memb())
+                            self.assertEqual(instance.get_memb(), 13)
+                            instance.memb = 14
+                            self.assertEqual(instance.memb, instance.get_memb())
+                            self.assertEqual(instance.get_memb(), 14)
+                            self.assertGreaterEqual(instance.get_memb_offset(), Base.__basicsize__)
+                            self.assertLess(instance.get_memb_offset(), Sub.__basicsize__)
+                        else:
+                            with self.assertRaises(SystemError):
+                                Sub = _testcapi.make_heaptype_with_member(
+                                    extra_base_size, -extra_size, offset, True)
+                        with self.assertRaises(SystemError):
+                            Sub = _testcapi.make_heaptype_with_member(
+                                extra_base_size, extra_size, offset, True)
+                with self.subTest(extra_base_size=extra_base_size, extra_size=extra_size):
+                    with self.assertRaises(SystemError):
+                        Sub = _testcapi.make_heaptype_with_member(
+                            extra_base_size, -extra_size, -1, True)
+
     def test_pytype_getslot(self):
         with self.assertRaisesRegex(
                 SystemError,
