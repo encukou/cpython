@@ -3674,7 +3674,18 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                     vectorcalloffset = memb->offset;
                 }
                 if (memb->flags & Py_RELATIVE_OFFSET) {
-                    assert(spec->basicsize <= 0);
+                    if(spec->basicsize > 0) {
+                        PyErr_SetString(
+                            PyExc_SystemError,
+                            "With Py_RELATIVE_OFFSET, basicsize must be negative.");
+                        goto finally;
+                    }
+                    if(memb->offset < 0 || memb->offset >= -spec->basicsize) {
+                        PyErr_SetString(
+                            PyExc_SystemError,
+                            "Member offset out of range (0..-basicsize)");
+                        goto finally;
+                    }
                 }
             }
             break;
