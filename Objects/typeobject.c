@@ -1349,6 +1349,12 @@ PyType_GenericNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 /* Helpers for subtyping */
 
+static inline PyMemberDef *
+_PyHeapType_GET_MEMBERS(PyHeapTypeObject* type)
+{
+    return PyObject_GetItemData((PyObject *)type);
+}
+
 static int
 traverse_slots(PyTypeObject *type, PyObject *self, visitproc visit, void *arg)
 {
