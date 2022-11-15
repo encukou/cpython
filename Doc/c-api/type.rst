@@ -327,11 +327,45 @@ The following functions and structs are used to create
       Name of the type, used to set :c:member:`PyTypeObject.tp_name`.
 
    .. c:member:: int PyType_Spec.basicsize
+
+      If positive, specifies the size of the instance in bytes.
+      It is used to set :c:member:`PyTypeObject.tp_basicsize`.
+
+      If zero, specifies that :c:member:`~PyTypeObject.tp_basicsize`
+      should be inherited.
+
+      If negative, the absolute value specifies how much space instances of the
+      class need *in addition* to the superclass.
+      Use :c:func:`PyObject_GetTypeData` to get a pointer to subclass-specific
+      memory reserved this way.
+
+      .. versionchanged:: 3.12
+
+         Previously, this field could not be negative.
+
    .. c:member:: int PyType_Spec.itemsize
 
-      Size of the instance in bytes, used to set
-      :c:member:`PyTypeObject.tp_basicsize` and
-      :c:member:`PyTypeObject.tp_itemsize`.
+      Size of one element of a variable-size type, in bytes
+      Used to set :c:member:`PyTypeObject.tp_itemsize`.
+      See ``tp_itemsize`` documentation for caveats.
+
+      If zero, :c:member:`~PyTypeObject.tp_itemsize` is inherited.
+      Extending arbitrary variable-sized classes is dangerous,
+      since some types use a fixed offset for variable-sized memory,
+      which can then overlap fixed-sized memory used by subclass.
+      To help prevent mistakes, inheriting ``itemsize`` is only possible
+      in the following situations:
+
+      - The base :c:member:`~PyTypeObject.tp_itemsize` is zero, i.e. the type
+        not variable-sized.
+      - The requested :c:member:`PyType_Spec.basicsize` is positive,
+        suggesting that the memory layout of the base class is known.
+      - The :c:member:`PyType_Spec.basicsize` is zero,
+        suggesting that the subclass does not access the instance's memory
+        directly.
+      - The :c:macro:`Py_slot_inherit_itemsize` is set,
+        asserting that the superclass only uses :c:func:`PyObject_GetItemData`
+        (or an equivalent) to access variable-sized memory.
 
    .. c:member:: int PyType_Spec.flags
 
@@ -387,6 +421,14 @@ The following functions and structs are used to create
       To avoid issues, use the *bases* argument of
       :py:func:`PyType_FromSpecWithBases` instead.
 
+      An additional slot is available:
+
+      .. c:macro:: Py_slot_inherit_itemsize
+
+         Used to extend a variable-sized class that is known to only use
+         :c:func:`PyObject_GetItemData` (or an equivalent) to access
+         variable-sized memory.
+
      .. versionchanged:: 3.9
 
         Slots in :c:type:`PyBufferProcs` may be set in the unlimited API.
@@ -396,9 +438,11 @@ The following functions and structs are used to create
         :c:member:`~PyBufferProcs.bf_releasebuffer` are now available
         under the limited API.
 
+
    .. c:member:: void *PyType_Slot.pfunc
 
       The desired value of the slot. In most cases, this is a pointer
       to a function.
 
       Slots other than ``Py_tp_doc`` may not be ``NULL``.
+
