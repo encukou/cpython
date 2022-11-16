@@ -86,10 +86,6 @@
 /* New in 3.10 */
 #define Py_am_send 81
 #endif
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030C0000
-/* New in 3.12 */
-#define Py_slot_inherit_itemsize 82
-#endif
 
 /* Do renumber this one */
-#define _Py_slot_max 82
+#define _Py_slot_max 81

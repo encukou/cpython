@@ -432,6 +432,9 @@ given type object has a specified feature.
 // subject itself (rather than a mapped attribute on it):
 #define _Py_TPFLAGS_MATCH_SELF (1UL << 22)
 
+/* Items (ob_size*tp_itemsize) are found at the end of an instance's memory */
+#define Py_TPFLAGS_ITEMS_AT_END (1UL << 23)
+
 /* These flags are used to determine if a type is a subclass. */
 #define Py_TPFLAGS_LONG_SUBCLASS        (1UL << 24)
 #define Py_TPFLAGS_LIST_SUBCLASS        (1UL << 25)

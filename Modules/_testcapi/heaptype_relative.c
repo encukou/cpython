@@ -124,7 +124,6 @@ subclass_var_heaptype(PyObject *module, PyObject *args)
 
     PyType_Slot slots[] = {
         {Py_tp_methods, var_heaptype_methods},
-        {Py_slot_inherit_itemsize, (void*)pfunc},
         {0, NULL},
     };
 
@@ -132,7 +131,7 @@ subclass_var_heaptype(PyObject *module, PyObject *args)
         .name = "_testcapi.Sub",
         .basicsize = basicsize,
         .itemsize = itemsize,
-        .flags = Py_TPFLAGS_DEFAULT,
+        .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_ITEMS_AT_END,
         .slots = slots,
     };
 

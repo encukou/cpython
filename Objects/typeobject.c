@@ -3718,21 +3718,6 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 memcpy(tp_doc, slot->pfunc, len);
             }
             break;
-        case Py_slot_inherit_itemsize:
-            inherit_itemsize = 1;
-            if (spec->itemsize != 0) {
-                PyErr_SetString(
-                    PyExc_SystemError,
-                    "With Py_slot_inherit_itemsize, itemsize must be 0.");
-                goto finally;
-            }
-            if (slot->pfunc != NULL) {
-                PyErr_SetString(
-                    PyExc_SystemError,
-                    "pfunc for Py_slot_inherit_itemsize must be NULL.");
-                goto finally;
-            }
-            break;
         }
     }
 
@@ -3849,6 +3834,16 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
         /* Extend */
         type_data_offset = _align_up(base->tp_basicsize);
         basicsize = type_data_offset + _align_up(-spec->basicsize);
+
+        /* Inheriting variable-sized types is limited */
+        if (base->tp_itemsize
+            && !((base->tp_flags | spec->flags) & Py_TPFLAGS_ITEMS_AT_END))
+        {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "Cannot extend variable-size class without Py_TPFLAGS_ITEMS_AT_END.");
+            goto finally;
+        }
     }
 
     Py_ssize_t itemsize = spec->itemsize;
@@ -3913,7 +3908,6 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
         case Py_tp_base:
         case Py_tp_bases:
         case Py_tp_doc:
-        case Py_slot_inherit_itemsize:
             /* Processed above */
             break;
         case Py_tp_members:
@@ -3939,9 +3933,6 @@ PyType_FromMetaclass(PyTypeObject *metaclass, PyObject *module,
                 PySlot_Offset slotoffsets = pyslot_offsets[slot->slot];
                 short slot_offset = slotoffsets.slot_offset;
                 if (slotoffsets.subslot_offset == -1) {
-                    /* "virtual" slots likePy_slot_inherit_itemsize should
-                     * be processed above */
-                    assert(slot_offset);
                     /* Set a slot in the main PyTypeObject */
                     *(void**)((char*)res_start + slot_offset) = slot->pfunc;
                 }
@@ -4179,12 +4170,14 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
 }
 
 void *
-PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls) {
+PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls)
+{
     return (char *)obj + _align_up(cls->tp_base->tp_basicsize);
 }
 
 Py_ssize_t
-PyObject_GetTypeDataSize(PyTypeObject *cls) {
+PyObject_GetTypeDataSize(PyTypeObject *cls)
+{
     ptrdiff_t result = cls->tp_basicsize - _align_up(cls->tp_base->tp_basicsize);
     if (result < 0) {
         return 0;
@@ -4193,7 +4186,8 @@ PyObject_GetTypeDataSize(PyTypeObject *cls) {
 }
 
 void *
-PyObject_GetItemData(PyObject *obj) {
+PyObject_GetItemData(PyObject *obj)
+{
     return (char *)obj + Py_TYPE(obj)->tp_basicsize;
 }
 
@@ -6341,6 +6335,11 @@ inherit_special(PyTypeObject *type, PyTypeObject *base)
     }
     if (PyType_HasFeature(base, _Py_TPFLAGS_MATCH_SELF)) {
         type->tp_flags |= _Py_TPFLAGS_MATCH_SELF;
+    }
+
+    /* Inherit Py_TPFLAGS_ITEMS_AT_END */
+    if (base->tp_flags & Py_TPFLAGS_ITEMS_AT_END) {
+        type->tp_flags |= Py_TPFLAGS_ITEMS_AT_END;
     }
 }
 
@@ -9797,7 +9796,8 @@ PyTypeObject PySuper_Type = {
     0,                                          /* tp_setattro */
     0,                                          /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC |
-        Py_TPFLAGS_BASETYPE,                    /* tp_flags */
+        Py_TPFLAGS_BASETYPE | Py_TPFLAGS_ITEMS_AT_END,
+                                                /* tp_flags */
     super_doc,                                  /* tp_doc */
     super_traverse,                             /* tp_traverse */
     0,                                          /* tp_clear */

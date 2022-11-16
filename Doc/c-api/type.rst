@@ -363,9 +363,7 @@ The following functions and structs are used to create
       - The :c:member:`PyType_Spec.basicsize` is zero,
         suggesting that the subclass does not access the instance's memory
         directly.
-      - The :c:macro:`Py_slot_inherit_itemsize` is set,
-        asserting that the superclass only uses :c:func:`PyObject_GetItemData`
-        (or an equivalent) to access variable-sized memory.
+      - With the :c:macro:`Py_TPFLAGS_ITEMS_AT_END`flag.
 
    .. c:member:: int PyType_Spec.flags
 
@@ -420,14 +418,6 @@ The following functions and structs are used to create
       problematic on some platforms.
       To avoid issues, use the *bases* argument of
       :py:func:`PyType_FromSpecWithBases` instead.
-
-      An additional slot is available:
-
-      .. c:macro:: Py_slot_inherit_itemsize
-
-         Used to extend a variable-sized class that is known to only use
-         :c:func:`PyObject_GetItemData` (or an equivalent) to access
-         variable-sized memory.
 
      .. versionchanged:: 3.9
 

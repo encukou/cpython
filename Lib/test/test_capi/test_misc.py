@@ -902,14 +902,6 @@ class CAPITest(unittest.TestCase):
         self.assertEqual(list(collection), [1, 2, 3])
 
     @requires_limited_api
-    def test_heaptype_itemsize_nope(self):
-        """Test invalid arguments around Py_slot_inherit_itemsize"""
-        with self.assertRaises(SystemError):
-            _testcapi.subclass_var_heaptype(_testcapi.HeapCCollection, 0, 0, 1)
-        with self.assertRaises(SystemError):
-            _testcapi.subclass_var_heaptype(_testcapi.HeapCCollection, 0, 1, 0)
-
-    @requires_limited_api
     def test_heaptype_inherit_itemsize(self):
         """Test HeapCCollection subclasses work properly"""
         sizes = sorted({0, 1, 2, 3, 4, 7, 8, 123,
@@ -975,11 +967,6 @@ class CAPITest(unittest.TestCase):
                 SystemError,
                 "PyType_GetSlot: slot out of range"):
             _testcapi.pytype_getslot(int, -1)
-
-        with self.assertRaisesRegex(
-                SystemError,
-                "PyType_GetSlot: incompatible slot"):
-            _testcapi.pytype_getslot(int, 82)  # Py_slot_inherit_itemsize
 
     def test_pynumber_tobase(self):
         from _testcapi import pynumber_tobase
