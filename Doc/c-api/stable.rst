@@ -6,7 +6,7 @@
 C API Stability
 ***************
 
-Unless documented otherwise,  Python's C API is covered by the Backwards
+Unless documented otherwise, Python's C API is covered by the Backwards
 Compatibility Policy, :pep:`387`.
 Most changes to it are source-compatible (typically by only adding new API).
 Changing existing API or removing API is only done after a deprecation period
@@ -18,12 +18,13 @@ way; see :ref:`stable-abi-platform` below).
 So, code compiled for Python 3.10.0 will work on 3.10.8 and vice versa,
 but will need to be compiled separately for 3.9.x and 3.10.x.
 
-There are two tiers of API with different stability exepectations:
+There are two tiers of C API with different stability exepectations:
 
-- *Unstable API*, ``PyUnstable`` prefix, may change in minor versions
-  without a deprecation period.
-- *Limited API*, enabled by defining :c:macro:`Py_LIMITED_API`,
-  is compatible across several minor releases.
+- *Unstable API*, may change in minor versions without a deprecation period.
+  It is marked by the ``PyUnstable`` prefix in names.
+- *Limited API*, is compatible across several minor releases.
+  When :c:macro:`Py_LIMITED_API` is defined, only this subset is exposed
+  from ``Python.h``.
 
 These are discussed in more detail below.
 
