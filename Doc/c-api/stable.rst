@@ -32,7 +32,7 @@ Names prefixed by an underscore, such as ``_Py_InternalState``,
 are private API that can change without notice even in patch releases.
 If you need to use this API, consider reaching out to
 `CPython developers <mailto:capi-sig@python.org>`_ to discusss adding
-external API for your use case.
+public API for your use case.
 
 .. _unstable-c-api:
 

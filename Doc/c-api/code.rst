@@ -40,8 +40,6 @@ bound into a function.
 
    Since the definition of the bytecode changes often, calling
    :c:func:`PyCode_New` directly can bind you to a precise Python version.
-   This function is part of the semi-stable C API.
-   See :c:macro:`Py_USING_SEMI_STABLE_API` for usage.
 
    The many arguments of this function are inter-dependent in complex
    ways, meaning that subtle changes to values are likely to result in incorrect
@@ -145,13 +143,9 @@ To support low-level extensions to frame evaluation, such as external
 just-in-time compilers, it is possible to attach arbitrary extra data to
 code objects.
 
-This functionality is a CPython implementation detail, and the API
+These functions are part of the unstable C API tier:
+this functionality is a CPython implementation detail, and the API
 may change without deprecation warnings.
-These functions are part of the semi-stable C API.
-See :c:macro:`Py_USING_SEMI_STABLE_API` for details.
-
-See :pep:`523` for motivation and initial specification behind this API.
-
 
 .. c:function:: Py_ssize_t PyUnstable_Eval_RequestCodeExtraIndex(freefunc free)
 
@@ -164,9 +158,6 @@ See :pep:`523` for motivation and initial specification behind this API.
    If *free* is not ``NULL``: when a code object is deallocated,
    *free* will be called on non-``NULL`` data stored under the new index.
    Use :c:func:`Py_DecRef` when storing :c:type:`PyObject`.
-
-   Part of the semi-stable API, see :c:macro:`Py_USING_SEMI_STABLE_API`
-   for usage.
 
    .. index:: single: _PyEval_RequestCodeExtraIndex
 
@@ -186,9 +177,6 @@ See :pep:`523` for motivation and initial specification behind this API.
    If no data was set under the index, set *extra* to ``NULL`` and return
    0 without setting an exception.
 
-   Part of the semi-stable API, see :c:macro:`Py_USING_SEMI_STABLE_API`
-   for usage.
-
    .. index:: single: _PyCode_GetExtra
 
    .. versionadded:: 3.6 as ``_PyCode_GetExtra``
@@ -203,9 +191,6 @@ See :pep:`523` for motivation and initial specification behind this API.
 
    Set the extra data stored under the given index to *extra*.
    Return 0 on success. Set an exception and return -1 on failure.
-
-   Part of the semi-stable API, see :c:macro:`Py_USING_SEMI_STABLE_API`
-   for usage.
 
    .. index:: single: _PyCode_SetExtra
 
