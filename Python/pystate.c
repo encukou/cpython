@@ -2133,7 +2133,7 @@ _register_builtins_for_crossinterpreter_data(struct _xidregistry *xidregistry)
 
 
 _PyFrameEvalFunction
-PyUnstable_InterpreterState_GetEvalFrameFunc(PyInterpreterState *interp)
+_PyInterpreterState_GetEvalFrameFunc(PyInterpreterState *interp)
 {
     if (interp->eval_frame == NULL) {
         return _PyEval_EvalFrameDefault;
@@ -2143,8 +2143,8 @@ PyUnstable_InterpreterState_GetEvalFrameFunc(PyInterpreterState *interp)
 
 
 void
-PyUnstable_InterpreterState_SetEvalFrameFunc(PyInterpreterState *interp,
-                                    _PyFrameEvalFunction eval_frame)
+_PyInterpreterState_SetEvalFrameFunc(PyInterpreterState *interp,
+                                     _PyFrameEvalFunction eval_frame)
 {
     if (eval_frame == _PyEval_EvalFrameDefault) {
         interp->eval_frame = NULL;

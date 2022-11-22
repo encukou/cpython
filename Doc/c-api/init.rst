@@ -1350,56 +1350,34 @@ All of the following functions must be called after :c:func:`Py_Initialize`.
 
    .. versionadded:: 3.8
 
-.. c:type:: PyObject* (*PyUnstable_FrameEvalFunction)(PyThreadState *tstate, PyUnstable_InterpreterFrame *frame, int throwflag)
+.. c:type:: PyObject* (*_PyFrameEvalFunction)(PyThreadState *tstate, _PyInterpreterFrame *frame, int throwflag)
 
    Type of a frame evaluation function.
 
    The *throwflag* parameter is used by the ``throw()`` method of generators:
    if non-zero, handle the current exception.
 
-   .. index:: single: _PyFrameEvalFunction
-
-   .. versionadded:: 3.6 as ``_PyFrameEvalFunction``
-
    .. versionchanged:: 3.9
       The function now takes a *tstate* parameter.
 
    .. versionchanged:: 3.11
-      The *frame* parameter changed from ``PyFrameObject*`` to ``PyUnstable_InterpreterFrame*``
-      (named ``_PyInterpreterFrame*`` in Python 3.11).
+      The *frame* parameter changed from ``PyFrameObject*`` to ``_PyInterpreterFrame*``.
 
-   .. versionchanged:: 3.12
-      Renamed to ``PyUnstable_FrameEvalFunction``.
-      The old private name is deprecated, but will be available until the API
-      changes.
-
-.. c:function:: PyUnstable_FrameEvalFunction PyUnstable_InterpreterState_GetEvalFrameFunc(PyInterpreterState *interp)
+.. c:function:: _PyFrameEvalFunction _PyInterpreterState_GetEvalFrameFunc(PyInterpreterState *interp)
 
    Get the frame evaluation function.
 
    See the :pep:`523` "Adding a frame evaluation API to CPython".
 
-   .. versionadded:: 3.9 as ``_PyInterpreterState_GetEvalFrameFunc``
+   .. versionadded:: 3.9
 
-   .. versionchanged:: 3.12
-
-      Renamed to ``PyUnstable_InterpreterState_GetEvalFrameFunc``.
-      The old private name is deprecated, but will be available until the API
-      changes.
-
-.. c:function:: void PyUnstable_InterpreterState_SetEvalFrameFunc(PyInterpreterState *interp, PyUnstable_FrameEvalFunction eval_frame)
+.. c:function:: void _PyInterpreterState_SetEvalFrameFunc(PyInterpreterState *interp, _PyFrameEvalFunction eval_frame)
 
    Set the frame evaluation function.
 
    See the :pep:`523` "Adding a frame evaluation API to CPython".
 
-   .. versionadded:: 3.9 as ``_PyInterpreterState_SetEvalFrameFunc``
-
-   .. versionchanged:: 3.12
-
-      Renamed to ``PyUnstable_InterpreterState_SetEvalFrameFunc``.
-      The old private name is deprecated, but will be available until the API
-      changes.
+   .. versionadded:: 3.9
 
 
 .. c:function:: PyObject* PyThreadState_GetDict()

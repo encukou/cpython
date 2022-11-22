@@ -720,19 +720,11 @@ New Features
   - ``PyUnstable_Code_New()`` (renamed from ``PyCode_New``)
   - ``PyUnstable_Code_NewWithPosOnlyArgs()`` (renamed from ``PyCode_NewWithPosOnlyArgs``)
 
-  Frame evaluation API (:pep:`523`):
+  Extra storage for code objects (:pep:`523`):
 
-  - ``PyUnstable_FrameEvalFunction`` (renamed from ``_PyFrameEvalFunction``)
-  - ``PyUnstable_InterpreterState_GetEvalFrameFunc()`` (renamed from ``_PyInterpreterState_GetEvalFrameFunc``)
-  - ``PyUnstable_InterpreterState_SetEvalFrameFunc()`` (renamed from ``_PyInterpreterState_SetEvalFrameFunc``)
   - ``PyUnstable_Eval_RequestCodeExtraIndex()`` (renamed from ``_PyEval_RequestCodeExtraIndex``)
   - ``PyUnstable_Code_GetExtra()`` (renamed from ``_PyCode_GetExtra``)
   - ``PyUnstable_Code_SetExtra()`` (renamed from ``_PyCode_SetExtra``)
-  - ``PyUnstable_InterpreterFrame`` (typedef for ``_PyInterpreterFrame``, as an opaque struct)
-  - ``PyUnstable_Frame_GetFrameObject`` (renamed from ``_PyFrame_GetFrameObject``)
-  - ``PyUnstable_EvalFrameDefault``
-    (new function that calls ``_PyEval_EvalFrameDefault``, but takes
-    ``PyFrameObject`` rather than ``_PyInterpreterFrame``)
 
   The original names will continue to be available until the respective
   API changes.
