@@ -4054,6 +4054,9 @@ PyInit__testcapi(void)
     if (_PyTestCapi_Init_Structmember(m) < 0) {
         return NULL;
     }
+    if (_PyTestCapi_Init_Code(m) < 0) {
+        return NULL;
+    }
 
 #ifndef LIMITED_API_AVAILABLE
     PyModule_AddObjectRef(m, "LIMITED_API_AVAILABLE", Py_False);
