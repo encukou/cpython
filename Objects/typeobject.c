@@ -4176,7 +4176,7 @@ PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls)
 }
 
 Py_ssize_t
-PyObject_GetTypeDataSize(PyTypeObject *cls)
+PyType_GetTypeDataSize(PyTypeObject *cls)
 {
     ptrdiff_t result = cls->tp_basicsize - _align_up(cls->tp_base->tp_basicsize);
     if (result < 0) {

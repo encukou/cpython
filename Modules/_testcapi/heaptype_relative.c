@@ -54,7 +54,7 @@ make_sized_heaptypes(PyObject *module, PyObject *args)
     if (!data_ptr) {
         goto finally;
     }
-    Py_ssize_t data_size = PyObject_GetTypeDataSize((PyTypeObject *)sub);
+    Py_ssize_t data_size = PyType_GetTypeDataSize((PyTypeObject *)sub);
     if (data_size < 0) {
         goto finally;
     }
@@ -77,7 +77,7 @@ var_heaptype_set_data_to_3s(
     if (!data_ptr) {
         return NULL;
     }
-    Py_ssize_t data_size = PyObject_GetTypeDataSize(defining_class);
+    Py_ssize_t data_size = PyType_GetTypeDataSize(defining_class);
     if (data_size < 0) {
         return NULL;
     }
@@ -93,7 +93,7 @@ var_heaptype_get_data(PyObject *self, PyTypeObject *defining_class,
     if (!data_ptr) {
         return NULL;
     }
-    Py_ssize_t data_size = PyObject_GetTypeDataSize(defining_class);
+    Py_ssize_t data_size = PyType_GetTypeDataSize(defining_class);
     if (data_size < 0) {
         return NULL;
     }

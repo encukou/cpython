@@ -2345,7 +2345,7 @@
 
 [function.PyObject_GetTypeData]
     added = '3.12'
-[function.PyObject_GetTypeDataSize]
+[function.PyType_GetTypeDataSize]
     added = '3.12'
 [const.Py_RELATIVE_OFFSET]
     added = '3.12'
