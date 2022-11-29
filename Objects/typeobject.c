@@ -4172,6 +4172,7 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
 void *
 PyObject_GetTypeData(PyObject *obj, PyTypeObject *cls)
 {
+    assert(PyObject_TypeCheck(obj, cls));
     return (char *)obj + _align_up(cls->tp_base->tp_basicsize);
 }
 
@@ -4188,6 +4189,7 @@ PyType_GetTypeDataSize(PyTypeObject *cls)
 void *
 PyObject_GetItemData(PyObject *obj)
 {
+    assert(PyType_HasFeature(Py_TYPE(obj), Py_TPFLAGS_ITEMS_AT_END));
     return (char *)obj + Py_TYPE(obj)->tp_basicsize;
 }
 
