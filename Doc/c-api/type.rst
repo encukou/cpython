@@ -322,11 +322,11 @@ The following functions and structs are used to create
 
    Structure defining a type's behavior.
 
-   .. c:member:: const char* PyType_Spec.name
+   .. c:member:: const char* name
 
       Name of the type, used to set :c:member:`PyTypeObject.tp_name`.
 
-   .. c:member:: int PyType_Spec.basicsize
+   .. c:member:: int basicsize
 
       If positive, specifies the size of the instance in bytes.
       It is used to set :c:member:`PyTypeObject.tp_basicsize`.
@@ -343,7 +343,7 @@ The following functions and structs are used to create
 
          Previously, this field could not be negative.
 
-   .. c:member:: int PyType_Spec.itemsize
+   .. c:member:: int itemsize
 
       Size of one element of a variable-size type, in bytes
       Used to set :c:member:`PyTypeObject.tp_itemsize`.
@@ -360,19 +360,19 @@ The following functions and structs are used to create
         not variable-sized.
       - The requested :c:member:`PyType_Spec.basicsize` is positive,
         suggesting that the memory layout of the base class is known.
-      - The :c:member:`PyType_Spec.basicsize` is zero,
+      - The requested :c:member:`PyType_Spec.basicsize` is zero,
         suggesting that the subclass does not access the instance's memory
         directly.
-      - With the :c:macro:`Py_TPFLAGS_ITEMS_AT_END`flag.
+      - With the :c:macro:`Py_TPFLAGS_ITEMS_AT_END` flag.
 
-   .. c:member:: int PyType_Spec.flags
+   .. c:member:: int flags
 
       Type flags, used to set :c:member:`PyTypeObject.tp_flags`.
 
       If the ``Py_TPFLAGS_HEAPTYPE`` flag is not set,
       :c:func:`PyType_FromSpecWithBases` sets it automatically.
 
-   .. c:member:: PyType_Slot *PyType_Spec.slots
+   .. c:member:: PyType_Slot *slots
 
       Array of :c:type:`PyType_Slot` structures.
       Terminated by the special slot value ``{0, NULL}``.
