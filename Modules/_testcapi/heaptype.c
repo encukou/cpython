@@ -1067,7 +1067,8 @@ static PyType_Spec HeapCCollection_spec = {
     "_testcapi.HeapCCollection",
     sizeof(PyVarObject),
     sizeof(PyObject*),
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC
+        | Py_TPFLAGS_ITEMS_AT_END,
     HeapCCollection_slots
 };
 
