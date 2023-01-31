@@ -799,9 +799,13 @@ class TarInfo(object):
     def get_info(self):
         """Return the TarInfo's attributes as a dictionary.
         """
+        if self.mode = None:
+            mode = None
+        else:
+            mode = self.mode & 0o7777
         info = {
             "name":     self.name,
-            "mode":     self.mode & 0o7777,
+            "mode":     mode,
             "uid":      self.uid,
             "gid":      self.gid,
             "size":     self.size,
@@ -1971,7 +1975,10 @@ class TarFile(object):
             members = self
         for tarinfo in members:
             if verbose:
-                _safe_print(stat.filemode(tarinfo.mode))
+                if tarinfo.mode is None:
+                    _safe_print("-?????????")
+                else:
+                    _safe_print(stat.filemode(tarinfo.mode))
                 _safe_print("%s/%s" % (tarinfo.uname or tarinfo.uid,
                                        tarinfo.gname or tarinfo.gid))
                 if tarinfo.ischr() or tarinfo.isblk():
@@ -1979,8 +1986,11 @@ class TarFile(object):
                             ("%d,%d" % (tarinfo.devmajor, tarinfo.devminor)))
                 else:
                     _safe_print("%10d" % tarinfo.size)
-                _safe_print("%d-%02d-%02d %02d:%02d:%02d" \
-                            % time.localtime(tarinfo.mtime)[:6])
+                if tarinfo.mtime is None:
+                    safe_print("????-??-?? ??:??:??")
+                else:
+                    _safe_print("%d-%02d-%02d %02d:%02d:%02d" \
+                                % time.localtime(tarinfo.mtime)[:6])
 
             _safe_print(tarinfo.name + ("/" if tarinfo.isdir() else ""))
 
@@ -2270,6 +2280,10 @@ class TarFile(object):
             raise ExtractError("special devices not supported by system")
 
         mode = tarinfo.mode
+        if mode is None:
+            # Ignoring mode on device files is probably not a good idea.
+            # But if we get here, let's use mknod's default.
+            mode = 0o600
         if tarinfo.isblk():
             mode |= stat.S_IFBLK
         else:
@@ -2316,15 +2330,19 @@ class TarFile(object):
             u = tarinfo.uid
             if not numeric_owner:
                 try:
-                    if grp:
+                    if grp and tarinfo.gname:
                         g = grp.getgrnam(tarinfo.gname)[2]
                 except KeyError:
                     pass
                 try:
-                    if pwd:
+                    if pwd and tarinfo.uname:
                         u = pwd.getpwnam(tarinfo.uname)[2]
                 except KeyError:
                     pass
+            if g is None:
+                g = -1
+            if u is None:
+                u = -1
             try:
                 if tarinfo.issym() and hasattr(os, "lchown"):
                     os.lchown(targetpath, u, g)
@@ -2336,6 +2354,8 @@ class TarFile(object):
     def chmod(self, tarinfo, targetpath):
         """Set file permissions of targetpath according to tarinfo.
         """
+        if tarinfo.mode is None:
+            return
         try:
             os.chmod(targetpath, tarinfo.mode)
         except OSError as e:
@@ -2344,10 +2364,13 @@ class TarFile(object):
     def utime(self, tarinfo, targetpath):
         """Set modification time of targetpath according to tarinfo.
         """
+        mtime = tarinfo.mtime
+        if mtime is None:
+            return
         if not hasattr(os, 'utime'):
             return
         try:
-            os.utime(targetpath, (tarinfo.mtime, tarinfo.mtime))
+            os.utime(targetpath, (mtime, mtime))
         except OSError as e:
             raise ExtractError("could not change modification time") from e
 
