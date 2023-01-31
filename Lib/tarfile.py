@@ -154,6 +154,8 @@ else:
 def stn(s, length, encoding, errors):
     """Convert a string to a null-terminated bytes object.
     """
+    if s is None:
+        raise ValueError("metadata cannot contain None")
     s = s.encode(encoding, errors)
     return s[:length] + (length - len(s)) * NUL
 
@@ -975,6 +977,12 @@ class TarInfo(object):
             devmajor = stn("", 8, encoding, errors)
             devminor = stn("", 8, encoding, errors)
 
+        # None values in metadata should cause ValueError.
+        # itn()/stn() do this for all fields except type.
+        filetype = info.get("type", REGTYPE)
+        if filetype is None:
+            raise ValueError("TarInfo.type must not be None")
+
         parts = [
             stn(info.get("name", ""), 100, encoding, errors),
             itn(info.get("mode", 0) & 0o7777, 8, format),
@@ -983,7 +991,7 @@ class TarInfo(object):
             itn(info.get("size", 0), 12, format),
             itn(info.get("mtime", 0), 12, format),
             b"        ", # checksum field
-            info.get("type", REGTYPE),
+            filetype,
             stn(info.get("linkname", ""), 100, encoding, errors),
             info.get("magic", POSIX_MAGIC),
             stn(info.get("uname", ""), 32, encoding, errors),
