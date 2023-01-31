@@ -2091,7 +2091,6 @@ class TarFile(object):
             members = self
 
         for tarinfo in members:
-            # Do not set_attrs directories, as we will do that further down
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
                          numeric_owner=numeric_owner)
 
