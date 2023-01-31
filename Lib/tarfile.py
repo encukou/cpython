@@ -2081,11 +2081,6 @@ class TarFile(object):
             members = self
 
         for tarinfo in members:
-            if tarinfo.isdir():
-                # Extract directories with a safe mode.
-                directories.append(tarinfo)
-                tarinfo = copy.copy(tarinfo)
-                tarinfo.mode = 0o700
             # Do not set_attrs directories, as we will do that further down
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
                          numeric_owner=numeric_owner)
