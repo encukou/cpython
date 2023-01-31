@@ -2077,7 +2077,18 @@ class TarFile(object):
 
         self.members.append(tarinfo)
 
-    def extractall(self, path=".", members=None, *, numeric_owner=False):
+    def _get_filter(self, filter):
+        if filter is None:
+            return self.extraction_filter
+        if callable(filter):
+            return filter
+        try:
+            return _NAMED_FILTERS[filter]
+        except KeyError:
+            raise LookupError(f"filter {filter:r} not found")
+
+    def extractall(self, path=".", members=None, *, numeric_owner=False,
+                   filter=None):
         """Extract all members from the archive to the current working
            directory and set owner, modification time and permissions on
            directories afterwards. `path' specifies a different directory
@@ -2087,10 +2098,14 @@ class TarFile(object):
         """
         directories = []
 
+        filter = self._get_filter(filter)
         if members is None:
             members = self
 
         for tarinfo in members:
+            tarinfo = filter(tarinfo)
+            if tarinfo is None:
+                continue
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
                          numeric_owner=numeric_owner)
 
@@ -2111,7 +2126,8 @@ class TarFile(object):
                 else:
                     self._dbg(1, "tarfile: %s" % e)
 
-    def extract(self, member, path="", set_attrs=True, *, numeric_owner=False):
+    def extract(self, member, path="", set_attrs=True, *, numeric_owner=False,
+                filter=None):
         """Extract a member from the archive to the current working directory,
            using its full name. Its file information is extracted as accurately
            as possible. `member' may be a filename or a TarInfo object. You can
@@ -2126,6 +2142,11 @@ class TarFile(object):
             tarinfo = self.getmember(member)
         else:
             tarinfo = member
+
+        filter = self._get_filter(filter)
+        tarinfo = filter(tarinfo)
+        if tarinfo is None:
+            continue
 
         # Prepare the link target for makelink().
         if tarinfo.islnk():
@@ -2149,7 +2170,7 @@ class TarFile(object):
             else:
                 self._dbg(1, "tarfile: %s" % e)
 
-    def extractfile(self, member):
+    def extractfile(self, member, *, filter=None):
         """Extract a member from the archive as a file object. `member' may be
            a filename or a TarInfo object. If `member' is a regular file or
            a link, an io.BufferedReader object is returned. For all other
