@@ -707,6 +707,10 @@ class ExFileObject(io.BufferedReader):
         super().__init__(fileobj)
 #class ExFileObject
 
+
+# Sentinel for replace() defaults, meaning "don't change the attribute"
+_KEEP = object()
+
 #------------------
 # Exported Classes
 #------------------
@@ -827,6 +831,29 @@ class TarInfo(object):
             return self.create_pax_header(info, encoding)
         else:
             raise ValueError("invalid format")
+
+    def replace(self, *, name=_KEEP, mtime=_KEEP, mode=_KEEP, linkname=_KEEP,
+                uid=_KEEP, gid=_KEEP, uname=_KEEP, gname=_KEEP, _KEEP=_KEEP):
+        """Return a deep copy of self with the given attributes replaced.
+        """
+        result = copy.deepcopy(self)
+        if name is not _KEEP:
+            result.name = name
+        if mtime is not _KEEP:
+            result.mtime = mtime
+        if mode is not _KEEP:
+            result.mode = mode
+        if linkname is not _KEEP:
+            result.linkname = linkname
+        if uid is not _KEEP:
+            result.uid = uid
+        if gid is not _KEEP:
+            result.gid = gid
+        if uname is not _KEEP:
+            result.uname = uname
+        if gname is not _KEEP:
+            result.gname = gname
+        return result
 
     def create_ustar_header(self, info, encoding, errors):
         """Return the object as a ustar header block.
