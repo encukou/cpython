@@ -870,7 +870,6 @@ class TarInfo(object):
         sparse = 'Sparse member information.',
         tarfile = None,
         _sparse_structs = None,
-        _link_target = None,
         )
 
     def __init__(self, name=""):
@@ -2273,14 +2272,11 @@ class TarFile(object):
         if tarinfo is None:
             continue
 
-        # Prepare the link target for makelink().
-        if tarinfo.islnk():
-            tarinfo._link_target = os.path.join(path, tarinfo.linkname)
-
         try:
             self._extract_member(tarinfo, os.path.join(path, tarinfo.name),
                                  set_attrs=set_attrs,
-                                 numeric_owner=numeric_owner)
+                                 numeric_owner=numeric_owner,
+                                 path=path)
         except OSError as e:
             if self.errorlevel > 0:
                 raise
@@ -2328,7 +2324,7 @@ class TarFile(object):
             return None
 
     def _extract_member(self, tarinfo, targetpath, set_attrs=True,
-                        numeric_owner=False):
+                        numeric_owner=False, *, path):
         """Extract the TarInfo object tarinfo to a physical
            file called targetpath.
         """
@@ -2359,7 +2355,7 @@ class TarFile(object):
         elif tarinfo.ischr() or tarinfo.isblk():
             self.makedev(tarinfo, targetpath)
         elif tarinfo.islnk() or tarinfo.issym():
-            self.makelink(tarinfo, targetpath)
+            self.makelink(tarinfo, targetpath, path)
         elif tarinfo.type not in SUPPORTED_TYPES:
             self.makeunknown(tarinfo, targetpath)
         else:
@@ -2437,7 +2433,7 @@ class TarFile(object):
         os.mknod(targetpath, mode,
                  os.makedev(tarinfo.devmajor, tarinfo.devminor))
 
-    def makelink(self, tarinfo, targetpath):
+    def makelink(self, tarinfo, targetpath, path):
         """Make a (symbolic) link called targetpath. If it cannot be created
           (platform limitation), we try to make a copy of the referenced file
           instead of a link.
@@ -2450,16 +2446,16 @@ class TarFile(object):
                     os.unlink(targetpath)
                 os.symlink(tarinfo.linkname, targetpath)
             else:
-                # See extract().
-                if os.path.exists(tarinfo._link_target):
-                    os.link(tarinfo._link_target, targetpath)
+                link_target = os.path.join(path, tarinfo.linktarget)
+                if os.path.exists(link_target):
+                    os.link(link_target, targetpath)
                 else:
                     self._extract_member(self._find_link_target(tarinfo),
-                                         targetpath)
+                                         targetpath, path=path)
         except symlink_exception:
             try:
                 self._extract_member(self._find_link_target(tarinfo),
-                                     targetpath)
+                                     targetpath, path=path)
             except KeyError:
                 raise ExtractError("unable to resolve link inside archive") from None
 
