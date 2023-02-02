@@ -714,36 +714,6 @@ class ExFileObject(io.BufferedReader):
 # extraction filters
 #-------------------
 
-class _WarningTarInfo(TarInfo):
-    """Proxy for TarInfo, that raises a warning for overridden attributes
-
-    Uses attributes from an "overrides" dict, falling back to a
-    "parent" TarInfo.
-
-    The first time an attribute in "overrides" is accessed,
-    a warning is raised.
-    """
-    warned = False
-    def __init__(self, parent, overrides):
-        self._parent = parent
-        self._overrides = overrides
-
-    def __getattr__(self, name):
-        if name in self.overrides:
-            if not self.warned:
-                warnings.warn(
-                    """XXX"""
-                    DeprecationWarning())
-                self.warned = True
-            value = self._overrides.get(name)
-        else:
-            value = getattr(self._parent, name)
-        setattr(self, name, value)
-        return value
-
-    def __dir__(self):
-        return sorted(set(super().__dir__()).union(dir(parent)))
-
 def _get_new_attrs(member, dest_path, for_data=True):
     new_attrs = {}
     path = member.path
@@ -920,7 +890,7 @@ class TarInfo(object):
     def get_info(self):
         """Return the TarInfo's attributes as a dictionary.
         """
-        if self.mode = None:
+        if self.mode == None:
             mode = None
         else:
             mode = self.mode & 0o7777
@@ -2270,7 +2240,7 @@ class TarFile(object):
         filter = self._get_filter(filter)
         tarinfo = filter(tarinfo, path)
         if tarinfo is None:
-            continue
+            return
 
         try:
             self._extract_member(tarinfo, os.path.join(path, tarinfo.name),
@@ -2690,6 +2660,40 @@ class TarFile(object):
             if not self._extfileobj:
                 self.fileobj.close()
             self.closed = True
+
+#---------------------------------
+# helper for legacy_warning_filter
+#---------------------------------
+
+class _WarningTarInfo(TarInfo):
+    """Proxy for TarInfo that raises a warning for overridden attributes
+
+    Uses attributes from an "overrides" dict, falling back to a
+    "parent" TarInfo.
+
+    The first time an attribute in "overrides" is accessed,
+    a warning is raised.
+    """
+    warned = False
+    def __init__(self, parent, overrides):
+        self._parent = parent
+        self._overrides = overrides
+
+    def __getattr__(self, name):
+        if name in self.overrides:
+            if not self.warned:
+                warnings.warn(
+                    """XXX""",
+                    DeprecationWarning())
+                self.warned = True
+            value = self._overrides.get(name)
+        else:
+            value = getattr(self._parent, name)
+        setattr(self, name, value)
+        return value
+
+    def __dir__(self):
+        return sorted(set(super().__dir__()).union(dir(parent)))
 
 #-------------------------
 # other exported functions
