@@ -46,6 +46,7 @@ import time
 import struct
 import copy
 import re
+import warnings
 
 try:
     import pwd
@@ -65,7 +66,13 @@ symlink_exception = (AttributeError, NotImplementedError, OSError)
 __all__ = ["TarFile", "TarInfo", "is_tarfile", "TarError", "ReadError",
            "CompressionError", "StreamError", "ExtractError", "HeaderError",
            "ENCODING", "USTAR_FORMAT", "GNU_FORMAT", "PAX_FORMAT",
-           "DEFAULT_FORMAT", "open"]
+           "DEFAULT_FORMAT", "open", "legacy_warning_filter",
+           "fully_trusted_filter", "data_filter", "tar_filter",
+           "DEFAULT_EXTRACTION_FILTER", "FilterError",
+           "AbsoluteLinkError", "OutsideDestinationError",
+           "IsADeviceError", "AbsolutePathError",
+           "LinkOutsideDestinationError"]
+
 
 #---------------------------------------------------------
 # tar constants
@@ -714,9 +721,28 @@ class ExFileObject(io.BufferedReader):
 # extraction filters
 #-------------------
 
+class FilterError(TarError):
+    pass
+
+class AbsolutePathError(FilterError):
+    pass
+
+class OutsideDestinationError(FilterError):
+    pass
+
+class IsADeviceError(FilterError):
+    pass
+
+class AbsoluteLinkError(FilterError):
+    pass
+
+class LinkOutsideDestinationError(FilterError):
+    pass
+
 def _get_new_attrs(member, dest_path, for_data=True):
     new_attrs = {}
     path = member.path
+    dest_path = os.path.realpath(dest_path)
     # Strip leading / (tar's directory separator) from filenames.
     # Include os.sep (target OS directory separator) as well.
     if path.startswith(('/', os.sep)):
@@ -772,26 +798,27 @@ def fully_trusted_filter(member, dest_path):
     return member
 
 def tar_filter(member, dest_path):
-    new_attrs = _tar_filter_attrs(member, dest_path, False)
+    new_attrs = _get_new_attrs(member, dest_path, False)
     if new_attrs:
         return member.replace(**attrs)
     return member
 
 def data_filter(member, dest_path):
-    new_attrs = _tar_filter_attrs(member, dest_path, True)
+    new_attrs = _get_new_attrs(member, dest_path, True)
     if new_attrs:
         return member.replace(**attrs)
     return member
 
 def legacy_warning_filter(member, dest_path):
     try:
-        new_attrs = _tar_filter_attrs(member, dest_path, True)
+        new_attrs = _get_new_attrs(member, dest_path, True)
     except FilterError as e:
         warnings.warn(
             """XXX""",
             DeprecationWarning)
-    if new_attrs:
-        return _WarningTarInfo(member, attrs)
+    else:
+        if new_attrs:
+            return _WarningTarInfo(member, new_attrs)
     return member
 
 _NAMED_FILTERS = {
@@ -800,6 +827,8 @@ _NAMED_FILTERS = {
     "data": data_filter,
     "legacy_warning": legacy_warning_filter,
 }
+
+DEFAULT_EXTRACTION_FILTER = legacy_warning_filter
 
 #------------------
 # Exported Classes
@@ -1592,8 +1621,8 @@ class TarFile(object):
 
     fileobject = ExFileObject   # The file-object for extractfile().
 
-    etraction_filter = legacy_warning_filter
-                                # The default filter for extract/extractall
+    extraction_filter = legacy_warning_filter
+                                # The default filter for extraction
 
     def __init__(self, name=None, mode="r", fileobj=None, format=None,
             tarinfo=None, dereference=None, ignore_zeros=None, encoding=None,
@@ -1694,6 +1723,8 @@ class TarFile(object):
                 self.fileobj.close()
             self.closed = True
             raise
+
+        self.extraction_filter = type(self).extraction_filter
 
     #--------------------------------------------------------------------------
     # Below are the classmethods which act as alternate constructors to the
@@ -2200,6 +2231,8 @@ class TarFile(object):
             tarinfo = filter(tarinfo, path)
             if tarinfo is None:
                 continue
+            if tarinfo.isdir():
+                directories.append(tarinfo)
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
                          numeric_owner=numeric_owner)
 
@@ -2559,13 +2592,18 @@ class TarFile(object):
         members = self.getmembers()
 
         # Limit the member search list up to tarinfo.
-        if tarinfo is not None:
-            members = members[:members.index(tarinfo)]
+        #if tarinfo is not None:
+        #    members = members[:members.index(tarinfo)]
 
         if normalize:
             name = os.path.normpath(name)
 
+        skipping = (tarinfo is not None)
         for member in reversed(members):
+            if skipping:
+                if tarinfo.offset == member.offset:
+                    skipping = False
+                continue
             if normalize:
                 member_name = os.path.normpath(member.name)
             else:
@@ -2668,27 +2706,25 @@ class TarFile(object):
 class _WarningTarInfo(TarInfo):
     """Proxy for TarInfo that raises a warning for overridden attributes
 
-    Uses attributes from an "overrides" dict, falling back to a
-    "parent" TarInfo.
+    Uses attributes from a "parent" TarInfo.
 
-    The first time an attribute in "overrides" is accessed,
+    The first time an attribute in "warn_attrs" is accessed,
     a warning is raised.
     """
-    warned = False
-    def __init__(self, parent, overrides):
+    def __init__(self, parent, warn_attrs):
         self._parent = parent
-        self._overrides = overrides
+        self._warn_attrs = warn_attrs
+        self.warned = False
 
     def __getattr__(self, name):
-        if name in self.overrides:
-            if not self.warned:
-                warnings.warn(
-                    """XXX""",
-                    DeprecationWarning())
-                self.warned = True
-            value = self._overrides.get(name)
-        else:
-            value = getattr(self._parent, name)
+        if name.startswith('_'):
+            return super().__getattr__(name)
+        if not self.warned and name in self._warn_attrs:
+            warnings.warn(
+                """XXX""",
+                DeprecationWarning)
+            self.warned = True
+        value = getattr(self._parent, name)
         setattr(self, name, value)
         return value
 
