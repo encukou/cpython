@@ -710,12 +710,134 @@ class ExFileObject(io.BufferedReader):
 #class ExFileObject
 
 
-# Sentinel for replace() defaults, meaning "don't change the attribute"
-_KEEP = object()
+#-------------------
+# extraction filters
+#-------------------
+
+class _WarningTarInfo(TarInfo):
+    """Proxy for TarInfo, that raises a warning for overridden attributes
+
+    Uses attributes from an "overrides" dict, falling back to a
+    "parent" TarInfo.
+
+    The first time an attribute in "overrides" is accessed,
+    a warning is raised.
+    """
+    warned = False
+    def __init__(self, parent, overrides):
+        self._parent = parent
+        self._overrides = overrides
+
+    def __getattr__(self, name):
+        if name in self.overrides:
+            if not self.warned:
+                warnings.warn(
+                    """XXX"""
+                    DeprecationWarning())
+                self.warned = True
+            value = self._overrides.get(name)
+        else:
+            value = getattr(self._parent, name)
+        setattr(self, name, value)
+        return value
+
+    def __dir__(self):
+        return sorted(set(super().__dir__()).union(dir(parent)))
+
+def _get_new_attrs(member, dest_path, for_data=True):
+    new_attrs = {}
+    path = member.path
+    # Strip leading / (tar's directory separator) from filenames.
+    # Include os.sep (target OS directory separator) as well.
+    if path.startswith(('/', os.sep)):
+        path = new_attrs['path'] = member.path.lstrip('/' + os.sep)
+    if os.path.isabs(path):
+        # Path is absolute even after stripping.
+        # For example, 'C:/foo' on Windows.
+        raise AbsolutePathError(member)
+    # Ensure we stay in the destination
+    target_path = os.path.realpath(os.path.join(dest_path, path))
+    if os.path.commonpath([target_path, dest_path]) != dest_path:
+        raise OutsideDestinationError(member)
+    # Limit permissions (no high bits, and go-w)
+    mode = member.mode & 0o755
+    if for_data:
+        # For data, handle permissions & file types
+        if member.isreg() or member.islnk():
+            mode = member.mode | 0o500  #  Ensure owner can read & write
+            if mode | 0o100:
+                # Executable
+                mode = member.mode & 0o777
+            else:
+                # Not executable
+                mode = member.mode & 0o555
+        elif member.isdir() or member.issym():
+            # Ignore mode for directories & symlinks
+            mode = None
+        else:
+            # Reject special files
+            raise IsADeviceError(member)
+    if mode != member.mode:
+        new_attrs['mode'] = mode
+    if for_data:
+        # Ignore ownership for 'data'
+        if member.uid is not None:
+            new_attrs['uid'] = None
+        if member.gid is not None:
+            new_attrs['gid'] = None
+        if member.uname is not None:
+            new_attrs['uname'] = None
+        if member.gname is not None:
+            new_attrs['gname'] = None
+        # Check link destination for 'data'
+        if member.islnk() or member.issym():
+            if os.path.isabs(member.linkname):
+                raise AbsoluteLinkError(member)
+            target_path = os.path.realpath(os.path.join(dest_path, member.linkname))
+            if os.path.commonpath([target_path, dest_path]) != dest_path:
+                raise LinkOutsideDestinationError(member)
+    return new_attrs
+
+def fully_trusted_filter(member, dest_path):
+    return member
+
+def tar_filter(member, dest_path):
+    new_attrs = _tar_filter_attrs(member, dest_path, False)
+    if new_attrs:
+        return member.replace(**attrs)
+    return member
+
+def data_filter(member, dest_path):
+    new_attrs = _tar_filter_attrs(member, dest_path, True)
+    if new_attrs:
+        return member.replace(**attrs)
+    return member
+
+def legacy_warning_filter(member, dest_path):
+    try:
+        new_attrs = _tar_filter_attrs(member, dest_path, True)
+    except FilterError as e:
+        warnings.warn(
+            """XXX""",
+            DeprecationWarning)
+    if new_attrs:
+        return _WarningTarInfo(member, attrs)
+    return member
+
+_NAMED_FILTERS = {
+    "fully_trusted": fully_trusted_filter,
+    "tar": tar_filter,
+    "data": data_filter,
+    "legacy_warning": legacy_warning_filter,
+}
 
 #------------------
 # Exported Classes
 #------------------
+
+# Sentinel for replace() defaults, meaning "don't change the attribute"
+_KEEP = object()
+
 class TarInfo(object):
     """Informational class which holds the details about an
        archive member given by a tar header block.
@@ -1501,6 +1623,9 @@ class TarFile(object):
 
     fileobject = ExFileObject   # The file-object for extractfile().
 
+    etraction_filter = legacy_warning_filter
+                                # The default filter for extract/extractall
+
     def __init__(self, name=None, mode="r", fileobj=None, format=None,
             tarinfo=None, dereference=None, ignore_zeros=None, encoding=None,
             errors="surrogateescape", pax_headers=None, debug=None,
@@ -2103,7 +2228,7 @@ class TarFile(object):
             members = self
 
         for tarinfo in members:
-            tarinfo = filter(tarinfo)
+            tarinfo = filter(tarinfo, path)
             if tarinfo is None:
                 continue
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
@@ -2144,7 +2269,7 @@ class TarFile(object):
             tarinfo = member
 
         filter = self._get_filter(filter)
-        tarinfo = filter(tarinfo)
+        tarinfo = filter(tarinfo, path)
         if tarinfo is None:
             continue
 
@@ -2570,9 +2695,10 @@ class TarFile(object):
                 self.fileobj.close()
             self.closed = True
 
-#--------------------
-# exported functions
-#--------------------
+#-------------------------
+# other exported functions
+#-------------------------
+
 def is_tarfile(name):
     """Return True if name points to a tar archive that we
        are able to handle, else return False.
