@@ -717,9 +717,9 @@ class ExFileObject(io.BufferedReader):
 #class ExFileObject
 
 
-#-------------------
-# extraction filters
-#-------------------
+#-----------------------------
+# extraction filters (PEP XXX)
+#-----------------------------
 
 class FilterError(TarError):
     pass
@@ -739,7 +739,7 @@ class AbsoluteLinkError(FilterError):
 class LinkOutsideDestinationError(FilterError):
     pass
 
-def _get_new_attrs(member, dest_path, for_data=True):
+def _get_filtered_attrs(member, dest_path, for_data=True):
     new_attrs = {}
     path = member.path
     dest_path = os.path.realpath(dest_path)
@@ -798,20 +798,20 @@ def fully_trusted_filter(member, dest_path):
     return member
 
 def tar_filter(member, dest_path):
-    new_attrs = _get_new_attrs(member, dest_path, False)
+    new_attrs = _get_filtered_attrs(member, dest_path, False)
     if new_attrs:
-        return member.replace(**attrs)
+        return member.replace(**attrs, deep=False)
     return member
 
 def data_filter(member, dest_path):
-    new_attrs = _get_new_attrs(member, dest_path, True)
+    new_attrs = _get_filtered_attrs(member, dest_path, True)
     if new_attrs:
-        return member.replace(**attrs)
+        return member.replace(**attrs, deep=False)
     return member
 
 def legacy_warning_filter(member, dest_path):
     try:
-        new_attrs = _get_new_attrs(member, dest_path, True)
+        new_attrs = _get_filtered_attrs(member, dest_path, True)
     except FilterError as e:
         warnings.warn(
             """XXX""",
@@ -958,11 +958,16 @@ class TarInfo(object):
         else:
             raise ValueError("invalid format")
 
-    def replace(self, *, name=_KEEP, mtime=_KEEP, mode=_KEEP, linkname=_KEEP,
-                uid=_KEEP, gid=_KEEP, uname=_KEEP, gname=_KEEP, _KEEP=_KEEP):
+    def replace(self, *,
+                name=_KEEP, mtime=_KEEP, mode=_KEEP, linkname=_KEEP,
+                uid=_KEEP, gid=_KEEP, uname=_KEEP, gname=_KEEP,
+                deep=True, _KEEP=_KEEP):
         """Return a deep copy of self with the given attributes replaced.
         """
-        result = copy.deepcopy(self)
+        if deep:
+            result = copy.deepcopy(self)
+        else:
+            result = copy.copy(self)
         if name is not _KEEP:
             result.name = name
         if mtime is not _KEEP:
@@ -1621,8 +1626,8 @@ class TarFile(object):
 
     fileobject = ExFileObject   # The file-object for extractfile().
 
-    extraction_filter = legacy_warning_filter
-                                # The default filter for extraction
+    extraction_filter = staticmethod(legacy_warning_filter)
+                                # The default filter for extraction.
 
     def __init__(self, name=None, mode="r", fileobj=None, format=None,
             tarinfo=None, dereference=None, ignore_zeros=None, encoding=None,
@@ -2220,6 +2225,12 @@ class TarFile(object):
            to extract to. `members' is optional and must be a subset of the
            list returned by getmembers(). If `numeric_owner` is True, only
            the numbers for user/group names are used and not the names.
+
+           The `filter` function will be called on each member just
+           before extraction.
+           It can return a changed TarInfo or None to skip the member.
+           String names of common filters are accepted. The default filter is
+           `self.extraction_filter`.
         """
         directories = []
 
@@ -2230,15 +2241,18 @@ class TarFile(object):
         for tarinfo in members:
             tarinfo = filter(tarinfo, path)
             if tarinfo is None:
+                self._dbg(2, "tarfile: Excluded %r" % name)
                 continue
             if tarinfo.isdir():
+                # For directories, delay setting attributes until later,
+                # since permissions can interfere with extraction and
+                # extracting contents can reset mtime.
                 directories.append(tarinfo)
-            self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
-                         numeric_owner=numeric_owner)
+            self._extract_one(tarinfo, path, set_attrs=not tarinfo.isdir(),
+                              numeric_owner=numeric_owner)
 
         # Reverse sort directories.
-        directories.sort(key=lambda a: a.name)
-        directories.reverse()
+        directories.sort(key=lambda a: a.name, reverse=True)
 
         # Set correct owner, mtime and filemode on directories.
         for tarinfo in directories:
@@ -2262,18 +2276,26 @@ class TarFile(object):
            mtime, mode) are set unless `set_attrs' is False. If `numeric_owner`
            is True, only the numbers for user/group names are used and not
            the names.
+
+           The `filter` function will be called before extraction.
+           It can returns a changed TarInfo or None to skip the member.
+           String names of common filters are accepted. The default filter is
+           `self.extraction_filter`.
         """
+        filter = self._get_filter(filter)
+        tarinfo = filter(tarinfo, path)
+        if tarinfo is None:
+            self._dbg(2, "tarfile: Excluded %r" % name)
+            return
+        return self._extract_one(member, path, set_attrs, numeric_owner)
+
+    def _extract_one(self, member, path, set_attrs, numeric_owner):
         self._check("r")
 
         if isinstance(member, str):
             tarinfo = self.getmember(member)
         else:
             tarinfo = member
-
-        filter = self._get_filter(filter)
-        tarinfo = filter(tarinfo, path)
-        if tarinfo is None:
-            return
 
         try:
             self._extract_member(tarinfo, os.path.join(path, tarinfo.name),
@@ -2294,7 +2316,7 @@ class TarFile(object):
             else:
                 self._dbg(1, "tarfile: %s" % e)
 
-    def extractfile(self, member, *, filter=None):
+    def extractfile(self, member):
         """Extract a member from the archive as a file object. `member' may be
            a filename or a TarInfo object. If `member' is a regular file or
            a link, an io.BufferedReader object is returned. For all other
@@ -2425,8 +2447,7 @@ class TarFile(object):
 
         mode = tarinfo.mode
         if mode is None:
-            # Ignoring mode on device files is probably not a good idea.
-            # But if we get here, let's use mknod's default.
+            # Use mknod's default
             mode = 0o600
         if tarinfo.isblk():
             mode |= stat.S_IFBLK
