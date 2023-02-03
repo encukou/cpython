@@ -3006,13 +3006,13 @@ class ReplaceTests(ReadTest, unittest.TestCase):
             member.replace(offset=123456789)
 
 
-class NoneInfoTests(ReadTest, unittest.TestCase):
+class NoneInfoExtractTests(ReadTest):
     # These mainly check that all kinds of members are extracted successfully
     # if some metadata is None.
     # Some of the methods do additional spot checks.
 
     # We also test that the default filters can deal with None
-    extraction_filter = 'data'
+    extraction_filter = ...
 
     @classmethod
     def setUpClass(cls):
@@ -3093,15 +3093,46 @@ class NoneInfoTests(ReadTest, unittest.TestCase):
         with self.extract_with_none('uid', 'gid', 'uname', 'gname') as DIR:
             pass
 
-class NoneInfoTests_FullyTrusted(NoneInfoTests):
+class NoneInfoExtractTests_Data(NoneInfoExtractTests, unittest.TestCase):
+    extraction_filter = 'data'
+
+class NoneInfoExtractTests_FullyTrusted(NoneInfoExtractTests,
+                                        unittest.TestCase):
     extraction_filter = 'fully_trusted'
 
-class NoneInfoTests_Tar(NoneInfoTests):
+class NoneInfoExtractTests_Tar(NoneInfoExtractTests, unittest.TestCase):
     extraction_filter = 'tar'
 
-class NoneInfoTests_LegacyWarning(NoneInfoTests):
+class NoneInfoExtractTests_LegacyWarning(NoneInfoExtractTests,
+                                         unittest.TestCase):
     extraction_filter = 'legacy_warning'
 
+class NoneInfoTests_Misc(unittest.TestCase):
+    def test_add(self):
+        # When addfile() encounters None metadata, it raises a ValueError
+        bio = io.BytesIO()
+        for tarformat in (tarfile.USTAR_FORMAT, tarfile.GNU_FORMAT,
+                          tarfile.PAX_FORMAT):
+            with self.subTest(tarformat=tarformat):
+                tar = tarfile.open(fileobj=bio, mode='w', format=tarformat)
+                tarinfo = tar.gettarinfo(tarname)
+                tar.addfile(tarinfo)
+                for attr_name in ('mtime', 'mode', 'uid', 'gid',
+                                  'uname', 'gname'):
+                    with self.subTest(attr_name=attr_name):
+                        replaced = tarinfo.replace(**{attr_name: None})
+                        with self.assertRaisesRegex(ValueError,
+                                                    f"{attr_name}"):
+                            tar.addfile(replaced)
+
+    def test_list(self):
+        for attr_name in ('mtime', 'mode', 'uid', 'gid',
+                          'uname', 'gname'):
+            with self.subTest(attr_name=attr_name):
+                tar = tarfile.open(tarname, encoding="iso8859-1")
+                for member in tar.getmembers():
+                    setattr(member, attr_name, None)
+                tar.list()
 
 def setUpModule():
     os_helper.unlink(TEMPDIR)

@@ -916,6 +916,34 @@ class TarInfo(object):
     def __repr__(self):
         return "<%s %r at %#x>" % (self.__class__.__name__,self.name,id(self))
 
+    def replace(self, *,
+                name=_KEEP, mtime=_KEEP, mode=_KEEP, linkname=_KEEP,
+                uid=_KEEP, gid=_KEEP, uname=_KEEP, gname=_KEEP,
+                deep=True, _KEEP=_KEEP):
+        """Return a deep copy of self with the given attributes replaced.
+        """
+        if deep:
+            result = copy.deepcopy(self)
+        else:
+            result = copy.copy(self)
+        if name is not _KEEP:
+            result.name = name
+        if mtime is not _KEEP:
+            result.mtime = mtime
+        if mode is not _KEEP:
+            result.mode = mode
+        if linkname is not _KEEP:
+            result.linkname = linkname
+        if uid is not _KEEP:
+            result.uid = uid
+        if gid is not _KEEP:
+            result.gid = gid
+        if uname is not _KEEP:
+            result.uname = uname
+        if gname is not _KEEP:
+            result.gname = gname
+        return result
+
     def get_info(self):
         """Return the TarInfo's attributes as a dictionary.
         """
@@ -948,6 +976,9 @@ class TarInfo(object):
         """Return a tar header as a string of 512 byte blocks.
         """
         info = self.get_info()
+        for name, value in info.items():
+            if value is None:
+                raise ValueError("%s may not be None" % name)
 
         if format == USTAR_FORMAT:
             return self.create_ustar_header(info, encoding, errors)
@@ -957,34 +988,6 @@ class TarInfo(object):
             return self.create_pax_header(info, encoding)
         else:
             raise ValueError("invalid format")
-
-    def replace(self, *,
-                name=_KEEP, mtime=_KEEP, mode=_KEEP, linkname=_KEEP,
-                uid=_KEEP, gid=_KEEP, uname=_KEEP, gname=_KEEP,
-                deep=True, _KEEP=_KEEP):
-        """Return a deep copy of self with the given attributes replaced.
-        """
-        if deep:
-            result = copy.deepcopy(self)
-        else:
-            result = copy.copy(self)
-        if name is not _KEEP:
-            result.name = name
-        if mtime is not _KEEP:
-            result.mtime = mtime
-        if mode is not _KEEP:
-            result.mode = mode
-        if linkname is not _KEEP:
-            result.linkname = linkname
-        if uid is not _KEEP:
-            result.uid = uid
-        if gid is not _KEEP:
-            result.gid = gid
-        if uname is not _KEEP:
-            result.uname = uname
-        if gname is not _KEEP:
-            result.gname = gname
-        return result
 
     def create_ustar_header(self, info, encoding, errors):
         """Return the object as a ustar header block.
@@ -2117,7 +2120,7 @@ class TarFile(object):
                 else:
                     _safe_print("%10d" % tarinfo.size)
                 if tarinfo.mtime is None:
-                    safe_print("????-??-?? ??:??:??")
+                    _safe_print("????-??-?? ??:??:??")
                 else:
                     _safe_print("%d-%02d-%02d %02d:%02d:%02d" \
                                 % time.localtime(tarinfo.mtime)[:6])
