@@ -5,6 +5,8 @@ from hashlib import sha256
 from contextlib import contextmanager
 from random import Random
 import pathlib
+import shutil
+import time
 
 import unittest
 import unittest.mock
@@ -3002,6 +3004,103 @@ class ReplaceTests(ReadTest, unittest.TestCase):
         member = self.tar.getmember('ustar/regtype')
         with self.assertRaises(TypeError):
             member.replace(offset=123456789)
+
+
+class NoneInfoTests(ReadTest, unittest.TestCase):
+    # These mainly check that all kinds of members are extracted successfully
+    # if some metadata is None.
+    # Some of the methods do additional spot checks.
+
+    # We also test that the default filters can deal with None
+    extraction_filter = 'data'
+
+    @classmethod
+    def setUpClass(cls):
+        tar = tarfile.open(tarname, mode='r', encoding="iso8859-1")
+        cls.control_dir = pathlib.Path(TEMPDIR) / "extractall_control"
+        tar.errorlevel = 0
+        tar.extractall(cls.control_dir, filter=cls.extraction_filter)
+        tar.close()
+        cls.control_paths = set(
+            p.relative_to(cls.control_dir)
+            for p in pathlib.Path(cls.control_dir).glob('**/*'))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.control_dir)
+
+    def check_files_present(self, directory):
+        got_paths = set(
+            p.relative_to(directory)
+            for p in pathlib.Path(directory).glob('**/*'))
+        self.assertEqual(self.control_paths, got_paths)
+
+    @contextmanager
+    def extract_with_none(self, *attr_names):
+        DIR = pathlib.Path(TEMPDIR) / ("extractall_none_"
+                                       + '_'.join(attr_names))
+        self.tar.errorlevel = 0
+        for member in self.tar.getmembers():
+            for attr_name in attr_names:
+                setattr(member, attr_name, None)
+        with os_helper.temp_dir(DIR):
+            self.tar.extractall(DIR)
+            self.check_files_present(DIR)
+            yield DIR
+
+    def test_extractall_none_mtime(self):
+        # mtimes of extracted files should be later than 'now' -- the mtime
+        # of a previously created directory.
+        now = pathlib.Path(TEMPDIR).stat().st_mtime
+        with self.extract_with_none('mtime') as DIR:
+            for path in pathlib.Path(DIR).glob('**/*'):
+                with self.subTest(path=path):
+                    self.assertGreaterEqual(path.stat().st_mtime, now)
+
+    def test_extractall_none_mode(self):
+        # modes of directories and regular files should match the mode
+        # of a "normally" created directory or regular file
+        dir_mode = pathlib.Path(TEMPDIR).stat().st_mode
+        regular_file = pathlib.Path(TEMPDIR) / 'regular_file'
+        regular_file.write_text('')
+        regular_file_mode = regular_file.stat().st_mode
+        with self.extract_with_none('mode') as DIR:
+            for path in pathlib.Path(DIR).glob('**/*'):
+                with self.subTest(path=path):
+                    if path.is_dir():
+                        self.assertEqual(path.stat().st_mode, dir_mode)
+                    elif path.is_file():
+                        self.assertEqual(path.stat().st_mode,
+                                         regular_file_mode)
+
+    def test_extractall_none_uid(self):
+        with self.extract_with_none('uid') as DIR:
+            pass
+
+    def test_extractall_none_gid(self):
+        with self.extract_with_none('gid') as DIR:
+            pass
+
+    def test_extractall_none_uname(self):
+        with self.extract_with_none('uname') as DIR:
+            pass
+
+    def test_extractall_none_gname(self):
+        with self.extract_with_none('gname') as DIR:
+            pass
+
+    def test_extractall_none_ownership(self):
+        with self.extract_with_none('uid', 'gid', 'uname', 'gname') as DIR:
+            pass
+
+class NoneInfoTests_FullyTrusted(NoneInfoTests):
+    extraction_filter = 'fully_trusted'
+
+class NoneInfoTests_Tar(NoneInfoTests):
+    extraction_filter = 'tar'
+
+class NoneInfoTests_LegacyWarning(NoneInfoTests):
+    extraction_filter = 'legacy_warning'
 
 
 def setUpModule():

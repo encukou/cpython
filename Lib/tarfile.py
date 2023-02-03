@@ -756,25 +756,24 @@ def _get_filtered_attrs(member, dest_path, for_data=True):
     if os.path.commonpath([target_path, dest_path]) != dest_path:
         raise OutsideDestinationError(member)
     # Limit permissions (no high bits, and go-w)
-    mode = member.mode & 0o755
-    if for_data:
-        # For data, handle permissions & file types
-        if member.isreg() or member.islnk():
-            mode = member.mode | 0o500  #  Ensure owner can read & write
-            if mode | 0o100:
-                # Executable
-                mode = member.mode & 0o777
+    mode = member.mode
+    if mode is not None:
+        mode = mode & 0o755
+        if for_data:
+            # For data, handle permissions & file types
+            if member.isreg() or member.islnk():
+                mode = member.mode | 0o500  #  Ensure owner can read & write
+                if not mode | 0o100:
+                    # Not executable
+                    mode = member.mode & 0o555
+            elif member.isdir() or member.issym():
+                # Ignore mode for directories & symlinks
+                mode = None
             else:
-                # Not executable
-                mode = member.mode & 0o555
-        elif member.isdir() or member.issym():
-            # Ignore mode for directories & symlinks
-            mode = None
-        else:
-            # Reject special files
-            raise IsADeviceError(member)
-    if mode != member.mode:
-        new_attrs['mode'] = mode
+                # Reject special files
+                raise IsADeviceError(member)
+        if mode != member.mode:
+            new_attrs['mode'] = mode
     if for_data:
         # Ignore ownership for 'data'
         if member.uid is not None:
@@ -800,13 +799,13 @@ def fully_trusted_filter(member, dest_path):
 def tar_filter(member, dest_path):
     new_attrs = _get_filtered_attrs(member, dest_path, False)
     if new_attrs:
-        return member.replace(**attrs, deep=False)
+        return member.replace(**new_attrs, deep=False)
     return member
 
 def data_filter(member, dest_path):
     new_attrs = _get_filtered_attrs(member, dest_path, True)
     if new_attrs:
-        return member.replace(**attrs, deep=False)
+        return member.replace(**new_attrs, deep=False)
     return member
 
 def legacy_warning_filter(member, dest_path):
@@ -2294,7 +2293,13 @@ class TarFile(object):
         else:
             tarinfo = member
 
-        tarinfo = filter_function(tarinfo, path)
+        try:
+            tarinfo = filter_function(tarinfo, path)
+        except TarError as e:
+            if self.errorlevel > 0:
+                raise
+            else:
+                self._dbg(1, "tarfile: %s" % e)
         if tarinfo is None:
             self._dbg(2, "tarfile: Excluded %r" % tarinfo.name)
             return None
@@ -2412,9 +2417,13 @@ class TarFile(object):
         """Make a directory called targetpath.
         """
         try:
-            # Use a safe mode for the directory, the real mode is set
-            # later in _extract_member().
-            os.mkdir(targetpath, 0o700)
+            if tarinfo.mode is None:
+                # Use the system's default mode
+                os.mkdir(targetpath)
+            else:
+                # Use a safe mode for the directory, the real mode is set
+                # later in _extract_member().
+                os.mkdir(targetpath, 0o700)
         except FileExistsError:
             pass
 
