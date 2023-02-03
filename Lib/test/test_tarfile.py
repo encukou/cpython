@@ -2964,6 +2964,46 @@ class NumericOwnerTest(unittest.TestCase):
                               tarfl.extract, filename_1, TEMPDIR, False, True)
 
 
+class ReplaceTests(ReadTest, unittest.TestCase):
+    def test_replace_name(self):
+        member = self.tar.getmember('ustar/regtype')
+        replaced = member.replace(name='misc/other')
+        self.assertEqual(replaced.name, 'misc/other')
+        self.assertEqual(member.name, 'ustar/regtype')
+        self.assertEqual(self.tar.getmember('ustar/regtype').name,
+                         'ustar/regtype')
+
+    def test_replace_deep(self):
+        member = self.tar.getmember('pax/regtype1')
+        replaced = member.replace()
+        replaced.pax_headers['gname'] = 'not-bar'
+        self.assertEqual(member.pax_headers['gname'], 'bar')
+        self.assertEqual(
+            self.tar.getmember('pax/regtype1').pax_headers['gname'], 'bar')
+
+    def test_replace_shallow(self):
+        member = self.tar.getmember('pax/regtype1')
+        replaced = member.replace(deep=False)
+        replaced.pax_headers['gname'] = 'not-bar'
+        self.assertEqual(member.pax_headers['gname'], 'not-bar')
+        self.assertEqual(
+            self.tar.getmember('pax/regtype1').pax_headers['gname'], 'not-bar')
+
+    def test_replace_all(self):
+        member = self.tar.getmember('ustar/regtype')
+        for attr_name in ('name', 'mtime', 'mode', 'linkname',
+                          'uid', 'gid', 'uname', 'gname'):
+            with self.subTest(attr_name=attr_name):
+                replaced = member.replace(**{attr_name: None})
+                self.assertEqual(getattr(replaced, attr_name), None)
+                self.assertNotEqual(getattr(member, attr_name), None)
+
+    def test_replace_internal(self):
+        member = self.tar.getmember('ustar/regtype')
+        with self.assertRaises(TypeError):
+            member.replace(offset=123456789)
+
+
 def setUpModule():
     os_helper.unlink(TEMPDIR)
     os.makedirs(TEMPDIR)
