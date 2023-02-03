@@ -869,6 +869,7 @@ class TarInfo(object):
         sparse = 'Sparse member information.',
         tarfile = None,
         _sparse_structs = None,
+        _link_target = None,
         )
 
     def __init__(self, name=""):
@@ -2296,6 +2297,11 @@ class TarFile(object):
         tarinfo = filter_function(tarinfo, path)
         if tarinfo is None:
             self._dbg(2, "tarfile: Excluded %r" % tarinfo.name)
+            return None
+        # Prepare the link target for makelink().
+        if tarinfo.islnk():
+            tarinfo = copy.copy(tarinfo)
+            tarinfo._link_target = os.path.join(path, tarinfo.linkname)
         return tarinfo
 
     def _extract_one(self, tarinfo, path, set_attrs, numeric_owner):
@@ -2385,7 +2391,7 @@ class TarFile(object):
         elif tarinfo.ischr() or tarinfo.isblk():
             self.makedev(tarinfo, targetpath)
         elif tarinfo.islnk() or tarinfo.issym():
-            self.makelink(tarinfo, targetpath, path)
+            self.makelink(tarinfo, targetpath)
         elif tarinfo.type not in SUPPORTED_TYPES:
             self.makeunknown(tarinfo, targetpath)
         else:
@@ -2462,7 +2468,7 @@ class TarFile(object):
         os.mknod(targetpath, mode,
                  os.makedev(tarinfo.devmajor, tarinfo.devminor))
 
-    def makelink(self, tarinfo, targetpath, path):
+    def makelink(self, tarinfo, targetpath):
         """Make a (symbolic) link called targetpath. If it cannot be created
           (platform limitation), we try to make a copy of the referenced file
           instead of a link.
@@ -2475,9 +2481,8 @@ class TarFile(object):
                     os.unlink(targetpath)
                 os.symlink(tarinfo.linkname, targetpath)
             else:
-                link_target = os.path.join(path, tarinfo.linktarget)
-                if os.path.exists(link_target):
-                    os.link(link_target, targetpath)
+                if os.path.exists(tarinfo._link_target):
+                    os.link(tarinfo._link_target, targetpath)
                 else:
                     self._extract_member(self._find_link_target(tarinfo),
                                          targetpath, path=path)
