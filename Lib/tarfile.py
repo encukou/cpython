@@ -2207,7 +2207,7 @@ class TarFile(object):
 
         self.members.append(tarinfo)
 
-    def _get_filter(self, filter):
+    def _get_filter_function(self, filter):
         if filter is None:
             return self.extraction_filter
         if callable(filter):
@@ -2234,14 +2234,13 @@ class TarFile(object):
         """
         directories = []
 
-        filter = self._get_filter(filter)
+        filter_function = self._get_filter_function(filter)
         if members is None:
             members = self
 
-        for tarinfo in members:
-            tarinfo = filter(tarinfo, path)
+        for member in members:
+            tarinfo = self._get_extract_tarinfo(member, filter_function, path)
             if tarinfo is None:
-                self._dbg(2, "tarfile: Excluded %r" % name)
                 continue
             if tarinfo.isdir():
                 # For directories, delay setting attributes until later,
@@ -2282,20 +2281,26 @@ class TarFile(object):
            String names of common filters are accepted. The default filter is
            `self.extraction_filter`.
         """
-        filter = self._get_filter(filter)
-        tarinfo = filter(tarinfo, path)
-        if tarinfo is None:
-            self._dbg(2, "tarfile: Excluded %r" % name)
-            return
-        return self._extract_one(member, path, set_attrs, numeric_owner)
+        filter_function = self._get_filter_function(filter)
+        tarinfo = self._get_extract_tarinfo(member, filter_function, path)
+        if tarinfo is not None:
+            self._extract_one(tarinfo, path, set_attrs, numeric_owner)
 
-    def _extract_one(self, member, path, set_attrs, numeric_owner):
-        self._check("r")
-
+    def _get_extract_tarinfo(self, member, filter_function, path):
+        """Get filtered TarInfo (or None) from member, which might be a str"""
         if isinstance(member, str):
             tarinfo = self.getmember(member)
         else:
             tarinfo = member
+
+        tarinfo = filter_function(tarinfo, path)
+        if tarinfo is None:
+            self._dbg(2, "tarfile: Excluded %r" % tarinfo.name)
+        return tarinfo
+
+    def _extract_one(self, tarinfo, path, set_attrs, numeric_owner):
+        """Extract from filtered tarinfo to disk"""
+        self._check("r")
 
         try:
             self._extract_member(tarinfo, os.path.join(path, tarinfo.name),
@@ -2613,13 +2618,21 @@ class TarFile(object):
         members = self.getmembers()
 
         # Limit the member search list up to tarinfo.
-        #if tarinfo is not None:
-        #    members = members[:members.index(tarinfo)]
+        skipping = False
+        if tarinfo is not None:
+            try:
+                index = members.index(tarinfo)
+            except ValueError:
+                # The given starting point might be a (modified) copy.
+                # We'll later skip members until we find an equivalent.
+                skipping = True
+            else:
+                # Happy fast path
+                members = members[:index]
 
         if normalize:
             name = os.path.normpath(name)
 
-        skipping = (tarinfo is not None)
         for member in reversed(members):
             if skipping:
                 if tarinfo.offset == member.offset:
@@ -2632,6 +2645,10 @@ class TarFile(object):
 
             if name == member_name:
                 return member
+
+        if skipping:
+            # Starting point was not found
+            raise ValueError(tarinfo)
 
     def _load(self):
         """Read through the entire archive file and look for readable
