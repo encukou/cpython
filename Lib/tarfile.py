@@ -2817,7 +2817,13 @@ def main():
                        help='Create tarfile from sources')
     group.add_argument('-t', '--test', metavar='<tarfile>',
                        help='Test if a tarfile is valid')
+    group.add_argument('--filter', metavar='<filtername>',
+                       choices=_NAMED_FILTERS,
+                       help='Filter for extraction')
     args = parser.parse_args()
+
+    if args.filter and args.extract is None:
+        parser.exit(1, '--filter is only valid for extraction\n')
 
     if args.test is not None:
         src = args.test
@@ -2849,7 +2855,7 @@ def main():
 
         if is_tarfile(src):
             with TarFile.open(src, 'r:*') as tf:
-                tf.extractall(path=curdir)
+                tf.extractall(path=curdir, filter=args.filter)
             if args.verbose:
                 if curdir == '.':
                     msg = '{!r} file is extracted.'.format(src)
