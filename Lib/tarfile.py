@@ -68,8 +68,7 @@ __all__ = ["TarFile", "TarInfo", "is_tarfile", "TarError", "ReadError",
            "ENCODING", "USTAR_FORMAT", "GNU_FORMAT", "PAX_FORMAT",
            "DEFAULT_FORMAT", "open", "legacy_warning_filter",
            "fully_trusted_filter", "data_filter", "tar_filter",
-           "DEFAULT_EXTRACTION_FILTER", "FilterError",
-           "AbsoluteLinkError", "OutsideDestinationError",
+           "FilterError", "AbsoluteLinkError", "OutsideDestinationError",
            "IsADeviceError", "AbsolutePathError",
            "LinkOutsideDestinationError"]
 
@@ -826,8 +825,6 @@ _NAMED_FILTERS = {
     "data": data_filter,
     "legacy_warning": legacy_warning_filter,
 }
-
-DEFAULT_EXTRACTION_FILTER = legacy_warning_filter
 
 #------------------
 # Exported Classes
