@@ -757,14 +757,18 @@ def _get_filtered_attrs(member, dest_path, for_data=True):
     # Limit permissions (no high bits, and go-w)
     mode = member.mode
     if mode is not None:
+        # Strip high bits & group/other write bits
         mode = mode & 0o755
         if for_data:
             # For data, handle permissions & file types
             if member.isreg() or member.islnk():
-                mode = member.mode | 0o500  #  Ensure owner can read & write
+                mode = member.mode | 0o600  #  Ensure owner can read & write
                 if not mode | 0o100:
                     # Not executable
-                    mode = member.mode & 0o555
+                    mode = member.mode & 0o666
+                if not mode | 0o400:
+                    # Not executable
+                    mode = member.mode & 0o333
             elif member.isdir() or member.issym():
                 # Ignore mode for directories & symlinks
                 mode = None
@@ -2106,7 +2110,7 @@ class TarFile(object):
         for tarinfo in members:
             if verbose:
                 if tarinfo.mode is None:
-                    _safe_print("-?????????")
+                    _safe_print("??????????")
                 else:
                     _safe_print(stat.filemode(tarinfo.mode))
                 _safe_print("%s/%s" % (tarinfo.uname or tarinfo.uid,
@@ -2766,22 +2770,23 @@ class _WarningTarInfo(TarInfo):
     def __init__(self, parent, warn_attrs):
         self._parent = parent
         self._warn_attrs = warn_attrs
-        self.warned = False
+        self._warned = False
 
     def __getattr__(self, name):
         if name.startswith('_'):
             return super().__getattr__(name)
-        if not self.warned and name in self._warn_attrs:
+        if not self._warned and name in self._warn_attrs:
             warnings.warn(
                 """XXX""",
                 DeprecationWarning)
-            self.warned = True
+            self._warned = True
         value = getattr(self._parent, name)
         setattr(self, name, value)
         return value
 
     def __dir__(self):
-        return sorted(set(super().__dir__()).union(dir(parent)))
+        return sorted(set(super().__dir__()).union(dir(self.parent)))
+        # Python reads like English they said!
 
 #-------------------------
 # other exported functions
