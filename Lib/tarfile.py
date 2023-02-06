@@ -2820,6 +2820,10 @@ def main():
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help='Verbose output')
+    parser.add_argument('--filter', metavar='<filtername>',
+                        choices=_NAMED_FILTERS,
+                        help='Filter for extraction')
+
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-l', '--list', metavar='<tarfile>',
                        help='Show listing of a tarfile')
@@ -2831,9 +2835,7 @@ def main():
                        help='Create tarfile from sources')
     group.add_argument('-t', '--test', metavar='<tarfile>',
                        help='Test if a tarfile is valid')
-    group.add_argument('--filter', metavar='<filtername>',
-                       choices=_NAMED_FILTERS,
-                       help='Filter for extraction')
+
     args = parser.parse_args()
 
     if args.filter and args.extract is None:
