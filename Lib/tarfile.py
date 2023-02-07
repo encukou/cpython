@@ -727,33 +727,63 @@ class AbsolutePathError(FilterError):
     pass
 
 class OutsideDestinationError(FilterError):
-    pass
+    def __init__(self, tarinfo, path):
+        self.tarinfo = tarinfo
+        self._path = path
+        super().__init__(f'{tarinfo.name!r} would be extracted to {path!r}, '
+                         + 'which is outside the destination')
+
+    @property
+    def _legacy_warning_message(self):
+        return (f'{self.tarinfo.name!r} will be extracted to {self._path!r}, '
+                + 'which is outside the destination. This will become an '
+                + 'error by default in Python 3.14. Use the `filter` argument '
+                + 'to control the behavior.')
 
 class IsADeviceError(FilterError):
     pass
 
 class AbsoluteLinkError(FilterError):
-    pass
+    def __init__(self, tarinfo):
+        self.tarinfo = tarinfo
+        super().__init__(f'{tarinfo.name!r} is a symlink to an absolute path')
+
+    @property
+    def _legacy_warning_message(self):
+        return (f'{self.tarinfo.name!r} is a symlink to an absolute path. '
+                + 'Python 3.14 will reject such symlinks by default. '
+                + 'Use the `filter` argument to control the behavior.')
 
 class LinkOutsideDestinationError(FilterError):
-    pass
+    def __init__(self, tarinfo, path):
+        self.tarinfo = tarinfo
+        self._path = path
+        super().__init__(f'{tarinfo.name!r} would link to {path!r}, '
+                         + 'which is outside the destination')
+
+    @property
+    def _legacy_warning_message(self):
+        return (f'{self.tarinfo.name!r} will link to {self._path!r}, '
+                + 'which is outside the destination. This will become an '
+                + 'error by default in Python 3.14. Use the `filter` argument '
+                + 'to control the behavior.')
 
 def _get_filtered_attrs(member, dest_path, for_data=True):
     new_attrs = {}
-    path = member.path
+    name = member.name
     dest_path = os.path.realpath(dest_path)
     # Strip leading / (tar's directory separator) from filenames.
     # Include os.sep (target OS directory separator) as well.
-    if path.startswith(('/', os.sep)):
-        path = new_attrs['path'] = member.path.lstrip('/' + os.sep)
-    if os.path.isabs(path):
+    if name.startswith(('/', os.sep)):
+        name = new_attrs['name'] = member.path.lstrip('/' + os.sep)
+    if os.path.isabs(name):
         # Path is absolute even after stripping.
         # For example, 'C:/foo' on Windows.
         raise AbsolutePathError(member)
     # Ensure we stay in the destination
-    target_path = os.path.realpath(os.path.join(dest_path, path))
+    target_path = os.path.realpath(os.path.join(dest_path, name))
     if os.path.commonpath([target_path, dest_path]) != dest_path:
-        raise OutsideDestinationError(member)
+        raise OutsideDestinationError(member, target_path)
     # Limit permissions (no high bits, and go-w)
     mode = member.mode
     if mode is not None:
@@ -793,7 +823,7 @@ def _get_filtered_attrs(member, dest_path, for_data=True):
                 raise AbsoluteLinkError(member)
             target_path = os.path.realpath(os.path.join(dest_path, member.linkname))
             if os.path.commonpath([target_path, dest_path]) != dest_path:
-                raise LinkOutsideDestinationError(member)
+                raise LinkOutsideDestinationError(member, target_path)
     return new_attrs
 
 def fully_trusted_filter(member, dest_path):
@@ -815,9 +845,7 @@ def legacy_warning_filter(member, dest_path):
     try:
         new_attrs = _get_filtered_attrs(member, dest_path, True)
     except FilterError as e:
-        warnings.warn(
-            """XXX""",
-            DeprecationWarning)
+        warnings.warn(e._legacy_warning_message, DeprecationWarning)
     else:
         if new_attrs:
             return _WarningTarInfo(member, new_attrs)
@@ -2772,16 +2800,25 @@ class _WarningTarInfo(TarInfo):
         self._warn_attrs = warn_attrs
         self._warned = False
 
-    def __getattr__(self, name):
-        if name.startswith('_'):
-            return super().__getattr__(name)
-        if not self._warned and name in self._warn_attrs:
+    def __getattr__(self, attr_name):
+        if attr_name.startswith('_'):
+            return super().__getattr__(attr_name)
+        value = getattr(self._parent, attr_name)
+        setattr(self, attr_name, value)
+        if not self._warned and attr_name in self._warn_attrs:
+            new = self._warn_attrs[attr_name]
+            if new is None:
+                new_msg = f'{attr_name} of {self.name!r} will be ignored'
+            elif attr_name == 'name':
+                new_msg = f'{self.name!r} will be extracted as {new!r}'
+            else:
+                new_msg = (f'{attr_name} of {self.name!r} will be extracted '
+                           + f'as {new!r} rather than {value!r}')
             warnings.warn(
-                """XXX""",
+                f'In Python 3.14, {new_msg} by default. '
+                + 'Use the filter argument to control the behavior.',
                 DeprecationWarning)
             self._warned = True
-        value = getattr(self._parent, name)
-        setattr(self, name, value)
         return value
 
     def __dir__(self):

@@ -2,12 +2,14 @@ import sys
 import os
 import io
 from hashlib import sha256
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from random import Random
 import pathlib
 import shutil
 import time
 import re
+import datetime
+import warnings
 
 import unittest
 import unittest.mock
@@ -3185,6 +3187,329 @@ class NoneInfoTests_Misc(unittest.TestCase):
                     else:
                         # In other cases the output should be the same
                         self.assertEqual(expected, got)
+
+class ExtractionFilterTests(unittest.TestCase):
+    class ArchiveTester:
+        """Test helper that allows a sort of DSL
+
+        Allows defining an archive, then checking the result of extraction.
+
+        See the test_* methods for usage: first define the archive in a `with`
+        block, then define a check function that runs for all the filters.
+        """
+        def __init__(self, test):
+            self.test = test
+            self.bio = io.BytesIO()
+            self.tar_w = tarfile.TarFile(mode='w', fileobj=self.bio)
+
+            # A temporary directory for the extraction results.
+            # All files that "escape" the destination path should still end
+            # up in this directory.
+            self.outerdir = pathlib.Path(TEMPDIR) / 'outer'
+
+            # The destination for the extraction, within `outerdir`
+            self.destdir = self.outerdir / 'dest'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.tar_w.close()
+            self.contents = self.bio.getvalue()
+            self.bio = None
+
+        def add(self, name, *, type=None, symlink_to=None, **kwargs):
+            """Add a member to the test archive"""
+            name = str(name)
+            tarinfo = tarfile.TarInfo(name).replace(**kwargs)
+            if symlink_to is not None:
+                type = tarfile.SYMTYPE
+                tarinfo.linkname = str(symlink_to)
+            if name.endswith('/') and type is None:
+                type = tarfile.DIRTYPE
+            if type is not None:
+                tarinfo.type = type
+            if tarinfo.isreg():
+                fileobj = io.BytesIO(bytes(tarinfo.size))
+            else:
+                fileobj = None
+            self.tar_w.addfile(tarinfo, fileobj)
+
+        def check(self, check_func):
+            """Decorator for a checking function.
+
+            The function must call expected* methods for:
+            - any exception
+            - all warnings (unlexss there was an exception)
+            - all files in outerdir (unless there was an exception),
+              except the destination directory itself
+            """
+            for filter in 'fully_trusted', 'tar', 'data', 'legacy_warning':
+                with ExitStack() as cm:
+                    cm.enter_context(self.test.subTest(filter=filter))
+                    self._filter = filter
+                    cm.callback(lambda: delattr(self, '_filter'))
+                    bio = io.BytesIO(self.contents)
+                    tar = tarfile.TarFile(mode='r', fileobj=bio)
+                    self.got_exception = None
+                    cm.enter_context(os_helper.temp_dir(self.outerdir))
+                    with warnings.catch_warnings(record=True) as self.got_warnings:
+                        try:
+                            tar.extractall(self.destdir, filter=filter)
+                        except Exception as e:
+                            self.got_exception = e
+                    self.expected_paths = set(self.outerdir.glob('**/*'))
+                    self.expected_paths.discard(self.destdir)
+                    check_func()
+                    if self.got_exception is not None:
+                        raise self.got_exception
+                    self.test.assertEqual(self.expected_paths, set())
+                    self.test.assertEqual(self.got_warnings, [])
+
+        @property
+        def is_fully_trusted(self):
+            """True if the archive is fully trusted, incl. legacy warning filter
+            """
+            return self._filter in ('fully_trusted', 'legacy_warning')
+
+        @property
+        def is_tar(self):
+            """True when checking the tar filter"""
+            return self._filter == 'tar'
+
+        @property
+        def is_data(self):
+            """True when checking the data filter"""
+            return self._filter == 'data'
+
+        def expect_error(self, exc_type, message_re=''):
+            """Assert that the given exception was raised"""
+            with self.test.assertRaisesRegex(exc_type, message_re):
+                raise self.got_exception
+            self.got_exception = None
+            self.expected_paths = set()
+            self.got_warnings = []
+
+        def expect_legacy_warning(self, message_re):
+            """Assert a warning was raised IFF using the legacy_warning filter
+
+            Order of calls must match the ordedr of the warnings.
+            """
+            if self._filter != 'legacy_warning':
+                return
+            warning = self.got_warnings.pop(0)
+            self.test.assertEqual(warning.category, DeprecationWarning)
+            self.test.assertRegex(str(warning.message), message_re)
+
+        def expect(self, name, type=None, symlink_to=None):
+            """Check a single file.
+
+            All files in `outerdir` must be checked, except the destination
+            directory itself and parent directories of other files.
+            When checking directories, do so before their contents.
+            """
+            if self.got_exception is not None:
+                raise self.got_exception
+            # use normpath() rather than resolve() so we don't follow symlinks
+            path = pathlib.Path(os.path.normpath(self.destdir / name))
+            self.test.assertIn(path, self.expected_paths)
+            self.expected_paths.remove(path)
+            if type is None and isinstance(name, str) and name.endswith('/'):
+                type = tarfile.DIRTYPE
+            if symlink_to is not None:
+                self.test.assertEqual((self.destdir / name).readlink(),
+                                      pathlib.Path(symlink_to))
+            elif type == tarfile.REGTYPE or type is None:
+                self.test.assertTrue(path.is_file())
+            elif type == tarfile.DIRTYPE:
+                self.test.assertTrue(path.is_dir())
+                self.expect_legacy_warning(f'mode of {name!r} will be ignored')
+            else:
+                raise NotImplementedError(type)
+            for parent in path.parents:
+                self.expected_paths.discard(parent)
+
+    def checker(self):
+        return self.ArchiveTester(self)
+
+    def test_benign_file(self):
+        with self.checker() as chk:
+            chk.add('benign.txt')
+        @chk.check
+        def check():
+            chk.expect('benign.txt')
+
+    def test_absolute(self):
+        # Test handling a member with an absolute path
+        # Inspired by 'absolute1' in https://github.com/jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add(chk.outerdir / 'escaped.evil')
+        outerdir_stripped = str(chk.outerdir).lstrip('/')
+        @chk.check
+        def check():
+            if chk.is_fully_trusted:
+                chk.expect('../escaped.evil')
+                chk.expect_legacy_warning(
+                    f"'{chk.outerdir}/escaped.evil' will be extracted as "
+                    + f"'{outerdir_stripped}/escaped.evil'")
+            else:
+                chk.expect(f'{outerdir_stripped}/escaped.evil')
+
+    def test_absolute_with_extra_slash(self):
+        # Test handling a member with an absolute path
+        # Inspired by 'absolute2' in https://github.com/jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add(f'/{chk.outerdir}/escaped.evil')
+        outerdir_stripped = str(chk.outerdir).lstrip('/')
+        @chk.check
+        def check():
+            if chk.is_fully_trusted:
+                chk.expect('../escaped.evil')
+                chk.expect_legacy_warning(
+                    f"'/{chk.outerdir}/escaped.evil' will be extracted as "
+                    + f"'{outerdir_stripped}/escaped.evil'")
+            else:
+                chk.expect(f'{outerdir_stripped}/escaped.evil')
+
+    def test_parent_symlink(self):
+        # Test interplaying symlinks
+        # Inspired by 'dirsymlink2a' in jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add('current', symlink_to='.')
+            chk.add('parent', symlink_to='current/..')
+            chk.add('parent/evil')
+        @chk.check
+        def check():
+            # XXX Windows
+            if chk.is_fully_trusted:
+                chk.expect('current', symlink_to='.')
+                chk.expect('parent', symlink_to='current/..')
+                chk.expect('../evil')
+                chk.expect_legacy_warning(
+                    f"'parent' will link to '{chk.outerdir}', which is "
+                    + "outside the destination")
+                chk.expect_legacy_warning(
+                    f"'parent/evil' will be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside the "
+                    + "destination")
+            elif chk.is_data:
+                chk.expect_error(
+                    tarfile.LinkOutsideDestinationError,
+                    f"'parent' would link to '{chk.outerdir}', "
+                    + "which is outside the destination")
+            else:
+                chk.expect_error(
+                    tarfile.OutsideDestinationError,
+                    f"'parent/evil' would be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside "
+                    + "the destination")
+
+    def test_parent_symlink2(self):
+        # Test interplaying symlinks
+        # Inspired by 'dirsymlink2b' in jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add('current', symlink_to='.')
+            chk.add('current/parent', symlink_to='..')
+            chk.add('parent/evil')
+        @chk.check
+        def check():
+            # XXX Windows
+            if chk.is_fully_trusted:
+                chk.expect('current', symlink_to='.')
+                chk.expect('parent', symlink_to='..')
+                chk.expect('../evil')
+                chk.expect_legacy_warning(
+                    f"'current/parent' will link to '{chk.outerdir}', which "
+                    + "is outside the destination")
+                chk.expect_legacy_warning(
+                    f"'parent/evil' will be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside the "
+                    + "destination")
+            elif chk.is_data:
+                chk.expect_error(
+                    tarfile.LinkOutsideDestinationError,
+                    f"'current/parent' would link to '{chk.outerdir}', "
+                    + "which is outside the destination")
+            else:
+                chk.expect_error(
+                    tarfile.OutsideDestinationError,
+                    f"'parent/evil' would be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside "
+                    + "the destination")
+
+    def test_absolute_symlink(self):
+        # Test symlink to an absolute path
+        # Inspired by 'dirsymlink' in jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add('parent', symlink_to=chk.outerdir)
+            chk.add('parent/evil')
+        @chk.check
+        def check():
+            # XXX Windows
+            if chk.is_fully_trusted:
+                chk.expect('parent', symlink_to=chk.outerdir)
+                chk.expect('../evil')
+                chk.expect_legacy_warning(
+                    f"'parent' is a symlink to an absolute path")
+                chk.expect_legacy_warning(
+                    f"'parent/evil' will be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside the "
+                    + "destination")
+            elif chk.is_tar:
+                chk.expect_error(
+                    tarfile.OutsideDestinationError,
+                    f"'parent/evil' would be extracted to "
+                    + f"'{chk.outerdir}/evil', which is outside "
+                    + "the destination")
+            else:
+                chk.expect_error(
+                    tarfile.AbsoluteLinkError,
+                    f"'parent' is a symlink to an absolute path")
+
+    def test_sly_relative0(self):
+        # Inspired by 'relative0' in jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add('../moo', symlink_to='..//tmp/moo')
+        @chk.check
+        def check():
+            if chk.is_fully_trusted:
+                # XXX TarFile happens to fail creating a parent directory.
+                # This might be a bug, but fixing it hurts security.
+                # Note that GNU `tar` rejects '..' components, so you could
+                # argue this is an invalid archive and we just raise an
+                # incorrect type of exception.
+                # - @encukou, when adding extraction filters
+                chk.expect_error(FileExistsError)
+                # My expectation for 'fully_trusted' would be:
+                #chk.expect('../moo', symlink_to='..//tmp/moo')
+                #chk.expect_legacy_warning(
+                #   f"'../moo' will be extracted to "
+                #   + f"{chk.outerdir}/moo', which is outside the destination")
+            else:
+                chk.expect_error(
+                    tarfile.OutsideDestinationError,
+                    f"'../moo' would be extracted to '{chk.outerdir}/moo', "
+                    + "which is outside the destination")
+
+    def test_sly_relative2(self):
+        # Inspired by 'relative2' in jwilk/traversal-archives
+        with self.checker() as chk:
+            chk.add('tmp/')
+            chk.add('tmp/../../moo', symlink_to='tmp/../..//tmp/moo')
+        @chk.check
+        def check():
+            if chk.is_fully_trusted:
+                chk.expect('tmp', type=tarfile.DIRTYPE)
+                chk.expect('../moo', symlink_to='tmp/../../tmp/moo')
+                chk.expect_legacy_warning(
+                    f"'tmp/../../moo' will be extracted to "
+                    + f"'{chk.outerdir}/moo', which is outside the destination")
+            else:
+                chk.expect_error(
+                    tarfile.OutsideDestinationError,
+                    f"'tmp/../../moo' would be extracted to "
+                    + f"'{chk.outerdir}/moo', which is outside the destination")
+
 
 def setUpModule():
     os_helper.unlink(TEMPDIR)
