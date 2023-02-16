@@ -20,6 +20,7 @@ import tarfile
 from test import support
 from test.support import os_helper
 from test.support import script_helper
+from test.support import warnings_helper
 
 # Check for our compression modules.
 try:
@@ -3149,8 +3150,8 @@ class NoneInfoExtractTests_FullyTrusted(NoneInfoExtractTests,
 class NoneInfoExtractTests_Tar(NoneInfoExtractTests, unittest.TestCase):
     extraction_filter = 'tar'
 
-class NoneInfoExtractTests_LegacyWarning(NoneInfoExtractTests,
-                                         unittest.TestCase):
+class NoneInfoExtractTests_Default(NoneInfoExtractTests,
+                                   unittest.TestCase):
     extraction_filter = None
 
 class NoneInfoTests_Misc(unittest.TestCase):
@@ -3343,7 +3344,7 @@ class TestExtractionFilters(unittest.TestCase):
         path = pathlib.Path(os.path.normpath(self.destdir / name))
         self.assertIn(path, self.expected_paths)
         self.expected_paths.remove(path)
-        if mode is not None:
+        if mode is not None and os_helper.can_chmod():
             got = stat.filemode(stat.S_IMODE(path.stat().st_mode))
             self.assertEqual(got, mode)
         if type is None and isinstance(name, str) and name.endswith('/'):
@@ -3376,37 +3377,25 @@ class TestExtractionFilters(unittest.TestCase):
             chk.add(self.outerdir / 'escaped.evil')
         outerdir_stripped = str(self.outerdir).lstrip('/')
 
-        # XXX Windows
-
         with self.check_context(chk.open(), 'fully_trusted'):
             self.expect_file('../escaped.evil')
 
-        with self.check_context(chk.open(), 'tar'):
-            self.expect_file(f'{outerdir_stripped}/escaped.evil')
+        if str(self.outerdir).startswith('/'):
+            # We strip leading slashes, as GNU tar does (without --absolute-filenames).
+            # This archive was made on a systems where absolute paths have leading slashes.
 
-        with self.check_context(chk.open(), 'data'):
-            self.expect_file(f'{outerdir_stripped}/escaped.evil')
+            for filter in 'tar', 'data':
+                with self.check_context(chk.open(), filter):
+                    self.expect_file(f'{outerdir_stripped}/escaped.evil')
+        else:
+            # This archive was made on a systems where absolute paths don't have leading slashes.
+            # So, we don't strip, but fail to unpack.
 
-
-    def test_absolute_with_extra_slash(self):
-        # Test handling a member with an absolute path
-        # Inspired by 'absolute2' in https://github.com/jwilk/traversal-archives
-        with TestArchiveMaker() as chk:
-            chk.add(f'/{self.outerdir}/escaped.evil')
-            chk.add(f'{os.sep}{self.outerdir}/escaped.eviler')
-            chk.add(f'/{os.sep}{self.outerdir}/escaped.evilest')
-        outerdir_stripped = str(self.outerdir).lstrip('/')
-
-        with self.check_context(chk.open(), 'fully_trusted'):
-            self.expect_file('../escaped.evil')
-            self.expect_file('../escaped.eviler')
-            self.expect_file('../escaped.evilest')
-
-        for filter in 'tar', 'data':
-            with self.check_context(chk.open(), filter):
-                self.expect_file(f'{outerdir_stripped}/escaped.evil')
-                self.expect_file(f'{outerdir_stripped}/escaped.eviler')
-                self.expect_file(f'{outerdir_stripped}/escaped.evilest')
+            for filter in 'tar', 'data':
+                with self.assertRaisesRegex(
+                        tarfile.AbsolutePathError,
+                        """['"].*escaped.evil['"] has an absolute path"""):
+                    self.extractall_fail(chk.open(), 'tar')
 
     def test_parent_symlink(self):
         # Test interplaying symlinks
@@ -3416,22 +3405,31 @@ class TestExtractionFilters(unittest.TestCase):
             chk.add('parent', symlink_to='current/..')
             chk.add('parent/evil')
 
-        with self.check_context(chk.open(), 'fully_trusted'):
-            self.expect_file('current', symlink_to='.')
-            self.expect_file('parent', symlink_to='current/..')
-            self.expect_file('../evil')
+        if os_helper.can_symlink():
+            with self.check_context(chk.open(), 'fully_trusted'):
+                    self.expect_file('current', symlink_to='.')
+                    self.expect_file('parent', symlink_to='current/..')
+                    self.expect_file('../evil')
 
-        with self.assertRaisesRegex(
-                tarfile.OutsideDestinationError,
-                f"'parent/evil' would be extracted to '{self.outerdir}/evil', "
-                + "which is outside the destination"):
-            self.extractall_fail(chk.open(), filter='tar')
+            with self.assertRaisesRegex(
+                    tarfile.OutsideDestinationError,
+                    """'parent/evil' would be extracted to ['"].*evil['"], """
+                    + "which is outside the destination"):
+                self.extractall_fail(chk.open(), filter='tar')
 
-        with self.assertRaisesRegex(
-                tarfile.LinkOutsideDestinationError,
-                f"'parent' would link to '{self.outerdir}', "
-                + "which is outside the destination"):
-            self.extractall_fail(chk.open(), filter='data')
+            with self.assertRaisesRegex(
+                    tarfile.LinkOutsideDestinationError,
+                    """'parent' would link to ['"].*outerdir['"], """
+                    + "which is outside the destination"):
+                self.extractall_fail(chk.open(), filter='data')
+
+        else:
+            with self.check_context(chk.open(), 'fully_trusted'):
+                self.expect_file('parent/evil')
+            with self.check_context(chk.open(), 'tar'):
+                self.expect_file('parent/evil')
+            with self.check_context(chk.open(), 'data'):
+                self.expect_file('parent/evil')
 
     def test_parent_symlink2(self):
         # Test interplaying symlinks
@@ -3441,21 +3439,31 @@ class TestExtractionFilters(unittest.TestCase):
             chk.add('current/parent', symlink_to='..')
             chk.add('parent/evil')
 
-        with self.check_context(chk.open(), 'fully_trusted'):
-            self.expect_file('current', symlink_to='.')
-            self.expect_file('parent', symlink_to='..')
-            self.expect_file('../evil')
+        if os_helper.can_symlink():
+            with self.check_context(chk.open(), 'fully_trusted'):
+                self.expect_file('current', symlink_to='.')
+                self.expect_file('parent', symlink_to='..')
+                self.expect_file('../evil')
+        else:
+            with self.check_context(chk.open(), 'fully_trusted'):
+                self.expect_file('current/')
+                self.expect_file('parent/evil')
 
-        with self.assertRaisesRegex(
-                    tarfile.OutsideDestinationError,
-                    f"'parent/evil' would be extracted to "
-                    + f"'{self.outerdir}/evil', which is outside "
-                    + "the destination"):
-            self.extractall_fail(chk.open(), filter='tar')
+        if os_helper.can_symlink():
+            with self.assertRaisesRegex(
+                        tarfile.OutsideDestinationError,
+                        "'parent/evil' would be extracted to "
+                        + """['"].*evil['"], which is outside """
+                        + "the destination"):
+                self.extractall_fail(chk.open(), filter='tar')
+        else:
+            with self.check_context(chk.open(), 'tar'):
+                self.expect_file('current/')
+                self.expect_file('parent/evil')
 
         with self.assertRaisesRegex(
                     tarfile.LinkOutsideDestinationError,
-                    f"'current/parent' would link to '{self.outerdir}', "
+                    """'current/parent' would link to ['"].*['"], """
                     + "which is outside the destination"):
             self.extractall_fail(chk.open(), filter='data')
 
@@ -3467,15 +3475,22 @@ class TestExtractionFilters(unittest.TestCase):
             chk.add('parent/evil')
 
         with self.check_context(chk.open(), 'fully_trusted'):
-            self.expect_file('parent', symlink_to=self.outerdir)
-            self.expect_file('../evil')
+            if os_helper.can_symlink():
+                self.expect_file('parent', symlink_to=self.outerdir)
+                self.expect_file('../evil')
+            else:
+                self.expect_file('parent/evil')
 
-        with self.assertRaisesRegex(
-                    tarfile.OutsideDestinationError,
-                    f"'parent/evil' would be extracted to "
-                    + f"'{self.outerdir}/evil', which is outside "
-                    + "the destination"):
-            self.extractall_fail(chk.open(), filter='tar')
+        if os_helper.can_symlink():
+            with self.assertRaisesRegex(
+                        tarfile.OutsideDestinationError,
+                        "'parent/evil' would be extracted to "
+                        + """['"].*evil['"], which is outside """
+                        + "the destination"):
+                self.extractall_fail(chk.open(), filter='tar')
+        else:
+            with self.check_context(chk.open(), 'tar'):
+                self.expect_file('parent/evil')
 
         with self.assertRaisesRegex(
                     tarfile.AbsoluteLinkError,
@@ -3487,22 +3502,26 @@ class TestExtractionFilters(unittest.TestCase):
         with TestArchiveMaker() as chk:
             chk.add('../moo', symlink_to='..//tmp/moo')
 
-        # XXX TarFile happens to fail creating a parent directory.
-        # This might be a bug, but fixing it hurts security.
-        # Note that GNU `tar` rejects '..' components, so you could
-        # argue this is an invalid archive and we just raise an
-        # incorrect type of exception.
-        # - @encukou, when adding extraction filters
-        with self.assertRaises(FileExistsError):
-            self.extractall_fail(chk.open(), filter='fully_trusted')
+        try:
+            with self.check_context(chk.open(), filter='fully_trusted'):
+                if os_helper.can_symlink():
+                    self.expect_file('../moo', symlink_to='..//tmp/moo')
+        except FileExistsError:
+            # XXX TarFile happens to fail creating a parent directory.
+            # This might be a bug, but fixing it hurts security.
+            # Note that GNU `tar` rejects '..' components, so you could
+            # argue this is an invalid archive and we just raise an
+            # incorrect type of exception.
+            # - @encukou, when adding extraction filters
+            pass
 
-        for filter in 'tar', 'data':
-            with self.assertRaisesRegex(
-                        tarfile.OutsideDestinationError,
-                        f"'../moo' would be extracted to "
-                        + f"'{self.outerdir}/moo', which is outside "
-                        + "the destination"):
-                self.extractall_fail(chk.open(), filter=filter)
+            for filter in 'tar', 'data':
+                with self.assertRaisesRegex(
+                            tarfile.OutsideDestinationError,
+                            f"'../moo' would be extracted to "
+                            + f"'.*moo', which is outside "
+                            + "the destination"):
+                    self.extractall_fail(chk.open(), filter=filter)
 
     def test_sly_relative2(self):
         # Inspired by 'relative2' in jwilk/traversal-archives
@@ -3512,13 +3531,14 @@ class TestExtractionFilters(unittest.TestCase):
 
         with self.check_context(chk.open(), 'fully_trusted'):
             self.expect_file('tmp', type=tarfile.DIRTYPE)
-            self.expect_file('../moo', symlink_to='tmp/../../tmp/moo')
+            if os_helper.can_symlink():
+                self.expect_file('../moo', symlink_to='tmp/../../tmp/moo')
 
         for filter in 'tar', 'data':
             with self.assertRaisesRegex(
                     tarfile.OutsideDestinationError,
-                    f"'tmp/../../moo' would be extracted to "
-                    + f"'{self.outerdir}/moo', which is outside the "
+                    "'tmp/../../moo' would be extracted to "
+                    + """['"].*moo['"], which is outside the """
                     + "destination"):
                 self.extractall_fail(chk.open(), filter=filter)
 
@@ -3562,11 +3582,10 @@ class TestExtractionFilters(unittest.TestCase):
         with TestArchiveMaker() as chk:
             chk.add('foo', type=tarfile.FIFOTYPE)
 
-        with self.check_context(chk.open(), 'fully_trusted'):
-            self.expect_file('foo', type=tarfile.FIFOTYPE)
-
-        with self.check_context(chk.open(), 'tar'):
-            self.expect_file('foo', type=tarfile.FIFOTYPE)
+        for filter in 'fully_trusted', 'tar':
+            with self.check_context(chk.open(), filter):
+                if hasattr(os, 'mkfifo'):
+                    self.expect_file('foo', type=tarfile.FIFOTYPE)
 
         with self.assertRaisesRegex(
                 tarfile.SpecialFileError,
@@ -3613,11 +3632,9 @@ class TestExtractionFilters(unittest.TestCase):
         """Ensure the default filter warns"""
         with TestArchiveMaker() as chk:
             chk.add('foo')
-        with warnings.catch_warnings(record=True) as warninglist:
+        with warnings_helper.check_warnings(('Python 3.14', DeprecationWarning)):
             with self.check_context(chk.open(), None):
                 self.expect_file('foo')
-        self.assertEqual([w.category for w in warninglist],
-                         [DeprecationWarning])
 
     def test_change_default_filter_on_instance(self):
         tar = tarfile.TarFile(tarname, 'r')

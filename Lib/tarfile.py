@@ -723,8 +723,9 @@ class FilterError(TarError):
     pass
 
 class AbsolutePathError(FilterError):
-    # XXX Windows only
-    pass
+    def __init__(self, tarinfo):
+        self.tarinfo = tarinfo
+        super().__init__(f'member {tarinfo.name!r} has an absolute path')
 
 class OutsideDestinationError(FilterError):
     def __init__(self, tarinfo, path):
