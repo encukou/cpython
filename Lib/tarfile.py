@@ -716,7 +716,7 @@ class ExFileObject(io.BufferedReader):
 
 
 #-----------------------------
-# extraction filters (PEP XXX)
+# extraction filters (PEP 706)
 #-----------------------------
 
 class FilterError(TarError):
