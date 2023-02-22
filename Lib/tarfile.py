@@ -2216,6 +2216,11 @@ class TarFile(object):
                     + 'Use the filter argument to control this behavior.',
                     DeprecationWarning)
                 return fully_trusted_filter
+            if isinstance(filter, str):
+                raise TypeError(
+                    'String names are not supported for '
+                    + 'TarFile.extraction_filter. Use a function such as '
+                    + 'tarfile.data_filter directly.')
             return filter
         if callable(filter):
             return filter

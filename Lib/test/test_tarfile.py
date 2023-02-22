@@ -3735,6 +3735,12 @@ class TestExtractionFilters(unittest.TestCase):
         with self.check_context(tar, None):
             self.expect_file('ustar/regtype')
 
+    def test_change_default_filter_to_string(self):
+        tar = tarfile.TarFile(tarname, 'r')
+        tar.extraction_filter = 'data'
+        with self.check_context(tar, None):
+            self.expect_exception(TypeError)
+
     def test_custom_filter(self):
         def custom_filter(tarinfo, path):
             self.assertIs(path, self.destdir)
