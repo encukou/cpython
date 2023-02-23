@@ -1218,7 +1218,7 @@ def _unpack_zipfile(filename, extract_dir):
     finally:
         zip.close()
 
-def _unpack_tarfile(filename, extract_dir):
+def _unpack_tarfile(filename, extract_dir, filter=None):
     """Unpack tar/tar.gz/tar.bz2/tar.xz `filename` to `extract_dir`
     """
     import tarfile  # late import for breaking circular dependency
@@ -1228,7 +1228,7 @@ def _unpack_tarfile(filename, extract_dir):
         raise ReadError(
             "%s is not a compressed or uncompressed tar file" % filename)
     try:
-        tarobj.extractall(extract_dir)
+        tarobj.extractall(extract_dir, filter=filter)
     finally:
         tarobj.close()
 
@@ -1306,7 +1306,7 @@ def unpack_archive(filename, extract_dir=None, format=None, filter=None):
             raise ReadError("Unknown archive format '{0}'".format(filename))
 
         func = _UNPACK_FORMATS[format][1]
-        kwargs = filter_kwargs | dict(_UNPACK_FORMATS[format][2])
+        kwargs = dict(_UNPACK_FORMATS[format][2]) | filter_kwargs
         func(filename, extract_dir, **kwargs)
 
 
