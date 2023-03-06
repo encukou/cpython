@@ -889,6 +889,8 @@ can be:
   - return ``None``, in which case the member will be skipped, or
   - raise an exception to abort the operation or skip the member,
     depending on :attr:`~TarFile.errorlevel`.
+    Note that when extraction is aborted, :meth:`~TarFile.extractall` may leave
+    the archive partially extracted. It does not attempt to clean up.
 
 Default named filters
 ~~~~~~~~~~~~~~~~~~~~~
