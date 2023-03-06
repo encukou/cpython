@@ -3189,8 +3189,8 @@ class NoneInfoTests_Misc(unittest.TestCase):
         for attr_names in ({'mtime'}, {'mode'}, {'uid'}, {'gid'},
                            {'uname'}, {'gname'},
                            {'uid', 'uname'}, {'gid', 'gname'}):
-            with self.subTest(attr_names=attr_names):
-                tar = tarfile.open(tarname, encoding="iso8859-1")
+            with (self.subTest(attr_names=attr_names),
+                  tarfile.open(tarname, encoding="iso8859-1") as tar):
                 tio_prev = io.TextIOWrapper(io.BytesIO(), 'ascii', newline='\n')
                 with support.swap_attr(sys, 'stdout', tio_prev):
                     tar.list()
@@ -3358,8 +3358,10 @@ class TestExtractionFilters(unittest.TestCase):
                 self.raised_exception = None
                 self.expected_paths = set(self.outerdir.glob('**/*'))
                 self.expected_paths.discard(self.destdir)
-            yield
-            tar.close()
+            try:
+                yield
+            finally:
+                tar.close()
             if self.raised_exception:
                 raise self.raised_exception
             self.assertEqual(self.expected_paths, set())
