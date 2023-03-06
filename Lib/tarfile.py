@@ -2227,7 +2227,7 @@ class TarFile(object):
         try:
             return _NAMED_FILTERS[filter]
         except KeyError:
-            raise LookupError(f"filter {filter!r} not found")
+            raise ValueError(f"filter {filter!r} not found") from None
 
     def extractall(self, path=".", members=None, *, numeric_owner=False,
                    filter=None):

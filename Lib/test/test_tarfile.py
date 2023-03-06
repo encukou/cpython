@@ -3758,6 +3758,12 @@ class TestExtractionFilters(unittest.TestCase):
             self.expect_file('moved')
             self.expect_file('keep')
 
+    def test_bad_filter_name(self):
+        with ArchiveMaker() as arc:
+            arc.add('foo')
+        with self.check_context(arc.open(), 'bad filter name'):
+            self.expect_exception(ValueError)
+
     def test_stateful_filter(self):
         # Stateful filters should be possible.
         # (This doesn't really test tarfile. Rather, it demonstrates
