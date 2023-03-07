@@ -655,7 +655,7 @@ provided.  They rely on the :mod:`zipfile` and :mod:`tarfile` modules.
    For tar files, it is recommended to set it to ``'data'``,
    unless using features specific to tar and UNIX filesystems.
    (See :ref:`tarfile-extraction-filter` for details.)
-   The ``'data'`` filter ·will become the default for tar files
+   The ``'data'`` filter will become the default for tar files
    in Python 3.14.
 
    .. audit-event:: shutil.unpack_archive filename,extract_dir,format shutil.unpack_archive

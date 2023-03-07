@@ -906,7 +906,7 @@ reused in custom filters:
 
   Implements the ``'tar'`` filter.
 
-  - Strip leading slashes (`/` and :attr:`os.sep`) from filenames.
+  - Strip leading slashes (``/`` and :attr:`os.sep`) from filenames.
   - :ref:`Refuse <tarfile-extraction-refuse>` to extract files with absolute
     paths (in case the name is absolute
     even after stripping slashes, e.g. ``C:/foo`` on Windows).
