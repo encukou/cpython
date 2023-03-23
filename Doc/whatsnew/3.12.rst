@@ -137,6 +137,13 @@ New Features
   (Design by Pablo Galindo. Contributed by Pablo Galindo and Christian Heimes
   with contributions from Gregory P. Smith [Google] and Mark Shannon
   in :gh:`96123`.)
+* The extraction methods in :mod:`tarfile`, and :func:`shutil.unpack_archive`,
+  have a new a *filter* argument that allows limiting tar features than may be
+  surprising or dangerous, such as creating files outside the destination
+  directory.
+  See :ref:`tarfile-extraction-filter` for details.
+  In Python 3.14, the default will switch to ``'data'``.
+  (Contributed by Petr Viktorin in :pep:`706`.)
 
 
 Other Language Changes
@@ -447,6 +454,11 @@ Deprecated
   warning at compile time. This field will be removed in Python 3.14.
   (Contributed by Ramvikrams and Kumar Aditya in :gh:`101193`. PEP by Ken Jin.)
 
+* Extracting tar archives without specifying *filter* is deprecated until
+  Python 3.14, when ``'data'`` filter will become the default.
+  See :ref:`tarfile-extraction-filter` for details.
+
+
 Pending Removal in Python 3.13
 ------------------------------
 
@@ -522,6 +534,7 @@ Pending Removal in Python 3.14
 * :mod:`pty` has two undocumented ``master_open()`` and ``slave_open()``
   functions that have been deprecated since Python 2 but only gained a
   proper :exc:`DeprecationWarning` in 3.12. Remove them in 3.14.
+
 
 Pending Removal in Future Versions
 ----------------------------------
@@ -760,6 +773,11 @@ Changes in the Python API
   This change helps with interpreter isolation.  Furthermore, :mod:`syslog` is a wrapper
   around process-global resources, which are best managed from the main interpreter.
   (Contributed by Dong-hee Na in :gh:`99127`.)
+
+* When extracting tar files using :mod:`tarfile` or
+  :func:`shutil.unpack_archive`, pass the *filter* argument to limit features
+  that may be surprising or dangerous.
+  See :ref:`tarfile-extraction-filter` for details.
 
 
 Build Changes
