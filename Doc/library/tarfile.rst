@@ -358,7 +358,7 @@ be finalized; only the internally used file object will be closed. See the
    *debug* can be set from ``0`` (no debug messages) up to ``3`` (all debug
    messages). The messages are written to ``sys.stderr``.
 
-   If *errorlevel* controls how extraction errors are handled,
+   *errorlevel* controls how extraction errors are handled,
    see :attr:`the corresponding attribute <~TarFile.errorlevel>`.
 
    The *encoding* and *errors* arguments define the character encoding to be
