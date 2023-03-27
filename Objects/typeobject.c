@@ -4100,6 +4100,215 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
 }
 
 
+
+typedef enum {
+    LEAVE_CALLS_EXIT,
+    EXIT_CALLS_LEAVE,
+} LeaveTrampoline_Direction;
+
+typedef struct {
+    PyObject_HEAD
+    PyObject *target_callable;
+    LeaveTrampoline_Direction direction;
+    vectorcallfunc vectorcall;
+} LeaveTrampolineObject;
+
+static PyObject*
+LeaveTrampoline_New(PyObject *callable, LeaveTrampoline_Direction direction);
+
+static void LeaveTrampoline_dealloc(LeaveTrampolineObject *self)
+{
+    Py_CLEAR(self->target_callable);
+    Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static int
+LeaveTrampoline_clear(LeaveTrampolineObject *self)
+{
+    Py_CLEAR(self->target_callable);
+    return 0;
+}
+
+static int LeaveTrampoline_traverse(LeaveTrampolineObject *self, visitproc visit, void *arg) {
+    Py_VISIT(self->target_callable);
+    return 0;
+}
+
+static PyObject *
+LeaveTrampoline_descr_get(LeaveTrampolineObject *self, PyObject *obj, PyObject *type) {
+    descrgetfunc getter = Py_TYPE(self->target_callable)->tp_descr_get;
+    if (!getter) {
+        return Py_NewRef(self);
+    }
+    PyObject *got = getter(self->target_callable, obj, type);
+    if (!got) {
+        return NULL;
+    }
+    PyObject *result = LeaveTrampoline_New(got, self->direction);
+    Py_DECREF(got);
+    return result;
+}
+
+PyObject *
+LeaveTrampoline_repr(LeaveTrampolineObject *self)
+{
+    char *dir_name = (self->direction == LEAVE_CALLS_EXIT)
+                   ? "__(a)leave__"
+                   : "__(a)exit__";
+    return PyUnicode_FromFormat("<%s wrapper for %R>",
+                                dir_name,
+                                self->target_callable);
+}
+
+PyTypeObject _Py_LeaveTrampoline_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name = "leave_trampoline",
+    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_basicsize = sizeof(LeaveTrampolineObject),
+    // .tp_doc = PyDoc_STR("..."),
+    .tp_vectorcall_offset = offsetof(LeaveTrampolineObject, vectorcall),
+    .tp_call = PyVectorcall_Call,
+    .tp_traverse = (traverseproc)LeaveTrampoline_traverse,
+    .tp_clear = (inquiry)LeaveTrampoline_clear,
+    .tp_dealloc = (destructor)LeaveTrampoline_dealloc,
+    .tp_descr_get = (descrgetfunc)LeaveTrampoline_descr_get,
+    .tp_repr = (reprfunc)LeaveTrampoline_repr,
+};
+
+static PyObject *
+call_exit_from_leave(
+    LeaveTrampolineObject *self, PyObject *const *args, size_t nargsf, PyObject *kwnames)
+{
+    PyObject **new_args = NULL;
+    PyObject *traceback = NULL;
+    PyObject *result = NULL;
+    // XXX check we have no keyword arguments
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    if (nargs < 1) {
+        PyErr_Format(
+            PyExc_TypeError,
+            "__leave__/__aleave__ takes 1 or more arguments (%d given)", nargs);
+        goto finally;
+    }
+    new_args = PyMem_Malloc(sizeof(PyObject *) * (nargs + 3));
+    if (!new_args) {
+        PyErr_NoMemory();
+        goto finally;
+    }
+    memcpy(new_args + 1, args, sizeof(PyObject *) * (nargs - 1));
+    PyObject *exc = args[nargs - 1];
+    if (exc == Py_None) {
+        // borrowed None objects
+        new_args[nargs] = Py_None;
+        new_args[nargs + 1] = Py_None;
+        new_args[nargs + 2] = Py_None;
+    }
+    else {
+        new_args[nargs] = (PyObject *)Py_TYPE(exc); // borrowed
+        new_args[nargs + 1] = exc;
+        new_args[nargs + 2] = traceback = PyException_GetTraceback(exc);
+    }
+    if (!traceback) {
+        if (!PyErr_Occurred()) {
+            new_args[nargs + 2] = traceback = Py_NewRef(Py_None);
+            //PyErr_SetString(PyExc_ValueError, "exception has no traceback");
+        }
+        else {
+            goto finally;
+        }
+    }
+    result = PyObject_Vectorcall(
+        self->target_callable, new_args + 1,
+        (nargs + 2) | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        NULL);
+
+finally:
+    Py_XDECREF(traceback);
+    PyMem_Free(new_args);
+    return result;
+}
+
+static PyObject *
+call_leave_from_exit(
+    LeaveTrampolineObject *self, PyObject *const *args, size_t nargsf, PyObject *kwnames)
+{
+    PyObject **new_args = NULL;
+    PyObject *result = NULL;
+    // XXX check we have no keyword arguments
+    Py_ssize_t nargs = PyVectorcall_NARGS(nargsf);
+    if (nargs < 3) {
+        PyErr_Format(
+            PyExc_TypeError,
+            "__exit__/__aexit__ takes 3 or more arguments (%d given), forwarding to %R",
+            nargs, self->target_callable);
+        goto finally;
+    }
+    new_args = PyMem_Malloc(sizeof(PyObject *) * (nargs - 1));
+    if (!new_args) {
+        PyErr_NoMemory();
+        goto finally;
+    }
+    memcpy(new_args + 1, args, sizeof(PyObject *) * (nargs - 3));
+    new_args[nargs - 2] = args[nargs - 2];
+    result = PyObject_Vectorcall(
+        self->target_callable, new_args + 1,
+        (nargs - 2) | PY_VECTORCALL_ARGUMENTS_OFFSET,
+        NULL);
+
+finally:
+    PyMem_Free(new_args);
+    return result;
+}
+
+static PyObject*
+LeaveTrampoline_New(PyObject *callable, LeaveTrampoline_Direction direction)
+{
+    if (PyType_Ready(&_Py_LeaveTrampoline_Type) != 0) {
+        return NULL;
+    }
+    LeaveTrampolineObject *self = PyObject_New(
+        LeaveTrampolineObject, &_Py_LeaveTrampoline_Type);
+    if (!self) {
+        return NULL;
+    }
+    self->target_callable = Py_NewRef(callable);
+    self->direction = direction;
+    if (direction == LEAVE_CALLS_EXIT) {
+        self->vectorcall = (vectorcallfunc)call_exit_from_leave;
+    }
+    else {
+        self->vectorcall = (vectorcallfunc)call_leave_from_exit;
+    }
+    return (PyObject *)self;
+}
+
+static int
+set_leave_trampoline(
+    PyTypeObject *type, PyObject *attr_name, PyObject *callable,
+    LeaveTrampoline_Direction direction)
+{
+    PyObject *trampoline = NULL;
+    // callable can be NULL to delete the trampoline
+    if (callable) {
+        trampoline = LeaveTrampoline_New(callable, direction);
+        if (!trampoline) {
+            return -1;
+        }
+    }
+    int res = _PyObject_GenericSetAttrWithDict(
+        (PyObject *)type, attr_name, trampoline, NULL);
+    //Py_XDECREF(trampoline);
+    if (attr_name == &_Py_ID(__leave__)) {
+        assert(direction == LEAVE_CALLS_EXIT);
+    }
+    if (res) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
 /* Internal API to look for a name through the MRO, bypassing the method cache.
    This returns a borrowed reference, and might set an exception.
    'error' is set to: -1: error with exception; 1: error without exception; 0: ok */
@@ -4399,6 +4608,18 @@ type_setattro(PyTypeObject *type, PyObject *name, PyObject *value)
 
         if (is_dunder_name(name)) {
             res = update_slot(type, name);
+            if (name == &_Py_ID(__leave__)) {
+                res |= set_leave_trampoline(type, &_Py_ID(__exit__), value, EXIT_CALLS_LEAVE);
+            }
+            if (name == &_Py_ID(__exit__)) {
+                res |= set_leave_trampoline(type, &_Py_ID(__leave__), value, LEAVE_CALLS_EXIT);
+            }
+            if (name == &_Py_ID(__aleave__)) {
+                res |= set_leave_trampoline(type, &_Py_ID(__aexit__), value, EXIT_CALLS_LEAVE);
+            }
+            if (name == &_Py_ID(__aexit__)) {
+                res |= set_leave_trampoline(type, &_Py_ID(__aleave__), value, LEAVE_CALLS_EXIT);
+            }
         }
         assert(_PyType_CheckConsistency(type));
     }
@@ -6134,6 +6355,18 @@ type_add_method(PyTypeObject *type, PyMethodDef *meth)
     Py_DECREF(descr);
     if (err) {
         return -1;
+    }
+    if (strcmp(meth->ml_name, "__leave__") == 0) {
+        return set_leave_trampoline(type, &_Py_ID(__exit__), descr, EXIT_CALLS_LEAVE);
+    }
+    if (strcmp(meth->ml_name, "__exit__") == 0) {
+        return set_leave_trampoline(type, &_Py_ID(__leave__), descr, LEAVE_CALLS_EXIT);
+    }
+    if (strcmp(meth->ml_name, "__aleave__") == 0) {
+        return set_leave_trampoline(type, &_Py_ID(__aexit__), descr, EXIT_CALLS_LEAVE);
+    }
+    if (strcmp(meth->ml_name, "__aexit__") == 0) {
+        return set_leave_trampoline(type, &_Py_ID(__aleave__), descr, LEAVE_CALLS_EXIT);
     }
     return 0;
 }
@@ -9071,8 +9304,9 @@ update_slot(PyTypeObject *type, PyObject *name)
             --p;
         *pp = p;
     }
-    if (ptrs[0] == NULL)
+    if (ptrs[0] == NULL) {
         return 0; /* Not an attribute that affects any slots */
+    }
     return update_subclasses(type, name,
                              update_slots_callback, (void *)ptrs);
 }
@@ -9106,6 +9340,7 @@ update_all_slots(PyTypeObject* type)
 
 /* Call __set_name__ on all attributes (including descriptors)
   in a newly generated type */
+// XXX rename this -- it's now the "go through __dict__ of a new class" function
 static int
 type_new_set_names(PyTypeObject *type)
 {
@@ -9117,6 +9352,29 @@ type_new_set_names(PyTypeObject *type)
     Py_ssize_t i = 0;
     PyObject *key, *value;
     while (PyDict_Next(names_to_set, &i, &key, &value)) {
+        if (PyUnicode_Check(key)) {
+            if (PyUnicode_CompareWithASCIIString(key, "__exit__") == 0) {
+                if (set_leave_trampoline(type, &_Py_ID(__leave__), value, LEAVE_CALLS_EXIT) != 0) {
+                    goto error;
+                }
+            }
+            if (PyUnicode_CompareWithASCIIString(key, "__leave__") == 0) {
+                if (set_leave_trampoline(type, &_Py_ID(__exit__), value, EXIT_CALLS_LEAVE) != 0) {
+                    goto error;
+                }
+            }
+            if (PyUnicode_CompareWithASCIIString(key, "__aexit__") == 0) {
+                if (set_leave_trampoline(type, &_Py_ID(__aleave__), value, LEAVE_CALLS_EXIT) != 0) {
+                    goto error;
+                }
+            }
+            if (PyUnicode_CompareWithASCIIString(key, "__aleave__") == 0) {
+                if (set_leave_trampoline(type, &_Py_ID(__aexit__), value, EXIT_CALLS_LEAVE) != 0) {
+                    goto error;
+                }
+            }
+        }
+
         PyObject *set_name = _PyObject_LookupSpecial(value,
                                                      &_Py_ID(__set_name__));
         if (set_name == NULL) {
@@ -9138,8 +9396,8 @@ type_new_set_names(PyTypeObject *type)
         }
         Py_DECREF(res);
     }
-
     Py_DECREF(names_to_set);
+
     return 0;
 
 error:

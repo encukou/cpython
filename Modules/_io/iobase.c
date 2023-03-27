@@ -466,8 +466,13 @@ iobase_enter(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-iobase_exit(PyObject *self, PyObject *args)
+iobase_leave(PyObject *self, PyObject *exc)
 {
+    if (PyTuple_Size(exc) != 1) {
+        printf("bad __leave__ call (%d args)\n", (int)PyTuple_Size(exc));
+        //assert(0);
+        //return PyErr_Format(PyExc_ValueError, "bad");
+    }
     return PyObject_CallMethodNoArgs(self, &_Py_ID(close));
 }
 
@@ -806,7 +811,7 @@ static PyMethodDef iobase_methods[] = {
     _IO__IOBASE_ISATTY_METHODDEF
 
     {"__enter__", iobase_enter, METH_NOARGS},
-    {"__exit__", iobase_exit, METH_VARARGS},
+    {"__leave__", iobase_leave, METH_VARARGS},
 
     _IO__IOBASE_READLINE_METHODDEF
     _IO__IOBASE_READLINES_METHODDEF

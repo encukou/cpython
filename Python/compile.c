@@ -1895,9 +1895,7 @@ static int
 compiler_call_exit_with_nones(struct compiler *c, location loc)
 {
     ADDOP_LOAD_CONST(c, loc, Py_None);
-    ADDOP_LOAD_CONST(c, loc, Py_None);
-    ADDOP_LOAD_CONST(c, loc, Py_None);
-    ADDOP_I(c, loc, CALL, 2);
+    ADDOP_I(c, loc, CALL, 0);
     return SUCCESS;
 }
 
@@ -5590,7 +5588,7 @@ compiler_async_with(struct compiler *c, stmt_ty s, int pos)
     /* End of body; start the cleanup */
 
     /* For successful outcome:
-     * call __exit__(None, None, None)
+     * call __leave__(None)
      */
     RETURN_IF_ERROR(compiler_call_exit_with_nones(c, loc));
     ADDOP_I(c, loc, GET_AWAITABLE, 2);
@@ -5684,7 +5682,7 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
     /* End of body; start the cleanup. */
 
     /* For successful outcome:
-     * call __exit__(None, None, None)
+     * call __leave__(None)
      */
     loc = LOC(s);
     RETURN_IF_ERROR(compiler_call_exit_with_nones(c, loc));

@@ -98,6 +98,8 @@ _Py_type_getattro(PyTypeObject *type, PyObject *name);
 PyObject *_Py_slot_tp_getattro(PyObject *self, PyObject *name);
 PyObject *_Py_slot_tp_getattr_hook(PyObject *self, PyObject *name);
 
+extern PyTypeObject _Py_LeaveTrampoline_Type;
+
 #ifdef __cplusplus
 }
 #endif
