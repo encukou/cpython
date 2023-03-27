@@ -2077,6 +2077,7 @@ static PyTypeObject* static_types[] = {
     &_PyHamt_Type,
     &_PyInterpreterID_Type,
     &_PyLineIterator,
+    &_Py_LeaveTrampoline_Type,
     &_PyManagedBuffer_Type,
     &_PyMemoryIter_Type,
     &_PyMethodWrapper_Type,

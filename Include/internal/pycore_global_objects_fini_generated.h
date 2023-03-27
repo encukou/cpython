@@ -586,6 +586,7 @@ _PyStaticObjects_CheckRefcnt(PyInterpreterState *interp) {
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__aenter__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__aexit__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__aiter__));
+    _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__aleave__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__all__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__and__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__anext__));
@@ -658,6 +659,7 @@ _PyStaticObjects_CheckRefcnt(PyInterpreterState *interp) {
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__itruediv__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__ixor__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__le__));
+    _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__leave__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__len__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__length_hint__));
     _PyStaticObject_CheckRefcnt((PyObject *)&_Py_ID(__lltrace__));

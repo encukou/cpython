@@ -2003,7 +2003,7 @@ _magics = {
 }
 
 # Magic methods used for async `with` statements
-_async_method_magics = {"__aenter__", "__aexit__", "__anext__"}
+_async_method_magics = {"__aenter__", "__aexit__", "__aleave__", "__anext__"}
 # Magic methods that are only used with async calls but are synchronous functions themselves
 _sync_async_magics = {"__aiter__"}
 _async_magics = _async_method_magics | _sync_async_magics
@@ -2034,6 +2034,7 @@ _return_values = {
     '__contains__': False,
     '__len__': 0,
     '__exit__': False,
+    '__leave__': False,
     '__complex__': 1j,
     '__float__': 1.0,
     '__bool__': True,

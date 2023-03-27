@@ -69,6 +69,9 @@ _PyUnicode_InitStaticStrings(void) {
     string = &_Py_ID(__aiter__);
     assert(_PyUnicode_CheckConsistency(string, 1));
     PyUnicode_InternInPlace(&string);
+    string = &_Py_ID(__aleave__);
+    assert(_PyUnicode_CheckConsistency(string, 1));
+    PyUnicode_InternInPlace(&string);
     string = &_Py_ID(__all__);
     assert(_PyUnicode_CheckConsistency(string, 1));
     PyUnicode_InternInPlace(&string);
@@ -283,6 +286,9 @@ _PyUnicode_InitStaticStrings(void) {
     assert(_PyUnicode_CheckConsistency(string, 1));
     PyUnicode_InternInPlace(&string);
     string = &_Py_ID(__le__);
+    assert(_PyUnicode_CheckConsistency(string, 1));
+    PyUnicode_InternInPlace(&string);
+    string = &_Py_ID(__leave__);
     assert(_PyUnicode_CheckConsistency(string, 1));
     PyUnicode_InternInPlace(&string);
     string = &_Py_ID(__len__);

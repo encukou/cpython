@@ -498,6 +498,7 @@ cfunction_vectorcall_O(
         if (funcstr != NULL) {
             _PyErr_Format(tstate, PyExc_TypeError,
                 "%U takes exactly one argument (%zd given)", funcstr, nargs);
+            //assert(0);
             Py_DECREF(funcstr);
         }
         return NULL;

@@ -578,6 +578,7 @@ extern "C" {
     INIT_ID(__aenter__), \
     INIT_ID(__aexit__), \
     INIT_ID(__aiter__), \
+    INIT_ID(__aleave__), \
     INIT_ID(__all__), \
     INIT_ID(__and__), \
     INIT_ID(__anext__), \
@@ -650,6 +651,7 @@ extern "C" {
     INIT_ID(__itruediv__), \
     INIT_ID(__ixor__), \
     INIT_ID(__le__), \
+    INIT_ID(__leave__), \
     INIT_ID(__len__), \
     INIT_ID(__length_hint__), \
     INIT_ID(__lltrace__), \

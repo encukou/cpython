@@ -2122,13 +2122,13 @@ dummy_func(
                 }
                 goto error;
             }
-            exit = _PyObject_LookupSpecial(mgr, &_Py_ID(__aexit__));
+            exit = _PyObject_LookupSpecial(mgr, &_Py_ID(__aleave__));
             if (exit == NULL) {
                 if (!_PyErr_Occurred(tstate)) {
                     _PyErr_Format(tstate, PyExc_TypeError,
                                   "'%.200s' object does not support the "
                                   "asynchronous context manager protocol "
-                                  "(missed __aexit__ method)",
+                                  "(missed __aleave__ method)",
                                   Py_TYPE(mgr)->tp_name);
                 }
                 Py_DECREF(enter);
@@ -2158,13 +2158,13 @@ dummy_func(
                 }
                 goto error;
             }
-            exit = _PyObject_LookupSpecial(mgr, &_Py_ID(__exit__));
+            exit = _PyObject_LookupSpecial(mgr, &_Py_ID(__leave__));
             if (exit == NULL) {
                 if (!_PyErr_Occurred(tstate)) {
                     _PyErr_Format(tstate, PyExc_TypeError,
                                   "'%.200s' object does not support the "
                                   "context manager protocol "
-                                  "(missed __exit__ method)",
+                                  "(missed __leave__ method)",
                                   Py_TYPE(mgr)->tp_name);
                 }
                 Py_DECREF(enter);
@@ -2184,21 +2184,15 @@ dummy_func(
                - val: TOP = exc_info()
                - unused: SECOND = previous exception
                - lasti: THIRD = lasti of exception in exc_info()
-               - exit_func: FOURTH = the context.__exit__ bound method
+               - exit_func: FOURTH = the context.__leave__ bound method
                We call FOURTH(type(TOP), TOP, GetTraceback(TOP)).
                Then we push the __exit__ return value.
             */
-            PyObject *exc, *tb;
 
             assert(val && PyExceptionInstance_Check(val));
-            exc = PyExceptionInstance_Class(val);
-            tb = PyException_GetTraceback(val);
-            Py_XDECREF(tb);
             assert(PyLong_Check(lasti));
             (void)lasti; // Shut up compiler warning if asserts are off
-            PyObject *stack[4] = {NULL, exc, val, tb};
-            res = PyObject_Vectorcall(exit_func, stack + 1,
-                    3 | PY_VECTORCALL_ARGUMENTS_OFFSET, NULL);
+            res = PyObject_CallOneArg(exit_func, val);
             ERROR_IF(res == NULL, error);
         }
 
