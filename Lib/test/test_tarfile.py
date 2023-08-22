@@ -3197,7 +3197,7 @@ class TestExtractionFilters(unittest.TestCase):
         # Posix and Windows have different pathname resolution:
         # either symlink or a '..' component resolve first.
         # Let's see which we are on.
-        if os_helper.can_symlink():
+        if support.can_symlink():
             testpath = os.path.join(TEMPDIR, 'resolution_test')
             os.mkdir(testpath)
 
@@ -3257,7 +3257,7 @@ class TestExtractionFilters(unittest.TestCase):
                 self.expect_file('parent/evil')
 
         with self.check_context(arc.open(), 'data'):
-            if os_helper.can_symlink():
+            if support.can_symlink():
                 if dotdot_resolves_early:
                     # Fail when extracting a file outside destination
                     self.expect_exception(
@@ -3375,7 +3375,6 @@ class TestExtractionFilters(unittest.TestCase):
                     + """['"].*moo['"], which is outside the """
                     + "destination")
 
-    @symlink_test
     def test_deep_symlink(self):
         # Test that symlinks and hardlinks inside a directory
         # point to the correct file (`target` of size 3).
@@ -3393,13 +3392,12 @@ class TestExtractionFilters(unittest.TestCase):
             with self.check_context(arc.open(), filter):
                 self.expect_file('targetdir/target', size=3)
                 self.expect_file('linkdir/hardlink', size=3)
-                if os_helper.can_symlink():
+                if support.can_symlink():
                     self.expect_file('linkdir/symlink', size=3,
                                      symlink_to='../targetdir/target')
                 else:
                     self.expect_file('linkdir/symlink', size=3)
 
-    @symlink_test
     def test_chains(self):
         # Test chaining of symlinks/hardlinks.
         # Symlinks are created before the files they point to.
@@ -3416,7 +3414,7 @@ class TestExtractionFilters(unittest.TestCase):
                 self.expect_file('targetdir/target', size=3)
                 self.expect_file('linkdir/hardlink', size=3)
                 self.expect_file('linkdir/hardlink2', size=3)
-                if os_helper.can_symlink():
+                if support.can_symlink():
                     self.expect_file('linkdir/symlink', size=3,
                                      symlink_to='hardlink')
                     self.expect_file('symlink2', size=3,
