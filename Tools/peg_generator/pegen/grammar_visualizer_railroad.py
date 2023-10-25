@@ -1,109 +1,183 @@
 import argparse
 import sys
 from typing import Any, Callable, Iterator
+import dataclasses
 
-from railroad import Diagram, Choice, DEFAULT_STYLE, Sequence, NonTerminal
-from railroad import Terminal, Optional, ZeroOrMore, OneOrMore, Group
+import railroad
 
 from pegen.build import build_parser
-from pegen.grammar import Grammar, Rule, GrammarVisitor
+import pegen.grammar
 
 argparser = argparse.ArgumentParser(
     prog="pegen", description="Pretty print the AST for a given PEG grammar"
 )
 argparser.add_argument("filename", help="Grammar description")
 
-class DiagramVisitor(GrammarVisitor):
-    def generic_visit(self, node):
-        raise ValueError(node)
+class SkipChoice(Exception):
+    """Raised to hide an entire choice"""
 
-    def visit_Rule(self, node):
-        return self.visit(node.rhs)
+@dataclasses.dataclass
+class Container:
+    items: list
 
-    def visit_Rhs(self, node):
-        diagrams = (self.visit(n) for n in node.alts)
-        return Choice(0, *(diagram for diagram in diagrams if diagram))
+    def __iter__(self):
+        yield from self.items
 
-    def visit_Alt(self, node):
-        diagrams = (self.visit(n) for n in node.items)
-        return Sequence(*(diagram for diagram in diagrams if diagram))
+class Choice(Container):
+    def as_railroad(self):
+        return railroad.Choice(0, *(n.as_railroad() for n in self))
 
-    def visit_NamedItem(self, node):
-        return self.visit(node.item)
+class Sequence(Container):
+    def as_railroad(self):
+        return railroad.Sequence(*(n.as_railroad() for n in self))
 
-    def visit_NameLeaf(self, node):
-        return NonTerminal(node.value)
+@dataclasses.dataclass
+class Decorated:
+    child: object
 
-    def visit_StringLeaf(self, node):
-        return Terminal(node.value)
+class Optional(Decorated):
+    def as_railroad(self):
+        return railroad.Optional(self.child.as_railroad())
 
-    def visit_Opt(self, node):
-        diagram = self.visit(node.node)
-        if diagram is None:
-            return None
-        return Optional(diagram)
+class ZeroOrMore(Decorated):
+    def as_railroad(self):
+        return railroad.ZeroOrMore(self.child.as_railroad())
 
-    def visit_Repeat0(self, node):
-        diagram = self.visit(node.node)
-        if diagram is None:
-            return None
-        return ZeroOrMore(diagram)
+class OneOrMore(Decorated):
+    def as_railroad(self):
+        return railroad.OneOrMore(self.child.as_railroad())
 
-    def visit_Repeat1(self, node):
-        diagram = self.visit(node.node)
-        if diagram is None:
-            return None
-        return OneOrMore(diagram)
+@dataclasses.dataclass
+class Leaf:
+    value: str
 
-    def visit_NegativeLookahead(self, node):
-        # We ignore lookaheads in docs. If we didn't, we could return:
-        # Group(self.visit(node.node), 'negative lookahead')
+class Nonterminal(Leaf):
+    def as_railroad(self):
+        return railroad.NonTerminal(self.value)
+
+class Terminal(Leaf):
+    def as_railroad(self):
+        return railroad.Terminal(self.value)
+
+@dataclasses.dataclass
+class Gather:
+    item: object
+    separator: object
+
+    def as_railroad(self):
+        return railroad.OneOrMore(self.item.as_railroad(), self.separator.as_railroad())
+
+def convert_grammar(node):
+    rules = {}
+    for child in node:
+        if not child.name.startswith('invalid_'):
+            result = convert_node(child.rhs)
+            if result is not None:
+                result._node = child
+                rules[child.name] = result
+        #if child.name == 'global_stmt':
+        #    break
+    return rules
+
+def make_choice(nodes):
+    alternatives = []
+    for node in nodes:
+        try:
+            alt = convert_node(node)
+        except SkipChoice:
+            continue
+        if isinstance(alt, Choice):
+            alternatives.extend(alt)
+        elif alt is not None:
+            alternatives.append(alt)
+    if len(alternatives) == 0:
         return None
+    if len(alternatives) == 1:
+        return alternatives[0]
+    return Choice(alternatives)
 
-    def visit_PositiveLookahead(self, node):
-        # See visit_NegativeLookahead
+def make_sequence(nodes):
+    items = []
+    for node in nodes:
+        item = convert_node(node)
+        if isinstance(item, Sequence):
+            items.extend(item)
+        elif item is not None:
+            items.append(item)
+    if len(items) == 0:
         return None
+    if len(items) == 1:
+        return items[0]
+    return Sequence(items)
 
-    def visit_Gather(self, node):
-        diagram = self.visit(node.node)
-        if diagram is None:
-            raise NotImplementedError('Gather element would be ignored')
-        sep_diagram = self.visit(node.separator)
-        if sep_diagram is None:
-            return OneOrMore(diagram)
-        return OneOrMore(diagram, sep_diagram)
-
-    def visit_Group(self, node):
-        return self.visit(node.rhs)
-
-    def visit_Forced(self, node):
-        # We render as if it wasn't forced
-        diagram = self.visit(node.node)
-        if diagram is None:
+def convert_node(node):
+    print(type(node), node)
+    match node:
+        case pegen.grammar.Alt():
+            return make_sequence(node.items)
+        case pegen.grammar.Rhs():
+            return make_choice(node.alts)
+        case pegen.grammar.NamedItem():
+            return convert_node(node.item)
+        case pegen.grammar.Opt():
+            result = convert_node(node.node)
+            if result is None:
+                return None
+            return Optional(result)
+        case pegen.grammar.Repeat0():
+            result = convert_node(node.node)
+            if result is None:
+                return None
+            return ZeroOrMore(result)
+        case pegen.grammar.Repeat1():
+            result = convert_node(node.node)
+            if result is None:
+                return None
+            return OneOrMore(result)
+        case pegen.grammar.NameLeaf():
+            if node.value.startswith('invalid_'):
+                raise SkipChoice()
+            return Nonterminal(node.value)
+        case pegen.grammar.StringLeaf():
+            return Terminal(node.value)
+        case pegen.grammar.PositiveLookahead():
             return None
-        return Group(diagram, 'forced')
+        case pegen.grammar.NegativeLookahead():
+            return None
+        case pegen.grammar.Cut():
+            return None
+        case pegen.grammar.Gather():
+            result = convert_node(node.node)
+            sep = convert_node(node.separator)
+            if result is None:
+                if sep is None:
+                    return None
+                else:
+                    return OneOrMore(sep)
+            else:
+                if sep is None:
+                    return OneOrMore(result)
+                else:
+                    return Gather(result, sep)
+        case pegen.grammar.Group():
+            return make_sequence(node)
+        case pegen.grammar.Forced():
+            return convert_node(node.node)
+        case _:
+            raise TypeError(type(node))
 
-    def visit_Cut(self, node):
-        return Group([], 'cut')
-
-def generate_svg(grammar):
+def generate_html(data):
     with open('output.html', 'w') as file:
         file.write("<html><head><style>")
-        file.write(DEFAULT_STYLE)
+        file.write(railroad.DEFAULT_STYLE)
         file.write("</style><body>")
-        for rule in grammar:
-            if rule.name.startswith('invalid_'):
-                continue
-            diagram = svg_from_rule(rule)
-            file.write(f"<div><code>{rule.name}:</code><div>")
-            diagram.writeSvg(file.write)
+        for name, rule in data.items():
+            file.write(f"<div><pre><code><b>{name}</b>: {rule._node.rhs}</code></pre><div>")
+            railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
+            print(name)
+            print(repr(rule._node))
             print(rule)
         file.write("</body></html>")
-
-def svg_from_rule(rule):
-    visitor = DiagramVisitor()
-    d = Diagram(visitor.visit(rule))
-    return d
 
 
 def main() -> None:
@@ -115,7 +189,8 @@ def main() -> None:
         print("ERROR: Failed to parse grammar file", file=sys.stderr)
         sys.exit(1)
 
-    generate_svg(grammar)
+    data = convert_grammar(grammar)
+    generate_html(data)
 
 
 if __name__ == "__main__":
