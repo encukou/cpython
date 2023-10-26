@@ -13,127 +13,264 @@ argparser = argparse.ArgumentParser(
 )
 argparser.add_argument("filename", help="Grammar description")
 
+railroad.INTERNAL_ALIGNMENT = 'left'
+
 class SkipChoice(Exception):
     """Raised to hide an entire choice"""
 
+class Data:
+    simplified = False
+    def simplify(self):
+        return self
+
+class Nothing(Data):
+    pass
+
 @dataclasses.dataclass
-class Container:
+class Container(Data):
     items: list
 
     def __iter__(self):
         yield from self.items
 
+    def simplify(self):
+        self.items = [i.simplify() for i in self.items]
+        if len(self.items) == 0:
+            return Nothing()
+        if len(self.items) == 1:
+            return self.items[0]
+        return super().simplify()
+
 class Choice(Container):
     def as_railroad(self):
         return railroad.Choice(0, *(n.as_railroad() for n in self))
+
+    def simplify(self):
+        new_items = []
+        optional = False
+        for item in self:
+            item = item.simplify()
+            match item:
+                case Nothing():
+                    # XXX This can reorder the choices
+                    optional = True
+                case Optional(inner):
+                    # XXX This can reorder the choices
+                    optional = True
+                    new_items.append(inner)
+                case Choice():
+                    new_items.extend(item)
+                case _:
+                    if new_items:
+                        adj = simplify_adjacent_choices(new_items[-1], item)
+                        if adj is not None:
+                            new_items[-1:] = adj
+                            continue
+                    new_items.append(item)
+        if new_items != self.items:
+            if optional:
+                return Optional(Choice(new_items)).simplify()
+            return Choice(new_items).simplify()
+        return super().simplify()
+
+    def __str__(self):
+        return '(' + ' | '.join(str(x) for x in self) + ')'
+
+def simplify_adjacent_choices(*choices):
+    match choices:
+        case a, b if a == b:
+            return [a]
+        case Sequence([*p, a]), Sequence([*q, b]) if a == b:
+            # Common tail element
+            return [Sequence([
+                Choice([Sequence(p), Sequence(q)]).simplify(),
+                a,
+            ])]
+        case a, Sequence([*q, b]) if a == b:
+            # Common tail element
+            return [Sequence([
+                Choice([Nothing(), Sequence(q)]).simplify(),
+                a,
+            ])]
+        case Sequence([*p, a]), b if a == b:
+            # Common tail element
+            return [Sequence([
+                Choice([Sequence(p), Nothing()]).simplify(),
+                a,
+            ])]
+        case Sequence([a, *p]), Sequence([b, *q]) if a == b:
+            # Common head element
+            return [Sequence([
+                a,
+                Choice([Sequence(p), Sequence(q)]).simplify(),
+            ])]
+        case Sequence([a, *p]), b if a == b:
+            # Common head element
+            return [Sequence([
+                a,
+                Choice([Sequence(p), Nothing()]).simplify(),
+            ])]
+        case a, Sequence([b, *q]) if a == b:
+            # Common head element
+            return [Sequence([
+                a,
+                Choice([Nothing(), Sequence(q)]).simplify(),
+            ])]
+        case a, Sequence([Gather(b, _), Optional()]) as x if a == b:
+            # First arm is redundant
+            # XXX This can reorder the choices
+            return [x]
+        case a, Sequence([Gather(Choice([b, *_]), _), Optional(_)]) as x if a == b:
+            # First arm is redundant
+            # XXX This can reorder the choices
+            return [x]
+        case Terminal("'.'") as dot, Terminal("'...'"):
+            return [dot]
 
 class Sequence(Container):
     def as_railroad(self):
         return railroad.Sequence(*(n.as_railroad() for n in self))
 
+    def simplify(self):
+        new_items = []
+        for item in self:
+            match item:
+                case Nothing():
+                    pass
+                case Sequence():
+                    new_items.extend(item)
+                case _:
+                    if new_items:
+                        adj = simplify_adjacent_items(new_items[-1], item)
+                        if adj:
+                            new_items[-1:] = adj
+                            continue
+                    new_items.append(item.simplify())
+        if new_items != self.items:
+            return Sequence(new_items).simplify()
+        return super().simplify()
+
+    def __str__(self):
+        return '(' + ' '.join(str(x) for x in self) + ')'
+
+def simplify_adjacent_items(*items):
+    pass
+
 @dataclasses.dataclass
-class Decorated:
+class Decorated(Data):
     child: object
+
+    def simplify(self):
+        match self.child:
+            case Nothing():
+                return self.child
+        new = self.child.simplify()
+        if new != self.child:
+            return type(self)(new)
+        return super().simplify()
 
 class Optional(Decorated):
     def as_railroad(self):
         return railroad.Optional(self.child.as_railroad())
 
-class ZeroOrMore(Decorated):
-    def as_railroad(self):
-        return railroad.ZeroOrMore(self.child.as_railroad())
+    def simplify(self):
+        match self.child:
+            case Optional():
+                return self.child
+        return super().simplify()
 
-class OneOrMore(Decorated):
+    def __str__(self):
+        return f'{self.child}?'
+
+class Repeated(Decorated):
     def as_railroad(self):
         return railroad.OneOrMore(self.child.as_railroad())
 
+    def simplify(self):
+        match self.child:
+            case Optional():
+                return Optional(Repeated(self.child))
+            case Repeated():
+                return self.child
+        return super().simplify()
+
+    def __str__(self):
+        return f'{self.child}+'
+
 @dataclasses.dataclass
-class Leaf:
+class Leaf(Data):
     value: str
 
 class Nonterminal(Leaf):
     def as_railroad(self):
         return railroad.NonTerminal(self.value)
 
+    def __str__(self):
+        return self.value
+
+    def simplify(self):
+        if self.value == 'TYPE_COMMENT':
+            return Nothing()
+        return super().simplify()
+
 class Terminal(Leaf):
     def as_railroad(self):
         return railroad.Terminal(self.value)
 
+    def __str__(self):
+        return self.value
+
 @dataclasses.dataclass
-class Gather:
+class Gather(Data):
     item: object
     separator: object
 
     def as_railroad(self):
         return railroad.OneOrMore(self.item.as_railroad(), self.separator.as_railroad())
 
-def convert_grammar(node):
-    rules = {}
-    for child in node:
-        if not child.name.startswith('invalid_'):
-            result = convert_node(child.rhs)
-            if result is not None:
-                result._node = child
-                rules[child.name] = result
-        #if child.name == 'global_stmt':
-        #    break
-    return rules
+    def __str__(self):
+        return f'{self.separator}.{self.item}'
+
+    def simplify(self):
+        new_item = self.item.simplify()
+        new_separator = self.separator.simplify()
+        match new_item, new_separator:
+            case Nothing(), Nothing():
+                return Nothing()
+            case _, Nothing():
+                return Repeated(new_item)
+            case Nothing(), _:
+                return Optional(Repeated(new_separator))
+            case _:
+                if new_item != self.item or new_separator != self.separator:
+                    return Gather(new_item, new_separator)
+        return self
 
 def make_choice(nodes):
     alternatives = []
     for node in nodes:
         try:
-            alt = convert_node(node)
+            alternatives.append(convert_node(node))
         except SkipChoice:
             continue
-        if isinstance(alt, Choice):
-            alternatives.extend(alt)
-        elif alt is not None:
-            alternatives.append(alt)
-    if len(alternatives) == 0:
-        return None
-    if len(alternatives) == 1:
-        return alternatives[0]
     return Choice(alternatives)
 
-def make_sequence(nodes):
-    items = []
-    for node in nodes:
-        item = convert_node(node)
-        if isinstance(item, Sequence):
-            items.extend(item)
-        elif item is not None:
-            items.append(item)
-    if len(items) == 0:
-        return None
-    if len(items) == 1:
-        return items[0]
-    return Sequence(items)
-
 def convert_node(node):
-    print(type(node), node)
     match node:
+        case pegen.grammar.Rule():
+            return convert_node(node.rhs)
         case pegen.grammar.Alt():
-            return make_sequence(node.items)
+            return Sequence([convert_node(n) for n in node.items])
         case pegen.grammar.Rhs():
             return make_choice(node.alts)
         case pegen.grammar.NamedItem():
             return convert_node(node.item)
         case pegen.grammar.Opt():
-            result = convert_node(node.node)
-            if result is None:
-                return None
-            return Optional(result)
+            return Optional(convert_node(node.node))
         case pegen.grammar.Repeat0():
-            result = convert_node(node.node)
-            if result is None:
-                return None
-            return ZeroOrMore(result)
+            return Optional(Repeated(convert_node(node.node)))
         case pegen.grammar.Repeat1():
-            result = convert_node(node.node)
-            if result is None:
-                return None
-            return OneOrMore(result)
+            return Repeated(convert_node(node.node))
         case pegen.grammar.NameLeaf():
             if node.value.startswith('invalid_'):
                 raise SkipChoice()
@@ -141,42 +278,44 @@ def convert_node(node):
         case pegen.grammar.StringLeaf():
             return Terminal(node.value)
         case pegen.grammar.PositiveLookahead():
-            return None
+            return Sequence([])
         case pegen.grammar.NegativeLookahead():
-            return None
+            return Sequence([])
         case pegen.grammar.Cut():
-            return None
+            return Sequence([])
         case pegen.grammar.Gather():
             result = convert_node(node.node)
             sep = convert_node(node.separator)
-            if result is None:
-                if sep is None:
-                    return None
-                else:
-                    return OneOrMore(sep)
-            else:
-                if sep is None:
-                    return OneOrMore(result)
-                else:
-                    return Gather(result, sep)
+            return Gather(result, sep)
         case pegen.grammar.Group():
-            return make_sequence(node)
+            return Sequence([convert_node(n) for n in node])
         case pegen.grammar.Forced():
             return convert_node(node.node)
         case _:
             raise TypeError(type(node))
 
-def generate_html(data):
+def generate_html(grammar):
     with open('output.html', 'w') as file:
         file.write("<html><head><style>")
         file.write(railroad.DEFAULT_STYLE)
         file.write("</style><body>")
-        for name, rule in data.items():
-            file.write(f"<div><pre><code><b>{name}</b>: {rule._node.rhs}</code></pre><div>")
-            railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
+        for node in grammar:
+            name = node.name
+            if name.startswith('invalid_'):
+                continue
+            file.write(f"<div><pre><code><b>{name}</b>: {node.rhs}</code></pre><div>")
+            print()
             print(name)
-            print(repr(rule._node))
-            print(rule)
+            print('-', repr(node))
+            rule = convert_node(node)
+            print('Got', rule)
+            while (new := rule.simplify()) != rule:
+                print('Simplified to', repr(new))
+                rule = new
+            if not isinstance(rule, Nothing):
+                railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
+            #if name == 'import_from':
+            #    break
         file.write("</body></html>")
 
 
@@ -189,8 +328,7 @@ def main() -> None:
         print("ERROR: Failed to parse grammar file", file=sys.stderr)
         sys.exit(1)
 
-    data = convert_grammar(grammar)
-    generate_html(data)
+    generate_html(grammar)
 
 
 if __name__ == "__main__":
