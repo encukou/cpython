@@ -94,6 +94,16 @@ def simplify_adjacent_choices(*choices):
                 a,
                 Choice([Sequence(p), Sequence(q)]).simplify(),
             ])]
+        case Sequence([a]), Sequence([
+            Gather(
+                Sequence([Choice([Sequence([b]), *_])]),
+                _,
+            ),
+            Choice([*_, Sequence([])])
+        ]) if a == b:
+            # First arm is redundant.
+            # XXX This can reorder the choices.
+            return [choices[-1]]
         case Terminal("'.'") as dot, Terminal("'...'"):
             return [dot]
 
@@ -248,6 +258,9 @@ class Rule:
                 case Nonterminal(name) if name in rules:
                     rules[name].usages[self.name] += 1
 
+    def __str__(self):
+        return f'{self.name}::= {self.item}'
+
 def make_choice(nodes):
     alternatives = []
     for node in nodes:
@@ -338,7 +351,6 @@ def generate_html(rules):
             print(name)
             print('Node:', repr(rule.node))
             print('Rule:', rule)
-            rule.simplify()
             match rule:
                 case Sequence([]):
                     print('No output')
@@ -354,7 +366,7 @@ def generate_html(rules):
                     else:
                         file.write(f"<div>Unused!</div>")
                     railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
-            #if name == 'import_from':
+            #if name == 'slices':
             #    break
         file.write("</body></html>")
 
