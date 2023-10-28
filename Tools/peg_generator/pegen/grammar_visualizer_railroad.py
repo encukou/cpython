@@ -273,7 +273,36 @@ def convert_node(node):
 def generate_html(grammar):
     with open('output.html', 'w') as file:
         file.write("<html><head><style>")
-        file.write(railroad.DEFAULT_STYLE)
+        file.write("""
+            svg.railroad-diagram path {
+                stroke-width:3;
+                stroke:black;
+                fill: transparent;
+            }
+            svg.railroad-diagram text {
+                font:bold 14px monospace;
+                text-anchor:middle;
+            }
+            svg.railroad-diagram text.label{
+                text-anchor:start;
+            }
+            svg.railroad-diagram text.comment{
+                font:italic 12px monospace;
+            }
+            svg.railroad-diagram rect{
+                stroke-width:3;
+                stroke:black;
+                fill: #bbddff;
+            }
+            svg.railroad-diagram rect.group-box {
+                stroke: gray;
+                stroke-dasharray: 10 5;
+                fill: none;
+            }
+            svg.railroad-diagram .token rect {
+                fill: #ffffaa
+            }
+        """)
         file.write("</style><body>")
         for node in grammar:
             name = node.name
