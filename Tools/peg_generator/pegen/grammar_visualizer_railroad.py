@@ -2,6 +2,7 @@ import argparse
 import sys
 from typing import Any, Callable, Iterator
 import dataclasses
+from collections import Counter
 
 import railroad
 
@@ -18,13 +19,13 @@ railroad.INTERNAL_ALIGNMENT = 'left'
 class SkipChoice(Exception):
     """Raised to hide an entire choice"""
 
-class Data:
+class Item:
     simplified = False
     def simplify(self):
         return self
 
 @dataclasses.dataclass
-class Container(Data):
+class Container(Item):
     items: list
 
     def __iter__(self):
@@ -35,6 +36,11 @@ class Container(Data):
         if len(self.items) == 0:
             return Sequence([])
         return super().simplify()
+
+    def walk(self):
+        yield self
+        for item in self.items:
+            yield from item.walk()
 
 class Choice(Container):
     def as_railroad(self):
@@ -122,7 +128,7 @@ def simplify_adjacent_items(*items):
     pass
 
 @dataclasses.dataclass
-class Decorated(Data):
+class Decorated(Item):
     child: object
 
     def simplify(self):
@@ -133,6 +139,10 @@ class Decorated(Data):
         if new != self.child:
             return type(self)(new)
         return super().simplify()
+
+    def walk(self):
+        yield self
+        yield from self.child.walk()
 
 class Repeated(Decorated):
     def as_railroad(self):
@@ -150,8 +160,11 @@ class Repeated(Decorated):
         return f'{self.child}+'
 
 @dataclasses.dataclass
-class Leaf(Data):
+class Leaf(Item):
     value: str
+
+    def walk(self):
+        yield self
 
 class Nonterminal(Leaf):
     def as_railroad(self):
@@ -176,7 +189,7 @@ class Terminal(Leaf):
         return self.value
 
 @dataclasses.dataclass
-class Gather(Data):
+class Gather(Item):
     item: object
     separator: object
 
@@ -200,6 +213,40 @@ class Gather(Data):
                 if new_item != self.item or new_separator != self.separator:
                     return Gather(new_item, new_separator)
         return self
+
+    def walk(self):
+        yield self
+        yield from self.item.walk()
+        yield from self.separator.walk()
+
+class Rule:
+    item: Item
+    node: pegen.grammar.Rule
+    name: str
+    usages: Counter
+
+    def __init__(self, node):
+        self.item = convert_node(node)
+        self.node = node
+        self.name = node.name
+        self.usages = Counter()
+
+    def simplify(self):
+        while (new := self.item.simplify()) != self.item:
+            print('Simplified to', repr(new))
+            self.item = new
+
+    def as_railroad(self):
+        return self.item.as_railroad()
+
+    def reset_usages(self):
+        self.usages = Counter()
+
+    def fill_usages(self, rules):
+        for item in self.item.walk():
+            match item:
+                case Nonterminal(name) if name in rules:
+                    rules[name].usages[self.name] += 1
 
 def make_choice(nodes):
     alternatives = []
@@ -252,7 +299,7 @@ def convert_node(node):
         case _:
             raise TypeError(type(node))
 
-def generate_html(grammar):
+def generate_html(rules):
     with open('output.html', 'w') as file:
         file.write("<html><head><style>")
         file.write("""
@@ -286,24 +333,26 @@ def generate_html(grammar):
             }
         """)
         file.write("</style><body>")
-        for node in grammar:
-            name = node.name
-            if name.startswith('invalid_'):
-                continue
+        for name, rule in rules.items():
             print()
             print(name)
-            print('-', repr(node))
-            rule = convert_node(node)
-            print('Got', rule)
-            while (new := rule.simplify()) != rule:
-                print('Simplified to', repr(new))
-                rule = new
+            print('Node:', repr(rule.node))
+            print('Rule:', rule)
+            rule.simplify()
             match rule:
                 case Sequence([]):
                     print('No output')
                     pass
                 case _:
-                    file.write(f"<div><pre><code><b>{name}</b>: {node.rhs}</code></pre><div>")
+                    file.write(f"<div><pre><code><b>{name}</b>: {rule.node.rhs}</code></pre><div>")
+                    if rule.usages:
+                        usages = ', '.join(
+                            f'{name} ({count})'
+                            for name, count in rule.usages.most_common()
+                        )
+                        file.write(f"<div>Used in: {usages}</div>")
+                    else:
+                        file.write(f"<div>Unused!</div>")
                     railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
             #if name == 'import_from':
             #    break
@@ -319,7 +368,17 @@ def main() -> None:
         print("ERROR: Failed to parse grammar file", file=sys.stderr)
         sys.exit(1)
 
-    generate_html(grammar)
+    rules = {
+        node.name: Rule(node) for node in grammar
+        if not node.name.startswith('invalid_')
+    }
+    for rule in rules.values():
+        rule.simplify()
+        rule.reset_usages()
+    for rule in rules.values():
+        rule.fill_usages(rules)
+
+    generate_html(rules)
 
 
 if __name__ == "__main__":
