@@ -88,14 +88,6 @@ def simplify_adjacent_choices(*choices):
                 a,
                 Choice([Sequence(p), Sequence(q)]).simplify(),
             ])]
-        case a, Sequence([Gather(b, _), Optional()]) as x if a == b:
-            # First arm is redundant
-            # XXX This can reorder the choices
-            return [x]
-        case a, Sequence([Gather(Choice([b, *_]), _), Optional(_)]) as x if a == b:
-            # First arm is redundant
-            # XXX This can reorder the choices
-            return [x]
         case Terminal("'.'") as dot, Terminal("'...'"):
             return [dot]
 
@@ -142,27 +134,14 @@ class Decorated(Data):
             return type(self)(new)
         return super().simplify()
 
-class Optional(Decorated):
-    def as_railroad(self):
-        return railroad.Optional(self.child.as_railroad())
-
-    def simplify(self):
-        match self.child:
-            case Optional():
-                return self.child
-        return super().simplify()
-
-    def __str__(self):
-        return f'{self.child}?'
-
 class Repeated(Decorated):
     def as_railroad(self):
         return railroad.OneOrMore(self.child.as_railroad())
 
     def simplify(self):
         match self.child:
-            case Optional():
-                return Optional(Repeated(self.child))
+            #case Optional():
+            #    return Optional(Repeated(self.child))
             case Repeated():
                 return self.child
         return super().simplify()
@@ -231,6 +210,9 @@ def make_choice(nodes):
             continue
     return Choice(alternatives)
 
+def make_opt(item):
+    return Choice([Sequence([item]), Sequence([])])
+
 def convert_node(node):
     match node:
         case pegen.grammar.Rule():
@@ -242,9 +224,9 @@ def convert_node(node):
         case pegen.grammar.NamedItem():
             return convert_node(node.item)
         case pegen.grammar.Opt():
-            return Optional(convert_node(node.node))
+            return make_opt(convert_node(node.node))
         case pegen.grammar.Repeat0():
-            return Optional(Repeated(convert_node(node.node)))
+            return make_opt(Repeated(convert_node(node.node)))
         case pegen.grammar.Repeat1():
             return Repeated(convert_node(node.node))
         case pegen.grammar.NameLeaf():
