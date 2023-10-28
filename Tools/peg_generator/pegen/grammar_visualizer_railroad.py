@@ -23,9 +23,6 @@ class Data:
     def simplify(self):
         return self
 
-class Nothing(Data):
-    pass
-
 @dataclasses.dataclass
 class Container(Data):
     items: list
@@ -36,9 +33,7 @@ class Container(Data):
     def simplify(self):
         self.items = [i.simplify() for i in self.items]
         if len(self.items) == 0:
-            return Nothing()
-        if len(self.items) == 1:
-            return self.items[0]
+            return Sequence([])
         return super().simplify()
 
 class Choice(Container):
@@ -46,35 +41,36 @@ class Choice(Container):
         return railroad.Choice(0, *(n.as_railroad() for n in self))
 
     def simplify(self):
+        if len(self.items) == 1:
+            return self.items[0].simplify()
         new_items = []
         optional = False
         for item in self:
             item = item.simplify()
             match item:
-                case Nothing():
-                    # XXX This can reorder the choices
-                    optional = True
-                case Optional(inner):
-                    # XXX This can reorder the choices
-                    optional = True
-                    new_items.append(inner)
-                case Choice():
+                case Sequence([Choice()]):
                     new_items.extend(item)
-                case _:
+                case Sequence():
                     if new_items:
                         adj = simplify_adjacent_choices(new_items[-1], item)
                         if adj is not None:
                             new_items[-1:] = adj
                             continue
                     new_items.append(item)
+                case Choice(child_items):
+                    new_items.extend(child_items)
+                case _:
+                    raise ValueError((self, item, type(item)))
         if new_items != self.items:
             if optional:
                 return Optional(Choice(new_items)).simplify()
             return Choice(new_items).simplify()
+        if len(self.items) == 1:
+            return self.items[0]
         return super().simplify()
 
     def __str__(self):
-        return '(' + ' | '.join(str(x) for x in self) + ')'
+        return '(C:' + ' | '.join(str(x) for x in self) + ')'
 
 def simplify_adjacent_choices(*choices):
     match choices:
@@ -86,35 +82,11 @@ def simplify_adjacent_choices(*choices):
                 Choice([Sequence(p), Sequence(q)]).simplify(),
                 a,
             ])]
-        case a, Sequence([*q, b]) if a == b:
-            # Common tail element
-            return [Sequence([
-                Choice([Nothing(), Sequence(q)]).simplify(),
-                a,
-            ])]
-        case Sequence([*p, a]), b if a == b:
-            # Common tail element
-            return [Sequence([
-                Choice([Sequence(p), Nothing()]).simplify(),
-                a,
-            ])]
         case Sequence([a, *p]), Sequence([b, *q]) if a == b:
             # Common head element
             return [Sequence([
                 a,
                 Choice([Sequence(p), Sequence(q)]).simplify(),
-            ])]
-        case Sequence([a, *p]), b if a == b:
-            # Common head element
-            return [Sequence([
-                a,
-                Choice([Sequence(p), Nothing()]).simplify(),
-            ])]
-        case a, Sequence([b, *q]) if a == b:
-            # Common head element
-            return [Sequence([
-                a,
-                Choice([Nothing(), Sequence(q)]).simplify(),
             ])]
         case a, Sequence([Gather(b, _), Optional()]) as x if a == b:
             # First arm is redundant
@@ -129,14 +101,15 @@ def simplify_adjacent_choices(*choices):
 
 class Sequence(Container):
     def as_railroad(self):
-        return railroad.Sequence(*(n.as_railroad() for n in self))
+        if not self.items:
+            return railroad.Skip()
+        else:
+            return railroad.Sequence(*(n.as_railroad() for n in self))
 
     def simplify(self):
         new_items = []
         for item in self:
             match item:
-                case Nothing():
-                    pass
                 case Sequence():
                     new_items.extend(item)
                 case _:
@@ -151,7 +124,7 @@ class Sequence(Container):
         return super().simplify()
 
     def __str__(self):
-        return '(' + ' '.join(str(x) for x in self) + ')'
+        return '(S:' + ' '.join(str(x) for x in self) + ')'
 
 def simplify_adjacent_items(*items):
     pass
@@ -162,7 +135,7 @@ class Decorated(Data):
 
     def simplify(self):
         match self.child:
-            case Nothing():
+            case Sequence([]):
                 return self.child
         new = self.child.simplify()
         if new != self.child:
@@ -210,12 +183,15 @@ class Nonterminal(Leaf):
 
     def simplify(self):
         if self.value == 'TYPE_COMMENT':
-            return Nothing()
+            return Sequence([])
         return super().simplify()
 
 class Terminal(Leaf):
     def as_railroad(self):
-        return railroad.Terminal(self.value)
+        value = self.value
+        if value[0] in {'"', "'"} and not value[1:-1].isidentifier():
+            value = value[1:-1]
+        return railroad.Terminal(value, cls="token")
 
     def __str__(self):
         return self.value
@@ -235,11 +211,11 @@ class Gather(Data):
         new_item = self.item.simplify()
         new_separator = self.separator.simplify()
         match new_item, new_separator:
-            case Nothing(), Nothing():
-                return Nothing()
-            case _, Nothing():
+            case Sequence([]), Sequence([]):
+                return new_item
+            case _, Sequence([]):
                 return Repeated(new_item)
-            case Nothing(), _:
+            case Sequence([]), _:
                 return Optional(Repeated(new_separator))
             case _:
                 if new_item != self.item or new_separator != self.separator:
@@ -303,7 +279,6 @@ def generate_html(grammar):
             name = node.name
             if name.startswith('invalid_'):
                 continue
-            file.write(f"<div><pre><code><b>{name}</b>: {node.rhs}</code></pre><div>")
             print()
             print(name)
             print('-', repr(node))
@@ -312,8 +287,13 @@ def generate_html(grammar):
             while (new := rule.simplify()) != rule:
                 print('Simplified to', repr(new))
                 rule = new
-            if not isinstance(rule, Nothing):
-                railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
+            match rule:
+                case Sequence([]):
+                    print('No output')
+                    pass
+                case _:
+                    file.write(f"<div><pre><code><b>{name}</b>: {node.rhs}</code></pre><div>")
+                    railroad.Diagram(rule.as_railroad()).writeSvg(file.write)
             #if name == 'import_from':
             #    break
         file.write("</body></html>")
