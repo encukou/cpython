@@ -21,7 +21,7 @@ class SkipChoice(Exception):
 
 class Item:
     simplified = False
-    def simplify(self):
+    def simplified(self):
         return self
 
 @dataclasses.dataclass
@@ -31,34 +31,34 @@ class Container(Item):
     def __iter__(self):
         yield from self.items
 
-    def simplify(self):
-        self.items = [i.simplify() for i in self.items]
+    def simplified(self):
+        self.items = [i.simplified() for i in self.items]
         if len(self.items) == 0:
             return Sequence([])
-        return super().simplify()
+        return super().simplified()
 
     def walk(self):
         yield self
-        for item in self.items:
+        for item in self:
             yield from item.walk()
 
 class Choice(Container):
     def as_railroad(self):
         return railroad.Choice(0, *(n.as_railroad() for n in self))
 
-    def simplify(self):
+    def simplified(self):
         if len(self.items) == 1:
-            return self.items[0].simplify()
+            return self.items[0].simplified()
         new_items = []
         optional = False
         for item in self:
-            item = item.simplify()
+            item = item.simplified()
             match item:
                 case Sequence([Choice()]):
                     new_items.extend(item)
                 case Sequence():
                     if new_items:
-                        adj = simplify_adjacent_choices(new_items[-1], item)
+                        adj = simplified_adjacent_choices(new_items[-1], item)
                         if adj is not None:
                             new_items[-1:] = adj
                             continue
@@ -69,30 +69,30 @@ class Choice(Container):
                     raise ValueError((self, item, type(item)))
         if new_items != self.items:
             if optional:
-                return Optional(Choice(new_items)).simplify()
-            return Choice(new_items).simplify()
+                return Optional(Choice(new_items)).simplified()
+            return Choice(new_items).simplified()
         if len(self.items) == 1:
             return self.items[0]
-        return super().simplify()
+        return super().simplified()
 
     def __str__(self):
         return '(C:' + ' | '.join(str(x) for x in self) + ')'
 
-def simplify_adjacent_choices(*choices):
+def simplified_adjacent_choices(*choices):
     match choices:
         case a, b if a == b:
             return [a]
         case Sequence([*p, a]), Sequence([*q, b]) if a == b:
             # Common tail element
             return [Sequence([
-                Choice([Sequence(p), Sequence(q)]).simplify(),
+                Choice([Sequence(p), Sequence(q)]).simplified(),
                 a,
             ])]
         case Sequence([a, *p]), Sequence([b, *q]) if a == b:
             # Common head element
             return [Sequence([
                 a,
-                Choice([Sequence(p), Sequence(q)]).simplify(),
+                Choice([Sequence(p), Sequence(q)]).simplified(),
             ])]
         case Sequence([a]), Sequence([
             Gather(
@@ -114,7 +114,7 @@ class Sequence(Container):
         else:
             return railroad.Sequence(*(n.as_railroad() for n in self))
 
-    def simplify(self):
+    def simplified(self):
         new_items = []
         for item in self:
             match item:
@@ -122,33 +122,33 @@ class Sequence(Container):
                     new_items.extend(item)
                 case _:
                     if new_items:
-                        adj = simplify_adjacent_items(new_items[-1], item)
+                        adj = simplified_adjacent_items(new_items[-1], item)
                         if adj:
                             new_items[-1:] = adj
                             continue
-                    new_items.append(item.simplify())
+                    new_items.append(item.simplified())
         if new_items != self.items:
-            return Sequence(new_items).simplify()
-        return super().simplify()
+            return Sequence(new_items).simplified()
+        return super().simplified()
 
     def __str__(self):
         return '(S:' + ' '.join(str(x) for x in self) + ')'
 
-def simplify_adjacent_items(*items):
+def simplified_adjacent_items(*items):
     pass
 
 @dataclasses.dataclass
 class Decorated(Item):
     child: object
 
-    def simplify(self):
+    def simplified(self):
         match self.child:
             case Sequence([]):
                 return self.child
-        new = self.child.simplify()
+        new = self.child.simplified()
         if new != self.child:
             return type(self)(new)
-        return super().simplify()
+        return super().simplified()
 
     def walk(self):
         yield self
@@ -158,13 +158,13 @@ class Repeated(Decorated):
     def as_railroad(self):
         return railroad.OneOrMore(self.child.as_railroad())
 
-    def simplify(self):
+    def simplified(self):
         match self.child:
             #case Optional():
             #    return Optional(Repeated(self.child))
             case Repeated():
                 return self.child
-        return super().simplify()
+        return super().simplified()
 
     def __str__(self):
         return f'{self.child}+'
@@ -183,10 +183,10 @@ class Nonterminal(Leaf):
     def __str__(self):
         return self.value
 
-    def simplify(self):
+    def simplified(self):
         if self.value == 'TYPE_COMMENT':
             return Sequence([])
-        return super().simplify()
+        return super().simplified()
 
 class Terminal(Leaf):
     def as_railroad(self):
@@ -209,9 +209,9 @@ class Gather(Item):
     def __str__(self):
         return f'{self.separator}.{self.item}'
 
-    def simplify(self):
-        new_item = self.item.simplify()
-        new_separator = self.separator.simplify()
+    def simplified(self):
+        new_item = self.item.simplified()
+        new_separator = self.separator.simplified()
         match new_item, new_separator:
             case Sequence([]), Sequence([]):
                 return new_item
@@ -242,7 +242,7 @@ class Rule:
         self.usages = Counter()
 
     def simplify(self):
-        while (new := self.item.simplify()) != self.item:
+        while (new := self.item.simplified()) != self.item:
             print('Simplified to', repr(new))
             self.item = new
 
