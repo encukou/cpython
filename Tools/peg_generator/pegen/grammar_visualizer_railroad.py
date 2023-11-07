@@ -258,6 +258,7 @@ class Rule:
         self.node = node
         self.name = node.name
         self.usages = Counter()
+        self.inlines = []
 
     def simplify(self):
         while (new := self.item.simplified()) != self.item:
@@ -266,6 +267,8 @@ class Rule:
 
     def inline(self, rule):
         self.item = self.item.inlined(rule)
+        self.inlines.append(rule)
+        self.inlines.extend(rule.inlines)
 
     def as_railroad(self):
         return self.item.as_railroad()
@@ -377,7 +380,10 @@ def generate_html(rules):
                     print('No output')
                     pass
                 case _:
-                    file.write(f"<div><pre><code><b>{name}</b>: {rule.node.rhs}</code></pre><div>")
+                    file.write(f"<div><pre><code><b>{name}</b>: {rule.node.rhs}")
+                    for inline in rule.inlines:
+                        file.write(f"<br>  <b>{inline.name}</b>: {inline.node.rhs}")
+                    file.write("</code></pre><div>")
                     if rule.usages:
                         usages = ', '.join(
                             f'{name} ({count})'
@@ -405,21 +411,28 @@ def main() -> None:
         node.name: Rule(node) for node in grammar
         if not node.name.startswith('invalid_')
     }
-    for rule in rules.values():
-        rule.simplify()
-        rule.reset_usages()
-    for rule in rules.values():
-        rule.fill_usages(rules)
-    for rule in list(rules.values()):
-        if len(rule.usages) == 1:
-            parent_name = rule.usages.most_common()[0][0]
-            try:
-                parent_rule = rules[parent_name]
-            except KeyError:
-                pass
-            else:
-                parent_rule.inline(rule)
-                del rules[rule.name]
+    changed = True
+    while changed:
+        changed = False
+        for rule in rules.values():
+            rule.simplify()
+            rule.reset_usages()
+        for rule in rules.values():
+            rule.fill_usages(rules)
+        for rule in list(rules.values()):
+            if len(rule.usages) == 1:
+                parent_name, count = rule.usages.most_common()[0]
+                if count > 1 or parent_name == rule.name:
+                    continue
+                try:
+                    parent_rule = rules[parent_name]
+                except KeyError:
+                    pass
+                else:
+                    parent_rule.inline(rule)
+                    del rules[rule.name]
+                    print(f'Inlined {rule.name} into {parent_rule.name}')
+                    changed = True
 
     generate_html(rules)
 
