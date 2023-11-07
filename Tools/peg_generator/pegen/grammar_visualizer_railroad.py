@@ -42,6 +42,9 @@ class Container(Item):
         for item in self:
             yield from item.walk()
 
+    def inlined(self, rule):
+        return type(self)([item.inlined(rule) for item in self])
+
 class Choice(Container):
     def as_railroad(self):
         return railroad.Choice(0, *(n.as_railroad() for n in self))
@@ -154,6 +157,9 @@ class Decorated(Item):
         yield self
         yield from self.child.walk()
 
+    def inlined(self, rule):
+        return type(self)(self.child.inlined(rule))
+
 class Repeated(Decorated):
     def as_railroad(self):
         return railroad.OneOrMore(self.child.as_railroad())
@@ -176,6 +182,9 @@ class Leaf(Item):
     def walk(self):
         yield self
 
+    def inlined(self, rule):
+        return self
+
 class Nonterminal(Leaf):
     def as_railroad(self):
         return railroad.NonTerminal(self.value)
@@ -187,6 +196,12 @@ class Nonterminal(Leaf):
         if self.value == 'TYPE_COMMENT':
             return Sequence([])
         return super().simplified()
+
+    def inlined(self, rule):
+        if self.value == rule.name:
+            return rule.item
+        else:
+            return self
 
 class Terminal(Leaf):
     def as_railroad(self):
@@ -229,6 +244,9 @@ class Gather(Item):
         yield from self.item.walk()
         yield from self.separator.walk()
 
+    def inlined(self, rule):
+        return Gather(self.item.inlined(rule), self.separator.inlined(rule))
+
 class Rule:
     item: Item
     node: pegen.grammar.Rule
@@ -245,6 +263,9 @@ class Rule:
         while (new := self.item.simplified()) != self.item:
             print('Simplified to', repr(new))
             self.item = new
+
+    def inline(self, rule):
+        self.item = self.item.inlined(rule)
 
     def as_railroad(self):
         return self.item.as_railroad()
@@ -389,6 +410,16 @@ def main() -> None:
         rule.reset_usages()
     for rule in rules.values():
         rule.fill_usages(rules)
+    for rule in list(rules.values()):
+        if len(rule.usages) == 1:
+            parent_name = rule.usages.most_common()[0][0]
+            try:
+                parent_rule = rules[parent_name]
+            except KeyError:
+                pass
+            else:
+                parent_rule.inline(rule)
+                del rules[rule.name]
 
     generate_html(rules)
 
