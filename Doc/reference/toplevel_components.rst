@@ -69,6 +69,8 @@ All input read from non-interactive files has the same form:
 .. productionlist:: python-grammar
    file_input: (NEWLINE | `statement`)*
 
+.. peg-fragment:: file_input
+
 This syntax is used in the following situations:
 
 * when parsing a complete Python program (from a file or from a string);

@@ -20,6 +20,7 @@ extensions = [
     'glossary_search',
     'peg_highlight',
     'pyspecific',
+    'peg_fragment',
     'sphinx.ext.coverage',
     'sphinx.ext.doctest',
 ]
