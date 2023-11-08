@@ -84,7 +84,7 @@ static char *soft_keywords[] = {
     "type",
     NULL,
 };
-#define file_type 1000
+#define file_input_type 1000
 #define interactive_type 1001
 #define eval_type 1002
 #define func_type_type 1003
@@ -611,7 +611,7 @@ static char *soft_keywords[] = {
 #define _tmp_280_type 1524
 #define _tmp_281_type 1525
 
-static mod_ty file_rule(Parser *p);
+static mod_ty file_input_rule(Parser *p);
 static mod_ty interactive_rule(Parser *p);
 static mod_ty eval_rule(Parser *p);
 static mod_ty func_type_rule(Parser *p);
@@ -1139,9 +1139,9 @@ static void *_tmp_280_rule(Parser *p);
 static void *_tmp_281_rule(Parser *p);
 
 
-// file: statements? $
+// file_input: statements? $
 static mod_ty
-file_rule(Parser *p)
+file_input_rule(Parser *p)
 {
     if (p->level++ == MAXSTACK) {
         _Pypegen_stack_overflow(p);
@@ -1157,7 +1157,7 @@ file_rule(Parser *p)
             p->level--;
             return NULL;
         }
-        D(fprintf(stderr, "%*c> file[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "statements? $"));
+        D(fprintf(stderr, "%*c> file_input[%d-%d]: %s\n", p->level, ' ', _mark, p->mark, "statements? $"));
         void *a;
         Token * endmarker_var;
         if (
@@ -1166,7 +1166,7 @@ file_rule(Parser *p)
             (endmarker_var = _PyPegen_expect_token(p, ENDMARKER))  // token='ENDMARKER'
         )
         {
-            D(fprintf(stderr, "%*c+ file[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "statements? $"));
+            D(fprintf(stderr, "%*c+ file_input[%d-%d]: %s succeeded!\n", p->level, ' ', _mark, p->mark, "statements? $"));
             _res = _PyPegen_make_module ( p , a );
             if (_res == NULL && PyErr_Occurred()) {
                 p->error_indicator = 1;
@@ -1176,7 +1176,7 @@ file_rule(Parser *p)
             goto done;
         }
         p->mark = _mark;
-        D(fprintf(stderr, "%*c%s file[%d-%d]: %s failed!\n", p->level, ' ',
+        D(fprintf(stderr, "%*c%s file_input[%d-%d]: %s failed!\n", p->level, ' ',
                   p->error_indicator ? "ERROR!" : "-", _mark, p->mark, "statements? $"));
     }
     _res = NULL;
@@ -41837,7 +41837,7 @@ _PyPegen_parse(Parser *p)
     // Run parser
     void *result = NULL;
     if (p->start_rule == Py_file_input) {
-        result = file_rule(p);
+        result = file_input_rule(p);
     } else if (p->start_rule == Py_single_input) {
         result = interactive_rule(p);
     } else if (p->start_rule == Py_eval_input) {
