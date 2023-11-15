@@ -30,6 +30,7 @@ simple statements is:
               : | `nonlocal_stmt`
               : | `type_stmt`
 
+.. peg-fragment:: simple_stmts
 
 .. _exprstmts:
 
@@ -93,6 +94,8 @@ attributes or items of mutable objects:
          : | `subscription`
          : | `slicing`
          : | "*" `target`
+
+.. peg-fragment:: assignment
 
 (See section :ref:`primaries` for the syntax definitions for *attributeref*,
 *subscription*, and *slicing*.)
@@ -285,6 +288,8 @@ operation and an assignment statement:
    augop: "+=" | "-=" | "*=" | "@=" | "/=" | "//=" | "%=" | "**="
         : | ">>=" | "<<=" | "&=" | "^=" | "|="
 
+.. peg-fragment:: augassign
+
 (See section :ref:`primaries` for the syntax definitions of the last three
 symbols.)
 
@@ -330,6 +335,8 @@ statement, of a variable or attribute annotation and an optional assignment stat
 .. productionlist:: python-grammar
    annotated_assignment_stmt: `augtarget` ":" `expression`
                             : ["=" (`starred_expression` | `yield_expression`)]
+
+.. peg-fragment:: annotated_rhs
 
 The difference from normal :ref:`assignment` is that only a single target is allowed.
 
@@ -386,6 +393,8 @@ program:
 
 .. productionlist:: python-grammar
    assert_stmt: "assert" `expression` ["," `expression`]
+
+.. peg-fragment:: assert_stmt
 
 The simple form, ``assert expression``, is equivalent to ::
 
@@ -449,6 +458,8 @@ The :keyword:`!del` statement
 .. productionlist:: python-grammar
    del_stmt: "del" `target_list`
 
+.. peg-fragment:: del_stmt
+
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
 
@@ -487,6 +498,8 @@ The :keyword:`!return` statement
 
 .. productionlist:: python-grammar
    return_stmt: "return" [`expression_list`]
+
+.. peg-fragment:: return_stmt
 
 :keyword:`return` may only occur syntactically nested in a function definition,
 not within a nested class definition.
@@ -527,6 +540,8 @@ The :keyword:`!yield` statement
 .. productionlist:: python-grammar
    yield_stmt: `yield_expression`
 
+.. peg-fragment:: yield_stmt
+
 A :keyword:`yield` statement is semantically equivalent to a :ref:`yield
 expression <yieldexpr>`. The yield statement can be used to omit the parentheses
 that would otherwise be required in the equivalent yield expression
@@ -561,6 +576,8 @@ The :keyword:`!raise` statement
 
 .. productionlist:: python-grammar
    raise_stmt: "raise" [`expression` ["from" `expression`]]
+
+.. peg-fragment:: raise_stmt
 
 If no expressions are present, :keyword:`raise` re-raises the
 exception that is currently being handled, which is also known as the *active exception*.
@@ -756,6 +773,8 @@ The :keyword:`!import` statement
               : | "from" `relative_module` "import" "*"
    module: (`identifier` ".")* `identifier`
    relative_module: "."* `module` | "."+
+
+.. peg-fragment:: import_stmt
 
 The basic import statement (no :keyword:`from` clause) is executed in two
 steps:
@@ -962,6 +981,8 @@ The :keyword:`!global` statement
 .. productionlist:: python-grammar
    global_stmt: "global" `identifier` ("," `identifier`)*
 
+.. peg-fragment:: global_stmt
+
 The :keyword:`global` statement is a declaration which holds for the entire
 current code block.  It means that the listed identifiers are to be interpreted
 as globals.  It would be impossible to assign to a global variable without
@@ -1007,6 +1028,8 @@ The :keyword:`!nonlocal` statement
 .. productionlist:: python-grammar
    nonlocal_stmt: "nonlocal" `identifier` ("," `identifier`)*
 
+.. peg-fragment:: nonlocal_stmt
+
 The :keyword:`nonlocal` statement causes the listed identifiers to refer to
 previously bound variables in the nearest enclosing scope excluding globals.
 This is important because the default behavior for binding is to search the
@@ -1035,6 +1058,8 @@ The :keyword:`!type` statement
 
 .. productionlist:: python-grammar
    type_stmt: 'type' `identifier` [`type_params`] "=" `expression`
+
+.. peg-fragment:: type_alias
 
 The :keyword:`!type` statement declares a type alias, which is an instance
 of :class:`typing.TypeAliasType`.

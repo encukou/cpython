@@ -2,3 +2,45 @@ file_input
 interactive_input
 eval_input
 compound_stmt
+if_stmt
+while_stmt
+for_stmt
+try_stmt
+with_stmt
+match_stmt
+guard
+patterns
+or_pattern
+as_pattern
+literal_pattern
+capture_pattern
+wildcard_pattern
+value_pattern
+group_pattern
+sequence_pattern
+mapping_pattern
+class_pattern
+function_def
+class_def
+# !!! async_function_def
+# !!! async_for_stmt
+# !!! async_with_stmt
+type_params
+simple_stmts
+assignment
+expression
+augassign
+annotated_rhs
+assert_stmt
+# !!! pass
+del_stmt
+return_stmt
+yield_stmt
+raise_stmt
+# !!! break
+# !!! continue
+import_stmt
+# !!! future_stmt
+global_stmt
+nonlocal_stmt
+type_alias

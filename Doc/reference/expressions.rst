@@ -1814,6 +1814,8 @@ Conditional expressions
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
    expression: `conditional_expression` | `lambda_expr`
 
+.. peg-fragment:: expression
+
 Conditional expressions (sometimes called a "ternary operator") have the lowest
 priority of all Python operations.
 

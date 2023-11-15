@@ -98,6 +98,8 @@ The :keyword:`if` statement is used for conditional execution:
           : ("elif" `assignment_expression` ":" `suite`)*
           : ["else" ":" `suite`]
 
+.. peg-fragment:: if_stmt
+
 It selects exactly one of the suites by evaluating the expressions one by one
 until one is found to be true (see section :ref:`booleans` for the definition of
 true and false); then that suite is executed (and no other part of the
@@ -122,6 +124,8 @@ expression is true:
 .. productionlist:: python-grammar
    while_stmt: "while" `assignment_expression` ":" `suite`
              : ["else" ":" `suite`]
+
+.. peg-fragment:: while_stmt
 
 This repeatedly tests the expression and, if it is true, executes the first
 suite; if the expression is false (which may be the first time it is tested) the
@@ -158,6 +162,8 @@ The :keyword:`for` statement is used to iterate over the elements of a sequence
 .. productionlist:: python-grammar
    for_stmt: "for" `target_list` "in" `starred_list` ":" `suite`
            : ["else" ":" `suite`]
+
+.. peg-fragment:: for_stmt
 
 The ``starred_list`` expression is evaluated once; it should yield an
 :term:`iterable` object.  An :term:`iterator` is created for that iterable.
@@ -229,6 +235,8 @@ for a group of statements:
             : ["finally" ":" `suite`]
    try3_stmt: "try" ":" `suite`
             : "finally" ":" `suite`
+
+.. peg-fragment:: try_stmt
 
 Additional information on exceptions can be found in section :ref:`exceptions`,
 and information on using the :keyword:`raise` statement to generate exceptions
@@ -486,6 +494,8 @@ usage patterns to be encapsulated for convenient reuse.
    with_stmt_contents: `with_item` ("," `with_item`)*
    with_item: `expression` ["as" `target`]
 
+.. peg-fragment:: with_stmt
+
 The execution of the :keyword:`with` statement with one "item" proceeds as follows:
 
 #. The context expression (the expression given in the
@@ -606,6 +616,8 @@ The match statement is used for pattern matching.  Syntax:
                : | `named_expression`
    case_block: 'case' `patterns` [`guard`] ":" `block`
 
+.. peg-fragment:: match_stmt
+
 .. note::
    This section uses single quotes to denote
    :ref:`soft keywords <soft-keywords>`.
@@ -695,6 +707,8 @@ Guards
 .. productionlist:: python-grammar
    guard: "if" `named_expression`
 
+.. peg-fragment:: guard
+
 A ``guard`` (which is part of the ``case``) must succeed for code inside
 the ``case`` block to execute.  It takes the form: :keyword:`if` followed by an
 expression.
@@ -779,6 +793,8 @@ The top-level syntax for ``patterns`` is:
                  : | `mapping_pattern`
                  : | `class_pattern`
 
+.. peg-fragment:: patterns
+
 The descriptions below will include a description "in simple terms" of what a pattern
 does for illustration purposes (credits to Raymond Hettinger for a document that
 inspired most of the descriptions). Note that these descriptions are purely for
@@ -796,6 +812,8 @@ bars ``|``.  Syntax:
 
 .. productionlist:: python-grammar
    or_pattern: "|".`closed_pattern`+
+
+.. peg-fragment:: or_pattern
 
 Only the final subpattern may be :ref:`irrefutable <irrefutable_case>`, and each
 subpattern must bind the same set of names to avoid ambiguity.
@@ -817,6 +835,8 @@ keyword against a subject.  Syntax:
 
 .. productionlist:: python-grammar
    as_pattern: `or_pattern` "as" `capture_pattern`
+
+.. peg-fragment:: as_pattern
 
 If the OR pattern fails, the AS pattern fails.  Otherwise, the AS pattern binds
 the subject to the name on the right of the as keyword and succeeds.
@@ -844,6 +864,8 @@ A literal pattern corresponds to most
                   : | "False"
                   : | `signed_number`: NUMBER | "-" NUMBER
 
+.. peg-fragment:: literal_pattern
+
 The rule ``strings`` and the token ``NUMBER`` are defined in the
 :doc:`standard Python grammar <./grammar>`.  Triple-quoted strings are
 supported.  Raw strings and byte strings are supported.  :ref:`f-strings` are
@@ -866,6 +888,8 @@ Syntax:
 
 .. productionlist:: python-grammar
    capture_pattern: !'_' NAME
+
+.. peg-fragment:: capture_pattern
 
 A single underscore ``_`` is not a capture pattern (this is what ``!'_'``
 expresses). It is instead treated as a
@@ -892,6 +916,8 @@ and binds no name.  Syntax:
 .. productionlist:: python-grammar
    wildcard_pattern: '_'
 
+.. peg-fragment:: wildcard_pattern
+
 ``_`` is a :ref:`soft keyword <soft-keywords>` within any pattern,
 but only within patterns.  It is an identifier, as usual, even within
 ``match`` subject expressions, ``guard``\ s, and ``case`` blocks.
@@ -910,6 +936,8 @@ Syntax:
    value_pattern: `attr`
    attr: `name_or_attr` "." NAME
    name_or_attr: `attr` | NAME
+
+.. peg-fragment:: value_pattern
 
 The dotted name in the pattern is looked up using standard Python
 :ref:`name resolution rules <resolve_names>`.  The pattern succeeds if the
@@ -937,6 +965,8 @@ Syntax:
 .. productionlist:: python-grammar
    group_pattern: "(" `pattern` ")"
 
+.. peg-fragment:: group_pattern
+
 In simple terms ``(P)`` has the same effect as ``P``.
 
 .. _sequence-patterns:
@@ -954,6 +984,8 @@ The syntax is similar to the unpacking of a list or tuple.
   maybe_sequence_pattern: ",".`maybe_star_pattern`+ ","?
   maybe_star_pattern: `star_pattern` | `pattern`
   star_pattern: "*" (`capture_pattern` | `wildcard_pattern`)
+
+.. peg-fragment:: sequence_pattern
 
 There is no difference if parentheses  or square brackets
 are used for sequence patterns (i.e. ``(...)`` vs ``[...]`` ).
@@ -1037,6 +1069,8 @@ Syntax:
                     : | `double_star_pattern`
    double_star_pattern: "**" `capture_pattern`
 
+.. peg-fragment:: mapping_pattern
+
 At most one double star pattern may be in a mapping pattern.  The double star
 pattern must be the last subpattern in the mapping pattern.
 
@@ -1086,6 +1120,8 @@ A class pattern represents a class and its positional and keyword arguments
   positional_patterns: ",".`pattern`+
   keyword_patterns: ",".`keyword_pattern`+
   keyword_pattern: NAME "=" `pattern`
+
+.. peg-fragment:: class_pattern
 
 The same keyword should not be repeated in class patterns.
 
@@ -1223,6 +1259,8 @@ A function definition defines a user-defined function object (see section
    parameter: `identifier` [":" `expression`]
    defparameter: `parameter` ["=" `expression`]
    funcname: `identifier`
+
+.. peg-fragment:: function_def
 
 
 A function definition is an executable statement.  Its execution binds the
@@ -1398,6 +1436,8 @@ A class definition defines a class object (see section :ref:`types`):
    classdef: [`decorators`] "class" `classname` [`type_params`] [`inheritance`] ":" `suite`
    inheritance: "(" [`argument_list`] ")"
    classname: `identifier`
+
+.. peg-fragment:: class_def
 
 A class definition is an executable statement.  The inheritance list usually
 gives a list of base classes (see :ref:`metaclasses` for more advanced uses), so
@@ -1631,6 +1671,8 @@ Type parameter lists
    typevar: `identifier` (":" `expression`)?
    typevartuple: "*" `identifier`
    paramspec: "**" `identifier`
+
+.. peg-fragment:: type_params
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may
