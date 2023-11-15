@@ -23,12 +23,14 @@ def generate_all_descendants(node):
         else:
             yield from generate_all_descendants(value)
 
-def generate_related_rules(node, rules, top_level_rule_names, visited):
-    if node in visited:
+def generate_related_rules(rule, rules, top_level_rule_names, visited):
+    if rule in visited:
         return []
-    visited.add(node)
-    result = [str(node)]
-    for descendant in generate_all_descendants(node):
+    visited.add(rule)
+    result = [
+        (rule.name, str(rule.rhs))
+    ]
+    for descendant in generate_all_descendants(rule):
         match descendant:
             case pegen.grammar.NameLeaf():
                 if descendant.value in rules and descendant.value not in top_level_rule_names:
@@ -65,7 +67,12 @@ def main() -> None:
         sys.exit(1)
 
     with open(args.fragments_filename) as file:
-        top_level_rule_names = [line.strip() for line in file]
+        top_level_rule_names = []
+        for line in file:
+            # Remove comments (`#` and anything after it) & whitespace
+            line = line.partition('#')[0].strip()
+            if line:
+                top_level_rule_names.append(line)
 
     result = generate_data(grammar, top_level_rule_names)
     with open(args.output_filename, 'w') as output_file:

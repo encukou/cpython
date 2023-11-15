@@ -27,13 +27,13 @@ def init_peg_fragments(app):
             except KeyError:
                 raise LookupError(f'grammar rule {rule_name} not found in {app.config.peg_data_file}')
             productions = []
-            for line in rule_data:
+            for name, rhs in rule_data:
                 productions.append(production(
                     '',
                     '',
-                    nodes.Text(line),
-                    tokenname=rule_name,
-                    ids=[f'peg-python-grammar-{rule_name}'],
+                    nodes.Text(rhs),
+                    tokenname=name,
+                    ids=[f'peg-python-grammar-{name}'],
                 ))
             return [
                 productionlist(
