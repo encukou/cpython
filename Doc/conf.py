@@ -494,6 +494,7 @@ linkcheck_ignore = [
 # Relative filename of the data files
 refcount_file = 'data/refcounts.dat'
 stable_abi_file = 'data/stable_abi.dat'
+peg_data_file = 'data/peg_data.json'
 
 # sphinxext-opengraph config
 ogp_site_url = 'https://docs.python.org/3/'
