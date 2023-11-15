@@ -1,5 +1,4 @@
 file_input
-interactive
-eval
-statement
-function_def
+interactive_input
+eval_input
+compound_stmt

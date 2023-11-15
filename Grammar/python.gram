@@ -84,8 +84,8 @@ _PyPegen_parse(Parser *p)
 # ==============
 
 file_input[mod_ty]: a=[statements] ENDMARKER { _PyPegen_make_module(p, a) }
-interactive[mod_ty]: a=statement_newline { _PyAST_Interactive(a, p->arena) }
-eval[mod_ty]: a=expressions NEWLINE* ENDMARKER { _PyAST_Expression(a, p->arena) }
+interactive_input[mod_ty]: a=statement_newline { _PyAST_Interactive(a, p->arena) }
+eval_input[mod_ty]: a=expressions NEWLINE* ENDMARKER { _PyAST_Expression(a, p->arena) }
 func_type[mod_ty]: '(' a=[type_expressions] ')' '->' b=expression NEWLINE* ENDMARKER { _PyAST_FunctionType(a, b, p->arena) }
 
 # GENERAL STATEMENTS
