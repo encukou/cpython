@@ -21,11 +21,13 @@ def init_peg_fragments(app):
         }
 
         def run(self):
-            rule_name = self.arguments[0]
-            try:
-                rule_data = peg_data[rule_name]
-            except KeyError:
-                raise LookupError(f'grammar rule {rule_name} not found in {app.config.peg_data_file}')
+            rule_names = self.arguments[0].split()
+            rule_data = []
+            for rule_name in rule_names:
+                try:
+                    rule_data.extend(peg_data[rule_name])
+                except KeyError:
+                    raise LookupError(f'grammar rule {rule_name} not found in {app.config.peg_data_file}')
             productions = []
             for name, rhs in rule_data:
                 productions.append(production(

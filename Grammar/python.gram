@@ -672,9 +672,12 @@ expressions[expr_ty]:
 expression[expr_ty] (memo):
     | invalid_expression
     | invalid_legacy_expression
-    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+    | conditional_expr
     | disjunction
     | lambdef
+
+conditional_expression[expr_ty]:
+    | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
 
 yield_expr[expr_ty]:
     | 'yield' 'from' a=expression { _PyAST_YieldFrom(a, EXTRA) }
@@ -816,23 +819,36 @@ await_primary[expr_ty] (memo):
     | primary
 
 primary[expr_ty]:
-    | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+    | attributeref
     | a=primary b=genexp { _PyAST_Call(a, CHECK(asdl_expr_seq*, (asdl_expr_seq*)_PyPegen_singleton_seq(p, b)), NULL, EXTRA) }
+    | call
+    | subscription
+    | atom
+
+attributeref[expr_ty]:
+    | a=primary '.' b=NAME { _PyAST_Attribute(a, b->v.Name.id, Load, EXTRA) }
+
+call[expr_ty]:
     | a=primary '(' b=[arguments] ')' {
         _PyAST_Call(a,
                  (b) ? ((expr_ty) b)->v.Call.args : NULL,
                  (b) ? ((expr_ty) b)->v.Call.keywords : NULL,
                  EXTRA) }
+
+subscription[expr_ty]:
     | a=primary '[' b=slices ']' { _PyAST_Subscript(a, b, Load, EXTRA) }
-    | atom
 
 slices[expr_ty]:
-    | a=slice !',' { a }
-    | a[asdl_expr_seq*]=','.(slice | starred_expression)+ [','] { _PyAST_Tuple(a, Load, EXTRA) }
+    | a=expr_or_slice !',' { a }
+    | a[asdl_expr_seq*]=','.(expr_or_slice | starred_expression)+ [','] { _PyAST_Tuple(a, Load, EXTRA) }
+
+expr_or_slice[expr_ty]:
+    | slice
+    | a=named_expression { a }
+
 
 slice[expr_ty]:
     | a=[expression] ':' b=[expression] c=[':' d=[expression] { d }] { _PyAST_Slice(a, b, c, EXTRA) }
-    | a=named_expression { a }
 
 atom[expr_ty]:
     | NAME

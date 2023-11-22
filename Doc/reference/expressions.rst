@@ -59,6 +59,8 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    enclosure: `parenth_form` | `list_display` | `dict_display` | `set_display`
             : | `generator_expression` | `yield_atom`
 
+.. peg-fragment:: atom
+
 
 .. _atom-identifiers:
 
@@ -109,6 +111,8 @@ Python supports string and bytes literals and various numeric literals:
    literal: `stringliteral` | `bytesliteral`
           : | `integer` | `floatnumber` | `imagnumber`
 
+.. peg-fragment:: literal_expr
+
 Evaluation of a literal yields an object of the given type (string, bytes,
 integer, floating point number, complex number) with the given value.  The value
 may be approximated in the case of floating point and imaginary (complex)
@@ -138,6 +142,8 @@ A parenthesized form is an optional expression list enclosed in parentheses:
 
 .. productionlist:: python-grammar
    parenth_form: "(" [`starred_expression`] ")"
+
+.. peg-fragment:: group
 
 A parenthesized expression list yields whatever that expression list yields: if
 the list contains at least one comma, it yields a tuple; otherwise, it yields
@@ -186,6 +192,8 @@ Common syntax elements for comprehensions are:
    comp_for: ["async"] "for" `target_list` "in" `or_test` [`comp_iter`]
    comp_iter: `comp_for` | `comp_if`
    comp_if: "if" `or_test` [`comp_iter`]
+
+.. peg-fragment:: for_if_clauses
 
 The comprehension consists of a single expression followed by at least one
 :keyword:`!for` clause and zero or more :keyword:`!for` or :keyword:`!if` clauses.
@@ -255,6 +263,8 @@ brackets:
 .. productionlist:: python-grammar
    list_display: "[" [`starred_list` | `comprehension`] "]"
 
+.. peg-fragment:: list listcomp
+
 A list display yields a new list object, the contents being specified by either
 a list of expressions or a comprehension.  When a comma-separated list of
 expressions is supplied, its elements are evaluated from left to right and
@@ -279,6 +289,8 @@ displays by the lack of colons separating keys and values:
 
 .. productionlist:: python-grammar
    set_display: "{" (`starred_list` | `comprehension`) "}"
+
+.. peg-fragment:: set setcomp
 
 A set display yields a new mutable set object, the contents being specified by
 either a sequence of expressions or a comprehension.  When a comma-separated
@@ -312,6 +324,8 @@ enclosed in curly braces:
    dict_item_list: `dict_item` ("," `dict_item`)* [","]
    dict_item: `expression` ":" `expression` | "**" `or_expr`
    dict_comprehension: `expression` ":" `expression` `comp_for`
+
+.. peg-fragment:: dict dictcomp
 
 A dictionary display yields a new dictionary object.
 
@@ -369,6 +383,8 @@ A generator expression is a compact generator notation in parentheses:
 .. productionlist:: python-grammar
    generator_expression: "(" `expression` `comp_for` ")"
 
+.. peg-fragment:: genexp
+
 A generator expression yields a new generator object.  Its syntax is the same as
 for comprehensions, except that it is enclosed in parentheses instead of
 brackets or curly braces.
@@ -423,6 +439,8 @@ Yield expressions
 .. productionlist:: python-grammar
    yield_atom: "(" `yield_expression` ")"
    yield_expression: "yield" [`expression_list` | "from" `expression`]
+
+.. peg-fragment:: yield_expr
 
 The yield expression is used when defining a :term:`generator` function
 or an :term:`asynchronous generator` function and
@@ -801,6 +819,8 @@ syntax is:
 .. productionlist:: python-grammar
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
 
+.. peg-fragment:: primary
+
 
 .. _attribute-references:
 
@@ -815,6 +835,8 @@ An attribute reference is a primary followed by a period and a name:
 
 .. productionlist:: python-grammar
    attributeref: `primary` "." `identifier`
+
+.. peg-fragment:: attributeref
 
 .. index::
    pair: exception; AttributeError
@@ -861,6 +883,8 @@ will generally select an element from the container. The subscription of a
 
 .. productionlist:: python-grammar
    subscription: `primary` "[" `expression_list` "]"
+
+.. peg-fragment:: subscription
 
 When an object is subscripted, the interpreter will evaluate the primary and
 the expression list.
@@ -937,6 +961,8 @@ or list).  Slicings may be used as expressions or as targets in assignment or
    upper_bound: `expression`
    stride: `expression`
 
+.. peg-fragment:: slices
+
 There is ambiguity in the formal syntax here: anything that looks like an
 expression list also looks like a slice list, so any subscription can be
 interpreted as a slicing.  Rather than further complicating the syntax, this is
@@ -991,6 +1017,8 @@ series of :term:`arguments <argument>`:
    keywords_arguments: (`keyword_item` | "**" `expression`)
                 : ("," `keyword_item` | "," "**" `expression`)*
    keyword_item: `identifier` "=" `expression`
+
+.. peg-fragment:: call
 
 An optional trailing comma may be present after the positional and keyword arguments
 but does not affect the semantics.
@@ -1174,6 +1202,8 @@ Can only be used inside a :term:`coroutine function`.
 .. productionlist:: python-grammar
    await_expr: "await" `primary`
 
+.. peg-fragment:: await_primary
+
 .. versionadded:: 3.5
 
 
@@ -1191,6 +1221,8 @@ less tightly than unary operators on its right.  The syntax is:
 
 .. productionlist:: python-grammar
    power: (`await_expr` | `primary`) ["**" `u_expr`]
+
+.. peg-fragment:: power
 
 Thus, in an unparenthesized sequence of power and unary operators, the operators
 are evaluated from right to left (this does not constrain the evaluation order
@@ -1225,6 +1257,8 @@ All unary arithmetic and bitwise operations have the same priority:
 
 .. productionlist:: python-grammar
    u_expr: `power` | "-" `u_expr` | "+" `u_expr` | "~" `u_expr`
+
+.. peg-fragment:: factor
 
 .. index::
    single: negation
@@ -1277,6 +1311,8 @@ operators and one for additive operators:
          : `m_expr` "//" `u_expr` | `m_expr` "/" `u_expr` |
          : `m_expr` "%" `u_expr`
    a_expr: `m_expr` | `a_expr` "+" `m_expr` | `a_expr` "-" `m_expr`
+
+.. peg-fragment:: term
 
 .. index::
    single: multiplication
@@ -1384,6 +1420,8 @@ The shifting operations have lower priority than the arithmetic operations:
 .. productionlist:: python-grammar
    shift_expr: `a_expr` | `shift_expr` ("<<" | ">>") `a_expr`
 
+.. peg-fragment:: shift_expr
+
 These operators accept integers as arguments.  They shift the first argument to
 the left or right by the number of bits given by the second argument.
 
@@ -1409,6 +1447,8 @@ Each of the three bitwise operations has a different priority level:
    and_expr: `shift_expr` | `and_expr` "&" `shift_expr`
    xor_expr: `and_expr` | `xor_expr` "^" `and_expr`
    or_expr: `xor_expr` | `or_expr` "|" `xor_expr`
+
+.. peg-fragment:: bitwise_and
 
 .. index::
    pair: bitwise; and
@@ -1461,6 +1501,8 @@ in mathematics:
    comparison: `or_expr` (`comp_operator` `or_expr`)*
    comp_operator: "<" | ">" | "==" | ">=" | "<=" | "!="
                 : | "is" ["not"] | ["not"] "in"
+
+.. peg-fragment:: comparison
 
 Comparisons yield boolean values: ``True`` or ``False``. Custom
 :dfn:`rich comparison methods` may return non-boolean values. In this case
@@ -1725,6 +1767,8 @@ Boolean operations
    and_test: `not_test` | `and_test` "and" `not_test`
    not_test: `comparison` | "not" `not_test`
 
+.. peg-fragment:: disjunction
+
 In the context of Boolean operations, and also when expressions are used by
 control flow statements, the following values are interpreted as false:
 ``False``, ``None``, numeric zero of all types, and empty strings and containers
@@ -1767,6 +1811,8 @@ Assignment expressions
 
 .. productionlist:: python-grammar
    assignment_expression: [`identifier` ":="] `expression`
+
+.. peg-fragment:: assignment_expression
 
 An assignment expression (sometimes also called a "named expression" or
 "walrus") assigns an :token:`~python-grammar:expression` to an
@@ -1814,6 +1860,7 @@ Conditional expressions
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
    expression: `conditional_expression` | `lambda_expr`
 
+.. peg-fragment:: conditional_expression
 .. peg-fragment:: expression
 
 Conditional expressions (sometimes called a "ternary operator") have the lowest
@@ -1840,6 +1887,8 @@ Lambdas
 
 .. productionlist:: python-grammar
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
+
+.. peg-fragment:: lambdef
 
 Lambda expressions (sometimes called lambda forms) are used to create anonymous
 functions. The expression ``lambda parameters: expression`` yields a function
@@ -1869,6 +1918,8 @@ Expression lists
    starred_list: `starred_item` ("," `starred_item`)* [","]
    starred_expression: `expression` | (`starred_item` ",")* [`starred_item`]
    starred_item: `assignment_expression` | "*" `or_expr`
+
+.. peg-fragment:: expressions
 
 .. index:: pair: object; tuple
 
