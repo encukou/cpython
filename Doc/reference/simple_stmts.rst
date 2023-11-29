@@ -288,7 +288,7 @@ operation and an assignment statement:
    augop: "+=" | "-=" | "*=" | "@=" | "/=" | "//=" | "%=" | "**="
         : | ">>=" | "<<=" | "&=" | "^=" | "|="
 
-.. peg-fragment:: augassign
+.. peg-fragment:: augmented_assignment
 
 (See section :ref:`primaries` for the syntax definitions of the last three
 symbols.)

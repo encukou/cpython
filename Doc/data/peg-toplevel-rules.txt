@@ -29,7 +29,7 @@ type_params
 simple_stmts
 assignment
 expression
-augassign
+augmented_assignment
 annotated_rhs
 assert_stmt
 # !!! pass

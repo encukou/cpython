@@ -14,6 +14,36 @@ argparser.add_argument("grammar_filename", help="Grammar description")
 argparser.add_argument("fragments_filename", help="List of rules that should be documented")
 argparser.add_argument("output_filename", help="File to write the output to")
 
+def format_node(node):
+    match node:
+        case pegen.grammar.Rhs():
+            return " | ".join(format_node(alt) for alt in node.alts)
+        case pegen.grammar.Alt():
+            return " ".join(format_node(item) for item in node.items)
+        case pegen.grammar.NamedItem():
+            return format_node(node.item)
+        case pegen.grammar.Opt():
+            return '[' + format_node(node.node) + ']'
+        case pegen.grammar.NameLeaf() | pegen.grammar.StringLeaf():
+            return node.value
+        case pegen.grammar.Repeat1():
+            return '(' + format_node(node.node) + ')+'
+        case pegen.grammar.Repeat0():
+            return '(' + format_node(node.node) + ')*'
+        case pegen.grammar.Group():
+            return '(' + format_node(node.rhs) + ')'
+        case pegen.grammar.Gather():
+            return f"{node.separator!s}.{node.node!s}+"
+        case pegen.grammar.Forced():
+            # Ignore forced-ness of a node
+            return format_node(node.node)
+        case pegen.grammar.PositiveLookahead() | pegen.grammar.NegativeLookahead() | pegen.grammar.Cut():
+            # Ignore advanced features for now
+            return ''
+        case _:
+            raise TypeError(f'{node!r} has unknown type {type(node).__name__}')
+
+
 def generate_all_descendants(node):
     yield node
     for value in node:
@@ -28,7 +58,7 @@ def generate_related_rules(rule, rules, top_level_rule_names, visited):
         return []
     visited.add(rule)
     result = [
-        (rule.name, str(rule.rhs))
+        (rule.name, format_node(rule.rhs))
     ]
     for descendant in generate_all_descendants(rule):
         match descendant:

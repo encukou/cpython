@@ -3,11 +3,11 @@
     "file_input": [
         [
             "file_input",
-            "statements? $"
+            "[statements] ENDMARKER"
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -21,37 +21,37 @@
         ],
         [
             "statement_newline",
-            "compound_stmt NEWLINE | simple_stmts | NEWLINE | $"
+            "compound_stmt NEWLINE | simple_stmts | NEWLINE | ENDMARKER"
         ]
     ],
     "eval_input": [
         [
             "eval_input",
-            "expressions NEWLINE* $"
+            "expressions (NEWLINE)* ENDMARKER"
         ]
     ],
     "compound_stmt": [
         [
             "compound_stmt",
-            "&('def' | '@' | 'async') function_def | &'if' if_stmt | &('class' | '@') class_def | &('with' | 'async') with_stmt | &('for' | 'async') for_stmt | &'try' try_stmt | &'while' while_stmt | match_stmt"
+            " function_def |  if_stmt |  class_def |  with_stmt |  for_stmt |  try_stmt |  while_stmt | match_stmt"
         ]
     ],
     "if_stmt": [
         [
             "if_stmt",
-            "invalid_if_stmt | 'if' named_expression ':' block elif_stmt | 'if' named_expression ':' block else_block?"
+            "invalid_if_stmt | 'if' named_expression ':' block elif_stmt | 'if' named_expression ':' block [else_block]"
         ],
         [
             "invalid_if_stmt",
-            "'if' named_expression NEWLINE | 'if' named_expression ':' NEWLINE !INDENT"
+            "'if' named_expression NEWLINE | 'if' named_expression ':' NEWLINE "
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -63,7 +63,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -71,7 +71,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "block",
@@ -79,7 +79,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -87,41 +87,41 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "elif_stmt",
-            "invalid_elif_stmt | 'elif' named_expression ':' block elif_stmt | 'elif' named_expression ':' block else_block?"
+            "invalid_elif_stmt | 'elif' named_expression ':' block elif_stmt | 'elif' named_expression ':' block [else_block]"
         ],
         [
             "invalid_elif_stmt",
-            "'elif' named_expression NEWLINE | 'elif' named_expression ':' NEWLINE !INDENT"
+            "'elif' named_expression NEWLINE | 'elif' named_expression ':' NEWLINE "
         ],
         [
             "else_block",
-            "invalid_else_stmt | 'else' &&':' block"
+            "invalid_else_stmt | 'else' ':' block"
         ],
         [
             "invalid_else_stmt",
-            "'else' ':' NEWLINE !INDENT"
+            "'else' ':' NEWLINE "
         ]
     ],
     "while_stmt": [
         [
             "while_stmt",
-            "invalid_while_stmt | 'while' named_expression ':' block else_block?"
+            "invalid_while_stmt | 'while' named_expression ':' block [else_block]"
         ],
         [
             "invalid_while_stmt",
-            "'while' named_expression NEWLINE | 'while' named_expression ':' NEWLINE !INDENT"
+            "'while' named_expression NEWLINE | 'while' named_expression ':' NEWLINE "
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -133,7 +133,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -141,7 +141,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "block",
@@ -149,7 +149,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -157,41 +157,41 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "else_block",
-            "invalid_else_stmt | 'else' &&':' block"
+            "invalid_else_stmt | 'else' ':' block"
         ],
         [
             "invalid_else_stmt",
-            "'else' ':' NEWLINE !INDENT"
+            "'else' ':' NEWLINE "
         ]
     ],
     "for_stmt": [
         [
             "for_stmt",
-            "invalid_for_stmt | 'for' star_targets 'in' ~ star_expressions ':' TYPE_COMMENT? block else_block? | 'async' 'for' star_targets 'in' ~ star_expressions ':' TYPE_COMMENT? block else_block? | invalid_for_target"
+            "invalid_for_stmt | 'for' star_targets 'in'  star_expressions ':' [TYPE_COMMENT] block [else_block] | 'async' 'for' star_targets 'in'  star_expressions ':' [TYPE_COMMENT] block [else_block] | invalid_for_target"
         ],
         [
             "invalid_for_stmt",
-            "'async'? 'for' star_targets 'in' star_expressions NEWLINE | 'async'? 'for' star_targets 'in' star_expressions ':' NEWLINE !INDENT"
+            "['async'] 'for' star_targets 'in' star_expressions NEWLINE | ['async'] 'for' star_targets 'in' star_expressions ':' NEWLINE "
         ],
         [
             "star_targets",
-            "star_target !',' | star_target ((',' star_target))* ','?"
+            "star_target  | star_target ((',' star_target)*)* [',']"
         ],
         [
             "star_target",
-            "'*' (!'*' star_target) | target_with_star_atom"
+            "'*' ( star_target)* | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | star_atom"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | star_atom"
         ],
         [
             "t_primary",
-            "t_primary '.' NAME &t_lookahead | t_primary '[' slices ']' &t_lookahead | t_primary genexp &t_lookahead | t_primary '(' arguments? ')' &t_lookahead | atom &t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
         ],
         [
             "t_lookahead",
@@ -199,7 +199,7 @@
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -223,7 +223,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -231,23 +231,23 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' star_targets_tuple_seq? ')' | '[' star_targets_list_seq? ']'"
+            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
         ],
         [
             "star_targets_tuple_seq",
-            "star_target ((',' star_target))+ ','? | star_target ','"
+            "star_target ((',' star_target)*)+ [','] | star_target ','"
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ ','?"
+            "','.star_target+ [',']"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -267,7 +267,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -275,29 +275,29 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "else_block",
-            "invalid_else_stmt | 'else' &&':' block"
+            "invalid_else_stmt | 'else' ':' block"
         ],
         [
             "invalid_else_stmt",
-            "'else' ':' NEWLINE !INDENT"
+            "'else' ':' NEWLINE "
         ],
         [
             "invalid_for_target",
-            "'async'? 'for' star_expressions"
+            "['async'] 'for' star_expressions"
         ]
     ],
     "try_stmt": [
         [
             "try_stmt",
-            "invalid_try_stmt | 'try' &&':' block finally_block | 'try' &&':' block except_block+ else_block? finally_block? | 'try' &&':' block except_star_block+ else_block? finally_block?"
+            "invalid_try_stmt | 'try' ':' block finally_block | 'try' ':' block (except_block)+ [else_block] [finally_block] | 'try' ':' block (except_star_block)+ [else_block] [finally_block]"
         ],
         [
             "invalid_try_stmt",
-            "'try' ':' NEWLINE !INDENT | 'try' ':' block !('except' | 'finally') | 'try' ':' block* except_block+ 'except' '*' expression ['as' NAME] ':' | 'try' ':' block* except_star_block+ 'except' [expression ['as' NAME]] ':'"
+            "'try' ':' NEWLINE  | 'try' ':' block  | 'try' ':' (block)* (except_block)+ 'except' '*' expression ['as' NAME] ':' | 'try' ':' (block)* (except_star_block)+ 'except' [expression ['as' NAME]] ':'"
         ],
         [
             "block",
@@ -305,7 +305,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -313,7 +313,7 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "except_block",
@@ -321,11 +321,11 @@
         ],
         [
             "invalid_except_stmt_indent",
-            "'except' expression ['as' NAME] ':' NEWLINE !INDENT | 'except' ':' NEWLINE !INDENT"
+            "'except' expression ['as' NAME] ':' NEWLINE  | 'except' ':' NEWLINE "
         ],
         [
             "invalid_except_stmt",
-            "'except' '*'? expression ',' expressions ['as' NAME] ':' | 'except' '*'? expression ['as' NAME] NEWLINE | 'except' NEWLINE | 'except' '*' (NEWLINE | ':')"
+            "'except' ['*'] expression ',' expressions ['as' NAME] ':' | 'except' ['*'] expression ['as' NAME] NEWLINE | 'except' NEWLINE | 'except' '*' (NEWLINE | ':')*"
         ],
         [
             "except_star_block",
@@ -333,45 +333,45 @@
         ],
         [
             "invalid_except_star_stmt_indent",
-            "'except' '*' expression ['as' NAME] ':' NEWLINE !INDENT"
+            "'except' '*' expression ['as' NAME] ':' NEWLINE "
         ],
         [
             "finally_block",
-            "invalid_finally_stmt | 'finally' &&':' block"
+            "invalid_finally_stmt | 'finally' ':' block"
         ],
         [
             "invalid_finally_stmt",
-            "'finally' ':' NEWLINE !INDENT"
+            "'finally' ':' NEWLINE "
         ],
         [
             "else_block",
-            "invalid_else_stmt | 'else' &&':' block"
+            "invalid_else_stmt | 'else' ':' block"
         ],
         [
             "invalid_else_stmt",
-            "'else' ':' NEWLINE !INDENT"
+            "'else' ':' NEWLINE "
         ]
     ],
     "with_stmt": [
         [
             "with_stmt",
-            "invalid_with_stmt_indent | 'with' '(' ','.with_item+ ','? ')' ':' block | 'with' ','.with_item+ ':' TYPE_COMMENT? block | 'async' 'with' '(' ','.with_item+ ','? ')' ':' block | 'async' 'with' ','.with_item+ ':' TYPE_COMMENT? block | invalid_with_stmt"
+            "invalid_with_stmt_indent | 'with' '(' ','.with_item+ [','] ')' ':' block | 'with' ','.with_item+ ':' [TYPE_COMMENT] block | 'async' 'with' '(' ','.with_item+ [','] ')' ':' block | 'async' 'with' ','.with_item+ ':' [TYPE_COMMENT] block | invalid_with_stmt"
         ],
         [
             "invalid_with_stmt_indent",
-            "'async'? 'with' ','.(expression ['as' star_target])+ ':' NEWLINE !INDENT | 'async'? 'with' '(' ','.(expressions ['as' star_target])+ ','? ')' ':' NEWLINE !INDENT"
+            "['async'] 'with' ','.(expression ['as' star_target])+ ':' NEWLINE  | ['async'] 'with' '(' ','.(expressions ['as' star_target])+ [','] ')' ':' NEWLINE "
         ],
         [
             "star_target",
-            "'*' (!'*' star_target) | target_with_star_atom"
+            "'*' ( star_target)* | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | star_atom"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | star_atom"
         ],
         [
             "t_primary",
-            "t_primary '.' NAME &t_lookahead | t_primary '[' slices ']' &t_lookahead | t_primary genexp &t_lookahead | t_primary '(' arguments? ')' &t_lookahead | atom &t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
         ],
         [
             "t_lookahead",
@@ -379,7 +379,7 @@
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -403,7 +403,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -411,27 +411,27 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' star_targets_tuple_seq? ')' | '[' star_targets_list_seq? ']'"
+            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
         ],
         [
             "star_targets_tuple_seq",
-            "star_target ((',' star_target))+ ','? | star_target ','"
+            "star_target ((',' star_target)*)+ [','] | star_target ','"
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ ','?"
+            "','.star_target+ [',']"
         ],
         [
             "with_item",
-            "expression 'as' star_target &(',' | ')' | ':') | invalid_with_item | expression"
+            "expression 'as' star_target  | invalid_with_item | expression"
         ],
         [
             "invalid_with_item",
-            "expression 'as' expression &(',' | ')' | ':')"
+            "expression 'as' expression "
         ],
         [
             "block",
@@ -439,7 +439,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -447,21 +447,21 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "invalid_with_stmt",
-            "'async'? 'with' ','.(expression ['as' star_target])+ NEWLINE | 'async'? 'with' '(' ','.(expressions ['as' star_target])+ ','? ')' NEWLINE"
+            "['async'] 'with' ','.(expression ['as' star_target])+ NEWLINE | ['async'] 'with' '(' ','.(expressions ['as' star_target])+ [','] ')' NEWLINE"
         ]
     ],
     "match_stmt": [
         [
             "match_stmt",
-            "\"match\" subject_expr ':' NEWLINE INDENT case_block+ DEDENT | invalid_match_stmt"
+            "\"match\" subject_expr ':' NEWLINE INDENT (case_block)+ DEDENT | invalid_match_stmt"
         ],
         [
             "subject_expr",
-            "star_named_expression ',' star_named_expressions? | named_expression"
+            "star_named_expression ',' [star_named_expressions] | named_expression"
         ],
         [
             "star_named_expression",
@@ -477,27 +477,27 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "case_block",
-            "invalid_case_block | \"case\" patterns guard? ':' block"
+            "invalid_case_block | \"case\" patterns [guard] ':' block"
         ],
         [
             "invalid_case_block",
-            "\"case\" patterns guard? NEWLINE | \"case\" patterns guard? ':' NEWLINE !INDENT"
+            "\"case\" patterns [guard] NEWLINE | \"case\" patterns [guard] ':' NEWLINE "
         ],
         [
             "block",
@@ -505,7 +505,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -513,11 +513,11 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ],
         [
             "invalid_match_stmt",
-            "\"match\" subject_expr NEWLINE | \"match\" subject_expr ':' NEWLINE !INDENT"
+            "\"match\" subject_expr NEWLINE | \"match\" subject_expr ':' NEWLINE "
         ]
     ],
     "guard": [
@@ -527,11 +527,11 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -543,7 +543,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -551,7 +551,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ]
     ],
     "patterns": [
@@ -561,7 +561,7 @@
         ],
         [
             "open_sequence_pattern",
-            "maybe_star_pattern ',' maybe_sequence_pattern?"
+            "maybe_star_pattern ',' [maybe_sequence_pattern]"
         ],
         [
             "maybe_star_pattern",
@@ -573,7 +573,7 @@
         ],
         [
             "pattern_capture_target",
-            "!\"_\" NAME !('.' | '(' | '=')"
+            " NAME "
         ],
         [
             "pattern",
@@ -581,7 +581,7 @@
         ],
         [
             "maybe_sequence_pattern",
-            "','.maybe_star_pattern+ ','?"
+            "','.maybe_star_pattern+ [',']"
         ]
     ],
     "or_pattern": [
@@ -601,17 +601,17 @@
         ],
         [
             "pattern_capture_target",
-            "!\"_\" NAME !('.' | '(' | '=')"
+            " NAME "
         ],
         [
             "invalid_as_pattern",
-            "or_pattern 'as' \"_\" | or_pattern 'as' !NAME expression"
+            "or_pattern 'as' \"_\" | or_pattern 'as'  expression"
         ]
     ],
     "literal_pattern": [
         [
             "literal_pattern",
-            "signed_number !('+' | '-') | complex_number | strings | 'None' | 'True' | 'False'"
+            "signed_number  | complex_number | strings | 'None' | 'True' | 'False'"
         ],
         [
             "signed_number",
@@ -635,11 +635,11 @@
         ],
         [
             "strings",
-            "((fstring | string))+"
+            "((fstring | string)*)+"
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -647,11 +647,11 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) '='? fstring_conversion? fstring_full_format_spec? '}' | invalid_replacement_field"
+            "'{' (yield_expr | star_expressions)* ['='] [fstring_conversion] [fstring_full_format_spec] '}' | invalid_replacement_field"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -671,7 +671,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -679,11 +679,11 @@
         ],
         [
             "invalid_replacement_field",
-            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{' !(yield_expr | star_expressions) | '{' (yield_expr | star_expressions) !('=' | '!' | ':' | '}') | '{' (yield_expr | star_expressions) '=' !('!' | ':' | '}') | '{' (yield_expr | star_expressions) '='? invalid_conversion_character | '{' (yield_expr | star_expressions) '='? ['!' NAME] !(':' | '}') | '{' (yield_expr | star_expressions) '='? ['!' NAME] ':' fstring_format_spec* !'}' | '{' (yield_expr | star_expressions) '='? ['!' NAME] !'}'"
+            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{'  | '{' (yield_expr | star_expressions)*  | '{' (yield_expr | star_expressions)* '='  | '{' (yield_expr | star_expressions)* ['='] invalid_conversion_character | '{' (yield_expr | star_expressions)* ['='] ['!' NAME]  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] ':' (fstring_format_spec)*  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] "
         ],
         [
             "invalid_conversion_character",
-            "'!' &(':' | '}') | '!' !NAME"
+            "'!'  | '!' "
         ],
         [
             "string",
@@ -697,7 +697,7 @@
         ],
         [
             "pattern_capture_target",
-            "!\"_\" NAME !('.' | '(' | '=')"
+            " NAME "
         ]
     ],
     "wildcard_pattern": [
@@ -709,7 +709,7 @@
     "value_pattern": [
         [
             "value_pattern",
-            "attr !('.' | '(' | '=')"
+            "attr "
         ],
         [
             "attr",
@@ -733,11 +733,11 @@
     "sequence_pattern": [
         [
             "sequence_pattern",
-            "'[' maybe_sequence_pattern? ']' | '(' open_sequence_pattern? ')'"
+            "'[' [maybe_sequence_pattern] ']' | '(' [open_sequence_pattern] ')'"
         ],
         [
             "maybe_sequence_pattern",
-            "','.maybe_star_pattern+ ','?"
+            "','.maybe_star_pattern+ [',']"
         ],
         [
             "maybe_star_pattern",
@@ -749,7 +749,7 @@
         ],
         [
             "pattern_capture_target",
-            "!\"_\" NAME !('.' | '(' | '=')"
+            " NAME "
         ],
         [
             "pattern",
@@ -757,13 +757,13 @@
         ],
         [
             "open_sequence_pattern",
-            "maybe_star_pattern ',' maybe_sequence_pattern?"
+            "maybe_star_pattern ',' [maybe_sequence_pattern]"
         ]
     ],
     "mapping_pattern": [
         [
             "mapping_pattern",
-            "'{' '}' | '{' double_star_pattern ','? '}' | '{' items_pattern ',' double_star_pattern ','? '}' | '{' items_pattern ','? '}'"
+            "'{' '}' | '{' double_star_pattern [','] '}' | '{' items_pattern ',' double_star_pattern [','] '}' | '{' items_pattern [','] '}'"
         ],
         [
             "double_star_pattern",
@@ -771,7 +771,7 @@
         ],
         [
             "pattern_capture_target",
-            "!\"_\" NAME !('.' | '(' | '=')"
+            " NAME "
         ],
         [
             "items_pattern",
@@ -779,7 +779,7 @@
         ],
         [
             "key_value_pattern",
-            "(literal_expr | attr) ':' pattern"
+            "(literal_expr | attr)* ':' pattern"
         ],
         [
             "attr",
@@ -797,7 +797,7 @@
     "class_pattern": [
         [
             "class_pattern",
-            "name_or_attr '(' ')' | name_or_attr '(' positional_patterns ','? ')' | name_or_attr '(' keyword_patterns ','? ')' | name_or_attr '(' positional_patterns ',' keyword_patterns ','? ')' | invalid_class_pattern"
+            "name_or_attr '(' ')' | name_or_attr '(' positional_patterns [','] ')' | name_or_attr '(' keyword_patterns [','] ')' | name_or_attr '(' positional_patterns ',' keyword_patterns [','] ')' | invalid_class_pattern"
         ],
         [
             "name_or_attr",
@@ -839,15 +839,15 @@
         ],
         [
             "decorators",
-            "(('@' named_expression NEWLINE))+"
+            "(('@' named_expression NEWLINE)*)+"
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -859,7 +859,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -867,15 +867,15 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "function_def_raw",
-            "invalid_def_raw | 'def' NAME type_params? &&'(' params? ')' ['->' expression] &&':' func_type_comment? block | 'async' 'def' NAME type_params? &&'(' params? ')' ['->' expression] &&':' func_type_comment? block"
+            "invalid_def_raw | 'def' NAME [type_params] '(' [params] ')' ['->' expression] ':' [func_type_comment] block | 'async' 'def' NAME [type_params] '(' [params] ')' ['->' expression] ':' [func_type_comment] block"
         ],
         [
             "invalid_def_raw",
-            "'async'? 'def' NAME type_params? '(' params? ')' ['->' expression] ':' NEWLINE !INDENT"
+            "['async'] 'def' NAME [type_params] '(' [params] ')' ['->' expression] ':' NEWLINE "
         ],
         [
             "params",
@@ -883,19 +883,19 @@
         ],
         [
             "invalid_parameters",
-            "\"/\" ',' | (slash_no_default | slash_with_default) param_maybe_default* '/' | slash_no_default? param_no_default* invalid_parameters_helper param_no_default | param_no_default* '(' param_no_default+ ','? ')' | [(slash_no_default | slash_with_default)] param_maybe_default* '*' (',' | param_no_default) param_maybe_default* '/' | param_maybe_default+ '/' '*'"
+            "\"/\" ',' | (slash_no_default | slash_with_default)* (param_maybe_default)* '/' | [slash_no_default] (param_no_default)* invalid_parameters_helper param_no_default | (param_no_default)* '(' (param_no_default)+ [','] ')' | [(slash_no_default | slash_with_default)*] (param_maybe_default)* '*' (',' | param_no_default)* (param_maybe_default)* '/' | (param_maybe_default)+ '/' '*'"
         ],
         [
             "slash_no_default",
-            "param_no_default+ '/' ',' | param_no_default+ '/' &')'"
+            "(param_no_default)+ '/' ',' | (param_no_default)+ '/' "
         ],
         [
             "param_no_default",
-            "param ',' TYPE_COMMENT? | param TYPE_COMMENT? &')'"
+            "param ',' [TYPE_COMMENT] | param [TYPE_COMMENT] "
         ],
         [
             "param",
-            "NAME annotation?"
+            "NAME [annotation]"
         ],
         [
             "annotation",
@@ -903,11 +903,11 @@
         ],
         [
             "slash_with_default",
-            "param_no_default* param_with_default+ '/' ',' | param_no_default* param_with_default+ '/' &')'"
+            "(param_no_default)* (param_with_default)+ '/' ',' | (param_no_default)* (param_with_default)+ '/' "
         ],
         [
             "param_with_default",
-            "param default ',' TYPE_COMMENT? | param default TYPE_COMMENT? &')'"
+            "param default ',' [TYPE_COMMENT] | param default [TYPE_COMMENT] "
         ],
         [
             "default",
@@ -915,27 +915,27 @@
         ],
         [
             "invalid_default",
-            "'=' &(')' | ',')"
+            "'=' "
         ],
         [
             "param_maybe_default",
-            "param default? ',' TYPE_COMMENT? | param default? TYPE_COMMENT? &')'"
+            "param [default] ',' [TYPE_COMMENT] | param [default] [TYPE_COMMENT] "
         ],
         [
             "invalid_parameters_helper",
-            "slash_with_default | param_with_default+"
+            "slash_with_default | (param_with_default)+"
         ],
         [
             "parameters",
-            "slash_no_default param_no_default* param_with_default* star_etc? | slash_with_default param_with_default* star_etc? | param_no_default+ param_with_default* star_etc? | param_with_default+ star_etc? | star_etc"
+            "slash_no_default (param_no_default)* (param_with_default)* [star_etc] | slash_with_default (param_with_default)* [star_etc] | (param_no_default)+ (param_with_default)* [star_etc] | (param_with_default)+ [star_etc] | star_etc"
         ],
         [
             "star_etc",
-            "invalid_star_etc | '*' param_no_default param_maybe_default* kwds? | '*' param_no_default_star_annotation param_maybe_default* kwds? | '*' ',' param_maybe_default+ kwds? | kwds"
+            "invalid_star_etc | '*' param_no_default (param_maybe_default)* [kwds] | '*' param_no_default_star_annotation (param_maybe_default)* [kwds] | '*' ',' (param_maybe_default)+ [kwds] | kwds"
         ],
         [
             "invalid_star_etc",
-            "'*' (')' | ',' (')' | '**')) | '*' ',' TYPE_COMMENT | '*' param '=' | '*' (param_no_default | ',') param_maybe_default* '*' (param_no_default | ',')"
+            "'*' (')' | ',' (')' | '**')*)* | '*' ',' TYPE_COMMENT | '*' param '=' | '*' (param_no_default | ',')* (param_maybe_default)* '*' (param_no_default | ',')*"
         ],
         [
             "kwds",
@@ -943,11 +943,11 @@
         ],
         [
             "invalid_kwds",
-            "'**' param '=' | '**' param ',' param | '**' param ',' ('*' | '**' | '/')"
+            "'**' param '=' | '**' param ',' param | '**' param ',' ('*' | '**' | '/')*"
         ],
         [
             "param_no_default_star_annotation",
-            "param_star_annotation ',' TYPE_COMMENT? | param_star_annotation TYPE_COMMENT? &')'"
+            "param_star_annotation ',' [TYPE_COMMENT] | param_star_annotation [TYPE_COMMENT] "
         ],
         [
             "param_star_annotation",
@@ -963,7 +963,7 @@
         ],
         [
             "func_type_comment",
-            "NEWLINE TYPE_COMMENT &(NEWLINE INDENT) | invalid_double_type_comments | TYPE_COMMENT"
+            "NEWLINE TYPE_COMMENT  | invalid_double_type_comments | TYPE_COMMENT"
         ],
         [
             "invalid_double_type_comments",
@@ -975,7 +975,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -983,7 +983,7 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ]
     ],
     "class_def": [
@@ -993,15 +993,15 @@
         ],
         [
             "decorators",
-            "(('@' named_expression NEWLINE))+"
+            "(('@' named_expression NEWLINE)*)+"
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -1013,7 +1013,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -1021,19 +1021,19 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "class_def_raw",
-            "invalid_class_def_raw | 'class' NAME type_params? ['(' arguments? ')'] ':' block"
+            "invalid_class_def_raw | 'class' NAME [type_params] ['(' [arguments] ')'] ':' block"
         ],
         [
             "invalid_class_def_raw",
-            "'class' NAME type_params? ['(' arguments? ')'] NEWLINE | 'class' NAME type_params? ['(' arguments? ')'] ':' NEWLINE !INDENT"
+            "'class' NAME [type_params] ['(' [arguments] ')'] NEWLINE | 'class' NAME [type_params] ['(' [arguments] ')'] ':' NEWLINE "
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -1057,7 +1057,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -1065,7 +1065,7 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "block",
@@ -1073,7 +1073,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -1081,7 +1081,7 @@
         ],
         [
             "invalid_block",
-            "NEWLINE !INDENT"
+            "NEWLINE "
         ]
     ],
     "type_params": [
@@ -1091,11 +1091,11 @@
         ],
         [
             "type_param_seq",
-            "','.type_param+ ','?"
+            "','.type_param+ [',']"
         ],
         [
             "type_param",
-            "NAME type_param_bound? | '*' NAME ':' expression | '*' NAME | '**' NAME ':' expression | '**' NAME"
+            "NAME [type_param_bound] | '*' NAME ':' expression | '*' NAME | '**' NAME ':' expression | '**' NAME"
         ],
         [
             "type_param_bound",
@@ -1105,15 +1105,15 @@
     "simple_stmts": [
         [
             "simple_stmts",
-            "simple_stmt !';' NEWLINE | ';'.simple_stmt+ ';'? NEWLINE"
+            "simple_stmt  NEWLINE | ';'.simple_stmt+ [';'] NEWLINE"
         ],
         [
             "simple_stmt",
-            "assignment | &\"type\" type_alias | star_expressions | &'return' return_stmt | &('import' | 'from') import_stmt | &'raise' raise_stmt | 'pass' | &'del' del_stmt | &'yield' yield_stmt | &'assert' assert_stmt | 'break' | 'continue' | &'global' global_stmt | &'nonlocal' nonlocal_stmt"
+            "assignment |  type_alias | star_expressions |  return_stmt |  import_stmt |  raise_stmt | 'pass' |  del_stmt |  yield_stmt |  assert_stmt | 'break' | 'continue' |  global_stmt |  nonlocal_stmt"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1131,7 +1131,7 @@
     "assignment": [
         [
             "assignment",
-            "NAME ':' expression ['=' annotated_rhs] | ('(' single_target ')' | single_subscript_attribute_target) ':' expression ['=' annotated_rhs] | ((star_targets '='))+ (yield_expr | star_expressions) !'=' TYPE_COMMENT? | single_target augassign ~ (yield_expr | star_expressions) | invalid_assignment"
+            "NAME ':' expression ['=' annotated_rhs] | ('(' single_target ')' | single_subscript_attribute_target)* ':' expression ['=' annotated_rhs] | ((star_targets '=')*)+ (yield_expr | star_expressions)*  [TYPE_COMMENT] | augmented_assignment | invalid_assignment"
         ],
         [
             "single_target",
@@ -1139,11 +1139,11 @@
         ],
         [
             "single_subscript_attribute_target",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']' "
         ],
         [
             "t_primary",
-            "t_primary '.' NAME &t_lookahead | t_primary '[' slices ']' &t_lookahead | t_primary genexp &t_lookahead | t_primary '(' arguments? ')' &t_lookahead | atom &t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
         ],
         [
             "t_lookahead",
@@ -1151,7 +1151,7 @@
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -1175,7 +1175,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -1183,35 +1183,35 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "star_targets",
-            "star_target !',' | star_target ((',' star_target))* ','?"
+            "star_target  | star_target ((',' star_target)*)* [',']"
         ],
         [
             "star_target",
-            "'*' (!'*' star_target) | target_with_star_atom"
+            "'*' ( star_target)* | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | star_atom"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | star_atom"
         ],
         [
             "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' star_targets_tuple_seq? ')' | '[' star_targets_list_seq? ']'"
+            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
         ],
         [
             "star_targets_tuple_seq",
-            "star_target ((',' star_target))+ ','? | star_target ','"
+            "star_target ((',' star_target)*)+ [','] | star_target ','"
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ ','?"
+            "','.star_target+ [',']"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1227,7 +1227,7 @@
         ],
         [
             "invalid_assignment",
-            "invalid_ann_assign_target ':' expression | star_named_expression ',' star_named_expressions* ':' expression | expression ':' expression | ((star_targets '='))* star_expressions '=' | ((star_targets '='))* yield_expr '=' | star_expressions augassign (yield_expr | star_expressions)"
+            "invalid_ann_assign_target ':' expression | star_named_expression ',' (star_named_expressions)* ':' expression | expression ':' expression | ((star_targets '=')*)* star_expressions '=' | ((star_targets '=')*)* yield_expr '=' | star_expressions augassign (yield_expr | star_expressions)*"
         ],
         [
             "invalid_ann_assign_target",
@@ -1235,7 +1235,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -1243,15 +1243,19 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
+        ],
+        [
+            "augassign",
+            "'+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='"
         ]
     ],
     "expression": [
@@ -1261,7 +1265,7 @@
         ],
         [
             "invalid_expression",
-            "!(NAME STRING | SOFT_KEYWORD) disjunction expression_without_invalid | disjunction 'if' disjunction !('else' | ':') | 'lambda' lambda_params? ':' &FSTRING_MIDDLE"
+            " disjunction expression_without_invalid | disjunction 'if' disjunction  | 'lambda' [lambda_params] ':' "
         ],
         [
             "expression_without_invalid",
@@ -1273,15 +1277,15 @@
         ],
         [
             "invalid_lambda_parameters",
-            "\"/\" ',' | (lambda_slash_no_default | lambda_slash_with_default) lambda_param_maybe_default* '/' | lambda_slash_no_default? lambda_param_no_default* invalid_lambda_parameters_helper lambda_param_no_default | lambda_param_no_default* '(' ','.lambda_param+ ','? ')' | [(lambda_slash_no_default | lambda_slash_with_default)] lambda_param_maybe_default* '*' (',' | lambda_param_no_default) lambda_param_maybe_default* '/' | lambda_param_maybe_default+ '/' '*'"
+            "\"/\" ',' | (lambda_slash_no_default | lambda_slash_with_default)* (lambda_param_maybe_default)* '/' | [lambda_slash_no_default] (lambda_param_no_default)* invalid_lambda_parameters_helper lambda_param_no_default | (lambda_param_no_default)* '(' ','.lambda_param+ [','] ')' | [(lambda_slash_no_default | lambda_slash_with_default)*] (lambda_param_maybe_default)* '*' (',' | lambda_param_no_default)* (lambda_param_maybe_default)* '/' | (lambda_param_maybe_default)+ '/' '*'"
         ],
         [
             "lambda_slash_no_default",
-            "lambda_param_no_default+ '/' ',' | lambda_param_no_default+ '/' &':'"
+            "(lambda_param_no_default)+ '/' ',' | (lambda_param_no_default)+ '/' "
         ],
         [
             "lambda_param_no_default",
-            "lambda_param ',' | lambda_param &':'"
+            "lambda_param ',' | lambda_param "
         ],
         [
             "lambda_param",
@@ -1289,11 +1293,11 @@
         ],
         [
             "lambda_slash_with_default",
-            "lambda_param_no_default* lambda_param_with_default+ '/' ',' | lambda_param_no_default* lambda_param_with_default+ '/' &':'"
+            "(lambda_param_no_default)* (lambda_param_with_default)+ '/' ',' | (lambda_param_no_default)* (lambda_param_with_default)+ '/' "
         ],
         [
             "lambda_param_with_default",
-            "lambda_param default ',' | lambda_param default &':'"
+            "lambda_param default ',' | lambda_param default "
         ],
         [
             "default",
@@ -1301,27 +1305,27 @@
         ],
         [
             "invalid_default",
-            "'=' &(')' | ',')"
+            "'=' "
         ],
         [
             "lambda_param_maybe_default",
-            "lambda_param default? ',' | lambda_param default? &':'"
+            "lambda_param [default] ',' | lambda_param [default] "
         ],
         [
             "invalid_lambda_parameters_helper",
-            "lambda_slash_with_default | lambda_param_with_default+"
+            "lambda_slash_with_default | (lambda_param_with_default)+"
         ],
         [
             "lambda_parameters",
-            "lambda_slash_no_default lambda_param_no_default* lambda_param_with_default* lambda_star_etc? | lambda_slash_with_default lambda_param_with_default* lambda_star_etc? | lambda_param_no_default+ lambda_param_with_default* lambda_star_etc? | lambda_param_with_default+ lambda_star_etc? | lambda_star_etc"
+            "lambda_slash_no_default (lambda_param_no_default)* (lambda_param_with_default)* [lambda_star_etc] | lambda_slash_with_default (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_no_default)+ (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_with_default)+ [lambda_star_etc] | lambda_star_etc"
         ],
         [
             "lambda_star_etc",
-            "invalid_lambda_star_etc | '*' lambda_param_no_default lambda_param_maybe_default* lambda_kwds? | '*' ',' lambda_param_maybe_default+ lambda_kwds? | lambda_kwds"
+            "invalid_lambda_star_etc | '*' lambda_param_no_default (lambda_param_maybe_default)* [lambda_kwds] | '*' ',' (lambda_param_maybe_default)+ [lambda_kwds] | lambda_kwds"
         ],
         [
             "invalid_lambda_star_etc",
-            "'*' (':' | ',' (':' | '**')) | '*' lambda_param '=' | '*' (lambda_param_no_default | ',') lambda_param_maybe_default* '*' (lambda_param_no_default | ',')"
+            "'*' (':' | ',' (':' | '**')*)* | '*' lambda_param '=' | '*' (lambda_param_no_default | ',')* (lambda_param_maybe_default)* '*' (lambda_param_no_default | ',')*"
         ],
         [
             "lambda_kwds",
@@ -1329,15 +1333,15 @@
         ],
         [
             "invalid_lambda_kwds",
-            "'**' lambda_param '=' | '**' lambda_param ',' lambda_param | '**' lambda_param ',' ('*' | '**' | '/')"
+            "'**' lambda_param '=' | '**' lambda_param ',' lambda_param | '**' lambda_param ',' ('*' | '**' | '/')*"
         ],
         [
             "invalid_legacy_expression",
-            "NAME !'(' star_expressions"
+            "NAME  star_expressions"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1352,10 +1356,82 @@
             "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
-    "augassign": [
+    "augmented_assignment": [
+        [
+            "augmented_assignment",
+            "single_target augassign  (yield_expr | star_expressions)*"
+        ],
+        [
+            "single_target",
+            "single_subscript_attribute_target | NAME | '(' single_target ')'"
+        ],
+        [
+            "single_subscript_attribute_target",
+            "t_primary '.' NAME  | t_primary '[' slices ']' "
+        ],
+        [
+            "t_primary",
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
+        ],
+        [
+            "t_lookahead",
+            "'(' | '[' | '.'"
+        ],
+        [
+            "arguments",
+            "args [',']  | invalid_arguments"
+        ],
+        [
+            "args",
+            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+        ],
+        [
+            "starred_expression",
+            "invalid_starred_expression | '*' expression"
+        ],
+        [
+            "invalid_starred_expression",
+            "'*' expression '=' expression"
+        ],
+        [
+            "kwargs",
+            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+        ],
+        [
+            "kwarg_or_starred",
+            "invalid_kwarg | NAME '=' expression | starred_expression"
+        ],
+        [
+            "invalid_kwarg",
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
+        ],
+        [
+            "kwarg_or_double_starred",
+            "invalid_kwarg | NAME '=' expression | '**' expression"
+        ],
+        [
+            "invalid_arguments",
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+        ],
         [
             "augassign",
             "'+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='"
+        ],
+        [
+            "star_expressions",
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
+        ],
+        [
+            "star_expression",
+            "'*' bitwise_or | expression"
+        ],
+        [
+            "bitwise_or",
+            "bitwise_or '|' bitwise_xor | bitwise_xor"
+        ],
+        [
+            "bitwise_xor",
+            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "annotated_rhs": [
@@ -1365,7 +1441,7 @@
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1389,19 +1465,19 @@
     "del_stmt": [
         [
             "del_stmt",
-            "'del' del_targets &(';' | NEWLINE) | invalid_del_stmt"
+            "'del' del_targets  | invalid_del_stmt"
         ],
         [
             "del_targets",
-            "','.del_target+ ','?"
+            "','.del_target+ [',']"
         ],
         [
             "del_target",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | del_t_atom"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | del_t_atom"
         ],
         [
             "t_primary",
-            "t_primary '.' NAME &t_lookahead | t_primary '[' slices ']' &t_lookahead | t_primary genexp &t_lookahead | t_primary '(' arguments? ')' &t_lookahead | atom &t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
         ],
         [
             "t_lookahead",
@@ -1409,7 +1485,7 @@
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -1433,7 +1509,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -1441,11 +1517,11 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "del_t_atom",
-            "NAME | '(' del_target ')' | '(' del_targets? ')' | '[' del_targets? ']'"
+            "NAME | '(' del_target ')' | '(' [del_targets] ')' | '[' [del_targets] ']'"
         ],
         [
             "invalid_del_stmt",
@@ -1453,7 +1529,7 @@
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1471,11 +1547,11 @@
     "return_stmt": [
         [
             "return_stmt",
-            "'return' star_expressions?"
+            "'return' [star_expressions]"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1529,11 +1605,11 @@
         ],
         [
             "import_from",
-            "'from' (('.' | '...'))* dotted_name 'import' import_from_targets | 'from' (('.' | '...'))+ 'import' import_from_targets"
+            "'from' (('.' | '...')*)* dotted_name 'import' import_from_targets | 'from' (('.' | '...')*)+ 'import' import_from_targets"
         ],
         [
             "import_from_targets",
-            "'(' import_from_as_names ','? ')' | import_from_as_names !',' | '*' | invalid_import_from_targets"
+            "'(' import_from_as_names [','] ')' | import_from_as_names  | '*' | invalid_import_from_targets"
         ],
         [
             "import_from_as_names",
@@ -1563,21 +1639,21 @@
     "type_alias": [
         [
             "type_alias",
-            "\"type\" NAME type_params? '=' expression"
+            "\"type\" NAME [type_params] '=' expression"
         ]
     ],
     "atom": [
         [
             "atom",
-            "NAME | 'True' | 'False' | 'None' | &(STRING | FSTRING_START) strings | NUMBER | &'(' (tuple | group | genexp) | &'[' (list | listcomp) | &'{' (dict | set | dictcomp | setcomp) | '...'"
+            "NAME | 'True' | 'False' | 'None' |  strings | NUMBER |  (tuple | group | genexp)* |  (list | listcomp)* |  (dict | set | dictcomp | setcomp)* | '...'"
         ],
         [
             "strings",
-            "((fstring | string))+"
+            "((fstring | string)*)+"
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -1585,11 +1661,11 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) '='? fstring_conversion? fstring_full_format_spec? '}' | invalid_replacement_field"
+            "'{' (yield_expr | star_expressions)* ['='] [fstring_conversion] [fstring_full_format_spec] '}' | invalid_replacement_field"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1609,7 +1685,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -1617,11 +1693,11 @@
         ],
         [
             "invalid_replacement_field",
-            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{' !(yield_expr | star_expressions) | '{' (yield_expr | star_expressions) !('=' | '!' | ':' | '}') | '{' (yield_expr | star_expressions) '=' !('!' | ':' | '}') | '{' (yield_expr | star_expressions) '='? invalid_conversion_character | '{' (yield_expr | star_expressions) '='? ['!' NAME] !(':' | '}') | '{' (yield_expr | star_expressions) '='? ['!' NAME] ':' fstring_format_spec* !'}' | '{' (yield_expr | star_expressions) '='? ['!' NAME] !'}'"
+            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{'  | '{' (yield_expr | star_expressions)*  | '{' (yield_expr | star_expressions)* '='  | '{' (yield_expr | star_expressions)* ['='] invalid_conversion_character | '{' (yield_expr | star_expressions)* ['='] ['!' NAME]  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] ':' (fstring_format_spec)*  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] "
         ],
         [
             "invalid_conversion_character",
-            "'!' &(':' | '}') | '!' !NAME"
+            "'!'  | '!' "
         ],
         [
             "string",
@@ -1629,7 +1705,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -1637,21 +1713,21 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ]
     ],
     "literal_expr": [
         [
             "literal_expr",
-            "signed_number !('+' | '-') | complex_number | strings | 'None' | 'True' | 'False'"
+            "signed_number  | complex_number | strings | 'None' | 'True' | 'False'"
         ],
         [
             "signed_number",
@@ -1675,11 +1751,11 @@
         ],
         [
             "strings",
-            "((fstring | string))+"
+            "((fstring | string)*)+"
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -1687,11 +1763,11 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) '='? fstring_conversion? fstring_full_format_spec? '}' | invalid_replacement_field"
+            "'{' (yield_expr | star_expressions)* ['='] [fstring_conversion] [fstring_full_format_spec] '}' | invalid_replacement_field"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1711,7 +1787,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -1719,11 +1795,11 @@
         ],
         [
             "invalid_replacement_field",
-            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{' !(yield_expr | star_expressions) | '{' (yield_expr | star_expressions) !('=' | '!' | ':' | '}') | '{' (yield_expr | star_expressions) '=' !('!' | ':' | '}') | '{' (yield_expr | star_expressions) '='? invalid_conversion_character | '{' (yield_expr | star_expressions) '='? ['!' NAME] !(':' | '}') | '{' (yield_expr | star_expressions) '='? ['!' NAME] ':' fstring_format_spec* !'}' | '{' (yield_expr | star_expressions) '='? ['!' NAME] !'}'"
+            "'{' '=' | '{' '!' | '{' ':' | '{' '}' | '{'  | '{' (yield_expr | star_expressions)*  | '{' (yield_expr | star_expressions)* '='  | '{' (yield_expr | star_expressions)* ['='] invalid_conversion_character | '{' (yield_expr | star_expressions)* ['='] ['!' NAME]  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] ':' (fstring_format_spec)*  | '{' (yield_expr | star_expressions)* ['='] ['!' NAME] "
         ],
         [
             "invalid_conversion_character",
-            "'!' &(':' | '}') | '!' !NAME"
+            "'!'  | '!' "
         ],
         [
             "string",
@@ -1733,15 +1809,15 @@
     "group": [
         [
             "group",
-            "'(' (yield_expr | named_expression) ')' | invalid_group"
+            "'(' (yield_expr | named_expression)* ')' | invalid_group"
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -1753,7 +1829,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -1761,7 +1837,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "invalid_group",
@@ -1779,27 +1855,27 @@
     "for_if_clauses": [
         [
             "for_if_clauses",
-            "for_if_clause+"
+            "(for_if_clause)+"
         ],
         [
             "for_if_clause",
-            "'async' 'for' star_targets 'in' ~ disjunction (('if' disjunction))* | 'for' star_targets 'in' ~ disjunction (('if' disjunction))* | invalid_for_target"
+            "'async' 'for' star_targets 'in'  disjunction (('if' disjunction)*)* | 'for' star_targets 'in'  disjunction (('if' disjunction)*)* | invalid_for_target"
         ],
         [
             "star_targets",
-            "star_target !',' | star_target ((',' star_target))* ','?"
+            "star_target  | star_target ((',' star_target)*)* [',']"
         ],
         [
             "star_target",
-            "'*' (!'*' star_target) | target_with_star_atom"
+            "'*' ( star_target)* | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
-            "t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | star_atom"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | star_atom"
         ],
         [
             "t_primary",
-            "t_primary '.' NAME &t_lookahead | t_primary '[' slices ']' &t_lookahead | t_primary genexp &t_lookahead | t_primary '(' arguments? ')' &t_lookahead | atom &t_lookahead"
+            "t_primary '.' NAME  | t_primary '[' slices ']'  | t_primary genexp  | t_primary '(' [arguments] ')'  | atom "
         ],
         [
             "t_lookahead",
@@ -1807,7 +1883,7 @@
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -1831,7 +1907,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -1839,27 +1915,27 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ],
         [
             "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' star_targets_tuple_seq? ')' | '[' star_targets_list_seq? ']'"
+            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
         ],
         [
             "star_targets_tuple_seq",
-            "star_target ((',' star_target))+ ','? | star_target ','"
+            "star_target ((',' star_target)*)+ [','] | star_target ','"
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ ','?"
+            "','.star_target+ [',']"
         ],
         [
             "invalid_for_target",
-            "'async'? 'for' star_expressions"
+            "['async'] 'for' star_expressions"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -1877,11 +1953,11 @@
     "list": [
         [
             "list",
-            "'[' star_named_expressions? ']'"
+            "'[' [star_named_expressions] ']'"
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "star_named_expression",
@@ -1897,15 +1973,15 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ]
     ],
     "listcomp": [
@@ -1915,11 +1991,11 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -1931,7 +2007,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -1939,11 +2015,11 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "invalid_comprehension",
-            "('[' | '(' | '{') starred_expression for_if_clauses | ('[' | '{') star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{') star_named_expression ',' for_if_clauses"
+            "('[' | '(' | '{')* starred_expression for_if_clauses | ('[' | '{')* star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{')* star_named_expression ',' for_if_clauses"
         ],
         [
             "starred_expression",
@@ -1961,7 +2037,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "star_named_expression",
@@ -1977,15 +2053,15 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ]
     ],
     "setcomp": [
@@ -1995,11 +2071,11 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -2011,7 +2087,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -2019,11 +2095,11 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "invalid_comprehension",
-            "('[' | '(' | '{') starred_expression for_if_clauses | ('[' | '{') star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{') star_named_expression ',' for_if_clauses"
+            "('[' | '(' | '{')* starred_expression for_if_clauses | ('[' | '{')* star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{')* star_named_expression ',' for_if_clauses"
         ],
         [
             "starred_expression",
@@ -2037,11 +2113,11 @@
     "dict": [
         [
             "dict",
-            "'{' double_starred_kvpairs? '}' | '{' invalid_double_starred_kvpairs '}'"
+            "'{' [double_starred_kvpairs] '}' | '{' invalid_double_starred_kvpairs '}'"
         ],
         [
             "double_starred_kvpairs",
-            "','.double_starred_kvpair+ ','?"
+            "','.double_starred_kvpair+ [',']"
         ],
         [
             "double_starred_kvpair",
@@ -2061,11 +2137,11 @@
         ],
         [
             "invalid_double_starred_kvpairs",
-            "','.double_starred_kvpair+ ',' invalid_kvpair | expression ':' '*' bitwise_or | expression ':' &('}' | ',')"
+            "','.double_starred_kvpair+ ',' invalid_kvpair | expression ':' '*' bitwise_or | expression ':' "
         ],
         [
             "invalid_kvpair",
-            "expression !(':') | expression ':' '*' bitwise_or | expression ':' &('}' | ',')"
+            "expression  | expression ':' '*' bitwise_or | expression ':' "
         ]
     ],
     "dictcomp": [
@@ -2093,11 +2169,11 @@
     "genexp": [
         [
             "genexp",
-            "'(' (assignment_expression | expression !':=') for_if_clauses ')' | invalid_comprehension"
+            "'(' (assignment_expression | expression )* for_if_clauses ')' | invalid_comprehension"
         ],
         [
             "invalid_comprehension",
-            "('[' | '(' | '{') starred_expression for_if_clauses | ('[' | '{') star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{') star_named_expression ',' for_if_clauses"
+            "('[' | '(' | '{')* starred_expression for_if_clauses | ('[' | '{')* star_named_expression ',' star_named_expressions for_if_clauses | ('[' | '{')* star_named_expression ',' for_if_clauses"
         ],
         [
             "starred_expression",
@@ -2121,29 +2197,29 @@
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ]
     ],
     "yield_expr": [
         [
             "yield_expr",
-            "'yield' 'from' expression | 'yield' star_expressions?"
+            "'yield' 'from' expression | 'yield' [star_expressions]"
         ],
         [
             "star_expressions",
-            "star_expression ((',' star_expression))+ ','? | star_expression ',' | star_expression"
+            "star_expression ((',' star_expression)*)+ [','] | star_expression ',' | star_expression"
         ],
         [
             "star_expression",
@@ -2179,7 +2255,7 @@
     "slices": [
         [
             "slices",
-            "expr_or_slice !',' | ','.(expr_or_slice | starred_expression)+ ','?"
+            "expr_or_slice  | ','.(expr_or_slice | starred_expression)+ [',']"
         ],
         [
             "expr_or_slice",
@@ -2187,15 +2263,15 @@
         ],
         [
             "slice",
-            "expression? ':' expression? [':' expression?]"
+            "[expression] ':' [expression] [':' [expression]]"
         ],
         [
             "named_expression",
-            "assignment_expression | invalid_named_expression | expression !':='"
+            "assignment_expression | invalid_named_expression | expression "
         ],
         [
             "invalid_named_expression",
-            "expression ':=' expression | NAME '=' bitwise_or !('=' | ':=') | !(list | tuple | genexp | 'True' | 'None' | 'False') bitwise_or '=' bitwise_or !('=' | ':=')"
+            "expression ':=' expression | NAME '=' bitwise_or  |  bitwise_or '=' bitwise_or "
         ],
         [
             "bitwise_or",
@@ -2207,7 +2283,7 @@
         ],
         [
             "tuple",
-            "'(' [star_named_expression ',' star_named_expressions?] ')'"
+            "'(' [star_named_expression ',' [star_named_expressions]] ')'"
         ],
         [
             "star_named_expression",
@@ -2215,7 +2291,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ ','?"
+            "','.star_named_expression+ [',']"
         ],
         [
             "starred_expression",
@@ -2229,11 +2305,11 @@
     "call": [
         [
             "call",
-            "primary '(' arguments? ')'"
+            "primary '(' [arguments] ')'"
         ],
         [
             "arguments",
-            "args ','? &')' | invalid_arguments"
+            "args [',']  | invalid_arguments"
         ],
         [
             "args",
@@ -2257,7 +2333,7 @@
         ],
         [
             "invalid_kwarg",
-            "('True' | 'False' | 'None') '=' | NAME '=' expression for_if_clauses | !(NAME '=') expression '=' | '**' expression '=' expression"
+            "('True' | 'False' | 'None')* '=' | NAME '=' expression for_if_clauses |  expression '=' | '**' expression '=' expression"
         ],
         [
             "kwarg_or_double_starred",
@@ -2265,7 +2341,7 @@
         ],
         [
             "invalid_arguments",
-            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs) | kwargs) ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')] NAME '=' &(',' | ')') | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
+            "((','.(starred_expression | (assignment_expression | expression !':=') !'=')+ ',' kwargs)* | kwargs)* ',' '*' | expression for_if_clauses ',' [args | expression for_if_clauses] | NAME '=' expression for_if_clauses | [(args ',')*] NAME '='  | args for_if_clauses | args ',' expression for_if_clauses | args ',' args"
         ]
     ],
     "await_primary": [
@@ -2311,7 +2387,7 @@
     "comparison": [
         [
             "comparison",
-            "bitwise_or compare_op_bitwise_or_pair+ | bitwise_or"
+            "bitwise_or (compare_op_bitwise_or_pair)+ | bitwise_or"
         ],
         [
             "bitwise_or",
@@ -2331,7 +2407,7 @@
         ],
         [
             "noteq_bitwise_or",
-            "('!=') bitwise_or"
+            "('!=')* bitwise_or"
         ],
         [
             "lte_bitwise_or",
@@ -2369,11 +2445,11 @@
     "disjunction": [
         [
             "disjunction",
-            "conjunction (('or' conjunction))+ | conjunction"
+            "conjunction (('or' conjunction)*)+ | conjunction"
         ],
         [
             "conjunction",
-            "inversion (('and' inversion))+ | inversion"
+            "inversion (('and' inversion)*)+ | inversion"
         ],
         [
             "inversion",
@@ -2383,7 +2459,7 @@
     "assignment_expression": [
         [
             "assignment_expression",
-            "NAME ':=' ~ expression"
+            "NAME ':='  expression"
         ]
     ],
     "conditional_expression": [
@@ -2395,7 +2471,7 @@
     "lambdef": [
         [
             "lambdef",
-            "'lambda' lambda_params? ':' expression"
+            "'lambda' [lambda_params] ':' expression"
         ],
         [
             "lambda_params",
@@ -2403,15 +2479,15 @@
         ],
         [
             "invalid_lambda_parameters",
-            "\"/\" ',' | (lambda_slash_no_default | lambda_slash_with_default) lambda_param_maybe_default* '/' | lambda_slash_no_default? lambda_param_no_default* invalid_lambda_parameters_helper lambda_param_no_default | lambda_param_no_default* '(' ','.lambda_param+ ','? ')' | [(lambda_slash_no_default | lambda_slash_with_default)] lambda_param_maybe_default* '*' (',' | lambda_param_no_default) lambda_param_maybe_default* '/' | lambda_param_maybe_default+ '/' '*'"
+            "\"/\" ',' | (lambda_slash_no_default | lambda_slash_with_default)* (lambda_param_maybe_default)* '/' | [lambda_slash_no_default] (lambda_param_no_default)* invalid_lambda_parameters_helper lambda_param_no_default | (lambda_param_no_default)* '(' ','.lambda_param+ [','] ')' | [(lambda_slash_no_default | lambda_slash_with_default)*] (lambda_param_maybe_default)* '*' (',' | lambda_param_no_default)* (lambda_param_maybe_default)* '/' | (lambda_param_maybe_default)+ '/' '*'"
         ],
         [
             "lambda_slash_no_default",
-            "lambda_param_no_default+ '/' ',' | lambda_param_no_default+ '/' &':'"
+            "(lambda_param_no_default)+ '/' ',' | (lambda_param_no_default)+ '/' "
         ],
         [
             "lambda_param_no_default",
-            "lambda_param ',' | lambda_param &':'"
+            "lambda_param ',' | lambda_param "
         ],
         [
             "lambda_param",
@@ -2419,11 +2495,11 @@
         ],
         [
             "lambda_slash_with_default",
-            "lambda_param_no_default* lambda_param_with_default+ '/' ',' | lambda_param_no_default* lambda_param_with_default+ '/' &':'"
+            "(lambda_param_no_default)* (lambda_param_with_default)+ '/' ',' | (lambda_param_no_default)* (lambda_param_with_default)+ '/' "
         ],
         [
             "lambda_param_with_default",
-            "lambda_param default ',' | lambda_param default &':'"
+            "lambda_param default ',' | lambda_param default "
         ],
         [
             "default",
@@ -2431,27 +2507,27 @@
         ],
         [
             "invalid_default",
-            "'=' &(')' | ',')"
+            "'=' "
         ],
         [
             "lambda_param_maybe_default",
-            "lambda_param default? ',' | lambda_param default? &':'"
+            "lambda_param [default] ',' | lambda_param [default] "
         ],
         [
             "invalid_lambda_parameters_helper",
-            "lambda_slash_with_default | lambda_param_with_default+"
+            "lambda_slash_with_default | (lambda_param_with_default)+"
         ],
         [
             "lambda_parameters",
-            "lambda_slash_no_default lambda_param_no_default* lambda_param_with_default* lambda_star_etc? | lambda_slash_with_default lambda_param_with_default* lambda_star_etc? | lambda_param_no_default+ lambda_param_with_default* lambda_star_etc? | lambda_param_with_default+ lambda_star_etc? | lambda_star_etc"
+            "lambda_slash_no_default (lambda_param_no_default)* (lambda_param_with_default)* [lambda_star_etc] | lambda_slash_with_default (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_no_default)+ (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_with_default)+ [lambda_star_etc] | lambda_star_etc"
         ],
         [
             "lambda_star_etc",
-            "invalid_lambda_star_etc | '*' lambda_param_no_default lambda_param_maybe_default* lambda_kwds? | '*' ',' lambda_param_maybe_default+ lambda_kwds? | lambda_kwds"
+            "invalid_lambda_star_etc | '*' lambda_param_no_default (lambda_param_maybe_default)* [lambda_kwds] | '*' ',' (lambda_param_maybe_default)+ [lambda_kwds] | lambda_kwds"
         ],
         [
             "invalid_lambda_star_etc",
-            "'*' (':' | ',' (':' | '**')) | '*' lambda_param '=' | '*' (lambda_param_no_default | ',') lambda_param_maybe_default* '*' (lambda_param_no_default | ',')"
+            "'*' (':' | ',' (':' | '**')*)* | '*' lambda_param '=' | '*' (lambda_param_no_default | ',')* (lambda_param_maybe_default)* '*' (lambda_param_no_default | ',')*"
         ],
         [
             "lambda_kwds",
@@ -2459,13 +2535,13 @@
         ],
         [
             "invalid_lambda_kwds",
-            "'**' lambda_param '=' | '**' lambda_param ',' lambda_param | '**' lambda_param ',' ('*' | '**' | '/')"
+            "'**' lambda_param '=' | '**' lambda_param ',' lambda_param | '**' lambda_param ',' ('*' | '**' | '/')*"
         ]
     ],
     "expressions": [
         [
             "expressions",
-            "expression ((',' expression))+ ','? | expression ',' | expression"
+            "expression ((',' expression)*)+ [','] | expression ',' | expression"
         ]
     ]
 }

@@ -151,11 +151,14 @@ assignment[stmt_ty]:
         CHECK_VERSION(stmt_ty, 6, "Variable annotations syntax is", _PyAST_AnnAssign(a, b, c, 0, EXTRA)) }
     | a[asdl_expr_seq*]=(z=star_targets '=' { z })+ b=(yield_expr | star_expressions) !'=' tc=[TYPE_COMMENT] {
          _PyAST_Assign(a, b, NEW_TYPE_COMMENT(p, tc), EXTRA) }
-    | a=single_target b=augassign ~ c=(yield_expr | star_expressions) {
-         _PyAST_AugAssign(a, b->kind, c, EXTRA) }
+    | augmented_assignment
     | invalid_assignment
 
 annotated_rhs[expr_ty]: yield_expr | star_expressions
+
+augmented_assignment[stmt_ty]:
+    | a=single_target b=augassign ~ c=(yield_expr | star_expressions) {
+         _PyAST_AugAssign(a, b->kind, c, EXTRA) }
 
 augassign[AugOperator*]:
     | '+=' { _PyPegen_augoperator(p, Add) }
