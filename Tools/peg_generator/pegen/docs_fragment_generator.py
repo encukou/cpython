@@ -2,6 +2,7 @@ import argparse
 import sys
 from typing import Any, Callable, Iterator
 import json
+from dataclasses import dataclass
 
 from pegen.build import build_parser
 from pegen.grammar import Grammar, Rule
@@ -18,49 +19,144 @@ class InvalidRuleIncluded(Exception):
     """Refusal to format an `invalid_` rule"""
 
 
-def format_node(node):
-    match node:
+@dataclass
+class Node:
+    pass
+
+
+@dataclass
+class Container(Node):
+    """Collection of zero or more children"""
+    items: list[Node]
+
+    def __iter__(self):
+        yield from self.items
+
+
+@dataclass
+class Choice(Container):
+    def format(self):
+        option_reprs = []
+        for item in self:
+            try:
+                option_reprs.append(item.format())
+            except InvalidRuleIncluded:
+                pass
+        return " | ".join(option_reprs)
+
+
+@dataclass
+class Sequence(Container):
+    def format(self):
+        item_reprs = []
+        for item in self:
+            item_repr = item.format()
+            if item_repr:
+                item_reprs.append(item_repr)
+        return " ".join(item_reprs)
+
+
+@dataclass
+class Decorator(Node):
+    """Node with exactly one child"""
+    item: Node
+
+    def __iter__(self):
+        yield self.item
+
+
+@dataclass
+class Optional(Decorator):
+    def format(self):
+        return '[' + self.item.format() + ']'
+
+
+@dataclass
+class OneOrMore(Decorator):
+    def format(self):
+        return '(' + self.item.format() + ')+'
+
+
+@dataclass
+class ZeroOrMore(Decorator):
+    def format(self):
+        return '(' + self.item.format() + ')*'
+
+
+@dataclass
+class Gather(Node):
+    separator: Node
+    item: Node
+
+    def __iter__(self):
+        yield self.separator
+        yield self.item
+
+    def format(self):
+        return f'({self.separator.format()}).({self.item.format()})+'
+
+
+@dataclass
+class Leaf(Node):
+    """Node with no children"""
+    value: str
+
+    def format(self):
+        return self.value
+
+    def __iter__(self):
+        return iter(())
+
+
+@dataclass
+class Reference(Leaf):
+    def format(self):
+        if self.value.startswith('invalid_'):
+            raise InvalidRuleIncluded()
+        return self.value
+
+
+@dataclass
+class String(Leaf):
+    pass
+
+
+def convert_grammar_node(grammar_node):
+    """Convert a pegen grammar node to our AST node"""
+    match grammar_node:
         case pegen.grammar.Rhs():
-            option_reprs = []
-            for alt in node.alts:
-                try:
-                    option_reprs.append(format_node(alt))
-                except InvalidRuleIncluded:
-                    pass
-            return " | ".join(option_reprs)
+            return Choice([convert_grammar_node(alt) for alt in grammar_node.alts])
         case pegen.grammar.Alt():
-            item_reprs = []
-            for item in node.items:
-                item_repr = format_node(item)
-                if item_repr:
-                    item_reprs.append(item_repr)
-            return " ".join(item_reprs)
-        case pegen.grammar.NamedItem():
-            return format_node(node.item)
-        case pegen.grammar.Opt():
-            return '[' + format_node(node.node) + ']'
-        case pegen.grammar.NameLeaf():
-            if node.value.startswith('invalid_'):
-                raise InvalidRuleIncluded
-            return node.value
-        case pegen.grammar.StringLeaf():
-            return node.value
-        case pegen.grammar.Repeat1():
-            return format_node(node.node) + '+'
-        case pegen.grammar.Repeat0():
-            return format_node(node.node) + '*'
+            return Sequence([convert_grammar_node(item) for item in grammar_node.items])
         case pegen.grammar.Group():
-            return '(' + format_node(node.rhs) + ')'
-        case pegen.grammar.Gather():
-            return f"{node.separator!s}.{node.node!s}+"
+            return convert_grammar_node(grammar_node.rhs)
+        case pegen.grammar.NamedItem():
+            return convert_grammar_node(grammar_node.item)
+        case pegen.grammar.Opt():
+            return Optional(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.NameLeaf():
+            return Reference(grammar_node.value)
+        case pegen.grammar.StringLeaf():
+            return String(grammar_node.value)
+        case pegen.grammar.Repeat1():
+            return OneOrMore(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.Repeat0():
+            return ZeroOrMore(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.PositiveLookahead():
+            return Sequence([])
+        case pegen.grammar.NegativeLookahead():
+            return Sequence([])
+        case pegen.grammar.Cut():
+            return Sequence([])
         case pegen.grammar.Forced():
-            # Ignore forced-ness of a node
-            return format_node(node.node)
-        case pegen.grammar.PositiveLookahead() | pegen.grammar.NegativeLookahead() | pegen.grammar.Cut():
-            # Ignore advanced features for now
-            return ''
+            return convert_grammar_node(grammar_node.node)
+        case pegen.grammar.Gather():
+            return Gather(
+                convert_grammar_node(grammar_node.separator),
+                convert_grammar_node(grammar_node.node),
+            )
         case _:
-            raise TypeError(f'{node!r} has unknown type {type(node).__name__}')
+            raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
 
 def generate_all_descendants(node):
@@ -79,7 +175,7 @@ def generate_related_rules(rule, rules, top_level_rule_names, visited):
         return []
     visited.add(rule)
     result = [
-        (rule.name, format_node(rule.rhs))
+        (rule.name, convert_grammar_node(rule.rhs).format())
     ]
     for descendant in generate_all_descendants(rule):
         match descendant:

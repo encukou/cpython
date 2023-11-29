@@ -7,7 +7,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -27,7 +27,7 @@
     "eval_input": [
         [
             "eval_input",
-            "expressions NEWLINE* ENDMARKER"
+            "expressions (NEWLINE)* ENDMARKER"
         ]
     ],
     "compound_stmt": [
@@ -51,7 +51,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -81,7 +81,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -103,7 +103,7 @@
         ],
         [
             "star_target",
-            "'*' (star_target) | target_with_star_atom"
+            "'*' star_target | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
@@ -123,7 +123,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -131,7 +131,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -151,7 +151,7 @@
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ [',']"
+            "(',').(star_target)+ [',']"
         ],
         [
             "star_expressions",
@@ -175,7 +175,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -189,7 +189,7 @@
     "try_stmt": [
         [
             "try_stmt",
-            "'try' ':' block finally_block | 'try' ':' block except_block+ [else_block] [finally_block] | 'try' ':' block except_star_block+ [else_block] [finally_block]"
+            "'try' ':' block finally_block | 'try' ':' block (except_block)+ [else_block] [finally_block] | 'try' ':' block (except_star_block)+ [else_block] [finally_block]"
         ],
         [
             "block",
@@ -197,7 +197,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -223,7 +223,7 @@
     "with_stmt": [
         [
             "with_stmt",
-            "'with' '(' ','.with_item+ [','] ')' ':' block | 'with' ','.with_item+ ':' [TYPE_COMMENT] block | 'async' 'with' '(' ','.with_item+ [','] ')' ':' block | 'async' 'with' ','.with_item+ ':' [TYPE_COMMENT] block"
+            "'with' '(' (',').(with_item)+ [','] ')' ':' block | 'with' (',').(with_item)+ ':' [TYPE_COMMENT] block | 'async' 'with' '(' (',').(with_item)+ [','] ')' ':' block | 'async' 'with' (',').(with_item)+ ':' [TYPE_COMMENT] block"
         ],
         [
             "with_item",
@@ -231,7 +231,7 @@
         ],
         [
             "star_target",
-            "'*' (star_target) | target_with_star_atom"
+            "'*' star_target | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
@@ -251,7 +251,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -259,7 +259,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -279,7 +279,7 @@
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ [',']"
+            "(',').(star_target)+ [',']"
         ],
         [
             "block",
@@ -287,7 +287,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -297,7 +297,7 @@
     "match_stmt": [
         [
             "match_stmt",
-            "\"match\" subject_expr ':' NEWLINE INDENT case_block+ DEDENT"
+            "\"match\" subject_expr ':' NEWLINE INDENT (case_block)+ DEDENT"
         ],
         [
             "subject_expr",
@@ -321,7 +321,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ [',']"
+            "(',').(star_named_expression)+ [',']"
         ],
         [
             "case_block",
@@ -333,7 +333,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -377,13 +377,13 @@
         ],
         [
             "maybe_sequence_pattern",
-            "','.maybe_star_pattern+ [',']"
+            "(',').(maybe_star_pattern)+ [',']"
         ]
     ],
     "or_pattern": [
         [
             "or_pattern",
-            "'|'.closed_pattern+"
+            "('|').(closed_pattern)+"
         ],
         [
             "closed_pattern",
@@ -431,7 +431,7 @@
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -439,7 +439,7 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
+            "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
         ],
         [
             "star_expressions",
@@ -463,7 +463,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -521,7 +521,7 @@
         ],
         [
             "maybe_sequence_pattern",
-            "','.maybe_star_pattern+ [',']"
+            "(',').(maybe_star_pattern)+ [',']"
         ],
         [
             "maybe_star_pattern",
@@ -559,11 +559,11 @@
         ],
         [
             "items_pattern",
-            "','.key_value_pattern+"
+            "(',').(key_value_pattern)+"
         ],
         [
             "key_value_pattern",
-            "(literal_expr | attr) ':' pattern"
+            "literal_expr | attr ':' pattern"
         ],
         [
             "attr",
@@ -593,7 +593,7 @@
         ],
         [
             "positional_patterns",
-            "','.pattern+"
+            "(',').(pattern)+"
         ],
         [
             "pattern",
@@ -601,7 +601,7 @@
         ],
         [
             "keyword_patterns",
-            "','.keyword_pattern+"
+            "(',').(keyword_pattern)+"
         ],
         [
             "keyword_pattern",
@@ -631,11 +631,11 @@
         ],
         [
             "parameters",
-            "slash_no_default param_no_default* param_with_default* [star_etc] | slash_with_default param_with_default* [star_etc] | param_no_default+ param_with_default* [star_etc] | param_with_default+ [star_etc] | star_etc"
+            "slash_no_default (param_no_default)* (param_with_default)* [star_etc] | slash_with_default (param_with_default)* [star_etc] | (param_no_default)+ (param_with_default)* [star_etc] | (param_with_default)+ [star_etc] | star_etc"
         ],
         [
             "slash_no_default",
-            "param_no_default+ '/' ',' | param_no_default+ '/'"
+            "(param_no_default)+ '/' ',' | (param_no_default)+ '/'"
         ],
         [
             "param_no_default",
@@ -659,7 +659,7 @@
         ],
         [
             "star_etc",
-            "'*' param_no_default param_maybe_default* [kwds] | '*' param_no_default_star_annotation param_maybe_default* [kwds] | '*' ',' param_maybe_default+ [kwds] | kwds"
+            "'*' param_no_default (param_maybe_default)* [kwds] | '*' param_no_default_star_annotation (param_maybe_default)* [kwds] | '*' ',' (param_maybe_default)+ [kwds] | kwds"
         ],
         [
             "param_maybe_default",
@@ -695,7 +695,7 @@
         ],
         [
             "slash_with_default",
-            "param_no_default* param_with_default+ '/' ',' | param_no_default* param_with_default+ '/'"
+            "(param_no_default)* (param_with_default)+ '/' ',' | (param_no_default)* (param_with_default)+ '/'"
         ],
         [
             "func_type_comment",
@@ -707,7 +707,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -737,7 +737,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -745,7 +745,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -761,7 +761,7 @@
         ],
         [
             "statements",
-            "statement+"
+            "(statement)+"
         ],
         [
             "statement",
@@ -775,7 +775,7 @@
         ],
         [
             "type_param_seq",
-            "','.type_param+ [',']"
+            "(',').(type_param)+ [',']"
         ],
         [
             "type_param",
@@ -789,7 +789,7 @@
     "simple_stmts": [
         [
             "simple_stmts",
-            "simple_stmt NEWLINE | ';'.simple_stmt+ [';'] NEWLINE"
+            "simple_stmt NEWLINE | (';').(simple_stmt)+ [';'] NEWLINE"
         ],
         [
             "simple_stmt",
@@ -815,7 +815,7 @@
     "assignment": [
         [
             "assignment",
-            "NAME ':' expression ['=' annotated_rhs] | ('(' single_target ')' | single_subscript_attribute_target) ':' expression ['=' annotated_rhs] | (star_targets '=')+ (yield_expr | star_expressions) [TYPE_COMMENT] | augmented_assignment"
+            "NAME ':' expression ['=' annotated_rhs] | '(' single_target ')' | single_subscript_attribute_target ':' expression ['=' annotated_rhs] | (star_targets '=')+ yield_expr | star_expressions [TYPE_COMMENT] | augmented_assignment"
         ],
         [
             "single_target",
@@ -839,7 +839,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -847,7 +847,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -863,7 +863,7 @@
         ],
         [
             "star_target",
-            "'*' (star_target) | target_with_star_atom"
+            "'*' star_target | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
@@ -879,7 +879,7 @@
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ [',']"
+            "(',').(star_target)+ [',']"
         ],
         [
             "star_expressions",
@@ -907,7 +907,7 @@
     "augmented_assignment": [
         [
             "augmented_assignment",
-            "single_target augassign (yield_expr | star_expressions)"
+            "single_target augassign yield_expr | star_expressions"
         ],
         [
             "single_target",
@@ -931,7 +931,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -939,7 +939,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -1005,7 +1005,7 @@
         ],
         [
             "del_targets",
-            "','.del_target+ [',']"
+            "(',').(del_target)+ [',']"
         ],
         [
             "del_target",
@@ -1025,7 +1025,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -1033,7 +1033,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -1093,7 +1093,7 @@
         ],
         [
             "dotted_as_names",
-            "','.dotted_as_name+"
+            "(',').(dotted_as_name)+"
         ],
         [
             "dotted_as_name",
@@ -1113,7 +1113,7 @@
         ],
         [
             "import_from_as_names",
-            "','.import_from_as_name+"
+            "(',').(import_from_as_name)+"
         ],
         [
             "import_from_as_name",
@@ -1123,13 +1123,13 @@
     "global_stmt": [
         [
             "global_stmt",
-            "'global' ','.NAME+"
+            "'global' (',').(NAME)+"
         ]
     ],
     "nonlocal_stmt": [
         [
             "nonlocal_stmt",
-            "'nonlocal' ','.NAME+"
+            "'nonlocal' (',').(NAME)+"
         ]
     ],
     "type_alias": [
@@ -1141,7 +1141,7 @@
     "atom": [
         [
             "atom",
-            "NAME | 'True' | 'False' | 'None' | strings | NUMBER | (tuple | group | genexp) | (list | listcomp) | (dict | set | dictcomp | setcomp) | '...'"
+            "NAME | 'True' | 'False' | 'None' | strings | NUMBER | tuple | group | genexp | list | listcomp | dict | set | dictcomp | setcomp | '...'"
         ],
         [
             "strings",
@@ -1149,7 +1149,7 @@
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -1157,7 +1157,7 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
+            "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
         ],
         [
             "star_expressions",
@@ -1181,7 +1181,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -1205,7 +1205,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ [',']"
+            "(',').(star_named_expression)+ [',']"
         ]
     ],
     "literal_expr": [
@@ -1239,7 +1239,7 @@
         ],
         [
             "fstring",
-            "FSTRING_START fstring_middle* FSTRING_END"
+            "FSTRING_START (fstring_middle)* FSTRING_END"
         ],
         [
             "fstring_middle",
@@ -1247,7 +1247,7 @@
         ],
         [
             "fstring_replacement_field",
-            "'{' (yield_expr | star_expressions) ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
+            "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
         ],
         [
             "star_expressions",
@@ -1271,7 +1271,7 @@
         ],
         [
             "fstring_full_format_spec",
-            "':' fstring_format_spec*"
+            "':' (fstring_format_spec)*"
         ],
         [
             "fstring_format_spec",
@@ -1285,7 +1285,7 @@
     "group": [
         [
             "group",
-            "'(' (yield_expr | named_expression) ')'"
+            "'(' yield_expr | named_expression ')'"
         ],
         [
             "named_expression",
@@ -1295,7 +1295,7 @@
     "for_if_clauses": [
         [
             "for_if_clauses",
-            "for_if_clause+"
+            "(for_if_clause)+"
         ],
         [
             "for_if_clause",
@@ -1307,7 +1307,7 @@
         ],
         [
             "star_target",
-            "'*' (star_target) | target_with_star_atom"
+            "'*' star_target | target_with_star_atom"
         ],
         [
             "target_with_star_atom",
@@ -1327,7 +1327,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -1335,7 +1335,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -1355,7 +1355,7 @@
         ],
         [
             "star_targets_list_seq",
-            "','.star_target+ [',']"
+            "(',').(star_target)+ [',']"
         ]
     ],
     "list": [
@@ -1365,7 +1365,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ [',']"
+            "(',').(star_named_expression)+ [',']"
         ],
         [
             "star_named_expression",
@@ -1401,7 +1401,7 @@
         ],
         [
             "star_named_expressions",
-            "','.star_named_expression+ [',']"
+            "(',').(star_named_expression)+ [',']"
         ],
         [
             "star_named_expression",
@@ -1437,7 +1437,7 @@
         ],
         [
             "double_starred_kvpairs",
-            "','.double_starred_kvpair+ [',']"
+            "(',').(double_starred_kvpair)+ [',']"
         ],
         [
             "double_starred_kvpair",
@@ -1469,7 +1469,7 @@
     "genexp": [
         [
             "genexp",
-            "'(' (assignment_expression | expression) for_if_clauses ')'"
+            "'(' assignment_expression | expression for_if_clauses ')'"
         ]
     ],
     "yield_expr": [
@@ -1515,7 +1515,7 @@
     "slices": [
         [
             "slices",
-            "expr_or_slice | ','.(expr_or_slice | starred_expression)+ [',']"
+            "expr_or_slice | (',').(expr_or_slice | starred_expression)+ [',']"
         ],
         [
             "expr_or_slice",
@@ -1545,7 +1545,7 @@
         ],
         [
             "args",
-            "','.(starred_expression | (assignment_expression | expression !':=') !'=')+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -1553,7 +1553,7 @@
         ],
         [
             "kwargs",
-            "','.kwarg_or_starred+ ',' ','.kwarg_or_double_starred+ | ','.kwarg_or_starred+ | ','.kwarg_or_double_starred+"
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
         ],
         [
             "kwarg_or_starred",
@@ -1607,7 +1607,7 @@
     "comparison": [
         [
             "comparison",
-            "bitwise_or compare_op_bitwise_or_pair+ | bitwise_or"
+            "bitwise_or (compare_op_bitwise_or_pair)+ | bitwise_or"
         ],
         [
             "bitwise_or",
@@ -1627,7 +1627,7 @@
         ],
         [
             "noteq_bitwise_or",
-            "('!=') bitwise_or"
+            "'!=' bitwise_or"
         ],
         [
             "lte_bitwise_or",
@@ -1699,11 +1699,11 @@
         ],
         [
             "lambda_parameters",
-            "lambda_slash_no_default lambda_param_no_default* lambda_param_with_default* [lambda_star_etc] | lambda_slash_with_default lambda_param_with_default* [lambda_star_etc] | lambda_param_no_default+ lambda_param_with_default* [lambda_star_etc] | lambda_param_with_default+ [lambda_star_etc] | lambda_star_etc"
+            "lambda_slash_no_default (lambda_param_no_default)* (lambda_param_with_default)* [lambda_star_etc] | lambda_slash_with_default (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_no_default)+ (lambda_param_with_default)* [lambda_star_etc] | (lambda_param_with_default)+ [lambda_star_etc] | lambda_star_etc"
         ],
         [
             "lambda_slash_no_default",
-            "lambda_param_no_default+ '/' ',' | lambda_param_no_default+ '/'"
+            "(lambda_param_no_default)+ '/' ',' | (lambda_param_no_default)+ '/'"
         ],
         [
             "lambda_param_no_default",
@@ -1723,7 +1723,7 @@
         ],
         [
             "lambda_star_etc",
-            "'*' lambda_param_no_default lambda_param_maybe_default* [lambda_kwds] | '*' ',' lambda_param_maybe_default+ [lambda_kwds] | lambda_kwds"
+            "'*' lambda_param_no_default (lambda_param_maybe_default)* [lambda_kwds] | '*' ',' (lambda_param_maybe_default)+ [lambda_kwds] | lambda_kwds"
         ],
         [
             "lambda_param_maybe_default",
@@ -1735,7 +1735,7 @@
         ],
         [
             "lambda_slash_with_default",
-            "lambda_param_no_default* lambda_param_with_default+ '/' ',' | lambda_param_no_default* lambda_param_with_default+ '/'"
+            "(lambda_param_no_default)* (lambda_param_with_default)+ '/' ',' | (lambda_param_no_default)* (lambda_param_with_default)+ '/'"
         ]
     ],
     "expressions": [
