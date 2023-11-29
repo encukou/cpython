@@ -14,22 +14,41 @@ argparser.add_argument("grammar_filename", help="Grammar description")
 argparser.add_argument("fragments_filename", help="List of rules that should be documented")
 argparser.add_argument("output_filename", help="File to write the output to")
 
+class InvalidRuleIncluded(Exception):
+    """Refusal to format an `invalid_` rule"""
+
+
 def format_node(node):
     match node:
         case pegen.grammar.Rhs():
-            return " | ".join(format_node(alt) for alt in node.alts)
+            option_reprs = []
+            for alt in node.alts:
+                try:
+                    option_reprs.append(format_node(alt))
+                except InvalidRuleIncluded:
+                    pass
+            return " | ".join(option_reprs)
         case pegen.grammar.Alt():
-            return " ".join(format_node(item) for item in node.items)
+            item_reprs = []
+            for item in node.items:
+                item_repr = format_node(item)
+                if item_repr:
+                    item_reprs.append(item_repr)
+            return " ".join(item_reprs)
         case pegen.grammar.NamedItem():
             return format_node(node.item)
         case pegen.grammar.Opt():
             return '[' + format_node(node.node) + ']'
-        case pegen.grammar.NameLeaf() | pegen.grammar.StringLeaf():
+        case pegen.grammar.NameLeaf():
+            if node.value.startswith('invalid_'):
+                raise InvalidRuleIncluded
+            return node.value
+        case pegen.grammar.StringLeaf():
             return node.value
         case pegen.grammar.Repeat1():
-            return '(' + format_node(node.node) + ')+'
+            return format_node(node.node) + '+'
         case pegen.grammar.Repeat0():
-            return '(' + format_node(node.node) + ')*'
+            return format_node(node.node) + '*'
         case pegen.grammar.Group():
             return '(' + format_node(node.rhs) + ')'
         case pegen.grammar.Gather():
@@ -54,6 +73,8 @@ def generate_all_descendants(node):
             yield from generate_all_descendants(value)
 
 def generate_related_rules(rule, rules, top_level_rule_names, visited):
+    if rule.name.startswith('invalid_'):
+        return []
     if rule in visited:
         return []
     visited.add(rule)
