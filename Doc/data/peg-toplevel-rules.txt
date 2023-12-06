@@ -2,6 +2,7 @@ file_input
 interactive_input
 eval_input
 compound_stmt
+block
 if_stmt
 while_stmt
 for_stmt
@@ -29,6 +30,7 @@ type_params
 simple_stmts
 assignment
 expression
+named_expression
 augmented_assignment
 annotated_rhs
 assert_stmt

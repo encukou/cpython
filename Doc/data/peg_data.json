@@ -36,15 +36,7 @@
             "function_def | if_stmt | class_def | with_stmt | for_stmt | try_stmt | while_stmt | match_stmt"
         ]
     ],
-    "if_stmt": [
-        [
-            "if_stmt",
-            "'if' named_expression ':' block elif_stmt | 'if' named_expression ':' block [else_block]"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
-        ],
+    "block": [
         [
             "block",
             "NEWLINE INDENT statements DEDENT | simple_stmts"
@@ -56,6 +48,12 @@
         [
             "statement",
             "compound_stmt | simple_stmts"
+        ]
+    ],
+    "if_stmt": [
+        [
+            "if_stmt",
+            "'if' named_expression ':' block elif_stmt | 'if' named_expression ':' block [else_block]"
         ],
         [
             "elif_stmt",
@@ -70,22 +68,6 @@
         [
             "while_stmt",
             "'while' named_expression ':' block [else_block]"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ],
         [
             "else_block",
@@ -112,10 +94,6 @@
         [
             "t_primary",
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "t_lookahead",
-            "'(' | '[' | '.'"
         ],
         [
             "arguments",
@@ -170,18 +148,6 @@
             "bitwise_xor '^' bitwise_and | bitwise_and"
         ],
         [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
-        ],
-        [
             "else_block",
             "'else' ':' block"
         ]
@@ -190,18 +156,6 @@
         [
             "try_stmt",
             "'try' ':' block finally_block | 'try' ':' block (except_block)+ [else_block] [finally_block] | 'try' ':' block (except_star_block)+ [else_block] [finally_block]"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ],
         [
             "finally_block",
@@ -242,10 +196,6 @@
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
         ],
         [
-            "t_lookahead",
-            "'(' | '[' | '.'"
-        ],
-        [
             "arguments",
             "args [',']"
         ],
@@ -280,18 +230,6 @@
         [
             "star_targets_list_seq",
             "(',').(star_target)+ [',']"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ]
     ],
     "match_stmt": [
@@ -316,38 +254,18 @@
             "bitwise_xor '^' bitwise_and | bitwise_and"
         ],
         [
-            "named_expression",
-            "assignment_expression | expression"
-        ],
-        [
             "star_named_expressions",
             "(',').(star_named_expression)+ [',']"
         ],
         [
             "case_block",
             "\"case\" patterns [guard] ':' block"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ]
     ],
     "guard": [
         [
             "guard",
             "'if' named_expression"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "patterns": [
@@ -618,10 +536,6 @@
             "('@' named_expression NEWLINE)+"
         ],
         [
-            "named_expression",
-            "assignment_expression | expression"
-        ],
-        [
             "function_def_raw",
             "'def' NAME [type_params] '(' [params] ')' ['->' expression] ':' [func_type_comment] block | 'async' 'def' NAME [type_params] '(' [params] ')' ['->' expression] ':' [func_type_comment] block"
         ],
@@ -700,18 +614,6 @@
         [
             "func_type_comment",
             "NEWLINE TYPE_COMMENT | TYPE_COMMENT"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ]
     ],
     "class_def": [
@@ -722,10 +624,6 @@
         [
             "decorators",
             "('@' named_expression NEWLINE)+"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ],
         [
             "class_def_raw",
@@ -754,18 +652,6 @@
         [
             "kwarg_or_double_starred",
             "NAME '=' expression | '**' expression"
-        ],
-        [
-            "block",
-            "NEWLINE INDENT statements DEDENT | simple_stmts"
-        ],
-        [
-            "statements",
-            "(statement)+"
-        ],
-        [
-            "statement",
-            "compound_stmt | simple_stmts"
         ]
     ],
     "type_params": [
@@ -828,10 +714,6 @@
         [
             "t_primary",
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "t_lookahead",
-            "'(' | '[' | '.'"
         ],
         [
             "arguments",
@@ -904,6 +786,12 @@
             "conditional_expr | disjunction | lambdef"
         ]
     ],
+    "named_expression": [
+        [
+            "named_expression",
+            "assignment_expression | expression"
+        ]
+    ],
     "augmented_assignment": [
         [
             "augmented_assignment",
@@ -920,10 +808,6 @@
         [
             "t_primary",
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "t_lookahead",
-            "'(' | '[' | '.'"
         ],
         [
             "arguments",
@@ -1014,10 +898,6 @@
         [
             "t_primary",
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "t_lookahead",
-            "'(' | '[' | '.'"
         ],
         [
             "arguments",
@@ -1200,10 +1080,6 @@
             "'*' bitwise_or | named_expression"
         ],
         [
-            "named_expression",
-            "assignment_expression | expression"
-        ],
-        [
             "star_named_expressions",
             "(',').(star_named_expression)+ [',']"
         ]
@@ -1286,10 +1162,6 @@
         [
             "group",
             "'(' yield_expr | named_expression ')'"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "for_if_clauses": [
@@ -1316,10 +1188,6 @@
         [
             "t_primary",
             "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "t_lookahead",
-            "'(' | '[' | '.'"
         ],
         [
             "arguments",
@@ -1378,20 +1246,12 @@
         [
             "bitwise_xor",
             "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "listcomp": [
         [
             "listcomp",
             "'[' named_expression for_if_clauses ']'"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "set": [
@@ -1414,20 +1274,12 @@
         [
             "bitwise_xor",
             "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "setcomp": [
         [
             "setcomp",
             "'{' named_expression for_if_clauses '}'"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ]
     ],
     "dict": [
@@ -1524,10 +1376,6 @@
         [
             "slice",
             "[expression] ':' [expression] [':' [expression]]"
-        ],
-        [
-            "named_expression",
-            "assignment_expression | expression"
         ],
         [
             "starred_expression",

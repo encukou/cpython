@@ -61,7 +61,7 @@ Summarizing:
    statement: `stmt_list` NEWLINE | `compound_stmt`
    stmt_list: `simple_stmt` (";" `simple_stmt`)* [";"]
 
-.. peg-fragment:: compound_stmt
+.. peg-fragment:: compound_stmt block
 
 .. index::
    single: NEWLINE token
