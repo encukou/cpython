@@ -208,6 +208,7 @@ def generate_related_rules(rule, rules, top_level_rule_names, visited):
     result = [
         (rule.name, rule_text)
     ]
+    print()
     print(f'{rule.name}: {rule_text}')
     print(node.simplify())
     for descendant in generate_all_descendants(node):

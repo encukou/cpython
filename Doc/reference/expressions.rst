@@ -111,7 +111,7 @@ Python supports string and bytes literals and various numeric literals:
    literal: `stringliteral` | `bytesliteral`
           : | `integer` | `floatnumber` | `imagnumber`
 
-.. peg-fragment:: literal_expr
+.. peg-fragment:: literal_expr strings
 
 Evaluation of a literal yields an object of the given type (string, bytes,
 integer, floating point number, complex number) with the given value.  The value
@@ -1918,7 +1918,7 @@ Expression lists
    starred_expression: `expression` | (`starred_item` ",")* [`starred_item`]
    starred_item: `assignment_expression` | "*" `or_expr`
 
-.. peg-fragment:: expressions
+.. peg-fragment:: expressions star_expressions star_named_expressions star_named_expression
 
 .. index:: pair: object; tuple
 

@@ -793,7 +793,7 @@ The top-level syntax for ``patterns`` is:
                  : | `mapping_pattern`
                  : | `class_pattern`
 
-.. peg-fragment:: patterns
+.. peg-fragment:: patterns pattern closed_pattern
 
 The descriptions below will include a description "in simple terms" of what a pattern
 does for illustration purposes (credits to Raymond Hettinger for a document that
@@ -889,7 +889,7 @@ Syntax:
 .. productionlist:: python-grammar
    capture_pattern: !'_' NAME
 
-.. peg-fragment:: capture_pattern
+.. peg-fragment:: capture_pattern pattern_capture_target
 
 A single underscore ``_`` is not a capture pattern (this is what ``!'_'``
 expresses). It is instead treated as a
@@ -985,7 +985,7 @@ The syntax is similar to the unpacking of a list or tuple.
   maybe_star_pattern: `star_pattern` | `pattern`
   star_pattern: "*" (`capture_pattern` | `wildcard_pattern`)
 
-.. peg-fragment:: sequence_pattern
+.. peg-fragment:: sequence_pattern open_sequence_pattern maybe_sequence_pattern maybe_star_pattern star_pattern
 
 There is no difference if parentheses  or square brackets
 are used for sequence patterns (i.e. ``(...)`` vs ``[...]`` ).

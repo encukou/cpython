@@ -80,74 +80,6 @@
             "'for' star_targets 'in' star_expressions ':' block [else_block] | 'async' 'for' star_targets 'in' star_expressions ':' block [else_block]"
         ],
         [
-            "star_targets",
-            "star_target | star_target (',' star_target)* [',']"
-        ],
-        [
-            "star_target",
-            "'*' star_target | target_with_star_atom"
-        ],
-        [
-            "target_with_star_atom",
-            "t_primary '.' NAME | t_primary '[' slices ']' | star_atom"
-        ],
-        [
-            "t_primary",
-            "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "arguments",
-            "args [',']"
-        ],
-        [
-            "args",
-            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
-        ],
-        [
-            "starred_expression",
-            "'*' expression"
-        ],
-        [
-            "kwargs",
-            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
-        ],
-        [
-            "kwarg_or_starred",
-            "NAME '=' expression | starred_expression"
-        ],
-        [
-            "kwarg_or_double_starred",
-            "NAME '=' expression | '**' expression"
-        ],
-        [
-            "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
-        ],
-        [
-            "star_targets_tuple_seq",
-            "star_target (',' star_target)+ [','] | star_target ','"
-        ],
-        [
-            "star_targets_list_seq",
-            "(',').(star_target)+ [',']"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
             "else_block",
             "'else' ':' block"
         ]
@@ -182,54 +114,6 @@
         [
             "with_item",
             "expression 'as' star_target | expression"
-        ],
-        [
-            "star_target",
-            "'*' star_target | target_with_star_atom"
-        ],
-        [
-            "target_with_star_atom",
-            "t_primary '.' NAME | t_primary '[' slices ']' | star_atom"
-        ],
-        [
-            "t_primary",
-            "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "arguments",
-            "args [',']"
-        ],
-        [
-            "args",
-            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
-        ],
-        [
-            "starred_expression",
-            "'*' expression"
-        ],
-        [
-            "kwargs",
-            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
-        ],
-        [
-            "kwarg_or_starred",
-            "NAME '=' expression | starred_expression"
-        ],
-        [
-            "kwarg_or_double_starred",
-            "NAME '=' expression | '**' expression"
-        ],
-        [
-            "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
-        ],
-        [
-            "star_targets_tuple_seq",
-            "star_target (',' star_target)+ [','] | star_target ','"
-        ],
-        [
-            "star_targets_list_seq",
-            "(',').(star_target)+ [',']"
         ]
     ],
     "match_stmt": [
@@ -240,22 +124,6 @@
         [
             "subject_expr",
             "star_named_expression ',' [star_named_expressions] | named_expression"
-        ],
-        [
-            "star_named_expression",
-            "'*' bitwise_or | named_expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
-            "star_named_expressions",
-            "(',').(star_named_expression)+ [',']"
         ],
         [
             "case_block",
@@ -272,50 +140,30 @@
         [
             "patterns",
             "open_sequence_pattern | pattern"
-        ],
-        [
-            "open_sequence_pattern",
-            "maybe_star_pattern ',' [maybe_sequence_pattern]"
-        ],
-        [
-            "maybe_star_pattern",
-            "star_pattern | pattern"
-        ],
-        [
-            "star_pattern",
-            "'*' pattern_capture_target | '*' wildcard_pattern"
-        ],
-        [
-            "pattern_capture_target",
-            "NAME"
-        ],
+        ]
+    ],
+    "pattern": [
         [
             "pattern",
             "as_pattern | or_pattern"
-        ],
+        ]
+    ],
+    "closed_pattern": [
         [
-            "maybe_sequence_pattern",
-            "(',').(maybe_star_pattern)+ [',']"
+            "closed_pattern",
+            "literal_pattern | capture_pattern | wildcard_pattern | value_pattern | group_pattern | sequence_pattern | mapping_pattern | class_pattern"
         ]
     ],
     "or_pattern": [
         [
             "or_pattern",
             "('|').(closed_pattern)+"
-        ],
-        [
-            "closed_pattern",
-            "literal_pattern | capture_pattern | wildcard_pattern | value_pattern | group_pattern | sequence_pattern | mapping_pattern | class_pattern"
         ]
     ],
     "as_pattern": [
         [
             "as_pattern",
             "or_pattern 'as' pattern_capture_target"
-        ],
-        [
-            "pattern_capture_target",
-            "NAME"
         ]
     ],
     "literal_pattern": [
@@ -342,61 +190,15 @@
         [
             "imaginary_number",
             "NUMBER"
-        ],
-        [
-            "strings",
-            "(fstring | string)+"
-        ],
-        [
-            "fstring",
-            "FSTRING_START (fstring_middle)* FSTRING_END"
-        ],
-        [
-            "fstring_middle",
-            "fstring_replacement_field | FSTRING_MIDDLE"
-        ],
-        [
-            "fstring_replacement_field",
-            "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
-            "fstring_conversion",
-            "\"!\" NAME"
-        ],
-        [
-            "fstring_full_format_spec",
-            "':' (fstring_format_spec)*"
-        ],
-        [
-            "fstring_format_spec",
-            "FSTRING_MIDDLE | fstring_replacement_field"
-        ],
-        [
-            "string",
-            "STRING"
         ]
     ],
     "capture_pattern": [
         [
             "capture_pattern",
             "pattern_capture_target"
-        ],
+        ]
+    ],
+    "pattern_capture_target": [
         [
             "pattern_capture_target",
             "NAME"
@@ -426,40 +228,36 @@
         [
             "group_pattern",
             "'(' pattern ')'"
-        ],
-        [
-            "pattern",
-            "as_pattern | or_pattern"
         ]
     ],
     "sequence_pattern": [
         [
             "sequence_pattern",
             "'[' [maybe_sequence_pattern] ']' | '(' [open_sequence_pattern] ')'"
-        ],
+        ]
+    ],
+    "maybe_sequence_pattern": [
         [
             "maybe_sequence_pattern",
             "(',').(maybe_star_pattern)+ [',']"
-        ],
+        ]
+    ],
+    "maybe_star_pattern": [
         [
             "maybe_star_pattern",
             "star_pattern | pattern"
-        ],
-        [
-            "star_pattern",
-            "'*' pattern_capture_target | '*' wildcard_pattern"
-        ],
-        [
-            "pattern_capture_target",
-            "NAME"
-        ],
-        [
-            "pattern",
-            "as_pattern | or_pattern"
-        ],
+        ]
+    ],
+    "open_sequence_pattern": [
         [
             "open_sequence_pattern",
             "maybe_star_pattern ',' [maybe_sequence_pattern]"
+        ]
+    ],
+    "star_pattern": [
+        [
+            "star_pattern",
+            "'*' pattern_capture_target | '*' wildcard_pattern"
         ]
     ],
     "mapping_pattern": [
@@ -470,10 +268,6 @@
         [
             "double_star_pattern",
             "'**' pattern_capture_target"
-        ],
-        [
-            "pattern_capture_target",
-            "NAME"
         ],
         [
             "items_pattern",
@@ -490,10 +284,6 @@
         [
             "name_or_attr",
             "attr | NAME"
-        ],
-        [
-            "pattern",
-            "as_pattern | or_pattern"
         ]
     ],
     "class_pattern": [
@@ -512,10 +302,6 @@
         [
             "positional_patterns",
             "(',').(pattern)+"
-        ],
-        [
-            "pattern",
-            "as_pattern | or_pattern"
         ],
         [
             "keyword_patterns",
@@ -680,22 +466,6 @@
         [
             "simple_stmt",
             "assignment | type_alias | star_expressions | return_stmt | import_stmt | raise_stmt | 'pass' | del_stmt | yield_stmt | assert_stmt | 'break' | 'continue' | global_stmt | nonlocal_stmt"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "assignment": [
@@ -738,11 +508,15 @@
         [
             "kwarg_or_double_starred",
             "NAME '=' expression | '**' expression"
-        ],
+        ]
+    ],
+    "star_targets": [
         [
             "star_targets",
             "star_target | star_target (',' star_target)* [',']"
-        ],
+        ]
+    ],
+    "star_target": [
         [
             "star_target",
             "'*' star_target | target_with_star_atom"
@@ -750,6 +524,34 @@
         [
             "target_with_star_atom",
             "t_primary '.' NAME | t_primary '[' slices ']' | star_atom"
+        ],
+        [
+            "t_primary",
+            "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
+        ],
+        [
+            "arguments",
+            "args [',']"
+        ],
+        [
+            "args",
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
+        ],
+        [
+            "starred_expression",
+            "'*' expression"
+        ],
+        [
+            "kwargs",
+            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
+        ],
+        [
+            "kwarg_or_starred",
+            "NAME '=' expression | starred_expression"
+        ],
+        [
+            "kwarg_or_double_starred",
+            "NAME '=' expression | '**' expression"
         ],
         [
             "star_atom",
@@ -762,22 +564,6 @@
         [
             "star_targets_list_seq",
             "(',').(star_target)+ [',']"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "expression": [
@@ -836,44 +622,12 @@
         [
             "augassign",
             "'+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "annotated_rhs": [
         [
             "annotated_rhs",
             "yield_expr | star_expressions"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "assert_stmt": [
@@ -932,22 +686,6 @@
         [
             "return_stmt",
             "'return' [star_expressions]"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "yield_stmt": [
@@ -1024,64 +762,8 @@
             "NAME | 'True' | 'False' | 'None' | strings | NUMBER | tuple | group | genexp | list | listcomp | dict | set | dictcomp | setcomp | '...'"
         ],
         [
-            "strings",
-            "(fstring | string)+"
-        ],
-        [
-            "fstring",
-            "FSTRING_START (fstring_middle)* FSTRING_END"
-        ],
-        [
-            "fstring_middle",
-            "fstring_replacement_field | FSTRING_MIDDLE"
-        ],
-        [
-            "fstring_replacement_field",
-            "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
-        ],
-        [
-            "fstring_conversion",
-            "\"!\" NAME"
-        ],
-        [
-            "fstring_full_format_spec",
-            "':' (fstring_format_spec)*"
-        ],
-        [
-            "fstring_format_spec",
-            "FSTRING_MIDDLE | fstring_replacement_field"
-        ],
-        [
-            "string",
-            "STRING"
-        ],
-        [
             "tuple",
             "'(' [star_named_expression ',' [star_named_expressions]] ')'"
-        ],
-        [
-            "star_named_expression",
-            "'*' bitwise_or | named_expression"
-        ],
-        [
-            "star_named_expressions",
-            "(',').(star_named_expression)+ [',']"
         ]
     ],
     "literal_expr": [
@@ -1108,7 +790,9 @@
         [
             "imaginary_number",
             "NUMBER"
-        ],
+        ]
+    ],
+    "strings": [
         [
             "strings",
             "(fstring | string)+"
@@ -1124,22 +808,6 @@
         [
             "fstring_replacement_field",
             "'{' yield_expr | star_expressions ['='] [fstring_conversion] [fstring_full_format_spec] '}'"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ],
         [
             "fstring_conversion",
@@ -1172,80 +840,12 @@
         [
             "for_if_clause",
             "'async' 'for' star_targets 'in' disjunction ('if' disjunction)* | 'for' star_targets 'in' disjunction ('if' disjunction)*"
-        ],
-        [
-            "star_targets",
-            "star_target | star_target (',' star_target)* [',']"
-        ],
-        [
-            "star_target",
-            "'*' star_target | target_with_star_atom"
-        ],
-        [
-            "target_with_star_atom",
-            "t_primary '.' NAME | t_primary '[' slices ']' | star_atom"
-        ],
-        [
-            "t_primary",
-            "t_primary '.' NAME | t_primary '[' slices ']' | t_primary genexp | t_primary '(' [arguments] ')' | atom"
-        ],
-        [
-            "arguments",
-            "args [',']"
-        ],
-        [
-            "args",
-            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
-        ],
-        [
-            "starred_expression",
-            "'*' expression"
-        ],
-        [
-            "kwargs",
-            "(',').(kwarg_or_starred)+ ',' (',').(kwarg_or_double_starred)+ | (',').(kwarg_or_starred)+ | (',').(kwarg_or_double_starred)+"
-        ],
-        [
-            "kwarg_or_starred",
-            "NAME '=' expression | starred_expression"
-        ],
-        [
-            "kwarg_or_double_starred",
-            "NAME '=' expression | '**' expression"
-        ],
-        [
-            "star_atom",
-            "NAME | '(' target_with_star_atom ')' | '(' [star_targets_tuple_seq] ')' | '[' [star_targets_list_seq] ']'"
-        ],
-        [
-            "star_targets_tuple_seq",
-            "star_target (',' star_target)+ [','] | star_target ','"
-        ],
-        [
-            "star_targets_list_seq",
-            "(',').(star_target)+ [',']"
         ]
     ],
     "list": [
         [
             "list",
             "'[' [star_named_expressions] ']'"
-        ],
-        [
-            "star_named_expressions",
-            "(',').(star_named_expression)+ [',']"
-        ],
-        [
-            "star_named_expression",
-            "'*' bitwise_or | named_expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "listcomp": [
@@ -1258,22 +858,6 @@
         [
             "set",
             "'{' star_named_expressions '}'"
-        ],
-        [
-            "star_named_expressions",
-            "(',').(star_named_expression)+ [',']"
-        ],
-        [
-            "star_named_expression",
-            "'*' bitwise_or | named_expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "setcomp": [
@@ -1328,22 +912,6 @@
         [
             "yield_expr",
             "'yield' 'from' expression | 'yield' [star_expressions]"
-        ],
-        [
-            "star_expressions",
-            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
-        ],
-        [
-            "star_expression",
-            "'*' bitwise_or | expression"
-        ],
-        [
-            "bitwise_or",
-            "bitwise_or '|' bitwise_xor | bitwise_xor"
-        ],
-        [
-            "bitwise_xor",
-            "bitwise_xor '^' bitwise_and | bitwise_and"
         ]
     ],
     "primary": [
@@ -1590,6 +1158,44 @@
         [
             "expressions",
             "expression (',' expression)+ [','] | expression ',' | expression"
+        ]
+    ],
+    "star_expressions": [
+        [
+            "star_expressions",
+            "star_expression (',' star_expression)+ [','] | star_expression ',' | star_expression"
+        ],
+        [
+            "star_expression",
+            "'*' bitwise_or | expression"
+        ],
+        [
+            "bitwise_or",
+            "bitwise_or '|' bitwise_xor | bitwise_xor"
+        ],
+        [
+            "bitwise_xor",
+            "bitwise_xor '^' bitwise_and | bitwise_and"
+        ]
+    ],
+    "star_named_expression": [
+        [
+            "star_named_expression",
+            "'*' bitwise_or | named_expression"
+        ],
+        [
+            "bitwise_or",
+            "bitwise_or '|' bitwise_xor | bitwise_xor"
+        ],
+        [
+            "bitwise_xor",
+            "bitwise_xor '^' bitwise_and | bitwise_and"
+        ]
+    ],
+    "star_named_expressions": [
+        [
+            "star_named_expressions",
+            "(',').(star_named_expression)+ [',']"
         ]
     ]
 }

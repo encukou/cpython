@@ -11,14 +11,21 @@ with_stmt
 match_stmt
 guard
 patterns
+pattern
+closed_pattern
 or_pattern
 as_pattern
 literal_pattern
 capture_pattern
+pattern_capture_target
 wildcard_pattern
 value_pattern
 group_pattern
 sequence_pattern
+maybe_sequence_pattern
+maybe_star_pattern
+open_sequence_pattern
+star_pattern
 mapping_pattern
 class_pattern
 function_def
@@ -29,6 +36,8 @@ class_def
 type_params
 simple_stmts
 assignment
+star_targets
+star_target
 expression
 named_expression
 augmented_assignment
@@ -48,6 +57,7 @@ nonlocal_stmt
 type_alias
 atom
 literal_expr
+strings
 group
 for_if_clauses
 list
@@ -75,3 +85,6 @@ assignment_expression
 conditional_expression
 lambdef
 expressions
+star_expressions
+star_named_expression
+star_named_expressions
