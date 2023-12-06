@@ -159,14 +159,10 @@ def convert_grammar_node(grammar_node):
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
 
-def generate_all_descendants(node):
-    yield node
-    for value in node:
-        if isinstance(value, list):
-            for item in value:
-                yield from generate_all_descendants(item)
-        else:
-            yield from generate_all_descendants(value)
+def generate_all_descendants(grammar_node):
+    yield grammar_node
+    for value in grammar_node:
+        yield from generate_all_descendants(value)
 
 def generate_related_rules(rule, rules, top_level_rule_names, visited):
     if rule.name.startswith('invalid_'):
@@ -174,12 +170,13 @@ def generate_related_rules(rule, rules, top_level_rule_names, visited):
     if rule in visited:
         return []
     visited.add(rule)
+    node = convert_grammar_node(rule.rhs)
     result = [
-        (rule.name, convert_grammar_node(rule.rhs).format())
+        (rule.name, node.format())
     ]
-    for descendant in generate_all_descendants(rule):
+    for descendant in generate_all_descendants(node):
         match descendant:
-            case pegen.grammar.NameLeaf():
+            case Reference():
                 if descendant.value in rules and descendant.value not in top_level_rule_names:
                     used_rule = rules[descendant.value]
                     print('matched', used_rule)
