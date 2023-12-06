@@ -21,7 +21,8 @@ class InvalidRuleIncluded(Exception):
 
 @dataclass
 class Node:
-    pass
+    def simplify(self):
+        return self
 
 
 @dataclass
@@ -32,28 +33,49 @@ class Container(Node):
     def __iter__(self):
         yield from self.items
 
+    def simplify(self):
+        self_type = type(self)
+        return self_type([item.simplify() for item in self])
+
 
 @dataclass
 class Choice(Container):
     def format(self):
-        option_reprs = []
+        return " | ".join([item.format() for item in self])
+
+    def simplify(self):
+        self_type = type(self)
+        items = []
         for item in self:
             try:
-                option_reprs.append(item.format())
+                item = item.simplify()
             except InvalidRuleIncluded:
-                pass
-        return " | ".join(option_reprs)
+                continue
+            match item:
+                case Container([]):
+                    pass
+                case _:
+                    items.append(item)
+        return self_type(items)
 
 
 @dataclass
 class Sequence(Container):
     def format(self):
-        item_reprs = []
+        # TODO: Sometimes add parentheses
+        return " ".join([item.format() for item in self])
+
+    def simplify(self):
+        self_type = type(self)
+        items = []
         for item in self:
-            item_repr = item.format()
-            if item_repr:
-                item_reprs.append(item_repr)
-        return " ".join(item_reprs)
+            item = item.simplify()
+            match item:
+                case Container([]):
+                    pass
+                case _:
+                    items.append(item)
+        return self_type(items)
 
 
 @dataclass
@@ -63,6 +85,14 @@ class Decorator(Node):
 
     def __iter__(self):
         yield self.item
+
+    def simplify(self):
+        item = self.item.simplify()
+        match item:
+            case Container([]):
+                return Sequence([])
+        self_type = type(self)
+        return self_type(item.simplify())
 
 
 @dataclass
@@ -110,10 +140,12 @@ class Leaf(Node):
 
 @dataclass
 class Reference(Leaf):
-    def format(self):
+    def simplify(self):
         if self.value.startswith('invalid_'):
             raise InvalidRuleIncluded()
-        return self.value
+        if self.value == 'TYPE_COMMENT':
+            return Sequence([])
+        return super().simplify()
 
 
 @dataclass
@@ -164,6 +196,7 @@ def generate_all_descendants(grammar_node):
     for value in grammar_node:
         yield from generate_all_descendants(value)
 
+
 def generate_related_rules(rule, rules, top_level_rule_names, visited):
     if rule.name.startswith('invalid_'):
         return []
@@ -171,15 +204,18 @@ def generate_related_rules(rule, rules, top_level_rule_names, visited):
         return []
     visited.add(rule)
     node = convert_grammar_node(rule.rhs)
+    rule_text = node.simplify().format()
     result = [
-        (rule.name, node.format())
+        (rule.name, rule_text)
     ]
+    print(f'{rule.name}: {rule_text}')
+    print(node.simplify())
     for descendant in generate_all_descendants(node):
         match descendant:
             case Reference():
                 if descendant.value in rules and descendant.value not in top_level_rule_names:
                     used_rule = rules[descendant.value]
-                    print('matched', used_rule)
+                    #print('matched', used_rule)
                     result.extend(generate_related_rules(used_rule, rules, top_level_rule_names, visited))
     return result
 
@@ -194,11 +230,9 @@ def generate_data(grammar, top_level_rule_names):
             rule = rules[rule_name]
         except KeyError:
             raise KeyError(f'{rule_name} should appear in docs, but was not found in the grammar.')
-        print(rule_name, rule)
         visited = set()
         result[rule_name] = generate_related_rules(rule, rules, top_level_rule_names, visited)
 
-        print()
     return result
 
 def main() -> None:

@@ -77,7 +77,7 @@
     "for_stmt": [
         [
             "for_stmt",
-            "'for' star_targets 'in' star_expressions ':' [TYPE_COMMENT] block [else_block] | 'async' 'for' star_targets 'in' star_expressions ':' [TYPE_COMMENT] block [else_block]"
+            "'for' star_targets 'in' star_expressions ':' block [else_block] | 'async' 'for' star_targets 'in' star_expressions ':' block [else_block]"
         ],
         [
             "star_targets",
@@ -101,7 +101,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -177,7 +177,7 @@
     "with_stmt": [
         [
             "with_stmt",
-            "'with' '(' (',').(with_item)+ [','] ')' ':' block | 'with' (',').(with_item)+ ':' [TYPE_COMMENT] block | 'async' 'with' '(' (',').(with_item)+ [','] ')' ':' block | 'async' 'with' (',').(with_item)+ ':' [TYPE_COMMENT] block"
+            "'with' '(' (',').(with_item)+ [','] ')' ':' block | 'with' (',').(with_item)+ ':' block | 'async' 'with' '(' (',').(with_item)+ [','] ')' ':' block | 'async' 'with' (',').(with_item)+ ':' block"
         ],
         [
             "with_item",
@@ -201,7 +201,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -553,7 +553,7 @@
         ],
         [
             "param_no_default",
-            "param ',' [TYPE_COMMENT] | param [TYPE_COMMENT]"
+            "param ',' | param"
         ],
         [
             "param",
@@ -565,7 +565,7 @@
         ],
         [
             "param_with_default",
-            "param default ',' [TYPE_COMMENT] | param default [TYPE_COMMENT]"
+            "param default ',' | param default"
         ],
         [
             "default",
@@ -577,7 +577,7 @@
         ],
         [
             "param_maybe_default",
-            "param [default] ',' [TYPE_COMMENT] | param [default] [TYPE_COMMENT]"
+            "param [default] ',' | param [default]"
         ],
         [
             "kwds",
@@ -585,7 +585,7 @@
         ],
         [
             "param_no_default_star_annotation",
-            "param_star_annotation ',' [TYPE_COMMENT] | param_star_annotation [TYPE_COMMENT]"
+            "param_star_annotation ',' | param_star_annotation"
         ],
         [
             "param_star_annotation",
@@ -613,7 +613,7 @@
         ],
         [
             "func_type_comment",
-            "NEWLINE TYPE_COMMENT | TYPE_COMMENT"
+            "NEWLINE"
         ]
     ],
     "class_def": [
@@ -635,7 +635,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -701,7 +701,7 @@
     "assignment": [
         [
             "assignment",
-            "NAME ':' expression ['=' annotated_rhs] | '(' single_target ')' | single_subscript_attribute_target ':' expression ['=' annotated_rhs] | (star_targets '=')+ yield_expr | star_expressions [TYPE_COMMENT] | augmented_assignment"
+            "NAME ':' expression ['=' annotated_rhs] | '(' single_target ')' | single_subscript_attribute_target ':' expression ['=' annotated_rhs] | (star_targets '=')+ yield_expr | star_expressions | augmented_assignment"
         ],
         [
             "single_target",
@@ -721,7 +721,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -815,7 +815,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -905,7 +905,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -1195,7 +1195,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
@@ -1393,7 +1393,7 @@
         ],
         [
             "args",
-            "(',').(starred_expression | assignment_expression | expression)+ [',' kwargs] | kwargs"
+            "(',').(starred_expression | assignment_expression | expression  )+ [',' kwargs] | kwargs"
         ],
         [
             "starred_expression",
