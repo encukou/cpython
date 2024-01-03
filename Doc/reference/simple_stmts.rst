@@ -95,7 +95,7 @@ attributes or items of mutable objects:
          : | `slicing`
          : | "*" `target`
 
-.. peg-fragment:: assignment star_targets star_target
+.. peg-fragment:: assignment star_targets star_target t_primary
 
 (See section :ref:`primaries` for the syntax definitions for *attributeref*,
 *subscription*, and *slicing*.)

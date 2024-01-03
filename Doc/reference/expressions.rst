@@ -128,6 +128,17 @@ same value (either the same occurrence in the program text or a different
 occurrence) may obtain the same object or a different object with the same
 value.
 
+TODO: explain the non-obvious grammar rules:
+
+.. peg-fragment:: complex_number
+
+.. peg-fragment:: real_number
+
+.. peg-fragment:: imaginary_number
+
+.. peg-fragment:: fstring
+
+
 
 .. _parenthesized:
 
@@ -143,7 +154,7 @@ A parenthesized form is an optional expression list enclosed in parentheses:
 .. productionlist:: python-grammar
    parenth_form: "(" [`starred_expression`] ")"
 
-.. peg-fragment:: group
+.. peg-fragment:: group tuple
 
 A parenthesized expression list yields whatever that expression list yields: if
 the list contains at least one comma, it yields a tuple; otherwise, it yields
@@ -1018,7 +1029,7 @@ series of :term:`arguments <argument>`:
                 : ("," `keyword_item` | "," "**" `expression`)*
    keyword_item: `identifier` "=" `expression`
 
-.. peg-fragment:: call
+.. peg-fragment:: call arguments
 
 An optional trailing comma may be present after the positional and keyword arguments
 but does not affect the semantics.
@@ -1312,7 +1323,7 @@ operators and one for additive operators:
          : `m_expr` "%" `u_expr`
    a_expr: `m_expr` | `a_expr` "+" `m_expr` | `a_expr` "-" `m_expr`
 
-.. peg-fragment:: term
+.. peg-fragment:: term sum
 
 .. index::
    single: multiplication
@@ -1448,7 +1459,7 @@ Each of the three bitwise operations has a different priority level:
    xor_expr: `and_expr` | `xor_expr` "^" `and_expr`
    or_expr: `xor_expr` | `or_expr` "|" `xor_expr`
 
-.. peg-fragment:: bitwise_and
+.. peg-fragment:: bitwise_and bitwise_or bitwise_xor
 
 .. index::
    pair: bitwise; and
@@ -1502,7 +1513,7 @@ in mathematics:
    comp_operator: "<" | ">" | "==" | ">=" | "<=" | "!="
                 : | "is" ["not"] | ["not"] "in"
 
-.. peg-fragment:: comparison
+.. peg-fragment:: comparison bitwise_or
 
 Comparisons yield boolean values: ``True`` or ``False``. Custom
 :dfn:`rich comparison methods` may return non-boolean values. In this case
@@ -1812,7 +1823,7 @@ Assignment expressions
 .. productionlist:: python-grammar
    assignment_expression: [`identifier` ":="] `expression`
 
-.. peg-fragment:: assignment_expression
+.. peg-fragment:: assignment_expression named_expression
 
 An assignment expression (sometimes also called a "named expression" or
 "walrus") assigns an :token:`~python-grammar:expression` to an
@@ -1860,7 +1871,7 @@ Conditional expressions
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
    expression: `conditional_expression` | `lambda_expr`
 
-.. peg-fragment:: conditional_expression expression named_expression
+.. peg-fragment:: conditional_expression expression
 
 Conditional expressions (sometimes called a "ternary operator") have the lowest
 priority of all Python operations.
