@@ -400,7 +400,7 @@ is_resizeable(mmap_object *self)
     if ((self->access == ACCESS_WRITE) || (self->access == ACCESS_DEFAULT))
         return 1;
     PyErr_Format(PyExc_TypeError,
-        "mmap can't resize a readonly or copy-on-write memory map.");
+        "K WAS HERE.");
     return 0;
 
 }
