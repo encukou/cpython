@@ -66,7 +66,10 @@ File input
 
 All input read from non-interactive files has the same form:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: file_input
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    file_input: (NEWLINE | `statement`)*
 
 This syntax is used in the following situations:
@@ -85,7 +88,10 @@ Interactive input
 
 Input in interactive mode is parsed using the following grammar:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: interactive_input
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    interactive_input: [`stmt_list`] NEWLINE | `compound_stmt` NEWLINE
 
 Note that a (top-level) compound statement must be followed by a blank line in
@@ -103,5 +109,8 @@ Expression input
 :func:`eval` is used for expression input.  It ignores leading whitespace. The
 string argument to :func:`eval` must have the following form:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: eval_input
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    eval_input: `expression_list` NEWLINE*
