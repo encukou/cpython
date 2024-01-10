@@ -2,15 +2,18 @@ from pathlib import Path
 import re
 import argparse
 
+# TODO: handle indentation
+HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
+
+# Hardcoded so it's the same regardless of how this script is invoked
+SCRIPT_NAME = 'Tools/peg_generator/docs_generator.py'
+
 argparser = argparse.ArgumentParser(
     prog="docz_generator.py",
     description="Re-generate the grammar snippets in docs",
 )
 argparser.add_argument("grammar_filename", help="Grammar description")
 argparser.add_argument("docs_dir", help="Directory with the docs. All .rst files in this (and subdirs) will be regenerated.")
-
-# TODO: handle indentation
-HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
 
 def main():
     args = argparser.parse_args()
@@ -30,9 +33,31 @@ def main():
                                 + f'{toplevel_rules[rule]} and in {path}. It '
                                 + f'should only be documented in one place.')
                         toplevel_rules[rule] = path
-    print(files_with_grammar)
-    print(toplevel_rules)
+    print(f'{toplevel_rules=}')
 
+    for path in files_with_grammar:
+        with path.open(encoding='utf-8') as file:
+            original_lines = []
+            new_lines = []
+            ignoring_lines = False
+            for line in file:
+                original_lines.append(line)
+                if ignoring_lines:
+                    if not line.strip():
+                        ignoring_lines = False
+                else:
+                    new_lines.append(line)
+                if match := HEADER_RE.fullmatch(line):
+                    ignoring_lines = True
+                    new_lines.append('   :group: python-grammar\n')
+                    new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
+                    new_lines.append('\n')
+        if original_lines != new_lines:
+            print(f'Updating: {path}')
+            with path.open(encoding='utf-8', mode='w') as file:
+                file.writelines(new_lines)
+        else:
+            print(f'Unchanged: {path}')
 
 
 if __name__ == "__main__":
