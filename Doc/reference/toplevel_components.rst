@@ -72,7 +72,6 @@ All input read from non-interactive files has the same form:
 
    file: statements? $
    statements: statement+
-   statement: compound_stmt | simple_stmts
 
 This syntax is used in the following situations:
 

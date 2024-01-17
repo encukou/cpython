@@ -20,7 +20,9 @@ argparser.add_argument("docs_dir", help="Directory with the docs. All .rst files
 
 
 # TODO: Document all these rules somewhere in the docs
-FUTURE_TOPLEVEL_RULES = {'compound_stmt', 'simple_stmts', 'expression'}
+FUTURE_TOPLEVEL_RULES = {
+    'statement', 'compound_stmt', 'simple_stmts', 'expression',
+}
 
 
 def main():
