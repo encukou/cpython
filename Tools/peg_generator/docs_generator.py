@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import argparse
 
+from pegen.build import build_parser
+
 # TODO: handle indentation
 HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
 
@@ -17,6 +19,8 @@ argparser.add_argument("docs_dir", help="Directory with the docs. All .rst files
 
 def main():
     args = argparser.parse_args()
+
+    # Get all the top-level rule names, and the files we're updating
 
     files_with_grammar = set()
     # Maps the name of a top-level rule to the path of the file it's in
@@ -35,23 +39,35 @@ def main():
                         toplevel_rules[rule] = path
     print(f'{toplevel_rules=}')
 
+    # Parse the grammar
+
+    grammar, parser, tokenizer = build_parser(args.grammar_filename)
+    rules = dict(grammar.rules)
+
+    # Update the files
+
     for path in files_with_grammar:
         with path.open(encoding='utf-8') as file:
             original_lines = []
             new_lines = []
-            ignoring_lines = False
+            blocks_to_ignore = 0
             for line in file:
                 original_lines.append(line)
-                if ignoring_lines:
-                    if not line.strip():
-                        ignoring_lines = False
+                if blocks_to_ignore:
+                    if not line.strip() and blocks_to_ignore > 0:
+                        blocks_to_ignore -= 1
                 else:
                     new_lines.append(line)
                 if match := HEADER_RE.fullmatch(line):
-                    ignoring_lines = True
+                    blocks_to_ignore = 2
                     new_lines.append('   :group: python-grammar\n')
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
+                    for rule_name in match[1].split():
+                        new_lines.append(f'   {rules[rule_name]}\n')
+                    new_lines.append('\n')
+        while new_lines and not new_lines[-1].strip():
+            del new_lines[-1]
         if original_lines != new_lines:
             print(f'Updating: {path}')
             with path.open(encoding='utf-8', mode='w') as file:

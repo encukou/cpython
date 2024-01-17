@@ -70,7 +70,7 @@ All input read from non-interactive files has the same form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   file_input: (NEWLINE | `statement`)*
+   file: statements? $
 
 This syntax is used in the following situations:
 
@@ -92,7 +92,7 @@ Input in interactive mode is parsed using the following grammar:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   interactive_input: [`stmt_list`] NEWLINE | `compound_stmt` NEWLINE
+   interactive: statement_newline
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.
@@ -113,4 +113,4 @@ string argument to :func:`eval` must have the following form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   eval_input: `expression_list` NEWLINE*
+   eval: expressions NEWLINE* $
