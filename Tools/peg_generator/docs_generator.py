@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 import argparse
 
+import pegen.grammar
 from pegen.build import build_parser
 
 # TODO: handle indentation
@@ -16,6 +17,11 @@ argparser = argparse.ArgumentParser(
 )
 argparser.add_argument("grammar_filename", help="Grammar description")
 argparser.add_argument("docs_dir", help="Directory with the docs. All .rst files in this (and subdirs) will be regenerated.")
+
+
+# TODO: Document all these rules somewhere in the docs
+FUTURE_TOPLEVEL_RULES = {'compound_stmt', 'simple_stmts', 'expression'}
+
 
 def main():
     args = argparser.parse_args()
@@ -63,8 +69,12 @@ def main():
                     new_lines.append('   :group: python-grammar\n')
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
-                    for rule_name in match[1].split():
-                        new_lines.append(f'   {rules[rule_name]}\n')
+                    for line in generate_rule_lines(
+                        rules,
+                        match[1].split(),
+                        set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
+                    ):
+                        new_lines.append(f'   {line}\n')
                     new_lines.append('\n')
         while new_lines and not new_lines[-1].strip():
             del new_lines[-1]
@@ -75,6 +85,36 @@ def main():
         else:
             print(f'Unchanged: {path}')
 
+def generate_rule_lines(rules, rule_names, toplevel_rule_names):
+    rule_names = list(rule_names)
+    seen_rule_names = set()
+    while rule_names:
+        rule_name = rule_names.pop(0)
+        if rule_name in seen_rule_names:
+            continue
+        rule = rules[rule_name]
+        yield rule
+        seen_rule_names.add(rule_name)
+
+        for descendant in generate_all_descendants(rule):
+             if isinstance(descendant, pegen.grammar.NameLeaf):
+                try:
+                    referenced_rule = rules[descendant.value]
+                except KeyError:
+                    pass
+                else:
+                    if descendant.value not in toplevel_rule_names:
+                        rule_names.append(descendant.value)
+
+def generate_all_descendants(node):
+    print(node, type(node))
+    yield node
+    for value in node:
+        if isinstance(value, list):
+            for child in value:
+                yield from generate_all_descendants(child)
+        else:
+            yield from generate_all_descendants(value)
 
 if __name__ == "__main__":
     main()
