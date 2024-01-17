@@ -16,7 +16,11 @@ argparser = argparse.ArgumentParser(
     description="Re-generate the grammar snippets in docs",
 )
 argparser.add_argument("grammar_filename", help="Grammar description")
-argparser.add_argument("docs_dir", help="Directory with the docs. All .rst files in this (and subdirs) will be regenerated.")
+argparser.add_argument(
+    "docs_dir",
+    help="Directory with the docs. All .rst files in this "
+        + "(and subdirs) will be regenerated.",
+)
 
 
 # TODO: Document all these rules somewhere in the docs
