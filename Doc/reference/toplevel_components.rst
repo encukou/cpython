@@ -66,7 +66,7 @@ File input
 
 All input read from non-interactive files has the same form:
 
-.. grammar-snippet:: file_input
+.. grammar-snippet:: file
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -88,7 +88,7 @@ Interactive input
 
 Input in interactive mode is parsed using the following grammar:
 
-.. grammar-snippet:: interactive_input
+.. grammar-snippet:: interactive
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -109,7 +109,7 @@ Expression input
 :func:`eval` is used for expression input.  It ignores leading whitespace. The
 string argument to :func:`eval` must have the following form:
 
-.. grammar-snippet:: eval_input
+.. grammar-snippet:: eval
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
