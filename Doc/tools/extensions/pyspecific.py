@@ -17,7 +17,7 @@ from pprint import pformat
 
 from docutils import nodes, utils
 from docutils.io import StringOutput
-from docutils.parsers.rst import Directive
+from docutils.parsers.rst import Directive, directives
 from docutils.utils import new_document
 from sphinx import addnodes
 from sphinx.builders import Builder
@@ -619,6 +619,51 @@ def parse_monitoring_event(env, sig, signode):
     return sig
 
 
+# Support for auto-generated syntax snippets
+
+class GrammarSnippetDirective(Directive):
+    """Transform a grammar-snippet directive to a Sphinx productionlist
+
+    That is, turn something like:
+
+        .. grammar-snippet:: file
+           :group: python-grammar
+           :generated-by: Tools/peg_generator/docs_generator.py
+
+           file: (NEWLINE | statement)*
+
+    into something like:
+
+        .. productionlist:: python-grammar
+           file: (NEWLINE | statement)*
+
+    The custom directive is needed because Sphinx's `productionlist` does
+    not support options.
+    """
+    has_content = True
+    option_spec = {
+        'group': directives.unchanged,
+        'generated-by': directives.unchanged,
+    }
+
+    # Arguments are used by the tool that generates grammar-snippet,
+    # this Directive ignores them.
+    required_arguments = 1
+    optional_arguments = 0
+    final_argument_whitespace = True
+
+    def run(self):
+        group_name = self.options['group']
+        for index, line in enumerate(self.content):
+            self.content[index] = '   ' + line
+        self.content.insert(
+            0, f'.. productionlist:: {group_name}', source=__file__,
+        )
+        node = nodes.paragraph()
+        self.state.nested_parse(self.content, 0, node)
+        return node.children
+
+
 def process_audit_events(app, doctree, fromdocname):
     for node in doctree.traverse(audit_event_list):
         break
@@ -716,6 +761,7 @@ def setup(app):
     app.add_directive('audit-event', AuditEvent)
     app.add_directive('audit-event-table', AuditEventListDirective)
     app.add_directive('deprecated-removed', DeprecatedRemoved)
+    app.add_directive('grammar-snippet', GrammarSnippetDirective)
     app.add_builder(PydocTopicsBuilder)
     app.add_object_type('opcode', 'opcode', '%s (opcode)', parse_opcode_signature)
     app.add_object_type('pdbcommand', 'pdbcmd', '%s (pdb command)', parse_pdb_command)
