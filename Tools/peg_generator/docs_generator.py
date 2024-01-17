@@ -82,8 +82,13 @@ def main():
                     ):
                         new_lines.append(f'   {line}\n')
                     new_lines.append('\n')
-        while new_lines and not new_lines[-1].strip():
-            del new_lines[-1]
+
+        # TODO: It would be nice to trim final blank lines,
+        # but that causes the final line to be read twice by Sphinx,
+        # adding it as a blockquote. This might be an issue in the extension.
+        #while new_lines and not new_lines[-1].strip():
+        #    del new_lines[-1]
+
         if original_lines != new_lines:
             print(f'Updating: {path}')
             with path.open(encoding='utf-8', mode='w') as file:
