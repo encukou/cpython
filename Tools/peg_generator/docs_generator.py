@@ -27,6 +27,7 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
     'statement', 'compound_stmt', 'simple_stmt', 'expression',
+    't_primary', 'slices',
 }
 
 
@@ -123,7 +124,7 @@ class Container(Node):
         self_type = type(self)
         items = []
         for item in self:
-            item = item.simplify()
+            item = self.simplify_item(item)
             match item:
                 case Container([]):
                     pass
@@ -131,10 +132,19 @@ class Container(Node):
                     items.append(item)
         return self_type(items)
 
+    def simplify_item(self, item):
+        return item.simplify()
+
 @dataclass
 class Choice(Container):
     def format(self):
         return " | ".join([item.format_enclosed() for item in self])
+
+    def simplify_item(self, item):
+        match item:
+            case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
+                return Sequence([])
+        return super().simplify_item(item)
 
 @dataclass
 class Sequence(Container):
