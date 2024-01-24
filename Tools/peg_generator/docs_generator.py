@@ -26,7 +26,7 @@ argparser.add_argument(
 
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
-    'statement', 'compound_stmt', 'simple_stmts', 'expression',
+    'statement', 'compound_stmt', 'simple_stmt', 'expression',
 }
 
 
@@ -171,13 +171,14 @@ class Leaf(Node):
 
 
 @dataclass
-class Reference(Leaf):
-    def simplify(self):
-        if self.value.startswith('invalid_'):
-            raise InvalidRuleIncluded()
-        if self.value == 'TYPE_COMMENT':
-            return Sequence([])
-        return super().simplify()
+class Token(Leaf):
+    pass
+
+
+@dataclass
+class Nonterminal(Leaf):
+    def format(self):
+        return f"`{self.value}`"
 
 
 @dataclass
@@ -199,7 +200,10 @@ def convert_grammar_node(grammar_node):
         case pegen.grammar.Opt():
             return Optional(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NameLeaf():
-            return Reference(grammar_node.value)
+            if grammar_node.value.isupper():
+                return Token(grammar_node.value)
+            else:
+                return Nonterminal(grammar_node.value)
         case pegen.grammar.StringLeaf():
             return String(grammar_node.value)
         case pegen.grammar.Repeat1():
@@ -235,7 +239,7 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
         seen_rule_names.add(rule_name)
 
         for descendant in generate_all_descendants(node):
-            if isinstance(descendant, Reference):
+            if isinstance(descendant, Nonterminal):
                 rule_name = descendant.value
                 if (
                     rule_name in pegen_rules
