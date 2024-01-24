@@ -100,7 +100,8 @@ def main():
 
 @dataclass
 class Node:
-    ...
+    def format_enclosed(self):
+        return self.format()
 
 @dataclass
 class Container(Node):
@@ -110,16 +111,21 @@ class Container(Node):
     def __iter__(self):
         yield from self.items
 
+    def format_enclosed(self):
+        if len(self.items) > 1:
+            return '(' + self.format() + ')'
+        return self.format()
+
 @dataclass
 class Choice(Container):
     def format(self):
-        return " | ".join([item.format() for item in self])
+        return " | ".join([item.format_enclosed() for item in self])
 
 @dataclass
 class Sequence(Container):
     def format(self):
         # TODO: Sometimes add parentheses
-        return " ".join([item.format() for item in self])
+        return " ".join([item.format_enclosed() for item in self])
 
 @dataclass
 class Decorator(Node):
@@ -138,13 +144,19 @@ class Optional(Decorator):
 @dataclass
 class OneOrMore(Decorator):
     def format(self):
-        return '(' + self.item.format() + ')+'
+        if isinstance(self.item, Gather):
+            # TODO:
+            raise AssertionError('Gather in OneOrMore, check how parentheses should be added')
+        return self.item.format_enclosed() + '+'
 
 
 @dataclass
 class ZeroOrMore(Decorator):
     def format(self):
-        return '(' + self.item.format() + ')*'
+        if isinstance(self.item, Gather):
+            # TODO:
+            raise AssertionError('Gather in ZeroOrMore, check how parentheses should be added')
+        return self.item.format_enclosed() + '*'
 
 @dataclass
 class Gather(Node):
@@ -156,7 +168,9 @@ class Gather(Node):
         yield self.item
 
     def format(self):
-        return f'({self.separator.format()}).({self.item.format()})+'
+        sep = self.separator.format_enclosed()
+        item = self.item.format_enclosed()
+        return f'{sep}.{item}+'
 
 @dataclass
 class Leaf(Node):
