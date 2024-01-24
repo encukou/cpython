@@ -95,7 +95,7 @@ Input in interactive mode is parsed using the following grammar:
 
    interactive: `statement_newline`
    statement_newline: (`compound_stmt` NEWLINE) | `simple_stmts` | NEWLINE | ENDMARKER
-   simple_stmts: (`simple_stmt`  NEWLINE) | (';'.`simple_stmt`+ [';'] NEWLINE)
+   simple_stmts: (`simple_stmt` NEWLINE) | (';'.`simple_stmt`+ [';'] NEWLINE)
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.

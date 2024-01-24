@@ -103,6 +103,9 @@ class Node:
     def format_enclosed(self):
         return self.format()
 
+    def simplify(self):
+        return self
+
 @dataclass
 class Container(Node):
     """Collection of zero or more child items"""
@@ -115,6 +118,18 @@ class Container(Node):
         if len(self.items) > 1:
             return '(' + self.format() + ')'
         return self.format()
+
+    def simplify(self):
+        self_type = type(self)
+        items = []
+        for item in self:
+            item = item.simplify()
+            match item:
+                case Container([]):
+                    pass
+                case _:
+                    items.append(item)
+        return self_type(items)
 
 @dataclass
 class Choice(Container):
@@ -214,6 +229,8 @@ def convert_grammar_node(grammar_node):
         case pegen.grammar.Opt():
             return Optional(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NameLeaf():
+            if grammar_node.value == 'TYPE_COMMENT':
+                return Sequence([])
             if grammar_node.value.isupper():
                 return Token(grammar_node.value)
             else:
@@ -248,7 +265,9 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
         if rule_name in seen_rule_names:
             continue
         pegen_rule = pegen_rules[rule_name]
-        node = convert_grammar_node(pegen_rule.rhs)
+        node = convert_grammar_node(pegen_rule.rhs).simplify()
+        print(pegen_rule.name)
+        print(node)
         yield f'{pegen_rule.name}: {node.format()}'
         seen_rule_names.add(rule_name)
 
