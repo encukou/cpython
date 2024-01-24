@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 import argparse
+from dataclasses import dataclass
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -54,7 +55,7 @@ def main():
     # Parse the grammar
 
     grammar, parser, tokenizer = build_parser(args.grammar_filename)
-    rules = dict(grammar.rules)
+    pegen_rules = dict(grammar.rules)
 
     # Update the files
 
@@ -76,7 +77,7 @@ def main():
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
                     for line in generate_rule_lines(
-                        rules,
+                        pegen_rules,
                         match[1].split(),
                         set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
                     ):
@@ -96,36 +97,156 @@ def main():
         else:
             print(f'Unchanged: {path}')
 
-def generate_rule_lines(rules, rule_names, toplevel_rule_names):
+
+@dataclass
+class Node:
+    ...
+
+@dataclass
+class Container(Node):
+    """Collection of zero or more child items"""
+    items: list[Node]
+
+    def __iter__(self):
+        yield from self.items
+
+@dataclass
+class Choice(Container):
+    def format(self):
+        return " | ".join([item.format() for item in self])
+
+@dataclass
+class Sequence(Container):
+    def format(self):
+        # TODO: Sometimes add parentheses
+        return " ".join([item.format() for item in self])
+
+@dataclass
+class Decorator(Node):
+    """Node with exactly one child"""
+    item: Node
+
+    def __iter__(self):
+        yield self.item
+
+@dataclass
+class Optional(Decorator):
+    def format(self):
+        return '[' + self.item.format() + ']'
+
+
+@dataclass
+class OneOrMore(Decorator):
+    def format(self):
+        return '(' + self.item.format() + ')+'
+
+
+@dataclass
+class ZeroOrMore(Decorator):
+    def format(self):
+        return '(' + self.item.format() + ')*'
+
+@dataclass
+class Gather(Node):
+    separator: Node
+    item: Node
+
+    def __iter__(self):
+        yield self.separator
+        yield self.item
+
+    def format(self):
+        return f'({self.separator.format()}).({self.item.format()})+'
+
+@dataclass
+class Leaf(Node):
+    """Node with no children"""
+    value: str
+
+    def format(self):
+        return self.value
+
+    def __iter__(self):
+        return iter(())
+
+
+@dataclass
+class Reference(Leaf):
+    def simplify(self):
+        if self.value.startswith('invalid_'):
+            raise InvalidRuleIncluded()
+        if self.value == 'TYPE_COMMENT':
+            return Sequence([])
+        return super().simplify()
+
+
+@dataclass
+class String(Leaf):
+    pass
+
+
+def convert_grammar_node(grammar_node):
+    """Convert a pegen grammar node to our AST node"""
+    match grammar_node:
+        case pegen.grammar.Rhs():
+            return Choice([convert_grammar_node(alt) for alt in grammar_node.alts])
+        case pegen.grammar.Alt():
+            return Sequence([convert_grammar_node(item) for item in grammar_node.items])
+        case pegen.grammar.Group():
+            return convert_grammar_node(grammar_node.rhs)
+        case pegen.grammar.NamedItem():
+            return convert_grammar_node(grammar_node.item)
+        case pegen.grammar.Opt():
+            return Optional(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.NameLeaf():
+            return Reference(grammar_node.value)
+        case pegen.grammar.StringLeaf():
+            return String(grammar_node.value)
+        case pegen.grammar.Repeat1():
+            return OneOrMore(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.Repeat0():
+            return ZeroOrMore(convert_grammar_node(grammar_node.node))
+        case pegen.grammar.PositiveLookahead():
+            return Sequence([])
+        case pegen.grammar.NegativeLookahead():
+            return Sequence([])
+        case pegen.grammar.Cut():
+            return Sequence([])
+        case pegen.grammar.Forced():
+            return convert_grammar_node(grammar_node.node)
+        case pegen.grammar.Gather():
+            return Gather(
+                convert_grammar_node(grammar_node.separator),
+                convert_grammar_node(grammar_node.node),
+            )
+        case _:
+            raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
+
+def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
     rule_names = list(rule_names)
     seen_rule_names = set()
     while rule_names:
         rule_name = rule_names.pop(0)
         if rule_name in seen_rule_names:
             continue
-        rule = rules[rule_name]
-        yield rule
+        pegen_rule = pegen_rules[rule_name]
+        node = convert_grammar_node(pegen_rule.rhs)
+        yield f'{pegen_rule.name}: {node.format()}'
         seen_rule_names.add(rule_name)
 
-        for descendant in generate_all_descendants(rule):
-             if isinstance(descendant, pegen.grammar.NameLeaf):
-                try:
-                    referenced_rule = rules[descendant.value]
-                except KeyError:
-                    pass
-                else:
-                    if descendant.value not in toplevel_rule_names:
-                        rule_names.append(descendant.value)
+        for descendant in generate_all_descendants(node):
+            if isinstance(descendant, Reference):
+                rule_name = descendant.value
+                if (
+                    rule_name in pegen_rules
+                    and rule_name not in toplevel_rule_names
+                ):
+                    rule_names.append(rule_name)
 
 def generate_all_descendants(node):
-    print(node, type(node))
     yield node
     for value in node:
-        if isinstance(value, list):
-            for child in value:
-                yield from generate_all_descendants(child)
-        else:
-            yield from generate_all_descendants(value)
+        yield from generate_all_descendants(value)
 
 if __name__ == "__main__":
     main()

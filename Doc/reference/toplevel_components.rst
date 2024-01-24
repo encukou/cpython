@@ -70,8 +70,8 @@ All input read from non-interactive files has the same form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   file: statements? $
-   statements: statement+
+   file: [statements] ENDMARKER
+   statements: (statement)+
 
 This syntax is used in the following situations:
 
@@ -94,7 +94,7 @@ Input in interactive mode is parsed using the following grammar:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    interactive: statement_newline
-   statement_newline: compound_stmt NEWLINE | simple_stmts | NEWLINE | $
+   statement_newline: compound_stmt NEWLINE | simple_stmts | NEWLINE | ENDMARKER
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.
@@ -115,6 +115,6 @@ string argument to :func:`eval` must have the following form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   eval: expressions NEWLINE* $
-   expressions: expression ((',' expression))+ ','? | expression ',' | expression
+   eval: expressions (NEWLINE)* ENDMARKER
+   expressions: expression (',' expression)+ [','] | expression ',' | expression
 
