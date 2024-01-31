@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 import argparse
 from dataclasses import dataclass
+import enum
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -99,6 +100,14 @@ def main():
             print(f'Unchanged: {path}')
 
 
+# TODO: Check parentheses are correct in complex cases.
+
+class Precedence(enum.IntEnum):
+    CHOICE = enum.auto()
+    SEQUENCE = enum.auto()
+    REPEAT = enum.auto()
+    ATOM = enum.auto()
+
 @dataclass
 class Node:
     def format_enclosed(self):
@@ -114,11 +123,6 @@ class Container(Node):
 
     def __iter__(self):
         yield from self.items
-
-    def format_enclosed(self):
-        if len(self.items) > 1:
-            return '(' + self.format() + ')'
-        return self.format()
 
     def simplify(self):
         self_type = type(self)
@@ -137,8 +141,16 @@ class Container(Node):
 
 @dataclass
 class Choice(Container):
+    precedence = Precedence.CHOICE
+
     def format(self):
-        return " | ".join([item.format_enclosed() for item in self])
+        item_reprs = []
+        for item in self:
+            rep = item.format()
+            if item.precedence < Precedence.CHOICE:
+                rep = '(' + rep + ')'
+            item_reprs.append(rep)
+        return " | ".join(item_reprs)
 
     def simplify_item(self, item):
         match item:
@@ -148,9 +160,16 @@ class Choice(Container):
 
 @dataclass
 class Sequence(Container):
+    precedence = Precedence.SEQUENCE
+
     def format(self):
-        # TODO: Sometimes add parentheses
-        return " ".join([item.format_enclosed() for item in self])
+        item_reprs = []
+        for item in self:
+            rep = item.format()
+            if item.precedence < Precedence.CHOICE:
+                rep = '(' + rep + ')'
+            item_reprs.append(rep)
+        return " ".join(item_reprs)
 
 @dataclass
 class Decorator(Node):
@@ -162,45 +181,59 @@ class Decorator(Node):
 
 @dataclass
 class Optional(Decorator):
+    precedence = Precedence.ATOM
+
     def format(self):
         return '[' + self.item.format() + ']'
 
 
 @dataclass
 class OneOrMore(Decorator):
+    precedence = Precedence.REPEAT
+
     def format(self):
-        if isinstance(self.item, Gather):
-            # TODO:
-            raise AssertionError('Gather in OneOrMore, check how parentheses should be added')
-        return self.item.format_enclosed() + '+'
+        rep = self.item.format()
+        if self.item.precedence < Precedence.REPEAT:
+            rep = '(' + rep + ')'
+        return rep + '+'
 
 
 @dataclass
 class ZeroOrMore(Decorator):
+    precedence = Precedence.REPEAT
+
     def format(self):
-        if isinstance(self.item, Gather):
-            # TODO:
-            raise AssertionError('Gather in ZeroOrMore, check how parentheses should be added')
-        return self.item.format_enclosed() + '*'
+        rep = self.item.format()
+        if self.item.precedence < Precedence.REPEAT:
+            rep = '(' + rep + ')'
+        return rep + '*'
 
 @dataclass
 class Gather(Node):
     separator: Node
     item: Node
 
+    precedence = Precedence.REPEAT
+
     def __iter__(self):
         yield self.separator
         yield self.item
 
     def format(self):
-        sep = self.separator.format_enclosed()
-        item = self.item.format_enclosed()
-        return f'{sep}.{item}+'
+        sep_rep = self.separator.format()
+        if self.separator.precedence < Precedence.REPEAT:
+            sep_rep = '(' + sep_rep + ')'
+        item_rep = self.item.format()
+        if self.item.precedence < Precedence.REPEAT:
+            item_rep = '(' + item_rep + ')'
+        return f'{sep_rep}.{item_rep}+'
 
 @dataclass
 class Leaf(Node):
     """Node with no children"""
     value: str
+
+    precedence = Precedence.ATOM
 
     def format(self):
         return self.value
@@ -278,6 +311,10 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
         node = convert_grammar_node(pegen_rule.rhs).simplify()
         print(pegen_rule.name)
         print(node)
+
+        # To compare with pegen's stringification:
+        #yield f'{pegen_rule.name} (pegen): {pegen_rule.rhs}'
+
         yield f'{pegen_rule.name}: {node.format()}'
         seen_rule_names.add(rule_name)
 
