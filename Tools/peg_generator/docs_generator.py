@@ -134,18 +134,6 @@ class Container(Node):
     def __iter__(self):
         yield from self.items
 
-    def simplify(self):
-        self_type = type(self)
-        items = []
-        for item in self:
-            item = self.simplify_item(item)
-            match item:
-                case Container([]):
-                    pass
-                case _:
-                    items.append(item)
-        return self_type(items)
-
     def simplify_item(self, item):
         return item.simplify()
 
@@ -222,6 +210,20 @@ class Choice(Container):
 @dataclass
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
+
+    def simplify(self):
+        self_type = type(self)
+        items = []
+        for item in self:
+            item = self.simplify_item(item)
+            match item:
+                case Container([]):
+                    pass
+                case Sequence(subitems):
+                    items.extend(si.simplify() for si in subitems)
+                case _:
+                    items.append(item)
+        return self_type(items)
 
     def format(self):
         return " ".join(
