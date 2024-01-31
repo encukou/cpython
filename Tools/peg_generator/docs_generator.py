@@ -116,6 +116,13 @@ class Node:
     def simplify(self):
         return self
 
+    def format_for_precedence(self, parent_precedence):
+        result = self.format()
+        if self.precedence < parent_precedence:
+            result = '(' + result + ')'
+        return result
+
+
 @dataclass
 class Container(Node):
     """Collection of zero or more child items"""
@@ -144,13 +151,10 @@ class Choice(Container):
     precedence = Precedence.CHOICE
 
     def format(self):
-        item_reprs = []
-        for item in self:
-            rep = item.format()
-            if item.precedence < Precedence.CHOICE:
-                rep = '(' + rep + ')'
-            item_reprs.append(rep)
-        return " | ".join(item_reprs)
+        return " | ".join(
+            item.format_for_precedence(Precedence.CHOICE)
+            for item in self
+        )
 
     def simplify_item(self, item):
         match item:
@@ -163,13 +167,10 @@ class Sequence(Container):
     precedence = Precedence.SEQUENCE
 
     def format(self):
-        item_reprs = []
-        for item in self:
-            rep = item.format()
-            if item.precedence < Precedence.CHOICE:
-                rep = '(' + rep + ')'
-            item_reprs.append(rep)
-        return " ".join(item_reprs)
+        return " ".join(
+            item.format_for_precedence(Precedence.CHOICE)
+            for item in self
+        )
 
 @dataclass
 class Decorator(Node):
@@ -192,10 +193,7 @@ class OneOrMore(Decorator):
     precedence = Precedence.REPEAT
 
     def format(self):
-        rep = self.item.format()
-        if self.item.precedence < Precedence.REPEAT:
-            rep = '(' + rep + ')'
-        return rep + '+'
+        return self.item.format_for_precedence(Precedence.REPEAT) + '+'
 
 
 @dataclass
@@ -203,10 +201,7 @@ class ZeroOrMore(Decorator):
     precedence = Precedence.REPEAT
 
     def format(self):
-        rep = self.item.format()
-        if self.item.precedence < Precedence.REPEAT:
-            rep = '(' + rep + ')'
-        return rep + '*'
+        return self.item.format_for_precedence(Precedence.REPEAT) + '*'
 
 @dataclass
 class Gather(Node):
@@ -220,12 +215,8 @@ class Gather(Node):
         yield self.item
 
     def format(self):
-        sep_rep = self.separator.format()
-        if self.separator.precedence < Precedence.REPEAT:
-            sep_rep = '(' + sep_rep + ')'
-        item_rep = self.item.format()
-        if self.item.precedence < Precedence.REPEAT:
-            item_rep = '(' + item_rep + ')'
+        sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
+        item_rep = self.item.format_for_precedence(Precedence.REPEAT)
         return f'{sep_rep}.{item_rep}+'
 
 @dataclass
