@@ -162,16 +162,18 @@ class Choice(Container):
                 case Container([]):
                     is_optional = True
                     # ignore the item
+                case Sequence(elements):
+                    alternatives.append(elements)
                 case _:
-                    alternatives.append(item)
-        assert all(isinstance(item, Sequence) for item in alternatives)
+                    alternatives.append([item])
+        assert all(isinstance(item, list) for item in alternatives)
 
         match alternatives:
             case [
-                Sequence([x]),
-                Sequence([Gather(_, x1), Optional()]) as result,
+                [x],
+                [Gather(_, x1), Optional()] as result,
             ]:
-                return result
+                return Sequence(result).simplify()
 
         def wrap(node):
             if is_optional:
@@ -180,26 +182,28 @@ class Choice(Container):
                 return node
 
         if len(alternatives) == 1:
-            return wrap(alternatives[0])
+            return wrap(Sequence(alternatives[0]).simplify())
         if not alternatives:
             return Sequence([])
         first_alt = alternatives[0]
-        if all(alt.items[0] == first_alt.items[0] for alt in alternatives[1:]):
+        if all(alt[0] == first_alt[0] for alt in alternatives[1:]):
             return wrap(Sequence([
-                first_alt.items[0],
+                first_alt[0],
                 Choice([
-                    Sequence(alt.items[1:]).simplify() for alt in alternatives
+                    Sequence(alt[1:]).simplify() for alt in alternatives
                 ]).simplify(),
             ])).simplify()
-        if all(alt.items[-1] == first_alt.items[-1] for alt in alternatives[1:]):
+        if all(alt[-1] == first_alt[-1] for alt in alternatives[1:]):
             return wrap(Sequence([
                 Choice([
-                    Sequence(alt.items[:-1]).simplify() for alt in alternatives
+                    Sequence(alt[:-1]).simplify() for alt in alternatives
                 ]).simplify(),
-                first_alt.items[-1],
+                first_alt[-1],
             ]).simplify())
 
-        return wrap(self_type(alternatives))
+        return wrap(self_type(
+            [Sequence(alt).simplify() for alt in alternatives]
+        ))
 
     def simplify_item(self, item):
         match item:
@@ -223,6 +227,8 @@ class Sequence(Container):
                     items.extend(si.simplify() for si in subitems)
                 case _:
                     items.append(item)
+        if len(items) == 1:
+            return items[0]
         return self_type(items)
 
     def format(self):

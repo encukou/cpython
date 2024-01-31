@@ -78,9 +78,8 @@ All input read from non-interactive files has the same form:
      :   ENDMARKER
    statements (pegen): statement+
    statements: `statement`+
-     : Sequence:
-     :   OneOrMore:
-     :     `statement`
+     : OneOrMore:
+     :   `statement`
 
 This syntax is used in the following situations:
 
@@ -104,20 +103,16 @@ Input in interactive mode is parsed using the following grammar:
 
    interactive (pegen): statement_newline
    interactive: `statement_newline`
-     : Sequence:
-     :   `statement_newline`
+     : `statement_newline`
    statement_newline (pegen): compound_stmt NEWLINE | simple_stmts | NEWLINE | $
    statement_newline: `compound_stmt` NEWLINE | `simple_stmts` | NEWLINE | ENDMARKER
      : Choice:
      :   Sequence:
      :     `compound_stmt`
      :     NEWLINE
-     :   Sequence:
-     :     `simple_stmts`
-     :   Sequence:
-     :     NEWLINE
-     :   Sequence:
-     :     ENDMARKER
+     :   `simple_stmts`
+     :   NEWLINE
+     :   ENDMARKER
    simple_stmts (pegen): simple_stmt !';' NEWLINE | ';'.simple_stmt+ ';'? NEWLINE
    simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
      : Sequence:
@@ -168,6 +163,5 @@ string argument to :func:`eval` must have the following form:
      :             `expression`
      :         Optional:
      :           ','
-     :       Sequence:
-     :         ','
+     :       ','
 

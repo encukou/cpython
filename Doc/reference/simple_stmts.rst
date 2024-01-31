@@ -477,13 +477,11 @@ The :keyword:`!del` statement
      :     '['
      :     `slices`
      :     ']'
-     :   Sequence:
-     :     `del_t_atom`
+     :   `del_t_atom`
    del_t_atom (pegen): NAME | '(' del_target ')' | '(' del_targets? ')' | '[' del_targets? ']'
    del_t_atom: NAME | '(' `del_target` ')' | '(' [`del_targets`] ')' | '[' [`del_targets`] ']'
      : Choice:
-     :   Sequence:
-     :     NAME
+     :   NAME
      :   Sequence:
      :     '('
      :     `del_target`
