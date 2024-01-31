@@ -122,6 +122,9 @@ class Node:
             result = '(' + result + ')'
         return result
 
+    def dump_tree(self, indent=0):
+        yield '  : ' + '  ' * indent + self.format()
+
 
 @dataclass
 class Container(Node):
@@ -146,6 +149,11 @@ class Container(Node):
     def simplify_item(self, item):
         return item.simplify()
 
+    def dump_tree(self, indent=0):
+        yield '  : ' + '  ' * indent + type(self).__name__ + ':'
+        for item in self:
+            yield from item.dump_tree(indent + 1)
+
 @dataclass
 class Choice(Container):
     precedence = Precedence.CHOICE
@@ -155,6 +163,41 @@ class Choice(Container):
             item.format_for_precedence(Precedence.CHOICE)
             for item in self
         )
+
+    def simplify(self):
+        self_type = type(self)
+        alternatives = []
+        is_optional = False
+        for item in self:
+            item = self.simplify_item(item)
+            match item:
+                case Container([]):
+                    is_optional = True
+                    # ignore the item
+                case _:
+                    alternatives.append(item)
+        assert all(isinstance(item, Sequence) for item in alternatives)
+
+        def wrap(node):
+            if is_optional:
+                return Optional(node)
+            else:
+                return node
+
+        if len(alternatives) == 1:
+            return wrap(alternatives[0])
+        if not alternatives:
+            return Sequence([])
+        first_alt = alternatives[0]
+        if all(alt.items[0] == first_alt.items[0] for alt in alternatives[1:]):
+            return wrap(Sequence([
+                first_alt.items[0],
+                Choice([
+                    Sequence(alt.items[1:]) for alt in alternatives
+                ]).simplify()
+            ]))
+
+        return wrap(self_type(alternatives))
 
     def simplify_item(self, item):
         match item:
@@ -168,7 +211,7 @@ class Sequence(Container):
 
     def format(self):
         return " ".join(
-            item.format_for_precedence(Precedence.CHOICE)
+            item.format_for_precedence(Precedence.SEQUENCE)
             for item in self
         )
 
@@ -179,6 +222,18 @@ class Decorator(Node):
 
     def __iter__(self):
         yield self.item
+
+    def dump_tree(self, indent=0):
+        yield '  : ' + '  ' * indent + type(self).__name__ + ':'
+        yield from self.item.dump_tree(indent + 1)
+
+    def simplify(self):
+        self_type = type(self)
+        item = self.item.simplify()
+        match item:
+            case Sequence([x]):
+                item = x
+        return self_type(item)
 
 @dataclass
 class Optional(Decorator):
@@ -218,6 +273,12 @@ class Gather(Node):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
         item_rep = self.item.format_for_precedence(Precedence.REPEAT)
         return f'{sep_rep}.{item_rep}+'
+
+    def dump_tree(self, indent=0):
+        yield '  : ' + '  ' * indent + type(self).__name__ + ':'
+        yield from self.item.dump_tree(indent + 1)
+        yield '  : ' + '  ' * indent + 'separator:'
+        yield from self.separator.dump_tree(indent + 1)
 
 @dataclass
 class Leaf(Node):
@@ -304,9 +365,10 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
         print(node)
 
         # To compare with pegen's stringification:
-        #yield f'{pegen_rule.name} (pegen): {pegen_rule.rhs}'
+        yield f'{pegen_rule.name} (pegen): {pegen_rule.rhs}'
 
         yield f'{pegen_rule.name}: {node.format()}'
+        yield from node.dump_tree()
         seen_rule_names.add(rule_name)
 
         for descendant in generate_all_descendants(node):

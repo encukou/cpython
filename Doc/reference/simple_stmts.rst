@@ -450,10 +450,54 @@ The :keyword:`!del` statement
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   del_stmt: 'del' `del_targets`
+   del_stmt (pegen): 'del' del_targets &(';' | NEWLINE) | invalid_del_stmt
+   del_stmt: ['del' `del_targets`]
+     : Optional:
+     :   Sequence:
+     :     'del'
+     :     `del_targets`
+   del_targets (pegen): ','.del_target+ ','?
    del_targets: ','.`del_target`+ [',']
+     : Sequence:
+     :   Gather:
+     :     `del_target`
+     :   separator:
+     :     ','
+     :   Optional:
+     :     ','
+   del_target (pegen): t_primary '.' NAME !t_lookahead | t_primary '[' slices ']' !t_lookahead | del_t_atom
    del_target: `t_primary` '.' NAME | `t_primary` '[' `slices` ']' | `del_t_atom`
+     : Choice:
+     :   Sequence:
+     :     `t_primary`
+     :     '.'
+     :     NAME
+     :   Sequence:
+     :     `t_primary`
+     :     '['
+     :     `slices`
+     :     ']'
+     :   Sequence:
+     :     `del_t_atom`
+   del_t_atom (pegen): NAME | '(' del_target ')' | '(' del_targets? ')' | '[' del_targets? ']'
    del_t_atom: NAME | '(' `del_target` ')' | '(' [`del_targets`] ')' | '[' [`del_targets`] ']'
+     : Choice:
+     :   Sequence:
+     :     NAME
+     :   Sequence:
+     :     '('
+     :     `del_target`
+     :     ')'
+     :   Sequence:
+     :     '('
+     :     Optional:
+     :       `del_targets`
+     :     ')'
+     :   Sequence:
+     :     '['
+     :     Optional:
+     :       `del_targets`
+     :     ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
