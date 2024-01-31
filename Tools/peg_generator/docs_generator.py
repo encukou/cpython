@@ -178,6 +178,13 @@ class Choice(Container):
                     alternatives.append(item)
         assert all(isinstance(item, Sequence) for item in alternatives)
 
+        match alternatives:
+            case [
+                Sequence([x]),
+                Sequence([Gather(_, x1), Optional()]) as result,
+            ]:
+                return result
+
         def wrap(node):
             if is_optional:
                 return Optional(node)
@@ -193,9 +200,16 @@ class Choice(Container):
             return wrap(Sequence([
                 first_alt.items[0],
                 Choice([
-                    Sequence(alt.items[1:]) for alt in alternatives
-                ]).simplify()
-            ]))
+                    Sequence(alt.items[1:]).simplify() for alt in alternatives
+                ]).simplify(),
+            ])).simplify()
+        if all(alt.items[-1] == first_alt.items[-1] for alt in alternatives[1:]):
+            return wrap(Sequence([
+                Choice([
+                    Sequence(alt.items[:-1]).simplify() for alt in alternatives
+                ]).simplify(),
+                first_alt.items[-1],
+            ]).simplify())
 
         return wrap(self_type(alternatives))
 

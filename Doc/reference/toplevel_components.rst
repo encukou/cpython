@@ -119,11 +119,8 @@ Input in interactive mode is parsed using the following grammar:
      :   Sequence:
      :     ENDMARKER
    simple_stmts (pegen): simple_stmt !';' NEWLINE | ';'.simple_stmt+ ';'? NEWLINE
-   simple_stmts: `simple_stmt` NEWLINE | ';'.`simple_stmt`+ [';'] NEWLINE
-     : Choice:
-     :   Sequence:
-     :     `simple_stmt`
-     :     NEWLINE
+   simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
+     : Sequence:
      :   Sequence:
      :     Gather:
      :       `simple_stmt`
@@ -131,7 +128,7 @@ Input in interactive mode is parsed using the following grammar:
      :       ';'
      :     Optional:
      :       ';'
-     :     NEWLINE
+     :   NEWLINE
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.
