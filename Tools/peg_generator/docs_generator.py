@@ -113,7 +113,7 @@ class Precedence(enum.IntEnum):
     REPEAT = enum.auto()
     ATOM = enum.auto()
 
-@dataclass
+@dataclass(frozen=True)
 class Node:
     def format_enclosed(self):
         return self.format()
@@ -131,7 +131,7 @@ class Node:
         yield '  : ' + '  ' * indent + self.format()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Container(Node):
     """Collection of zero or more child items"""
     items: list[Node]
@@ -147,7 +147,7 @@ class Container(Node):
         for item in self:
             yield from item.dump_tree(indent + 1)
 
-@dataclass
+@dataclass(frozen=True)
 class Choice(Container):
     precedence = Precedence.CHOICE
 
@@ -178,7 +178,7 @@ class Choice(Container):
                 [x],
                 [Gather(_, x1), Optional()] as result,
             ]:
-                return Sequence(result).simplify()
+                return Sequence(result)
 
         def wrap(node):
             if is_optional:
@@ -187,7 +187,7 @@ class Choice(Container):
                 return node
 
         if len(alternatives) == 1:
-            return wrap(Sequence(alternatives[0]).simplify())
+            return wrap(Sequence(alternatives[0]))
         if not alternatives:
             return Sequence([])
         first_alt = alternatives[0]
@@ -195,19 +195,19 @@ class Choice(Container):
             return wrap(Sequence([
                 first_alt[0],
                 Choice([
-                    Sequence(alt[1:]).simplify() for alt in alternatives
-                ]).simplify(),
-            ])).simplify()
+                    Sequence(alt[1:]) for alt in alternatives
+                ]),
+            ]))
         if all(alt[-1] == first_alt[-1] for alt in alternatives[1:]):
             return wrap(Sequence([
                 Choice([
-                    Sequence(alt[:-1]).simplify() for alt in alternatives
-                ]).simplify(),
+                    Sequence(alt[:-1]) for alt in alternatives
+                ]),
                 first_alt[-1],
-            ]).simplify())
+            ]))
 
         return wrap(self_type(
-            [Sequence(alt).simplify() for alt in alternatives]
+            [Sequence(alt) for alt in alternatives]
         ))
 
     def simplify_item(self, item):
@@ -216,7 +216,7 @@ class Choice(Container):
                 return Sequence([])
         return super().simplify_item(item)
 
-@dataclass
+@dataclass(frozen=True)
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
 
@@ -229,7 +229,7 @@ class Sequence(Container):
                 case Container([]):
                     pass
                 case Sequence(subitems):
-                    items.extend(si.simplify() for si in subitems)
+                    items.extend(self.simplify_item(si) for si in subitems)
                 case _:
                     items.append(item)
         if len(items) == 1:
@@ -242,7 +242,7 @@ class Sequence(Container):
             for item in self
         )
 
-@dataclass
+@dataclass(frozen=True)
 class Decorator(Node):
     """Node with exactly one child"""
     item: Node
@@ -262,7 +262,7 @@ class Decorator(Node):
                 item = x
         return self_type(item)
 
-@dataclass
+@dataclass(frozen=True)
 class Optional(Decorator):
     precedence = Precedence.ATOM
 
@@ -270,7 +270,7 @@ class Optional(Decorator):
         return '[' + self.item.format() + ']'
 
 
-@dataclass
+@dataclass(frozen=True)
 class OneOrMore(Decorator):
     precedence = Precedence.REPEAT
 
@@ -278,14 +278,14 @@ class OneOrMore(Decorator):
         return self.item.format_for_precedence(Precedence.REPEAT) + '+'
 
 
-@dataclass
+@dataclass(frozen=True)
 class ZeroOrMore(Decorator):
     precedence = Precedence.REPEAT
 
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '*'
 
-@dataclass
+@dataclass(frozen=True)
 class Gather(Node):
     separator: Node
     item: Node
@@ -295,6 +295,10 @@ class Gather(Node):
     def __iter__(self):
         yield self.separator
         yield self.item
+
+    def simplify(self):
+        self_type = type(self)
+        return self_type(self.separator.simplify(), self.item.simplify())
 
     def format(self):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
@@ -307,7 +311,7 @@ class Gather(Node):
         yield '  : ' + '  ' * indent + 'separator:'
         yield from self.separator.dump_tree(indent + 1)
 
-@dataclass
+@dataclass(frozen=True)
 class Leaf(Node):
     """Node with no children"""
     value: str
@@ -321,18 +325,18 @@ class Leaf(Node):
         return iter(())
 
 
-@dataclass
+@dataclass(frozen=True)
 class Token(Leaf):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Nonterminal(Leaf):
     def format(self):
         return f"`{self.value}`"
 
 
-@dataclass
+@dataclass(frozen=True)
 class String(Leaf):
     pass
 
@@ -387,7 +391,11 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         if rule_name in seen_rule_names:
             continue
         pegen_rule = pegen_rules[rule_name]
-        node = convert_grammar_node(pegen_rule.rhs).simplify()
+        node = convert_grammar_node(pegen_rule.rhs)
+        last_node = None
+        while node != last_node:
+            last_node = node
+            node = node.simplify()
         print(pegen_rule.name)
         print(node)
 
