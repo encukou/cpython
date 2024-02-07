@@ -274,6 +274,8 @@ class Optional(Decorator):
             #  [x [y] | y]  ->  [x] [y]
             case Choice([Sequence([x, Optional(y1)]), y2]) if y1 == y2:
                 return Sequence([Optional(x), Optional(y1)])
+            case OneOrMore(x):
+                return ZeroOrMore(x)
         return super().simplify()
 
 
