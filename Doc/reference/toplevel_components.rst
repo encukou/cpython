@@ -157,14 +157,13 @@ string argument to :func:`eval` must have the following form:
      :     NEWLINE
      :   ENDMARKER
    expressions (from pegen): expression ((',' expression))+ ','? | expression ',' | expression
-   expressions (repr): Sequence(items=[Nonterminal(value='expression'), ZeroOrMore(item=Sequence(items=[String(value="','"), Nonterminal(value='expression')])), Optional(item=String(value="','"))])
-   expressions: `expression` (',' `expression`)* [',']
+   expressions (repr): Sequence(items=[Gather(separator=String(value="','"), item=Nonterminal(value='expression')), Optional(item=String(value="','"))])
+   expressions: ','.`expression`+ [',']
      : Sequence:
-     :   `expression`
-     :   ZeroOrMore:
-     :     Sequence:
-     :       ','
-     :       `expression`
+     :   Gather:
+     :     `expression`
+     :   separator:
+     :     ','
      :   Optional:
      :     ','
 

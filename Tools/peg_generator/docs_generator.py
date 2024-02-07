@@ -232,9 +232,41 @@ class Sequence(Container):
                     items.extend(self.simplify_item(si) for si in subitems)
                 case _:
                     items.append(item)
+        if not items:
+            return Sequence([])
+
+        # Simplify subsequences: call simplify_subsequence on all
+        # "tails" of `items`.
+        new_items = []
+        index = 0
+        while index < len(items):
+            replacement, num_processed = self.simplify_subsequence(items[index:])
+
+            # Single nodes are iterable; they act as a sequence of their
+            # children, and we don't want that in this case.
+            assert not isinstance(replacement, Node)
+
+            # Ensure we make progress
+            assert num_processed > 0
+
+            new_items.extend(replacement)
+            index += num_processed
+        items = new_items
+
         if len(items) == 1:
             return items[0]
         return self_type(items)
+
+    def simplify_subsequence(self, subsequence):
+        """Simplify the start of the given (sub)sequence.
+
+        Return the simplified result and the number of items that were
+        simplified.
+        """
+        match subsequence[:2]:
+            case [e1, ZeroOrMore(Sequence([s, e2]))] if e1 == e2:
+                return [Gather(s, e2)], 2
+        return [subsequence[0]], 1
 
     def format(self):
         return " ".join(
