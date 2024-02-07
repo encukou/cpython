@@ -23,6 +23,10 @@ argparser.add_argument(
     help="Directory with the docs. All .rst files in this "
         + "(and subdirs) will be regenerated.",
 )
+argparser.add_argument(
+    '--debug', action='store_true',
+    help="Include debug information in the generated docs.",
+)
 
 
 # TODO: Document all these rules somewhere in the docs
@@ -82,6 +86,7 @@ def main():
                         pegen_rules,
                         match[1].split(),
                         set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
+                        debug=args.debug,
                     ):
                         new_lines.append(f'   {line}\n')
                     new_lines.append('\n')
@@ -374,7 +379,7 @@ def convert_grammar_node(grammar_node):
         case _:
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
-def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
+def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
     rule_names = list(rule_names)
     seen_rule_names = set()
     while rule_names:
@@ -387,10 +392,12 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names):
         print(node)
 
         # To compare with pegen's stringification:
-        yield f'{pegen_rule.name} (pegen): {pegen_rule.rhs}'
+        if debug:
+            yield f'{pegen_rule.name} (from pegen): {pegen_rule.rhs}'
 
         yield f'{pegen_rule.name}: {node.format()}'
-        yield from node.dump_tree()
+        if debug:
+            yield from node.dump_tree()
         seen_rule_names.add(rule_name)
 
         for descendant in generate_all_descendants(node):

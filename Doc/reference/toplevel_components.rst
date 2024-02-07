@@ -70,16 +70,8 @@ All input read from non-interactive files has the same form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   file (pegen): statements? $
    file: [`statements`] ENDMARKER
-     : Sequence:
-     :   Optional:
-     :     `statements`
-     :   ENDMARKER
-   statements (pegen): statement+
    statements: `statement`+
-     : OneOrMore:
-     :   `statement`
 
 This syntax is used in the following situations:
 
@@ -101,28 +93,9 @@ Input in interactive mode is parsed using the following grammar:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   interactive (pegen): statement_newline
    interactive: `statement_newline`
-     : `statement_newline`
-   statement_newline (pegen): compound_stmt NEWLINE | simple_stmts | NEWLINE | $
    statement_newline: `compound_stmt` NEWLINE | `simple_stmts` | NEWLINE | ENDMARKER
-     : Choice:
-     :   Sequence:
-     :     `compound_stmt`
-     :     NEWLINE
-     :   `simple_stmts`
-     :   NEWLINE
-     :   ENDMARKER
-   simple_stmts (pegen): simple_stmt !';' NEWLINE | ';'.simple_stmt+ ';'? NEWLINE
    simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
-     : Sequence:
-     :   Gather:
-     :     `simple_stmt`
-     :   separator:
-     :     ';'
-     :   Optional:
-     :     ';'
-     :   NEWLINE
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.
@@ -143,25 +116,6 @@ string argument to :func:`eval` must have the following form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   eval (pegen): expressions NEWLINE* $
    eval: `expressions` NEWLINE* ENDMARKER
-     : Sequence:
-     :   `expressions`
-     :   ZeroOrMore:
-     :     NEWLINE
-     :   ENDMARKER
-   expressions (pegen): expression ((',' expression))+ ','? | expression ',' | expression
    expressions: `expression` [(',' `expression`)+ [','] | ',']
-     : Sequence:
-     :   `expression`
-     :   Optional:
-     :     Choice:
-     :       Sequence:
-     :         OneOrMore:
-     :           Sequence:
-     :             ','
-     :             `expression`
-     :         Optional:
-     :           ','
-     :       ','
 
