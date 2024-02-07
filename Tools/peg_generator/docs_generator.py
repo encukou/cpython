@@ -207,7 +207,7 @@ class Choice(Container):
             ]))
 
         return wrap(self_type(
-            [Sequence(alt) for alt in alternatives]
+            [Sequence(alt).simplify() for alt in alternatives]
         ))
 
     def simplify_item(self, item):
@@ -402,6 +402,7 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         # To compare with pegen's stringification:
         if debug:
             yield f'{pegen_rule.name} (from pegen): {pegen_rule.rhs}'
+            yield f'{pegen_rule.name} (repr): {node!r}'
 
         yield f'{pegen_rule.name}: {node.format()}'
         if debug:

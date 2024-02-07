@@ -71,12 +71,14 @@ All input read from non-interactive files has the same form:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    file (from pegen): statements? $
+   file (repr): Sequence(items=[Optional(item=Nonterminal(value='statements')), Token(value='ENDMARKER')])
    file: [`statements`] ENDMARKER
      : Sequence:
      :   Optional:
      :     `statements`
      :   ENDMARKER
    statements (from pegen): statement+
+   statements (repr): OneOrMore(item=Nonterminal(value='statement'))
    statements: `statement`+
      : OneOrMore:
      :   `statement`
@@ -102,21 +104,21 @@ Input in interactive mode is parsed using the following grammar:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    interactive (from pegen): statement_newline
+   interactive (repr): Nonterminal(value='statement_newline')
    interactive: `statement_newline`
      : `statement_newline`
    statement_newline (from pegen): compound_stmt NEWLINE | simple_stmts | NEWLINE | $
+   statement_newline (repr): Choice(items=[Sequence(items=[Nonterminal(value='compound_stmt'), Token(value='NEWLINE')]), Nonterminal(value='simple_stmts'), Token(value='NEWLINE'), Token(value='ENDMARKER')])
    statement_newline: `compound_stmt` NEWLINE | `simple_stmts` | NEWLINE | ENDMARKER
      : Choice:
      :   Sequence:
      :     `compound_stmt`
      :     NEWLINE
-     :   Sequence:
-     :     `simple_stmts`
-     :   Sequence:
-     :     NEWLINE
-     :   Sequence:
-     :     ENDMARKER
+     :   `simple_stmts`
+     :   NEWLINE
+     :   ENDMARKER
    simple_stmts (from pegen): simple_stmt !';' NEWLINE | ';'.simple_stmt+ ';'? NEWLINE
+   simple_stmts (repr): Sequence(items=[Gather(separator=String(value="';'"), item=Nonterminal(value='simple_stmt')), Optional(item=String(value="';'")), Token(value='NEWLINE')])
    simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
      : Sequence:
      :   Gather:
@@ -147,6 +149,7 @@ string argument to :func:`eval` must have the following form:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    eval (from pegen): expressions NEWLINE* $
+   eval (repr): Sequence(items=[Nonterminal(value='expressions'), ZeroOrMore(item=Token(value='NEWLINE')), Token(value='ENDMARKER')])
    eval: `expressions` NEWLINE* ENDMARKER
      : Sequence:
      :   `expressions`
@@ -154,6 +157,7 @@ string argument to :func:`eval` must have the following form:
      :     NEWLINE
      :   ENDMARKER
    expressions (from pegen): expression ((',' expression))+ ','? | expression ',' | expression
+   expressions (repr): Sequence(items=[Nonterminal(value='expression'), Optional(item=Choice(items=[Sequence(items=[OneOrMore(item=Sequence(items=[String(value="','"), Nonterminal(value='expression')])), Optional(item=String(value="','"))]), String(value="','")]))])
    expressions: `expression` [(',' `expression`)+ [','] | ',']
      : Sequence:
      :   `expression`
@@ -166,6 +170,5 @@ string argument to :func:`eval` must have the following form:
      :             `expression`
      :         Optional:
      :           ','
-     :       Sequence:
-     :         ','
+     :       ','
 
