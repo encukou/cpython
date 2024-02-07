@@ -269,6 +269,13 @@ class Optional(Decorator):
     def format(self):
         return '[' + self.item.format() + ']'
 
+    def simplify(self):
+        match self.item:
+            #  [x [y] | y]  ->  [x] [y]
+            case Choice([Sequence([x, Optional(y1)]), y2]) if y1 == y2:
+                return Sequence([Optional(x), Optional(y1)])
+        return super().simplify()
+
 
 @dataclass(frozen=True)
 class OneOrMore(Decorator):
