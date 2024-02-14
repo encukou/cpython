@@ -180,12 +180,26 @@ class Choice(Container):
                     alternatives.append([item])
         assert all(isinstance(item, list) for item in alternatives)
 
-        match alternatives:
-            case [
-                [x],
-                [Gather(_, x1), Optional()] as result,
-            ]:
-                return Sequence(result)
+
+        # Simplify subsequences: call simplify_subsequence on all
+        # "tails" of `alternatives`.
+        new_alts = []
+        index = 0
+        while index < len(alternatives):
+            replacement, num_processed = self.simplify_subsequence(alternatives[index:])
+
+            # replacement should be list[list[Node]]
+            assert isinstance(replacement, list)
+            assert all(isinstance(alt, list) for alt in replacement)
+            assert all(isinstance(node, Node) for alt in replacement for node in alt)
+
+            # Ensure we make progress
+            assert num_processed > 0
+
+            new_alts.extend(replacement)
+            index += num_processed
+        alternatives = new_alts
+
 
         def wrap(node):
             if is_optional:
@@ -222,6 +236,23 @@ class Choice(Container):
             case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
                 return Sequence([])
         return super().simplify_item(item)
+
+    def simplify_subsequence(self, tail):
+
+        match tail[:2]:
+            case [
+                [x],
+                [Gather(_, x1), Optional()] as result,
+            ] if x == x1:
+                return [result], 2
+            case [
+                [*h1, common_last_node1],
+                [*h2, common_last_node2],
+            ] if common_last_node1 == common_last_node2:
+                result = [[Choice([Sequence(h1), Sequence(h2)]), common_last_node1]], 2
+                return result
+
+        return [tail[0]], 1
 
 @dataclass(frozen=True)
 class Sequence(Container):
