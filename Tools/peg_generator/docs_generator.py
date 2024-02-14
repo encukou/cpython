@@ -3,6 +3,7 @@ import re
 import argparse
 from dataclasses import dataclass
 import enum
+import collections
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -146,6 +147,12 @@ class Container(Node):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
         for item in self:
             yield from item.dump_tree(indent + 1)
+
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(
+            [item.inlined(replaced_name, replacement) for item in self.items]
+        )
 
 @dataclass(frozen=True)
 class Choice(Container):
@@ -294,6 +301,10 @@ class Decorator(Node):
                 item = x
         return self_type(item)
 
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(self.item.inlined(replaced_name, replacement))
+
 @dataclass(frozen=True)
 class Optional(Decorator):
     precedence = Precedence.ATOM
@@ -352,6 +363,13 @@ class Gather(Node):
         yield '  : ' + '  ' * indent + 'separator:'
         yield from self.separator.dump_tree(indent + 1)
 
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(
+            self.separator.inlined(replaced_name, replacement),
+            self.item.inlined(replaced_name, replacement),
+        )
+
 @dataclass(frozen=True)
 class Leaf(Node):
     """Node with no children"""
@@ -365,6 +383,9 @@ class Leaf(Node):
     def __iter__(self):
         return iter(())
 
+    def inlined(self, replaced_name, replacement):
+        return self
+
 
 @dataclass(frozen=True)
 class Token(Leaf):
@@ -375,6 +396,11 @@ class Token(Leaf):
 class Nonterminal(Leaf):
     def format(self):
         return f"`{self.value}`"
+
+    def inlined(self, replaced_name, replacement):
+        if self.value == replaced_name:
+            return replacement
+        return super().inlined(replaced_name, replacement)
 
 
 @dataclass(frozen=True)
@@ -440,14 +466,30 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             node = node.simplify()
         rules[rule_name] = node
 
-        for descendant in generate_all_descendants(node):
-            if isinstance(descendant, Nonterminal):
-                rule_name = descendant.value
-                if (
-                    rule_name in pegen_rules
-                    and rule_name not in toplevel_rule_names
-                ):
-                    rule_names_to_add.append(rule_name)
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            rule_name = descendant.value
+            if (
+                rule_name in pegen_rules
+                and rule_name not in toplevel_rule_names
+            ):
+                rule_names_to_add.append(rule_name)
+
+    reference_counts = collections.Counter()
+    for node in rules.values():
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            name = descendant.value
+            if name in rules:
+                reference_counts[name] += 1
+    print(reference_counts)
+
+    for name, count in reference_counts.items():
+        if count == 1:
+            print(f'rule named {name} will be inlined.')
+            replaced_name = name
+            replacement = rules[replaced_name]
+            for rule_name, rule_node in rules.items():
+                rules[rule_name] = rule_node.inlined(replaced_name, replacement)
+            del rules[name]
 
     for name, node in rules.items():
         if debug:
@@ -459,10 +501,11 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         if debug:
             yield from node.dump_tree()
 
-def generate_all_descendants(node):
-    yield node
+def generate_all_descendants(node, filter=Node):
+    if isinstance(node, filter):
+        yield node
     for value in node:
-        yield from generate_all_descendants(value)
+        yield from generate_all_descendants(value, filter)
 
 if __name__ == "__main__":
     main()

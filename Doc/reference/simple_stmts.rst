@@ -452,8 +452,7 @@ The :keyword:`!del` statement
 
    del_stmt: ['del' `del_targets`]
    del_targets: ','.`del_target`+ [',']
-   del_target: `t_primary` '.' NAME | `t_primary` '[' `slices` ']' | `del_t_atom`
-   del_t_atom: NAME | '(' `del_target` ')' | '(' [`del_targets`] ')' | '[' [`del_targets`] ']'
+   del_target: `t_primary` '.' NAME | `t_primary` '[' `slices` ']' | NAME | '(' `del_target` ')' | '(' [`del_targets`] ')' | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
