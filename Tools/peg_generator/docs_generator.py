@@ -33,7 +33,7 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
     'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices',
+    't_primary', 'slices', 'star_expressions',
 }
 
 
@@ -457,20 +457,16 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
     # be documented elsewhere (those in `toplevel_rule_names`).
     requested_rule_names = list(rule_names)
     rule_names_to_add = list(rule_names)
-    rules = {}
+    ruleset = {}
     while rule_names_to_add:
         rule_name = rule_names_to_add.pop(0)
-        if rule_name in rules:
+        if rule_name in ruleset:
             continue
         pegen_rule = pegen_rules[rule_name]
         node = convert_grammar_node(pegen_rule.rhs)
 
-        # Simplify
-        last_node = None
-        while node != last_node:
-            last_node = node
-            node = node.simplify()
-        rules[rule_name] = node
+        node = simplify_node(node)
+        ruleset[rule_name] = node
 
         for descendant in generate_all_descendants(node, filter=Nonterminal):
             rule_name = descendant.value
@@ -480,37 +476,14 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             ):
                 rule_names_to_add.append(rule_name)
 
-    # Count up all the references to rules we're documenting.
-    # A rule that's only mentioned once should be inlined, except if we were
-    # explicitly asked to provide a definition for it (i.e. it is in
-    # `requested_rule_names`).
-    reference_counts = collections.Counter()
-    for node in rules.values():
-        for descendant in generate_all_descendants(node, filter=Nonterminal):
-            name = descendant.value
-            if name in rules and name not in requested_rule_names:
-                reference_counts[name] += 1
-
-    # Inline the rules we found
-    for name, count in reference_counts.items():
-        if count == 1:
-            print(f'rule named {name} will be inlined.')
-            replaced_name = name
-            replacement = rules[replaced_name]
-            for rule_name, rule_node in rules.items():
-                rules[rule_name] = rule_node.inlined(replaced_name, replacement)
-            del rules[name]
-
-    # Simplify
-    for rule_name, node in rules.items():
-        last_node = None
-        while node != last_node:
-            last_node = node
-            node = node.simplify()
-        rules[rule_name] = node
+    # Simplify ruleset repeatedly, until simplification no longer changes it
+    old_ruleset = None
+    while ruleset != old_ruleset:
+        old_ruleset = ruleset
+        ruleset = simplify_ruleset(ruleset, requested_rule_names)
 
     # Yield all the lines
-    for name, node in rules.items():
+    for name, node in ruleset.items():
         if debug:
             # To compare with pegen's stringification:
             yield f'{name} (from pegen): {pegen_rules[name]}'
@@ -519,6 +492,47 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         yield f'{name}: {node.format()}'
         if debug:
             yield from node.dump_tree()
+
+def simplify_node(node):
+    """Simplifies a node repeatedly until simplification no longer changes it"""
+    last_node = None
+    while node != last_node:
+        last_node = node
+        node = node.simplify()
+    return node
+
+
+def simplify_ruleset(old_ruleset: dict, requested_rule_names):
+    """Simplify and inline a bunch of rules"""
+
+    # Generate new ruleset with simplified nodes
+    new_ruleset = {}
+    for rule_name, node in old_ruleset.items():
+        new_ruleset[rule_name] = simplify_node(node)
+
+    # Count up all the references to rules we're documenting.
+    # A rule that's only mentioned once should be inlined, except if we were
+    # explicitly asked to provide a definition for it (i.e. it is in
+    # `requested_rule_names`).
+    reference_counts = collections.Counter()
+    for node in new_ruleset.values():
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            name = descendant.value
+            if name in new_ruleset and name not in requested_rule_names:
+                reference_counts[name] += 1
+
+    # Inline the rules we found
+    for name, count in reference_counts.items():
+        if count == 1:
+            print(f'rule named {name} will be inlined.')
+            replaced_name = name
+            replacement = new_ruleset[replaced_name]
+            for rule_name, rule_node in new_ruleset.items():
+                new_node = rule_node.inlined(replaced_name, replacement)
+                new_ruleset[rule_name] = new_node
+            del new_ruleset[name]
+
+    return new_ruleset
 
 def generate_all_descendants(node, filter=Node):
     if isinstance(node, filter):
