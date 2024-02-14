@@ -465,6 +465,7 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         pegen_rule = pegen_rules[rule_name]
         node = convert_grammar_node(pegen_rule.rhs)
 
+        # Simplify
         last_node = None
         while node != last_node:
             last_node = node
@@ -499,6 +500,14 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             for rule_name, rule_node in rules.items():
                 rules[rule_name] = rule_node.inlined(replaced_name, replacement)
             del rules[name]
+
+    # Simplify
+    for rule_name, node in rules.items():
+        last_node = None
+        while node != last_node:
+            last_node = node
+            node = node.simplify()
+        rules[rule_name] = node
 
     # Yield all the lines
     for name, node in rules.items():

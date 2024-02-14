@@ -70,7 +70,7 @@ All input read from non-interactive files has the same form:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   file: [`statement`+] ENDMARKER
+   file: `statement`* ENDMARKER
 
 This syntax is used in the following situations:
 
