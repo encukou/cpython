@@ -425,30 +425,20 @@ def convert_grammar_node(grammar_node):
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
 def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
-    rule_names = list(rule_names)
-    seen_rule_names = set()
-    while rule_names:
-        rule_name = rule_names.pop(0)
-        if rule_name in seen_rule_names:
+    rule_names_to_add = list(rule_names)
+    rules = {}
+    while rule_names_to_add:
+        rule_name = rule_names_to_add.pop(0)
+        if rule_name in rules:
             continue
         pegen_rule = pegen_rules[rule_name]
         node = convert_grammar_node(pegen_rule.rhs)
+
         last_node = None
         while node != last_node:
             last_node = node
             node = node.simplify()
-        print(pegen_rule.name)
-        print(node)
-
-        # To compare with pegen's stringification:
-        if debug:
-            yield f'{pegen_rule.name} (from pegen): {pegen_rule.rhs}'
-            yield f'{pegen_rule.name} (repr): {node!r}'
-
-        yield f'{pegen_rule.name}: {node.format()}'
-        if debug:
-            yield from node.dump_tree()
-        seen_rule_names.add(rule_name)
+        rules[rule_name] = node
 
         for descendant in generate_all_descendants(node):
             if isinstance(descendant, Nonterminal):
@@ -457,7 +447,17 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
                     rule_name in pegen_rules
                     and rule_name not in toplevel_rule_names
                 ):
-                    rule_names.append(rule_name)
+                    rule_names_to_add.append(rule_name)
+
+    for name, node in rules.items():
+        if debug:
+            # To compare with pegen's stringification:
+            yield f'{name} (from pegen): {pegen_rules[name]}'
+            yield f'{name} (repr): {node!r}'
+
+        yield f'{name}: {node.format()}'
+        if debug:
+            yield from node.dump_tree()
 
 def generate_all_descendants(node):
     yield node
