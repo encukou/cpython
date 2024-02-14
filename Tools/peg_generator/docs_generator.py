@@ -451,6 +451,11 @@ def convert_grammar_node(grammar_node):
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
 def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
+    # Figure out all rules we want to document.
+    # This includes the ones we were asked to document (`requested_rule_names`),
+    # and also rules referenced from them (recursively), except ones that will
+    # be documented elsewhere (those in `toplevel_rule_names`).
+    requested_rule_names = list(rule_names)
     rule_names_to_add = list(rule_names)
     rules = {}
     while rule_names_to_add:
@@ -474,14 +479,18 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             ):
                 rule_names_to_add.append(rule_name)
 
+    # Count up all the references to rules we're documenting.
+    # A rule that's only mentioned once should be inlined, except if we were
+    # explicitly asked to provide a definition for it (i.e. it is in
+    # `requested_rule_names`).
     reference_counts = collections.Counter()
     for node in rules.values():
         for descendant in generate_all_descendants(node, filter=Nonterminal):
             name = descendant.value
-            if name in rules:
+            if name in rules and name not in requested_rule_names:
                 reference_counts[name] += 1
-    print(reference_counts)
 
+    # Inline the rules we found
     for name, count in reference_counts.items():
         if count == 1:
             print(f'rule named {name} will be inlined.')
@@ -491,6 +500,7 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
                 rules[rule_name] = rule_node.inlined(replaced_name, replacement)
             del rules[name]
 
+    # Yield all the lines
     for name, node in rules.items():
         if debug:
             # To compare with pegen's stringification:
