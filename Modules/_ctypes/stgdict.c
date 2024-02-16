@@ -18,49 +18,142 @@
 
 
 
-// Get a PyCTypeDataObject. These Return -1 on error, 0 if "not found", 1 on OK.
-// from a type:
-//int PyStgInfo_FromType(PyObject *obj, StgInfo **result);
-// from an instance:
-int PyStgInfo_FromObject(ctypes_state *state, PyObject *obj, StgInfo **result)
+static int
+_PyStgInfo_FromType(ctypes_state *state, PyTypeObject *type, StgInfo **result)
 {
-    *result = NULL;
-    PyTypeObject *type = Py_TYPE(obj);
     if (!PyObject_IsInstance((PyObject *)type, (PyObject *)state->PyCType_Type)) {
         // not a ctypes class.
         return 0;
     }
     StgInfo *info = PyObject_GetTypeData((PyObject *)type, state->PyCType_Type);
     if (!info->initialized) {
-        PyErr_Format(PyExc_SystemError, "%R StgInfo is not initialized.", type);
+        PyErr_Format(PyExc_SystemError, "%R StgInfo is not initialized", type);
         return -1;
     }
     *result = info;
     return 1;
 }
+// Get a PyCTypeDataObject. These Return -1 on error, 0 if "not found", 1 on OK.
+// from a type:
+int
+PyStgInfo_FromType(ctypes_state *state, PyObject *type, StgInfo **result)
+{
+    *result = NULL;
+    if (!PyType_Check(type)) {
+        PyErr_Format(PyExc_SystemError, "%R is not a type", type);
+        return -1;
+    }
+    return _PyStgInfo_FromType(state, (PyTypeObject *)type, result);
+}
+// from an instance:
+int
+PyStgInfo_FromObject(ctypes_state *state, PyObject *obj, StgInfo **result)
+{
+    return _PyStgInfo_FromType(state, Py_TYPE(obj), result);
+}
 // from either a type or an instance:
-//int PyStgInfo_FromAny(PyObject *obj, StgInfo **result);
+int
+PyStgInfo_FromAny(ctypes_state *state, PyObject *obj, StgInfo **result)
+{
+    if (PyObject_IsInstance((PyObject *)obj, (PyObject *)state->PyCType_Type)) {
+        return PyStgInfo_FromType(state, obj, result);
+    }
+    return _PyStgInfo_FromType(state, Py_TYPE(obj), result);
+}
 
-// Initialize StgInfo on a newly created
-StgInfo *PyStgInfo_Init(ctypes_state *state, PyTypeObject *type)
+StgInfo *
+PyStgInfo_Init(ctypes_state *state, PyTypeObject *type)
 {
     if (!PyObject_IsInstance((PyObject *)type, (PyObject *)state->PyCType_Type)) {
         PyErr_Format(PyExc_SystemError,
-                     "'%s' is not a ctypes class.",
+                     "'%s' is not a ctypes class",
                      type->tp_name);
         return NULL;
     }
     StgInfo *info = PyObject_GetTypeData((PyObject *)type, state->PyCType_Type);
     if (info->initialized) {
         PyErr_Format(PyExc_SystemError,
-                     "StgInfo of '%s' is already initialized.",
+                     "StgInfo of '%s' is already initialized",
                      type->tp_name);
         return NULL;
     }
     info->initialized = 1;
+    info->format = NULL;
+    info->ndim = 0;
+    info->shape = NULL;
     return info;
 }
 
+int
+PyStgInfo_Fini(ctypes_state *state, PyTypeObject *type)
+{
+    if (!PyObject_IsInstance((PyObject *)type, (PyObject *)state->PyCType_Type)) {
+        PyErr_Format(PyExc_SystemError,
+                     "'%s' is not a ctypes class.",
+                     type->tp_name);
+        return -1;
+    }
+    StgInfo *info = PyObject_GetTypeData((PyObject *)type, state->PyCType_Type);
+    if (info->initialized) {
+        info->initialized = 0;
+        PyMem_Free(info->format);
+        info->format = NULL;
+        PyMem_Free(info->shape);
+        info->shape = NULL;
+    }
+    return 0;
+}
+
+// Clone an existing StgInfo onto a newly created type
+int
+PyStgInfo_Clone(ctypes_state *state, PyTypeObject *dst_type, PyTypeObject *src_type)
+{
+    if (PyStgInfo_Fini(state, dst_type) < 0) {
+        return -1;
+    }
+
+    StgInfo *dst_info;
+    int result = PyStgInfo_FromType(state, (PyObject*)dst_type, &dst_info);
+    if (result < 1) {
+        return -1;
+    }
+    if (!dst_info) {
+        PyErr_Format(PyExc_SystemError,
+                     "'%s' is not a ctypes class.",
+                     dst_type->tp_name);
+        return -1;
+    }
+    StgInfo *src_info;
+    result = PyStgInfo_FromType(state, (PyObject*)src_type, &src_info);
+    if (result < 1) {
+        return -1;
+    }
+    if (!dst_info) {
+        PyErr_Format(PyExc_SystemError,
+                     "'%s' is not a ctypes class.",
+                     src_type->tp_name);
+        return -1;
+    }
+
+    if (src_info->format) {
+        dst_info->format = PyMem_Malloc(strlen(src_info->format) + 1);
+        if (dst_info->format == NULL) {
+            PyErr_NoMemory();
+            return -1;
+        }
+        strcpy(dst_info->format, src_info->format);
+    }
+    if (src_info->shape) {
+        dst_info->shape = PyMem_Malloc(sizeof(Py_ssize_t) * src_info->ndim);
+        if (dst_info->shape == NULL) {
+            PyErr_NoMemory();
+            return -1;
+        }
+        memcpy(dst_info->shape, src_info->shape,
+               sizeof(Py_ssize_t) * src_info->ndim);
+    }
+    return 0;
+}
 
 
 /******************************************************************/
@@ -78,9 +171,9 @@ PyCStgDict_init(StgDictObject *self, PyObject *args, PyObject *kwds)
 {
     if (PyDict_Type.tp_init((PyObject *)self, args, kwds) < 0)
         return -1;
-    self->format = NULL;
-    self->ndim = 0;
-    self->shape = NULL;
+    //self->format = NULL;
+    //self->ndim = 0;
+    //self->shape = NULL;
     return 0;
 }
 
@@ -99,8 +192,6 @@ static void
 PyCStgDict_dealloc(StgDictObject *self)
 {
     PyCStgDict_clear(self);
-    PyMem_Free(self->format);
-    PyMem_Free(self->shape);
     PyMem_Free(self->ffi_type_pointer.elements);
     PyDict_Type.tp_dealloc((PyObject *)self);
 }
@@ -112,11 +203,11 @@ PyCStgDict_sizeof(StgDictObject *self, void *unused)
 
     res = _PyDict_SizeOf((PyDictObject *)self);
     res += sizeof(StgDictObject) - sizeof(PyDictObject);
-    if (self->format)
-        res += strlen(self->format) + 1;
-    res += self->ndim * sizeof(Py_ssize_t);
-    if (self->ffi_type_pointer.elements)
-        res += (self->length + 1) * sizeof(ffi_type *);
+    //if (self->format)
+    //    res += strlen(self->format) + 1;
+    //res += self->ndim * sizeof(Py_ssize_t);
+    //if (self->ffi_type_pointer.elements)
+    //    res += (self->length + 1) * sizeof(ffi_type *);
     return PyLong_FromSsize_t(res);
 }
 
@@ -128,10 +219,6 @@ PyCStgDict_clone(StgDictObject *dst, StgDictObject *src)
 
     PyCStgDict_clear(dst);
     PyMem_Free(dst->ffi_type_pointer.elements);
-    PyMem_Free(dst->format);
-    dst->format = NULL;
-    PyMem_Free(dst->shape);
-    dst->shape = NULL;
     dst->ffi_type_pointer.elements = NULL;
 
     d = (char *)dst;
@@ -145,24 +232,6 @@ PyCStgDict_clone(StgDictObject *dst, StgDictObject *src)
     Py_XINCREF(dst->converters);
     Py_XINCREF(dst->restype);
     Py_XINCREF(dst->checker);
-
-    if (src->format) {
-        dst->format = PyMem_Malloc(strlen(src->format) + 1);
-        if (dst->format == NULL) {
-            PyErr_NoMemory();
-            return -1;
-        }
-        strcpy(dst->format, src->format);
-    }
-    if (src->shape) {
-        dst->shape = PyMem_Malloc(sizeof(Py_ssize_t) * src->ndim);
-        if (dst->shape == NULL) {
-            PyErr_NoMemory();
-            return -1;
-        }
-        memcpy(dst->shape, src->shape,
-               sizeof(Py_ssize_t) * src->ndim);
-    }
 
     if (src->ffi_type_pointer.elements == NULL)
         return 0;
@@ -503,6 +572,19 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
         return -1;
     }
 
+    ctypes_state *st = GLOBAL_STATE();
+
+    StgInfo *info;
+    int result = PyStgInfo_FromType(st, type, &info);
+    if (result < 1) {
+        return -1;
+    }
+    if (!info) {
+        PyErr_SetString(PyExc_TypeError,
+                        "ctypes state is not initialized");
+        return -1;
+    }
+
     stgdict = PyType_stgdict(type);
     if (!stgdict) {
         PyErr_SetString(PyExc_TypeError,
@@ -518,9 +600,9 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
         return -1;
     }
 
-    if (stgdict->format) {
-        PyMem_Free(stgdict->format);
-        stgdict->format = NULL;
+    if (info->format) {
+        PyMem_Free(info->format);
+        info->format = NULL;
     }
 
     if (stgdict->ffi_type_pointer.elements)
@@ -571,17 +653,16 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
         ffi_ofs = 0;
     }
 
-    assert(stgdict->format == NULL);
+    assert(info->format == NULL);
     if (isStruct) {
-        stgdict->format = _ctypes_alloc_format_string(NULL, "T{");
+        info->format = _ctypes_alloc_format_string(NULL, "T{");
     } else {
         /* PEP3118 doesn't support union. Use 'B' for bytes. */
-        stgdict->format = _ctypes_alloc_format_string(NULL, "B");
+        info->format = _ctypes_alloc_format_string(NULL, "B");
     }
-    if (stgdict->format == NULL)
+    if (info->format == NULL)
         return -1;
 
-    ctypes_state *st = GLOBAL_STATE();
     for (i = 0; i < len; ++i) {
         PyObject *name = NULL, *desc = NULL;
         PyObject *pair = PySequence_GetItem(fields, i);
@@ -646,7 +727,7 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
             bitsize = 0;
 
         if (isStruct) {
-            const char *fieldfmt = dict->format ? dict->format : "B";
+            const char *fieldfmt = info->format ? info->format : "B";
             const char *fieldname = PyUnicode_AsUTF8(name);
             char *ptr;
             Py_ssize_t len;
@@ -676,10 +757,10 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
             padding = ((CFieldObject *)prop)->offset - last_size;
 
             if (padding > 0) {
-                ptr = stgdict->format;
-                stgdict->format = _ctypes_alloc_format_padding(ptr, padding);
+                ptr = info->format;
+                info->format = _ctypes_alloc_format_padding(ptr, padding);
                 PyMem_Free(ptr);
-                if (stgdict->format == NULL) {
+                if (info->format == NULL) {
                     Py_DECREF(pair);
                     Py_DECREF(prop);
                     return -1;
@@ -697,17 +778,17 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
             }
             sprintf(buf, "%s:%s:", fieldfmt, fieldname);
 
-            ptr = stgdict->format;
-            if (dict->shape != NULL) {
-                stgdict->format = _ctypes_alloc_format_string_with_shape(
-                    dict->ndim, dict->shape, stgdict->format, buf);
+            ptr = info->format;
+            if (info->shape != NULL) {
+                info->format = _ctypes_alloc_format_string_with_shape(
+                    info->ndim, info->shape, info->format, buf);
             } else {
-                stgdict->format = _ctypes_alloc_format_string(stgdict->format, buf);
+                info->format = _ctypes_alloc_format_string(info->format, buf);
             }
             PyMem_Free(ptr);
             PyMem_Free(buf);
 
-            if (stgdict->format == NULL) {
+            if (info->format == NULL) {
                 Py_DECREF(pair);
                 Py_DECREF(prop);
                 return -1;
@@ -751,18 +832,18 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
         /* Pad up to the full size of the struct */
         padding = aligned_size - size;
         if (padding > 0) {
-            ptr = stgdict->format;
-            stgdict->format = _ctypes_alloc_format_padding(ptr, padding);
+            ptr = info->format;
+            info->format = _ctypes_alloc_format_padding(ptr, padding);
             PyMem_Free(ptr);
-            if (stgdict->format == NULL) {
+            if (info->format == NULL) {
                 return -1;
             }
         }
 
-        ptr = stgdict->format;
-        stgdict->format = _ctypes_alloc_format_string(stgdict->format, "}");
+        ptr = info->format;
+        info->format = _ctypes_alloc_format_string(info->format, "}");
         PyMem_Free(ptr);
-        if (stgdict->format == NULL)
+        if (info->format == NULL)
             return -1;
     }
 

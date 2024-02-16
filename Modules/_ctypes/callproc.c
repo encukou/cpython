@@ -2010,28 +2010,31 @@ create_pointer_inst(PyObject *module, PyObject *arg)
 static PyObject *
 buffer_info(PyObject *self, PyObject *arg)
 {
-    StgDictObject *dict = PyType_stgdict(arg);
     PyObject *shape;
     Py_ssize_t i;
+    ctypes_state *st = GLOBAL_STATE();
 
-    if (dict == NULL)
-        dict = PyObject_stgdict(arg);
-    if (dict == NULL) {
+    StgInfo *info;
+    int result = PyStgInfo_FromAny(st, self, &info);
+    if (result < 1) {
+        return NULL;
+    }
+    if (info == NULL) {
         PyErr_SetString(PyExc_TypeError,
                         "not a ctypes type or object");
         return NULL;
     }
-    shape = PyTuple_New(dict->ndim);
+    shape = PyTuple_New(info->ndim);
     if (shape == NULL)
         return NULL;
-    for (i = 0; i < (int)dict->ndim; ++i)
-        PyTuple_SET_ITEM(shape, i, PyLong_FromSsize_t(dict->shape[i]));
+    for (i = 0; i < (int)info->ndim; ++i)
+        PyTuple_SET_ITEM(shape, i, PyLong_FromSsize_t(info->shape[i]));
 
     if (PyErr_Occurred()) {
         Py_DECREF(shape);
         return NULL;
     }
-    return Py_BuildValue("siN", dict->format, dict->ndim, shape);
+    return Py_BuildValue("siN", info->format, info->ndim, shape);
 }
 
 

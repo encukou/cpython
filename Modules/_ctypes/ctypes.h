@@ -230,7 +230,13 @@ typedef struct {
 
 typedef struct {
     int initialized;
+
     PARAMFUNC paramfunc;
+
+    /* pep3118 fields, pointers need PyMem_Free */
+    char *format;
+    int ndim;
+    Py_ssize_t *shape;
 } StgInfo;
 
 // Get a PyCTypeDataObject. These Return -1 on error, 0 if "not found", 1 on OK.
@@ -243,6 +249,11 @@ extern int PyStgInfo_FromAny(ctypes_state *state, PyObject *obj, StgInfo **resul
 
 // Initialize StgInfo on a newly created type
 extern StgInfo *PyStgInfo_Init(ctypes_state *state, PyTypeObject *type);
+// Finalize StgInfo on a type that's being destroyed
+extern int PyStgInfo_Fini(ctypes_state *state, PyTypeObject *type);
+// Clone an existing StgInfo onto a newly created type
+extern int PyStgInfo_Clone(ctypes_state *state, PyTypeObject *dst, PyTypeObject *src);
+
 
 /* A subclass of PyDictObject, used as the instance dictionary of ctypes
    metatypes */
@@ -273,9 +284,9 @@ typedef struct {
     int flags;                  /* calling convention and such */
 
     /* pep3118 fields, pointers need PyMem_Free */
-    char *format;
-    int ndim;
-    Py_ssize_t *shape;
+    //char *format;
+    //int ndim;
+    //Py_ssize_t *shape;
 /*      Py_ssize_t *strides;    */ /* unused in ctypes */
 /*      Py_ssize_t *suboffsets; */ /* unused in ctypes */
 

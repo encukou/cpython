@@ -473,6 +473,8 @@ CType_Type_traverse(PyObject *self, visitproc visit, void *arg)
 static int
 CType_Type_clear(PyObject *self)
 {
+    ctypes_state *st = GLOBAL_STATE();
+    PyStgInfo_Fini(st, (PyTypeObject *)self);
     return 0;
 }
 
@@ -486,10 +488,41 @@ CType_Type_dealloc(PyObject *self)
     Py_DECREF(tp);
 }
 
+static PyObject *
+CType_Type_sizeof(PyObject *self, void *unused)
+{
+    Py_ssize_t res;
+
+    res = Py_TYPE(self)->tp_basicsize;
+    res += Py_TYPE(self)->tp_itemsize * Py_SIZE(self);
+    res += sizeof(StgDictObject) - sizeof(PyDictObject);
+
+    ctypes_state *st = GLOBAL_STATE();
+
+    StgInfo *info;
+    int result = PyStgInfo_FromType(st, self, &info);
+    if (result < 1) {
+        return NULL;
+    }
+    if (info) {
+        if (info->format) {
+            res += strlen(info->format) + 1;
+        }
+        res += info->ndim * sizeof(Py_ssize_t);
+    }
+    return PyLong_FromSsize_t(res);
+}
+
+static PyMethodDef ctype_type_methods[] = {
+    {"__sizeof__", (PyCFunction)CType_Type_sizeof, METH_NOARGS},
+    {NULL, NULL}                /* sentinel */
+};
+
 static PyType_Slot ctype_type_slots[] = {
     {Py_tp_traverse, CType_Type_traverse},
     {Py_tp_clear, CType_Type_clear},
     {Py_tp_dealloc, CType_Type_dealloc},
+    {Py_tp_methods, ctype_type_methods},
     {0, NULL},
 };
 
@@ -599,13 +632,13 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
         return NULL;
     }
     Py_SETREF(result->tp_dict, (PyObject *)dict);
-    dict->format = _ctypes_alloc_format_string(NULL, "B");
-    if (dict->format == NULL) {
+    StgInfo *info = PyStgInfo_Init(st, result);
+    if (!info) {
         Py_DECREF(result);
         return NULL;
     }
-    StgInfo *info = PyStgInfo_Init(st, result);
-    if (!info) {
+    info->format = _ctypes_alloc_format_string(NULL, "B");
+    if (info->format == NULL) {
         Py_DECREF(result);
         return NULL;
     }
@@ -1104,7 +1137,21 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     //stgdict->paramfunc = PyCPointerType_paramfunc;
     stgdict->flags |= TYPEFLAG_ISPOINTER;
 
+    /* create the new instance (which is a class,
+       since we are a metatype!) */
+    result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+    if (result == NULL) {
+        return NULL;
+    }
+
+    StgInfo *info = PyStgInfo_Init(st, result);
+    if (!info) {
+        Py_DECREF((PyObject *)result);
+        return NULL;
+    }
+
     if (PyDict_GetItemRef(typedict, &_Py_ID(_type_), &proto) < 0) {
+        Py_DECREF((PyObject *)result);
         Py_DECREF((PyObject *)stgdict);
         return NULL;
     }
@@ -1112,6 +1159,7 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         StgDictObject *itemdict;
         const char *current_format;
         if (-1 == PyCPointerType_SetProto(stgdict, proto)) {
+            Py_DECREF((PyObject *)result);
             Py_DECREF(proto);
             Py_DECREF((PyObject *)stgdict);
             return NULL;
@@ -1124,27 +1172,30 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
            'pointer to bytes' in this case.  XXX Better would be to
            fix the format string later...
         */
-        current_format = itemdict->format ? itemdict->format : "B";
-        if (itemdict->shape != NULL) {
-            /* pointer to an array: the shape needs to be prefixed */
-            stgdict->format = _ctypes_alloc_format_string_with_shape(
-                itemdict->ndim, itemdict->shape, "&", current_format);
-        } else {
-            stgdict->format = _ctypes_alloc_format_string("&", current_format);
-        }
-        Py_DECREF(proto);
-        if (stgdict->format == NULL) {
+        StgInfo *iteminfo;
+        int r = PyStgInfo_FromType(st, proto, &iteminfo);
+        if (r < 1) {
+            Py_DECREF((PyObject *)result);
+            Py_DECREF(proto);
             Py_DECREF((PyObject *)stgdict);
             return NULL;
         }
-    }
+        assert(iteminfo);
 
-    /* create the new instance (which is a class,
-       since we are a metatype!) */
-    result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
-    if (result == NULL) {
-        Py_DECREF((PyObject *)stgdict);
-        return NULL;
+        current_format = iteminfo->format ? iteminfo->format : "B";
+        if (iteminfo->shape != NULL) {
+            /* pointer to an array: the shape needs to be prefixed */
+            info->format = _ctypes_alloc_format_string_with_shape(
+                iteminfo->ndim, iteminfo->shape, "&", current_format);
+        } else {
+            info->format = _ctypes_alloc_format_string("&", current_format);
+        }
+        Py_DECREF(proto);
+        if (info->format == NULL) {
+            Py_DECREF((PyObject *)result);
+            Py_DECREF((PyObject *)stgdict);
+            return NULL;
+        }
     }
 
     /* replace the class dict by our updated spam dict */
@@ -1154,12 +1205,6 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
     Py_SETREF(result->tp_dict, (PyObject *)stgdict);
-
-    StgInfo *info = PyStgInfo_Init(st, result);
-    if (!info) {
-        Py_DECREF((PyObject *)result);
-        return NULL;
-    }
     info->paramfunc = PyCPointerType_paramfunc;
 
     return (PyObject *)result;
@@ -1533,20 +1578,31 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         goto error;
     }
 
-    assert(itemdict->format);
-    stgdict->format = _ctypes_alloc_format_string(NULL, itemdict->format);
-    if (stgdict->format == NULL)
+    StgInfo *info = PyStgInfo_Init(st, result);
+    if (!info) {
         goto error;
-    stgdict->ndim = itemdict->ndim + 1;
-    stgdict->shape = PyMem_Malloc(sizeof(Py_ssize_t) * stgdict->ndim);
-    if (stgdict->shape == NULL) {
+    }
+    StgInfo *iteminfo;
+    int r = PyStgInfo_FromType(st, type_attr, &iteminfo);
+    if (r < 1) {
+        goto error;
+    }
+
+    assert(info->format);
+    info->format = _ctypes_alloc_format_string(NULL, iteminfo->format);
+    if (info->format == NULL) {
+        goto error;
+    }
+    info->ndim = iteminfo->ndim + 1;
+    info->shape = PyMem_Malloc(sizeof(Py_ssize_t) * info->ndim);
+    if (info->shape == NULL) {
         PyErr_NoMemory();
         goto error;
     }
-    stgdict->shape[0] = length;
-    if (stgdict->ndim > 1) {
-        memmove(&stgdict->shape[1], itemdict->shape,
-            sizeof(Py_ssize_t) * (stgdict->ndim - 1));
+    info->shape[0] = length;
+    if (info->ndim > 1) {
+        memmove(&info->shape[1], iteminfo->shape,
+            sizeof(Py_ssize_t) * (info->ndim - 1));
     }
 
     itemsize = itemdict->size;
@@ -1567,7 +1623,7 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     stgdict->proto = type_attr;
     type_attr = NULL;
 
-    //stgdict->paramfunc = &PyCArrayType_paramfunc;
+    info->paramfunc = &PyCArrayType_paramfunc;
 
     /* Arrays are passed as pointers to function calls. */
     stgdict->ffi_type_pointer = ffi_type_pointer;
@@ -1577,12 +1633,6 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         goto error;
     Py_SETREF(result->tp_dict, (PyObject *)stgdict);  /* steal the reference */
     stgdict = NULL;
-
-    StgInfo *info = PyStgInfo_Init(st, result);
-    if (!info) {
-        goto error;
-    }
-    info->paramfunc = &PyCArrayType_paramfunc;
 
     /* Special case for character arrays.
        A permanent annoyance: char arrays are also strings!
@@ -2071,6 +2121,10 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (!stgdict) {
         goto error;
     }
+    StgInfo *info = PyStgInfo_Init(st, result);
+    if (!info) {
+        goto error;
+    }
 
     stgdict->ffi_type_pointer = *fmt->pffi_type;
     stgdict->align = fmt->pffi_type->alignment;
@@ -2079,18 +2133,18 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     stgdict->setfunc = fmt->setfunc;
     stgdict->getfunc = fmt->getfunc;
 #ifdef WORDS_BIGENDIAN
-    stgdict->format = _ctypes_alloc_format_string_for_type(proto_str[0], 1);
+    info->format = _ctypes_alloc_format_string_for_type(proto_str[0], 1);
 #else
-    stgdict->format = _ctypes_alloc_format_string_for_type(proto_str[0], 0);
+    info->format = _ctypes_alloc_format_string_for_type(proto_str[0], 0);
 #endif
-    if (stgdict->format == NULL) {
+    if (info->format == NULL) {
         Py_DECREF(result);
         Py_DECREF(proto);
         Py_DECREF((PyObject *)stgdict);
         return NULL;
     }
 
-    //stgdict->paramfunc = PyCSimpleType_paramfunc;
+    info->paramfunc = PyCSimpleType_paramfunc;
 /*
     if (result->tp_base != st->Simple_Type) {
         stgdict->setfunc = NULL;
@@ -2108,12 +2162,6 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         return NULL;
     }
     Py_SETREF(result->tp_dict, (PyObject *)stgdict);
-
-    StgInfo *info = PyStgInfo_Init(st, result);
-    if (!info) {
-        goto error;
-    }
-    info->paramfunc = PyCSimpleType_paramfunc;
 
     /* Install from_param class methods in ctypes base classes.
        Overrides the PyCSimpleType_from_param generic method.
@@ -2168,26 +2216,39 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     {
         PyObject *swapped = CreateSwappedType(type, args, kwds,
                                               proto, fmt);
-        StgDictObject *sw_dict;
         if (swapped == NULL) {
             Py_DECREF(result);
             return NULL;
         }
-        sw_dict = PyType_stgdict(swapped);
+
+        StgInfo *sw_info;
+        int r = PyStgInfo_FromType(st, swapped, &sw_info);
+        if (r < 1) {
+            Py_DECREF(result);
+            return NULL;
+        }
+        if (!sw_info) {
+            PyErr_Format(PyExc_TypeError,
+                        "'%s' is not a ctypes class.",
+                        type->tp_name);
+            Py_DECREF(result);
+            return NULL;
+        }
+
 #ifdef WORDS_BIGENDIAN
         PyObject_SetAttrString((PyObject *)result, "__ctype_le__", swapped);
         PyObject_SetAttrString((PyObject *)result, "__ctype_be__", (PyObject *)result);
         PyObject_SetAttrString(swapped, "__ctype_be__", (PyObject *)result);
         PyObject_SetAttrString(swapped, "__ctype_le__", swapped);
         /* We are creating the type for the OTHER endian */
-        sw_dict->format = _ctypes_alloc_format_string("<", stgdict->format+1);
+        sw_info->format = _ctypes_alloc_format_string("<", info->format+1);
 #else
         PyObject_SetAttrString((PyObject *)result, "__ctype_be__", swapped);
         PyObject_SetAttrString((PyObject *)result, "__ctype_le__", (PyObject *)result);
         PyObject_SetAttrString(swapped, "__ctype_le__", (PyObject *)result);
         PyObject_SetAttrString(swapped, "__ctype_be__", swapped);
         /* We are creating the type for the OTHER endian */
-        sw_dict->format = _ctypes_alloc_format_string(">", stgdict->format+1);
+        sw_info->format = _ctypes_alloc_format_string(">", info->format+1);
 #endif
         Py_DECREF(swapped);
         if (PyErr_Occurred()) {
@@ -2500,9 +2561,23 @@ PyCFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     StgDictObject *stgdict;
 
     ctypes_state *st = GLOBAL_STATE();
+
+    /* create the new instance (which is a class,
+       since we are a metatype!) */
+    result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
+    if (result == NULL) {
+        return NULL;
+    }
+    StgInfo *info = PyStgInfo_Init(st, result);
+    if (!info) {
+        Py_DECREF((PyObject *)stgdict);
+        return NULL;
+    }
+
     stgdict = (StgDictObject *)_PyObject_CallNoArgs(
         (PyObject *)st->PyCStgDict_Type);
     if (!stgdict) {
+        Py_DECREF(result);
         return NULL;
     }
     //stgdict->paramfunc = PyCFuncPtrType_paramfunc;
@@ -2513,20 +2588,13 @@ PyCFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
        know the types of the arguments (although, in practice, most
        argtypes would be a ctypes type).
     */
-    stgdict->format = _ctypes_alloc_format_string(NULL, "X{}");
-    if (stgdict->format == NULL) {
+    info->format = _ctypes_alloc_format_string(NULL, "X{}");
+    if (info->format == NULL) {
+        Py_DECREF(result);
         Py_DECREF((PyObject *)stgdict);
         return NULL;
     }
     stgdict->flags |= TYPEFLAG_ISPOINTER;
-
-    /* create the new instance (which is a class,
-       since we are a metatype!) */
-    result = (PyTypeObject *)PyType_Type.tp_new(type, args, kwds);
-    if (result == NULL) {
-        Py_DECREF((PyObject *)stgdict);
-        return NULL;
-    }
 
     /* replace the class dict by our updated storage dict */
     if (-1 == PyDict_Update((PyObject *)stgdict, result->tp_dict)) {
@@ -2536,11 +2604,6 @@ PyCFuncPtrType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
     Py_SETREF(result->tp_dict, (PyObject *)stgdict);
 
-    StgInfo *info = PyStgInfo_Init(st, result);
-    if (!info) {
-        Py_DECREF((PyObject *)stgdict);
-        return NULL;
-    }
     info->paramfunc = PyCFuncPtrType_paramfunc;
 
     if (-1 == make_funcptrtype_dict(stgdict)) {
@@ -2748,6 +2811,18 @@ PyCData_NewGetBuffer(PyObject *myself, Py_buffer *view, int flags)
     PyObject *item_type = PyCData_item_type((PyObject*)Py_TYPE(myself));
     StgDictObject *item_dict = PyType_stgdict(item_type);
 
+    ctypes_state *st = GLOBAL_STATE();
+    StgInfo *info;
+    int result = PyStgInfo_FromObject(st, myself, &info);
+    if (result <= 0) {
+        if (!info) {
+            PyErr_Format(PyExc_SystemError,
+                        "'%s' is not a ctypes class.",
+                        Py_TYPE(myself)->tp_name);
+        }
+        return -1;
+    }
+
     if (view == NULL) return 0;
 
     view->buf = self->b_ptr;
@@ -2755,9 +2830,9 @@ PyCData_NewGetBuffer(PyObject *myself, Py_buffer *view, int flags)
     view->len = self->b_size;
     view->readonly = 0;
     /* use default format character if not set */
-    view->format = dict->format ? dict->format : "B";
-    view->ndim = dict->ndim;
-    view->shape = dict->shape;
+    view->format = info->format ? info->format : "B";
+    view->ndim = info->ndim;
+    view->shape = info->shape;
     view->itemsize = item_dict->size;
     view->strides = NULL;
     view->suboffsets = NULL;
