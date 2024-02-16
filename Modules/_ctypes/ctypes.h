@@ -55,6 +55,7 @@ typedef struct {
 #ifdef MS_WIN32
     PyTypeObject *PyComError_Type;
 #endif
+    PyTypeObject *PyCType_Type;
 } ctypes_state;
 
 extern ctypes_state global_state;
@@ -278,7 +279,6 @@ typedef struct {
 /*      Py_ssize_t *strides;    */ /* unused in ctypes */
 /*      Py_ssize_t *suboffsets; */ /* unused in ctypes */
 
-    StgInfo stginfo;
 } StgDictObject;
 
 /****************************************************************
