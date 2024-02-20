@@ -230,6 +230,8 @@ typedef struct {
     Py_ssize_t length;          /* number of fields */
     ffi_type ffi_type_pointer;
     PyObject *proto;            /* Only for Pointer/ArrayObject */
+    SETFUNC setfunc;            /* Only for simple objects */
+    GETFUNC getfunc;            /* Only for simple objects */
 
     PARAMFUNC paramfunc;
 } StgInfo;
@@ -262,8 +264,8 @@ typedef struct {
     //Py_ssize_t length;          /* number of fields */
     //ffi_type ffi_type_pointer;
     //PyObject *proto;            /* Only for Pointer/ArrayObject */
-    SETFUNC setfunc;            /* Only for simple objects */
-    GETFUNC getfunc;            /* Only for simple objects */
+    //SETFUNC setfunc;            /* Only for simple objects */
+    //GETFUNC getfunc;            /* Only for simple objects */
     //PARAMFUNC paramfunc;
 
     /* Following fields only used by PyCFuncPtrType_Type instances */
