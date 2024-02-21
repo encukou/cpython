@@ -3,6 +3,7 @@ import re
 import argparse
 from dataclasses import dataclass
 import enum
+import collections
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -32,7 +33,7 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
     'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices',
+    't_primary', 'slices', 'star_expressions',
 }
 
 
@@ -147,6 +148,12 @@ class Container(Node):
         for item in self:
             yield from item.dump_tree(indent + 1)
 
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(
+            [item.inlined(replaced_name, replacement) for item in self.items]
+        )
+
 @dataclass(frozen=True)
 class Choice(Container):
     precedence = Precedence.CHOICE
@@ -173,12 +180,26 @@ class Choice(Container):
                     alternatives.append([item])
         assert all(isinstance(item, list) for item in alternatives)
 
-        match alternatives:
-            case [
-                [x],
-                [Gather(_, x1), Optional()] as result,
-            ]:
-                return Sequence(result)
+
+        # Simplify subsequences: call simplify_subsequence on all
+        # "tails" of `alternatives`.
+        new_alts = []
+        index = 0
+        while index < len(alternatives):
+            replacement, num_processed = self.simplify_subsequence(alternatives[index:])
+
+            # replacement should be list[list[Node]]
+            assert isinstance(replacement, list)
+            assert all(isinstance(alt, list) for alt in replacement)
+            assert all(isinstance(node, Node) for alt in replacement for node in alt)
+
+            # Ensure we make progress
+            assert num_processed > 0
+
+            new_alts.extend(replacement)
+            index += num_processed
+        alternatives = new_alts
+
 
         def wrap(node):
             if is_optional:
@@ -215,6 +236,23 @@ class Choice(Container):
             case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
                 return Sequence([])
         return super().simplify_item(item)
+
+    def simplify_subsequence(self, tail):
+
+        match tail[:2]:
+            case [
+                [x],
+                [Gather(_, x1), Optional()] as result,
+            ] if x == x1:
+                return [result], 2
+            case [
+                [*h1, common_last_node1],
+                [*h2, common_last_node2],
+            ] if common_last_node1 == common_last_node2:
+                result = [[Choice([Sequence(h1), Sequence(h2)]), common_last_node1]], 2
+                return result
+
+        return [tail[0]], 1
 
 @dataclass(frozen=True)
 class Sequence(Container):
@@ -294,6 +332,10 @@ class Decorator(Node):
                 item = x
         return self_type(item)
 
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(self.item.inlined(replaced_name, replacement))
+
 @dataclass(frozen=True)
 class Optional(Decorator):
     precedence = Precedence.ATOM
@@ -352,6 +394,13 @@ class Gather(Node):
         yield '  : ' + '  ' * indent + 'separator:'
         yield from self.separator.dump_tree(indent + 1)
 
+    def inlined(self, replaced_name, replacement):
+        self_type = type(self)
+        return self_type(
+            self.separator.inlined(replaced_name, replacement),
+            self.item.inlined(replaced_name, replacement),
+        )
+
 @dataclass(frozen=True)
 class Leaf(Node):
     """Node with no children"""
@@ -365,6 +414,9 @@ class Leaf(Node):
     def __iter__(self):
         return iter(())
 
+    def inlined(self, replaced_name, replacement):
+        return self
+
 
 @dataclass(frozen=True)
 class Token(Leaf):
@@ -375,6 +427,11 @@ class Token(Leaf):
 class Nonterminal(Leaf):
     def format(self):
         return f"`{self.value}`"
+
+    def inlined(self, replaced_name, replacement):
+        if self.value == replaced_name:
+            return replacement
+        return super().inlined(replaced_name, replacement)
 
 
 @dataclass(frozen=True)
@@ -425,44 +482,94 @@ def convert_grammar_node(grammar_node):
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
 def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
-    rule_names = list(rule_names)
-    seen_rule_names = set()
-    while rule_names:
-        rule_name = rule_names.pop(0)
-        if rule_name in seen_rule_names:
+    # Figure out all rules we want to document.
+    # This includes the ones we were asked to document (`requested_rule_names`),
+    # and also rules referenced from them (recursively), except ones that will
+    # be documented elsewhere (those in `toplevel_rule_names`).
+    requested_rule_names = list(rule_names)
+    rule_names_to_add = list(rule_names)
+    ruleset = {}
+    while rule_names_to_add:
+        rule_name = rule_names_to_add.pop(0)
+        if rule_name in ruleset:
             continue
         pegen_rule = pegen_rules[rule_name]
         node = convert_grammar_node(pegen_rule.rhs)
-        last_node = None
-        while node != last_node:
-            last_node = node
-            node = node.simplify()
-        print(pegen_rule.name)
-        print(node)
 
-        # To compare with pegen's stringification:
+        node = simplify_node(node)
+        ruleset[rule_name] = node
+
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            rule_name = descendant.value
+            if (
+                rule_name in pegen_rules
+                and rule_name not in toplevel_rule_names
+            ):
+                rule_names_to_add.append(rule_name)
+
+    # Simplify ruleset repeatedly, until simplification no longer changes it
+    old_ruleset = None
+    while ruleset != old_ruleset:
+        old_ruleset = ruleset
+        ruleset = simplify_ruleset(ruleset, requested_rule_names)
+
+    # Yield all the lines
+    for name, node in ruleset.items():
         if debug:
-            yield f'{pegen_rule.name} (from pegen): {pegen_rule.rhs}'
-            yield f'{pegen_rule.name} (repr): {node!r}'
+            # To compare with pegen's stringification:
+            yield f'{name} (from pegen): {pegen_rules[name]}'
+            yield f'{name} (repr): {node!r}'
 
-        yield f'{pegen_rule.name}: {node.format()}'
+        yield f'{name}: {node.format()}'
         if debug:
             yield from node.dump_tree()
-        seen_rule_names.add(rule_name)
 
-        for descendant in generate_all_descendants(node):
-            if isinstance(descendant, Nonterminal):
-                rule_name = descendant.value
-                if (
-                    rule_name in pegen_rules
-                    and rule_name not in toplevel_rule_names
-                ):
-                    rule_names.append(rule_name)
+def simplify_node(node):
+    """Simplifies a node repeatedly until simplification no longer changes it"""
+    last_node = None
+    while node != last_node:
+        last_node = node
+        node = node.simplify()
+    return node
 
-def generate_all_descendants(node):
-    yield node
+
+def simplify_ruleset(old_ruleset: dict, requested_rule_names):
+    """Simplify and inline a bunch of rules"""
+
+    # Generate new ruleset with simplified nodes
+    new_ruleset = {}
+    for rule_name, node in old_ruleset.items():
+        new_ruleset[rule_name] = simplify_node(node)
+
+    # Count up all the references to rules we're documenting.
+    # A rule that's only mentioned once should be inlined, except if we were
+    # explicitly asked to provide a definition for it (i.e. it is in
+    # `requested_rule_names`).
+    reference_counts = collections.Counter()
+    for node in new_ruleset.values():
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            name = descendant.value
+            if name in new_ruleset and name not in requested_rule_names:
+                reference_counts[name] += 1
+
+    # Inline the rules we found
+    for name, count in reference_counts.items():
+        if count == 1:
+            print(f'rule named {name} will be inlined.')
+            replaced_name = name
+            replacement = new_ruleset[replaced_name]
+            for rule_name, rule_node in new_ruleset.items():
+                new_node = rule_node.inlined(replaced_name, replacement)
+                new_ruleset[rule_name] = new_node
+            del new_ruleset[name]
+
+    return new_ruleset
+
+def generate_all_descendants(node, filter=Node):
+    if isinstance(node, filter):
+        yield node
     for value in node:
-        yield from generate_all_descendants(value)
+        yield from generate_all_descendants(value, filter)
 
 if __name__ == "__main__":
     main()
