@@ -95,9 +95,9 @@ The :keyword:`if` statement is used for conditional execution:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   if_stmt: 'if' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])
+   if_stmt: 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
    else_block: 'else' ':' `block`
-   elif_stmt: 'elif' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])
+   elif_stmt: 'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
 
 .. productionlist:: python-grammar-old
    if_stmt: "if" `assignment_expression` ":" `suite`
@@ -1107,7 +1107,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   mapping_pattern: '{' ([`double_star_pattern` [',']] | `items_pattern` [',' `double_star_pattern`] [',']) '}'
+   mapping_pattern: '{' [(`double_star_pattern` | `items_pattern` [',' `double_star_pattern`]) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
@@ -1165,7 +1165,7 @@ A class pattern represents a class and its positional and keyword arguments
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   class_pattern: (`attr` | NAME) '(' ([`positional_patterns` [',']] | [`positional_patterns` ','] ','.(NAME '=' `pattern`)+ [',']) ')'
+   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] ','.(NAME '=' `pattern`)+) [',']] ')'
    positional_patterns: ','.`pattern`+
 
 .. productionlist:: python-grammar-old

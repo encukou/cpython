@@ -200,6 +200,9 @@ class Choice(Container):
                 case Container([]):
                     is_optional = True
                     # ignore the item
+                case Optional(x):
+                    is_optional = True
+                    alternatives.append([x])
                 case Sequence(elements):
                     alternatives.append(elements)
                 case _:
