@@ -6,6 +6,9 @@ Compound statements
 
 .. index:: pair: compound; statement
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 Compound statements contain (groups of) other statements; they affect or control
 the execution of those other statements in some way.  In general, compound
 statements span multiple lines, although in simple incarnations a whole compound

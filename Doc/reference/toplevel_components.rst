@@ -12,6 +12,8 @@ passed to it as standard input or as program argument, typed in interactively,
 from a module source file, etc.  This chapter gives the syntax used in these
 cases.
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
 
 .. _programs:
 

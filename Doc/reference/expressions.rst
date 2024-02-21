@@ -19,6 +19,7 @@ syntax rule has the form
 and no semantics are given, the semantics of this form of ``name`` are the same
 as for ``othername``.
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
 
 .. _conversions:
 

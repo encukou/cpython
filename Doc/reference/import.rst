@@ -7,6 +7,9 @@ The import system
 
 .. index:: single: import machinery
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 Python code in one :term:`module` gains access to the code in another module
 by the process of :term:`importing` it.  The :keyword:`import` statement is
 the most common way of invoking the import machinery, but it is not the only

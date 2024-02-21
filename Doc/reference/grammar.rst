@@ -8,6 +8,8 @@ used to generate the CPython parser (see :source:`Grammar/python.gram`).
 The version here omits details related to code generation and
 error recovery.
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
 The notation is a mixture of `EBNF
 <https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form>`_
 and `PEG <https://en.wikipedia.org/wiki/Parsing_expression_grammar>`_.

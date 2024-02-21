@@ -8,6 +8,8 @@ Introduction
 This reference manual describes the Python programming language. It is not
 intended as a tutorial.
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
 While I am trying to be as precise as possible, I chose to use English rather
 than formal specifications for everything except syntax and lexical analysis.
 This should make the document more understandable to the average reader, but

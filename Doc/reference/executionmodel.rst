@@ -9,6 +9,10 @@ Execution model
    single: execution model
    pair: code; block
 
+
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 .. _prog_structure:
 
 Structure of a program

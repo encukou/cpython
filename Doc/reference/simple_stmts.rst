@@ -7,6 +7,9 @@ Simple statements
 
 .. index:: pair: simple; statement
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 A simple statement is comprised within a single logical line. Several simple
 statements may occur on a single line separated by semicolons.  The syntax for
 simple statements is:

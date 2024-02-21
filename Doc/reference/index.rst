@@ -13,6 +13,9 @@ manuals exist: :ref:`extending-index` describes the high-level picture of how to
 write a Python extension module, and the :ref:`c-api-index` describes the
 interfaces available to C/C++ programmers in detail.
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 .. toctree::
    :maxdepth: 2
    :numbered:

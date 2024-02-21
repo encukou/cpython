@@ -8,6 +8,9 @@ Data model
 
 .. _objects:
 
+.. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
+
+
 Objects, values and types
 =========================
 
