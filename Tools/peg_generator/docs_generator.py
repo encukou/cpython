@@ -33,7 +33,10 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
     'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices', 'star_expressions',
+    't_primary', 'slices', 'star_expressions', 'with_item', 'pattern',
+    'maybe_star_pattern', 'decorators', 'type_params', 'function_def',
+    'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
+    'match_stmt',
 }
 
 
@@ -173,6 +176,8 @@ class Choice(Container):
         for item in self:
             item = self.simplify_item(item)
             match item:
+                case None:
+                    pass
                 case Container([]):
                     is_optional = True
                     # ignore the item
@@ -236,7 +241,7 @@ class Choice(Container):
     def simplify_item(self, item):
         match item:
             case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
-                return Sequence([])
+                return None
         return super().simplify_item(item)
 
     def simplify_subsequence(self, tail):
@@ -519,7 +524,7 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
     for name, node in ruleset.items():
         if debug:
             # To compare with pegen's stringification:
-            yield f'{name} (from pegen): {pegen_rules[name]}'
+            yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
         yield f'{name}: {node.format()}'
