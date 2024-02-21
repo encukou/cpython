@@ -92,7 +92,9 @@ Input in interactive mode is parsed using the following grammar:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   interactive: [`compound_stmt` | ';'.`simple_stmt`+ [';']] NEWLINE | ENDMARKER
+   interactive:
+     : | [`compound_stmt` | ';'.`simple_stmt`+ [';']] NEWLINE
+     : | ENDMARKER
 
 Note that a (top-level) compound statement must be followed by a blank line in
 interactive mode; this is needed to help the parser detect the end of the input.

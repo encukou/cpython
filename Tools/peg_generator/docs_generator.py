@@ -36,9 +36,14 @@ FUTURE_TOPLEVEL_RULES = {
     't_primary', 'slices', 'star_expressions', 'with_item', 'pattern',
     'maybe_star_pattern', 'decorators', 'type_params', 'function_def',
     'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
-    'match_stmt',
+    'match_stmt', 'named_expression', 'star_targets',
 }
 
+# TODO:
+# simplify:
+#   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
+# into:
+#   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
 
 def main():
     args = argparser.parse_args()
@@ -337,6 +342,8 @@ class Decorator(Node):
         match item:
             case Sequence([x]):
                 item = x
+            case Sequence([]):
+                return Sequence([])
         return self_type(item)
 
     def inlined(self, replaced_name, replacement):
@@ -527,7 +534,14 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
-        yield f'{name}: {node.format()}'
+        rhs_line = node.format()
+        if isinstance(node, Choice) and len(rhs_line) > 40:
+            # Present each alternative on its own line
+            yield f'{name}:'
+            for alt in node:
+                yield f'  : | {alt.format()}'
+        else:
+            yield f'{name}: {node.format()}'
         if debug:
             yield from node.dump_tree()
 

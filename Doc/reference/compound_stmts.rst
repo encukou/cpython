@@ -44,27 +44,22 @@ executed::
 
 Summarizing:
 
-.. grammar-snippet:: compound_stmt
+.. grammar-snippet:: compound_stmt block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
-
-.. productionlist:: python-grammar-old
-   compound_stmt: `if_stmt`
-                : | `while_stmt`
-                : | `for_stmt`
-                : | `try_stmt`
-                : | `with_stmt`
-                : | `match_stmt`
-                : | `funcdef`
-                : | `classdef`
-                : | `async_with_stmt`
-                : | `async_for_stmt`
-                : | `async_funcdef`
-   suite: `stmt_list` NEWLINE | NEWLINE INDENT `statement`+ DEDENT
-   statement: `stmt_list` NEWLINE | `compound_stmt`
-   stmt_list: `simple_stmt` (";" `simple_stmt`)* [";"]
+   compound_stmt:
+     : | `function_def`
+     : | `if_stmt`
+     : | `class_def`
+     : | `with_stmt`
+     : | `for_stmt`
+     : | `try_stmt`
+     : | `while_stmt`
+     : | `match_stmt`
+   block:
+     : | NEWLINE INDENT `statement`+ DEDENT
+     : | ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index::
    single: NEWLINE token
@@ -96,7 +91,15 @@ The :keyword:`!if` statement
 
 The :keyword:`if` statement is used for conditional execution:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: if_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   if_stmt: 'if' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])
+   elif_stmt: 'elif' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])
+   else_block: 'else' ':' `block`
+
+.. productionlist:: python-grammar-old
    if_stmt: "if" `assignment_expression` ":" `suite`
           : ("elif" `assignment_expression` ":" `suite`)*
           : ["else" ":" `suite`]
@@ -122,7 +125,13 @@ The :keyword:`!while` statement
 The :keyword:`while` statement is used for repeated execution as long as an
 expression is true:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: while_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   while_stmt: 'while' `named_expression` ':' `block` ['else' ':' `block`]
+
+.. productionlist:: python-grammar-old
    while_stmt: "while" `assignment_expression` ":" `suite`
              : ["else" ":" `suite`]
 
@@ -158,7 +167,13 @@ The :keyword:`!for` statement
 The :keyword:`for` statement is used to iterate over the elements of a sequence
 (such as a string, tuple or list) or other iterable object:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: for_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   for_stmt: ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` ['else' ':' `block`]
+
+.. productionlist:: python-grammar-old
    for_stmt: "for" `target_list` "in" `starred_list` ":" `suite`
            : ["else" ":" `suite`]
 
