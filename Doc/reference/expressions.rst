@@ -9,16 +9,6 @@ Expressions
 
 This chapter explains the meaning of the elements of expressions in Python.
 
-**Syntax Notes:** In this and the following chapters, extended BNF notation will
-be used to describe syntax, not lexical analysis.  When (one alternative of) a
-syntax rule has the form
-
-.. productionlist:: python-grammar
-   name: `othername`
-
-and no semantics are given, the semantics of this form of ``name`` are the same
-as for ``othername``.
-
 .. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
 
 .. _conversions:
