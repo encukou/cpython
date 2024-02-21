@@ -44,6 +44,64 @@ executed::
 
 Summarizing:
 
+.. grammar-snippet:: compound_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   compound_stmt: [[`decorators`] [['async'] 'def' NAME [`type_params`] '(' [[(`param_no_default`+ '/' [','] `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [',']) `param_with_default`* | `param_no_default`+ `param_with_default`* | `param_with_default`+] [['*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [','] []) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`]]] ')' ['->' `expression`] ':' [[NEWLINE]] `block`] | ['if' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])] | [`decorators`] ['class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`] | [('with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' [] | 'async' 'with' ('(' ','.`with_item`+ [','] ')' ':' | ','.`with_item`+ ':' [])) `block`] | [['async'] 'for' `star_targets` 'in' `star_expressions` ':' [] `block` [`else_block`]] | ['try' ':' `block` (`finally_block` | (['except' [`expression` ['as' NAME]] ':' `block`]+ | ['except' '*' `expression` ['as' NAME] ':' `block`]+) [`else_block`] [`finally_block`])] | ['while' `named_expression` ':' `block` [`else_block`]] | ["match" (`star_named_expression` ',' [`star_named_expressions`] | `named_expression`) ':' NEWLINE INDENT ["case" (`open_sequence_pattern` | `pattern`) ['if' `named_expression`] ':' `block`]+ DEDENT]]
+   decorators: ('@' `named_expression` NEWLINE)+
+   named_expression: [`assignment_expression` | `expression`]
+   block: [NEWLINE INDENT `statement`+ DEDENT | ';'.`simple_stmt`+ [';'] NEWLINE]
+   elif_stmt: ['elif' `named_expression` ':' `block` (`elif_stmt` | [`else_block`])]
+   else_block: ['else' ':' `block`]
+   with_item: [`expression` ['as' `star_target`]]
+   star_targets: ','.`star_target`+ [',']
+   finally_block: ['finally' ':' `block`]
+   type_params: '[' ','.(NAME [':' `expression`] | '*' NAME ':' `expression` | '*' NAME | '**' NAME ':' `expression` | '**' NAME)+ [','] ']'
+   assignment_expression: NAME ':=' `expression`
+   arguments: [(','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`] | `kwargs`) [',']]
+   star_target: '*' `star_target` | `target_with_star_atom`
+   star_named_expression: '*' `bitwise_or` | `named_expression`
+   star_named_expressions: ','.`star_named_expression`+ [',']
+   target_with_star_atom: `t_primary` '.' NAME | `t_primary` '[' `slices` ']' | NAME | '(' (`target_with_star_atom` | [`star_target` ((',' `star_target`)+ [','] | ',')]) ')' | '[' [','.`star_target`+ [',']] ']'
+   bitwise_or: [`bitwise_or` '|'] `bitwise_xor`
+   open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
+   pattern: [`or_pattern` 'as' `pattern_capture_target`] | `or_pattern`
+   param_no_default: `param` [','] []
+   param_with_default: `param` `default` [','] []
+   starred_expression: ['*' `expression`]
+   kwargs: ','.`kwarg_or_starred`+ ',' ','.`kwarg_or_double_starred`+ | ','.`kwarg_or_starred`+ | ','.`kwarg_or_double_starred`+
+   bitwise_xor: [`bitwise_xor` '^'] `bitwise_and`
+   maybe_star_pattern: '*' (`pattern_capture_target` | `wildcard_pattern`) | `pattern`
+   maybe_sequence_pattern: ','.`maybe_star_pattern`+ [',']
+   or_pattern: '|'.(`signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False' | `pattern_capture_target` | `wildcard_pattern` | `attr` | '(' `pattern` ')' | '[' [`maybe_sequence_pattern`] ']' | '(' [`open_sequence_pattern`] ')' | '{' ([`double_star_pattern` [',']] | ','.((`signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False' | `attr`) ':' `pattern`)+ [',' `double_star_pattern`] [',']) '}' | [`name_or_attr` '(' ([`positional_patterns` [',']] | [`positional_patterns` ','] ','.(NAME '=' `pattern`)+ [',']) ')'])+
+   param: NAME [':' `expression`]
+   default: ['=' `expression`]
+   param_maybe_default: `param` [`default`] [','] []
+   kwds: ['**' `param_no_default`]
+   kwarg_or_starred: [NAME '=' `expression` | `starred_expression`]
+   kwarg_or_double_starred: [(NAME '=' | '**') `expression`]
+   bitwise_and: [`bitwise_and` '&'] `shift_expr`
+   pattern_capture_target: NAME
+   shift_expr: [`shift_expr` ('<<' | '>>')] `sum`
+   wildcard_pattern: "_"
+   sum: [`sum` ('+' | '-')] `term`
+   signed_number: ['-'] NUMBER
+   complex_number: ['-'] NUMBER ('+' | '-') NUMBER
+   strings: (FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END | STRING)+
+   attr: `name_or_attr` '.' NAME
+   double_star_pattern: '**' `pattern_capture_target`
+   name_or_attr: `attr` | NAME
+   positional_patterns: ','.`pattern`+
+   term: (`term` ('*' | '/') | `term` ('//' | '%') | [`term` '@']) `factor`
+   factor: ('+' | '-' | '~') `factor` | ['await'] `primary` ['**' `factor`]
+   fstring_replacement_field: ['{' (`yield_expr` | `star_expressions`) ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}']
+   yield_expr: 'yield' ('from' `expression` | [`star_expressions`])
+   primary: `primary` '.' NAME | `primary` `genexp` | `primary` '(' [`arguments`] ')' | `primary` '[' `slices` ']' | NAME | 'True' | 'False' | 'None' | `strings` | NUMBER | '(' [`star_named_expression` ',' [`star_named_expressions`]] ')' | ['(' (`yield_expr` | `named_expression`) ')'] | `genexp` | '[' [`star_named_expressions`] ']' | ['[' `named_expression` `for_if_clauses` ']'] | '{' ([[','.('**' `bitwise_or` | `kvpair`)+ [',']]] | `star_named_expressions`) '}' | ['{' `kvpair` `for_if_clauses` '}'] | ['{' `named_expression` `for_if_clauses` '}'] | '...'
+   genexp: ['(' (`assignment_expression` | `expression`) `for_if_clauses` ')']
+   for_if_clauses: [['async'] 'for' (`star_targets` 'in' 'if'.'or'.'and'.`inversion`+++ | ','.`bitwise_or`+ [','])]+
+   kvpair: `expression` ':' `expression`
+   inversion: 'not' `inversion` | ('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not']).`bitwise_or`+
 
 .. productionlist:: python-grammar
    compound_stmt: `if_stmt`

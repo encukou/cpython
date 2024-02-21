@@ -70,16 +70,18 @@ def main():
         with path.open(encoding='utf-8') as file:
             original_lines = []
             new_lines = []
-            blocks_to_ignore = 0
+            ignoring = False
             for line in file:
                 original_lines.append(line)
-                if blocks_to_ignore:
-                    if not line.strip() and blocks_to_ignore > 0:
-                        blocks_to_ignore -= 1
-                else:
+                if ignoring:
+                    is_indented = (not line.strip()
+                                   or line.startswith((' ', '\t')))
+                    if not is_indented:
+                        ignoring = False
+                if not ignoring:
                     new_lines.append(line)
                 if match := HEADER_RE.fullmatch(line):
-                    blocks_to_ignore = 2
+                    ignoring = True
                     new_lines.append('   :group: python-grammar\n')
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
