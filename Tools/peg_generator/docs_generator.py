@@ -33,10 +33,11 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
     'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices', 'star_expressions', 'with_item', 'pattern',
-    'maybe_star_pattern', 'decorators', 'type_params', 'function_def',
+    't_primary', 'slices', 'star_expressions', 'with_item',
+    'decorators', 'type_params', 'function_def',
     'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
-    'match_stmt', 'named_expression', 'star_targets',
+    'match_stmt', 'named_expression', 'star_targets', 'shift_expr',
+    'bitwise_or', 'fstring_replacement_field', 'strings', 'literal_expr',
 }
 
 # TODO:
@@ -44,6 +45,19 @@ FUTURE_TOPLEVEL_RULES = {
 #   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
 # into:
 #   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
+#
+# don't simplify:
+#   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
+# instead keep 3 separate alternatives, like in the grammar
+#
+# Line-break with_stmt as:
+# with_stmt ::=  ['async'] 'with'
+#               ('(' ','.with_item+ [','] ')' | ','.with_item+)
+#               ':' block
+#
+# for:
+#   pattern_capture_target ::=  !'_' NAME
+# we might want to show the negative lookahead
 
 def main():
     args = argparser.parse_args()
