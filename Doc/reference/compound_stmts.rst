@@ -1495,7 +1495,13 @@ Class definitions
 
 A class definition defines a class object (see section :ref:`types`):
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: class_def
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   class_def: [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
+
+.. productionlist:: python-grammar-old
    classdef: [`decorators`] "class" `classname` [`type_params`] [`inheritance`] ":" `suite`
    inheritance: "(" [`argument_list`] ")"
    classname: `identifier`
@@ -1726,7 +1732,19 @@ Type parameter lists
 .. index::
    single: type parameters
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: type_params type_param
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   type_params: '[' ','.`type_param`+ [','] ']'
+   type_param:
+     : | NAME [':' `expression`]
+     : | '*' NAME ':' `expression`
+     : | '*' NAME
+     : | '**' NAME ':' `expression`
+     : | '**' NAME
+
+.. productionlist:: python-grammar-old
    type_params: "[" `type_param` ("," `type_param`)* "]"
    type_param: `typevar` | `typevartuple` | `paramspec`
    typevar: `identifier` (":" `expression`)?

@@ -38,6 +38,7 @@ FUTURE_TOPLEVEL_RULES = {
     'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
     'match_stmt', 'named_expression', 'star_targets', 'shift_expr',
     'bitwise_or', 'fstring_replacement_field', 'strings', 'literal_expr',
+    'starred_expression', 'arguments',
 }
 
 # TODO:
@@ -61,6 +62,11 @@ FUTURE_TOPLEVEL_RULES = {
 #
 # Remove the `func_type_comment` rule, so it doesn't show up
 # in function definitions
+#
+# Look at function parameters again
+#
+# See if naming `['(' [arguments] ')' ]` in class_def_raw as a new
+# `inheritance` rule would slow down the parser
 
 def main():
     args = argparser.parse_args()
