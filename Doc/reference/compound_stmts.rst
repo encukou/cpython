@@ -1161,20 +1161,13 @@ Class Patterns
 A class pattern represents a class and its positional and keyword arguments
 (if any).  Syntax:
 
-.. grammar-snippet:: class_pattern
+.. grammar-snippet:: class_pattern keyword_patterns
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] ','.(NAME '=' `pattern`)+) [',']] ')'
+   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] `keyword_patterns`) [',']] ')'
+   keyword_patterns: ','.(NAME '=' `pattern`)+
    positional_patterns: ','.`pattern`+
-
-.. productionlist:: python-grammar-old
-  class_pattern: `name_or_attr` "(" [`pattern_arguments` ","?] ")"
-  pattern_arguments: `positional_patterns` ["," `keyword_patterns`]
-                   : | `keyword_patterns`
-  positional_patterns: ",".`pattern`+
-  keyword_patterns: ",".`keyword_pattern`+
-  keyword_pattern: NAME "=" `pattern`
 
 The same keyword should not be repeated in class patterns.
 
@@ -1298,7 +1291,26 @@ Function definitions
 A function definition defines a user-defined function object (see section
 :ref:`types`):
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: function_def parameters slash_no_default
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' [NEWLINE] `block`
+   parameters:
+     : | ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [',']) `param_with_default`* | `param_no_default`+ `param_with_default`* | `param_with_default`+) [`star_etc`]
+     : | `star_etc`
+   slash_no_default: `param_no_default`+ '/' [',']
+   param_no_default: `param` [',']
+   param_with_default: `param` `default` [',']
+   star_etc:
+     : | '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [',']) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`]
+     : | `kwds`
+   param: NAME [':' `expression`]
+   default: '=' `expression`
+   param_maybe_default: `param` [[`default`] ',' | `default`]
+   kwds: '**' `param_no_default`
+
+.. productionlist:: python-grammar-old
    funcdef: [`decorators`] "def" `funcname` [`type_params`] "(" [`parameter_list`] ")"
           : ["->" `expression`] ":" `suite`
    decorators: `decorator`+

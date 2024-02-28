@@ -58,6 +58,9 @@ FUTURE_TOPLEVEL_RULES = {
 # for:
 #   pattern_capture_target ::=  !'_' NAME
 # we might want to show the negative lookahead
+#
+# Remove the `func_type_comment` rule, so it doesn't show up
+# in function definitions
 
 def main():
     args = argparser.parse_args()
@@ -381,6 +384,8 @@ class Optional(Decorator):
                 return Sequence([Optional(x), Optional(y1)])
             case OneOrMore(x):
                 return ZeroOrMore(x)
+            case Optional(x):
+                return self.item
         return super().simplify()
 
 
