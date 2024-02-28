@@ -237,7 +237,9 @@ class Choice(Container):
             new_alts.extend(replacement)
             index += num_processed
         alternatives = new_alts
-
+        import pprint
+        print('result:')
+        pprint.pp(alternatives)
 
         def wrap(node):
             if is_optional:
@@ -249,21 +251,6 @@ class Choice(Container):
             return wrap(Sequence(alternatives[0]))
         if not alternatives:
             return Sequence([])
-        first_alt = alternatives[0]
-        if all(alt[0] == first_alt[0] for alt in alternatives[1:]):
-            return wrap(Sequence([
-                first_alt[0],
-                Choice([
-                    Sequence(alt[1:]) for alt in alternatives
-                ]),
-            ]))
-        if all(alt[-1] == first_alt[-1] for alt in alternatives[1:]):
-            return wrap(Sequence([
-                Choice([
-                    Sequence(alt[:-1]) for alt in alternatives
-                ]),
-                first_alt[-1],
-            ]))
 
         return wrap(self_type(
             [Sequence(alt).simplify() for alt in alternatives]
@@ -276,6 +263,38 @@ class Choice(Container):
         return super().simplify_item(item)
 
     def simplify_subsequence(self, tail):
+        if len(tail) >= 2:
+            first_alt = tail[0]
+            for n, alt in enumerate(tail[1:]):
+                if alt[0] != first_alt[0]:
+                    break
+            else:
+                n += 1
+            if n:
+                common_item = first_alt[0]
+                remaining_choice = Choice([
+                    Sequence(alt[1:]) for alt in tail[:n+1]
+                ])
+                result = [
+                    [common_item, remaining_choice],
+                ], n + 1
+                return result
+
+            first_alt = tail[0]
+            for n, alt in enumerate(tail[1:]):
+                if alt[-1] != first_alt[-1]:
+                    break
+            else:
+                n += 1
+            if n:
+                common_item = first_alt[-1]
+                remaining_choice = Choice([
+                    Sequence(alt[:-1]) for alt in tail[:n+1]
+                ])
+                result = [
+                    [remaining_choice, common_item],
+                ], n + 1
+                return result
 
         match tail[:2]:
             case [

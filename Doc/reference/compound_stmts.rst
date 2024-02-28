@@ -1107,7 +1107,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   mapping_pattern: '{' [(`double_star_pattern` | `items_pattern` [',' `double_star_pattern`]) [',']] '}'
+   mapping_pattern: '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
@@ -1297,7 +1297,7 @@ A function definition defines a user-defined function object (see section
 
    function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' [NEWLINE] `block`
    parameters:
-     : | ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [',']) `param_with_default`* | `param_no_default`+ `param_with_default`* | `param_with_default`+) [`star_etc`]
+     : | ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`]
      : | `star_etc`
    slash_no_default: `param_no_default`+ '/' [',']
    param_no_default: `param` [',']
@@ -1737,12 +1737,7 @@ Type parameter lists
    :generated-by: Tools/peg_generator/docs_generator.py
 
    type_params: '[' ','.`type_param`+ [','] ']'
-   type_param:
-     : | NAME [':' `expression`]
-     : | '*' NAME ':' `expression`
-     : | '*' NAME
-     : | '**' NAME ':' `expression`
-     : | '**' NAME
+   type_param: ['*' | '**'] NAME [':' `expression`]
 
 .. productionlist:: python-grammar-old
    type_params: "[" `type_param` ("," `type_param`)* "]"
