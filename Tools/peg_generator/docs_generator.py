@@ -265,36 +265,27 @@ class Choice(Container):
     def simplify_subsequence(self, tail):
         if len(tail) >= 2:
             first_alt = tail[0]
-            for n, alt in enumerate(tail[1:]):
-                if alt[0] != first_alt[0]:
-                    break
-            else:
-                n += 1
-            if n:
-                common_item = first_alt[0]
-                remaining_choice = Choice([
-                    Sequence(alt[1:]) for alt in tail[:n+1]
-                ])
-                result = [
-                    [common_item, remaining_choice],
-                ], n + 1
-                return result
-
-            first_alt = tail[0]
-            for n, alt in enumerate(tail[1:]):
-                if alt[-1] != first_alt[-1]:
-                    break
-            else:
-                n += 1
-            if n:
-                common_item = first_alt[-1]
-                remaining_choice = Choice([
-                    Sequence(alt[:-1]) for alt in tail[:n+1]
-                ])
-                result = [
-                    [remaining_choice, common_item],
-                ], n + 1
-                return result
+            for IDX, SLICE in (0, slice(1, None)), (-1, slice(None, -1)):
+                num_alts_with_common_item = 1
+                for alt in tail[1:]:
+                    if alt[IDX] != first_alt[IDX]:
+                        break
+                    num_alts_with_common_item += 1
+                if num_alts_with_common_item > 1:
+                    common_item = first_alt[IDX]
+                    remaining_choice = Choice([
+                        Sequence(alt[SLICE])
+                        for alt in tail[:num_alts_with_common_item]
+                    ])
+                    if IDX == 0:
+                        result = [
+                            [common_item, remaining_choice],
+                        ]
+                    else:
+                        result = [
+                            [remaining_choice, common_item],
+                        ]
+                    return result, num_alts_with_common_item
 
         match tail[:2]:
             case [
