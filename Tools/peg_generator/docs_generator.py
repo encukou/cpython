@@ -36,9 +36,12 @@ FUTURE_TOPLEVEL_RULES = {
     't_primary', 'slices', 'star_expressions', 'with_item',
     'decorators', 'type_params', 'function_def',
     'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
-    'match_stmt', 'named_expression', 'star_targets', 'shift_expr',
+    'match_stmt', 'named_expression', 'shift_expr',
     'bitwise_or', 'fstring_replacement_field', 'strings', 'literal_expr',
     'starred_expression', 'arguments',
+    'assignment', 'type_alias', 'star_expressions', 'return_stmt',
+    'import_stmt', 'raise_stmt', 'del_stmt', 'yield_stmt', 'assert_stmt',
+    'global_stmt', 'nonlocal_stmt', 'yield_expr',
 }
 
 # TODO:
@@ -59,6 +62,9 @@ FUTURE_TOPLEVEL_RULES = {
 # for:
 #   pattern_capture_target ::=  !'_' NAME
 # we might want to show the negative lookahead
+# for:
+#    star_target: | '*' (!'*' star_target)
+# as well
 #
 # Remove the `func_type_comment` rule, so it doesn't show up
 # in function definitions

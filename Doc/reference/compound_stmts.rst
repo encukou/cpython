@@ -1739,13 +1739,6 @@ Type parameter lists
    type_params: '[' ','.`type_param`+ [','] ']'
    type_param: ['*' | '**'] NAME [':' `expression`]
 
-.. productionlist:: python-grammar-old
-   type_params: "[" `type_param` ("," `type_param`)* "]"
-   type_param: `typevar` | `typevartuple` | `paramspec`
-   typevar: `identifier` (":" `expression`)?
-   typevartuple: "*" `identifier`
-   paramspec: "**" `identifier`
-
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may
 contain a type parameter list::

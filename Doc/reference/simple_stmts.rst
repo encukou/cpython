@@ -11,25 +11,25 @@ A simple statement is comprised within a single logical line. Several simple
 statements may occur on a single line separated by semicolons.  The syntax for
 simple statements is:
 
-.. productionlist:: python-grammar
-   simple_stmt: `expression_stmt`
-              : | `assert_stmt`
-              : | `assignment_stmt`
-              : | `augmented_assignment_stmt`
-              : | `annotated_assignment_stmt`
-              : | `pass_stmt`
-              : | `del_stmt`
-              : | `return_stmt`
-              : | `yield_stmt`
-              : | `raise_stmt`
-              : | `break_stmt`
-              : | `continue_stmt`
-              : | `import_stmt`
-              : | `future_stmt`
-              : | `global_stmt`
-              : | `nonlocal_stmt`
-              : | `type_stmt`
+.. grammar-snippet:: simple_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
 
+   simple_stmt:
+     : | `assignment`
+     : | `type_alias`
+     : | `star_expressions`
+     : | `return_stmt`
+     : | `import_stmt`
+     : | `raise_stmt`
+     : | 'pass'
+     : | `del_stmt`
+     : | `yield_stmt`
+     : | `assert_stmt`
+     : | 'break'
+     : | 'continue'
+     : | `global_stmt`
+     : | `nonlocal_stmt`
 
 .. _exprstmts:
 
@@ -47,7 +47,13 @@ result; in Python, procedures return the value ``None``).  Other uses of
 expression statements are allowed and occasionally useful.  The syntax for an
 expression statement is:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: star_expressions
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   star_expressions: ','.('*' `bitwise_or` | `expression`)+ [',']
+
+.. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
 
 An expression statement evaluates the expression list (which may be a single
@@ -83,7 +89,51 @@ Assignment statements
 Assignment statements are used to (re)bind names to values and to modify
 attributes or items of mutable objects:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: assignment single_target annotated_rhs augassign star_targets star_atom
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   assignment:
+     : | (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`]
+     : | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
+   single_target:
+     : | `single_subscript_attribute_target`
+     : | NAME
+     : | '(' `single_target` ')'
+   annotated_rhs: `yield_expr` | `star_expressions`
+   augassign:
+     : | '+='
+     : | '-='
+     : | '*='
+     : | '@='
+     : | '/='
+     : | '%='
+     : | '&='
+     : | '|='
+     : | '^='
+     : | '<<='
+     : | '>>='
+     : | '**='
+     : | '//='
+   star_targets: ','.`star_target`+ [',']
+   star_atom:
+     : | NAME
+     : | '(' [`target_with_star_atom` | `star_target` ((',' `star_target`)+ [','] | ',')] ')'
+     : | '[' [','.`star_target`+ [',']] ']'
+   star_target:
+     : | '*' `star_target`
+     : | `target_with_star_atom`
+   target_with_star_atom:
+     : | `t_primary` ('.' NAME | '[' `slices` ']')
+     : | `star_atom`
+
+.. grammar-snippet:: single_subscript_attribute_target
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']')
+
+.. productionlist:: python-grammar-old
    assignment_stmt: (`target_list` "=")+ (`starred_expression` | `yield_expression`)
    target_list: `target` ("," `target`)* [","]
    target: `identifier`
