@@ -89,7 +89,7 @@ Assignment statements
 Assignment statements are used to (re)bind names to values and to modify
 attributes or items of mutable objects:
 
-.. grammar-snippet:: assignment single_target annotated_rhs augassign star_targets star_atom
+.. grammar-snippet:: assignment single_target annotated_rhs
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -101,25 +101,17 @@ attributes or items of mutable objects:
      : | NAME
      : | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
-   augassign:
-     : | '+='
-     : | '-='
-     : | '*='
-     : | '@='
-     : | '/='
-     : | '%='
-     : | '&='
-     : | '|='
-     : | '^='
-     : | '<<='
-     : | '>>='
-     : | '**='
-     : | '//='
+
+.. grammar-snippet:: star_targets star_atom star_targets_tuple_seq
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    star_targets: ','.`star_target`+ [',']
    star_atom:
      : | NAME
-     : | '(' [`target_with_star_atom` | `star_target` ((',' `star_target`)+ [','] | ',')] ')'
+     : | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
      : | '[' [','.`star_target`+ [',']] ']'
+   star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
    star_target:
      : | '*' `star_target`
      : | `target_with_star_atom`
@@ -329,7 +321,26 @@ Augmented assignment statements
 Augmented assignment is the combination, in a single statement, of a binary
 operation and an assignment statement:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: augassign
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   augassign:
+     : | '+='
+     : | '-='
+     : | '*='
+     : | '@='
+     : | '/='
+     : | '%='
+     : | '&='
+     : | '|='
+     : | '^='
+     : | '<<='
+     : | '>>='
+     : | '**='
+     : | '//='
+
+.. productionlist:: python-grammar-old
    augmented_assignment_stmt: `augtarget` `augop` (`expression_list` | `yield_expression`)
    augtarget: `identifier` | `attributeref` | `subscription` | `slicing`
    augop: "+=" | "-=" | "*=" | "@=" | "/=" | "//=" | "%=" | "**="
@@ -434,8 +445,11 @@ The :keyword:`!assert` statement
 Assert statements are a convenient way to insert debugging assertions into a
 program:
 
-.. productionlist:: python-grammar
-   assert_stmt: "assert" `expression` ["," `expression`]
+.. grammar-snippet:: assert_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   assert_stmt: 'assert' `expression` [',' `expression`]
 
 The simple form, ``assert expression``, is equivalent to ::
 
@@ -504,7 +518,9 @@ The :keyword:`!del` statement
    del_targets: ','.`del_target`+ [',']
    del_target:
      : | `t_primary` ('.' NAME | '[' `slices` ']')
-     : | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
+     : | NAME
+     : | '(' [`del_target` | `del_targets`] ')'
+     : | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
@@ -542,8 +558,11 @@ The :keyword:`!return` statement
    pair: function; definition
    pair: class; definition
 
-.. productionlist:: python-grammar
-   return_stmt: "return" [`expression_list`]
+.. grammar-snippet:: return_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   return_stmt: 'return' [`star_expressions`]
 
 :keyword:`return` may only occur syntactically nested in a function definition,
 not within a nested class definition.
@@ -581,8 +600,11 @@ The :keyword:`!yield` statement
    single: function; generator
    pair: exception; StopIteration
 
-.. productionlist:: python-grammar
-   yield_stmt: `yield_expression`
+.. grammar-snippet:: yield_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   yield_stmt: `yield_expr`
 
 A :keyword:`yield` statement is semantically equivalent to a :ref:`yield
 expression <yieldexpr>`. The yield statement can be used to omit the parentheses
@@ -616,8 +638,11 @@ The :keyword:`!raise` statement
    pair: raising; exception
    single: __traceback__ (exception attribute)
 
-.. productionlist:: python-grammar
-   raise_stmt: "raise" [`expression` ["from" `expression`]]
+.. grammar-snippet:: raise_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   raise_stmt: 'raise' [`expression` ['from' `expression`]]
 
 If no expressions are present, :keyword:`raise` re-raises the
 exception that is currently being handled, which is also known as the *active exception*.
@@ -804,7 +829,21 @@ The :keyword:`!import` statement
    pair: exception; ImportError
    single: , (comma); import statement
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: import_stmt import_from_targets
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   import_stmt:
+     : | 'import' ','.(`dotted_name` ['as' NAME])+
+     : | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
+   import_from_targets:
+     : | '(' `import_from_as_names` [','] ')'
+     : | `import_from_as_names`
+     : | '*'
+   import_from_as_names: ','.(NAME ['as' NAME])+
+   dotted_name: [`dotted_name` '.'] NAME
+
+.. productionlist:: python-grammar-old
    import_stmt: "import" `module` ["as" `identifier`] ("," `module` ["as" `identifier`])*
               : | "from" `relative_module` "import" `identifier` ["as" `identifier`]
               : ("," `identifier` ["as" `identifier`])*

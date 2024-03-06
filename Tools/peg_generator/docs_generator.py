@@ -53,6 +53,7 @@ FUTURE_TOPLEVEL_RULES = {
 # don't simplify:
 #   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
 # instead keep 3 separate alternatives, like in the grammar
+# Similar for star_targets_tuple_seq
 #
 # Line-break with_stmt as:
 # with_stmt ::=  ['async'] 'with'
@@ -73,6 +74,12 @@ FUTURE_TOPLEVEL_RULES = {
 #
 # See if naming `['(' [arguments] ')' ]` in class_def_raw as a new
 # `inheritance` rule would slow down the parser
+#
+# Mark an alternative as optimization only, so it doesn't show up in docs.
+# For example, in del_t_atom, the rule
+#   '(' del_target ')'
+# is covered by the next rule:
+#    '(' [del_targets] ')'
 
 def main():
     args = argparser.parse_args()
@@ -180,7 +187,7 @@ class Container(Node):
         yield from self.items
 
     def simplify_item(self, item):
-        return item.simplify()
+        return simplify_node(item)
 
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
@@ -245,9 +252,6 @@ class Choice(Container):
             new_alts.extend(replacement)
             index += num_processed
         alternatives = new_alts
-        import pprint
-        print('result:')
-        pprint.pp(alternatives)
 
         def wrap(node):
             if is_optional:
@@ -261,7 +265,7 @@ class Choice(Container):
             return Sequence([])
 
         return wrap(self_type(
-            [Sequence(alt).simplify() for alt in alternatives]
+            [simplify_node(Sequence(alt)) for alt in alternatives]
         ))
 
     def simplify_item(self, item):
@@ -386,7 +390,7 @@ class Decorator(Node):
 
     def simplify(self):
         self_type = type(self)
-        item = self.item.simplify()
+        item = simplify_node(self.item)
         match item:
             case Sequence([x]):
                 item = x
@@ -445,7 +449,7 @@ class Gather(Node):
 
     def simplify(self):
         self_type = type(self)
-        return self_type(self.separator.simplify(), self.item.simplify())
+        return self_type(simplify_node(self.separator), simplify_node(self.item))
 
     def format(self):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
@@ -601,6 +605,14 @@ def simplify_node(node):
     while node != last_node:
         last_node = node
         node = node.simplify()
+        # nifty debug output:
+            # debug('simplified', last_node.format(), '->', node.format())
+            # debug('from:')
+            # for line in last_node.dump_tree():
+            #     debug(line)
+            # debug('to:')
+            # for line in node.dump_tree():
+            #     debug(line)
     return node
 
 
