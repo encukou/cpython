@@ -264,20 +264,30 @@ class Choice(Container):
 
     def simplify_subsequence(self, tail):
         if len(tail) >= 2:
+            # If two or more adjacent alternatives start or end with the
+            # same item, we pull that item out, and replace the alternatives
+            # with a sequence of
+            # [common item, Choice of the remainders of the alts].
             first_alt = tail[0]
-            for IDX, SLICE in (0, slice(1, None)), (-1, slice(None, -1)):
+            # We do this for both the start and the end; for that we need the
+            # index of the candidate item (0 or -1) and the slice to get the
+            # rest of the items.
+            for index, rest_slice in (
+                    (0, slice(1, None)),
+                    (-1, slice(None, -1)),
+                ):
                 num_alts_with_common_item = 1
                 for alt in tail[1:]:
-                    if alt[IDX] != first_alt[IDX]:
+                    if alt[index] != first_alt[index]:
                         break
                     num_alts_with_common_item += 1
                 if num_alts_with_common_item > 1:
-                    common_item = first_alt[IDX]
+                    common_item = first_alt[index]
                     remaining_choice = Choice([
-                        Sequence(alt[SLICE])
+                        Sequence(alt[rest_slice])
                         for alt in tail[:num_alts_with_common_item]
                     ])
-                    if IDX == 0:
+                    if index == 0:
                         result = [
                             [common_item, remaining_choice],
                         ]
@@ -293,12 +303,6 @@ class Choice(Container):
                 [Gather(_, x1), Optional()] as result,
             ] if x == x1:
                 return [result], 2
-            case [
-                [*h1, common_last_node1],
-                [*h2, common_last_node2],
-            ] if common_last_node1 == common_last_node2:
-                result = [[Choice([Sequence(h1), Sequence(h2)]), common_last_node1]], 2
-                return result
 
         return [tail[0]], 1
 
