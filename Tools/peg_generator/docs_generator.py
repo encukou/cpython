@@ -220,6 +220,8 @@ class Choice(Container):
                     alternatives.append([x])
                 case Sequence(elements):
                     alternatives.append(elements)
+                case Choice(sub_alts):
+                    alternatives.extend([a] for a in sub_alts)
                 case _:
                     alternatives.append([item])
         assert all(isinstance(item, list) for item in alternatives)
