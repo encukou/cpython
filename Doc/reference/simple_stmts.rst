@@ -1055,8 +1055,11 @@ The :keyword:`!global` statement
    triple: global; name; binding
    single: , (comma); identifier list
 
-.. productionlist:: python-grammar
-   global_stmt: "global" `identifier` ("," `identifier`)*
+.. grammar-snippet:: global_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   global_stmt: 'global' ','.NAME+
 
 The :keyword:`global` statement is a declaration which holds for the entire
 current code block.  It means that the listed identifiers are to be interpreted
@@ -1100,8 +1103,11 @@ The :keyword:`!nonlocal` statement
 .. index:: pair: statement; nonlocal
    single: , (comma); identifier list
 
-.. productionlist:: python-grammar
-   nonlocal_stmt: "nonlocal" `identifier` ("," `identifier`)*
+.. grammar-snippet:: nonlocal_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   nonlocal_stmt: 'nonlocal' ','.NAME+
 
 The :keyword:`nonlocal` statement causes the listed identifiers to refer to
 previously bound variables in the nearest enclosing scope excluding globals.
@@ -1129,8 +1135,11 @@ The :keyword:`!type` statement
 
 .. index:: pair: statement; type
 
-.. productionlist:: python-grammar
-   type_stmt: 'type' `identifier` [`type_params`] "=" `expression`
+.. grammar-snippet:: type_alias
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   type_alias: "type" NAME [`type_params`] '=' `expression`
 
 The :keyword:`!type` statement declares a type alias, which is an instance
 of :class:`typing.TypeAliasType`.

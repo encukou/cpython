@@ -633,7 +633,7 @@ The :keyword:`!match` statement
 
 The match statement is used for pattern matching.  Syntax:
 
-.. grammar-snippet:: match_stmt subject_expr case_block star_named_expressions
+.. grammar-snippet:: match_stmt subject_expr case_block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -642,8 +642,6 @@ The match statement is used for pattern matching.  Syntax:
      : | `star_named_expression` ',' [`star_named_expressions`]
      : | `named_expression`
    case_block: "case" `patterns` [`guard`] ':' `block`
-   star_named_expressions: ','.`star_named_expression`+ [',']
-   star_named_expression: '*' `bitwise_or` | `named_expression`
 
 .. note::
    This section uses single quotes to denote

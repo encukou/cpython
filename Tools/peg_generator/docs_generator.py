@@ -42,6 +42,10 @@ FUTURE_TOPLEVEL_RULES = {
     'assignment', 'type_alias', 'star_expressions', 'return_stmt',
     'import_stmt', 'raise_stmt', 'del_stmt', 'yield_stmt', 'assert_stmt',
     'global_stmt', 'nonlocal_stmt', 'yield_expr',
+    'tuple', 'group', 'genexp',
+    'list', 'listcomp',
+    'dict', 'set', 'dictcomp', 'setcomp', 'disjunction',
+    'assignment_expression',
 }
 
 # TODO:
@@ -83,6 +87,12 @@ FUTURE_TOPLEVEL_RULES = {
 #
 #
 # Better line wrapping
+#
+# Remove unmarked invalid rule in for_if_clause
+#
+# Give names to the subexpressions here:
+# proper_slice ::=  [lower_bound] ":" [upper_bound] [ ":" [stride] ]
+
 
 def main():
     args = argparser.parse_args()

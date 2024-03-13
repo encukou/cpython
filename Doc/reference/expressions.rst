@@ -54,7 +54,29 @@ Atoms are the most basic elements of expressions.  The simplest atoms are
 identifiers or literals.  Forms enclosed in parentheses, brackets or braces are
 also categorized syntactically as atoms.  The syntax for atoms is:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: atom
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   atom:
+     : | NAME
+     : | 'True'
+     : | 'False'
+     : | 'None'
+     : | `strings`
+     : | NUMBER
+     : | `tuple`
+     : | `group`
+     : | `genexp`
+     : | `list`
+     : | `listcomp`
+     : | `dict`
+     : | `set`
+     : | `dictcomp`
+     : | `setcomp`
+     : | '...'
+
+.. productionlist:: python-grammar-old
    atom: `identifier` | `literal` | `enclosure`
    enclosure: `parenth_form` | `list_display` | `dict_display` | `set_display`
             : | `generator_expression` | `yield_atom`
@@ -136,7 +158,14 @@ Parenthesized forms
 
 A parenthesized form is an optional expression list enclosed in parentheses:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: group named_expression
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   group: '(' (`yield_expr` | `named_expression`) ')'
+   named_expression: `assignment_expression` | `expression`
+
+.. productionlist:: python-grammar-old
    parenth_form: "(" [`starred_expression`] ")"
 
 A parenthesized expression list yields whatever that expression list yields: if
@@ -180,6 +209,13 @@ called "displays", each of them in two flavors:
    single: async for; in comprehensions
 
 Common syntax elements for comprehensions are:
+
+.. grammar-snippet:: for_if_clauses for_if_clause
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   for_if_clauses: `for_if_clause`+
+   for_if_clause: ['async'] 'for' (`star_targets` 'in' 'if'.`disjunction`+ | ','.`bitwise_or`+ [','])
 
 .. productionlist:: python-grammar
    comprehension: `assignment_expression` `comp_for`
@@ -252,7 +288,14 @@ List displays
 A list display is a possibly empty series of expressions enclosed in square
 brackets:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: list listcomp
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   list: '[' [`star_named_expressions`] ']'
+   listcomp: '[' `named_expression` `for_if_clauses` ']'
+
+.. productionlist:: python-grammar-old
    list_display: "[" [`starred_list` | `comprehension`] "]"
 
 A list display yields a new list object, the contents being specified by either
@@ -277,7 +320,14 @@ Set displays
 A set display is denoted by curly braces and distinguishable from dictionary
 displays by the lack of colons separating keys and values:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: set setcomp
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   set: '{' `star_named_expressions` '}'
+   setcomp: '{' `named_expression` `for_if_clauses` '}'
+
+.. productionlist:: python-grammar-old
    set_display: "{" (`starred_list` | `comprehension`) "}"
 
 A set display yields a new mutable set object, the contents being specified by
@@ -307,7 +357,16 @@ Dictionary displays
 A dictionary display is a possibly empty series of dict items (key/value pairs)
 enclosed in curly braces:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: dict dictcomp double_starred_kvpair
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   dict: '{' [','.`double_starred_kvpair`+ [',']] '}'
+   dictcomp: '{' `kvpair` `for_if_clauses` '}'
+   double_starred_kvpair: '**' `bitwise_or` | `kvpair`
+   kvpair: `expression` ':' `expression`
+
+.. productionlist:: python-grammar-old
    dict_display: "{" [`dict_item_list` | `dict_comprehension`] "}"
    dict_item_list: `dict_item` ("," `dict_item`)* [","]
    dict_item: `expression` ":" `expression` | "**" `or_expr`
@@ -366,7 +425,13 @@ Generator expressions
 
 A generator expression is a compact generator notation in parentheses:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: genexp
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   genexp: '(' (`assignment_expression` | `expression`) `for_if_clauses` ')'
+
+.. productionlist:: python-grammar-old
    generator_expression: "(" `expression` `comp_for` ")"
 
 A generator expression yields a new generator object.  Its syntax is the same as
@@ -419,6 +484,12 @@ Yield expressions
    pair: keyword; from
    pair: yield; expression
    pair: generator; function
+
+.. grammar-snippet:: yield_expr
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   yield_expr: 'yield' ['from' `expression` | `star_expressions`]
 
 .. productionlist:: python-grammar
    yield_atom: "(" `yield_expression` ")"
@@ -798,7 +869,15 @@ Primaries
 Primaries represent the most tightly bound operations of the language. Their
 syntax is:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: primary
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   primary:
+     : | `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']')
+     : | `atom`
+
+.. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
 
 
@@ -859,7 +938,18 @@ will generally select an element from the container. The subscription of a
 :term:`generic class <generic type>` will generally return a
 :ref:`GenericAlias <types-genericalias>` object.
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: slices
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   slices:
+     : | `slice`
+     : | ','.(`slice` | `starred_expression`)+ [',']
+   slice:
+     : | [`expression`] ':' [`expression`] [':' [`expression`]]
+     : | `named_expression`
+
+.. productionlist:: python-grammar-old
    subscription: `primary` "[" `expression_list` "]"
 
 When an object is subscripted, the interpreter will evaluate the primary and
@@ -978,7 +1068,20 @@ Calls
 A call calls a callable object (e.g., a :term:`function`) with a possibly empty
 series of :term:`arguments <argument>`:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: arguments args
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   arguments: `args` [',']
+   args:
+     : | ','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
+     : | `kwargs`
+   kwargs:
+     : | ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+]
+     : | ','.`kwarg_or_double_starred`+
+   kwarg_or_double_starred: (NAME '=' | '**') `expression`
+
+.. productionlist:: python-grammar-old
    call: `primary` "(" [`argument_list` [","] | `comprehension`] ")"
    argument_list: `positional_arguments` ["," `starred_and_keywords`]
                 :   ["," `keywords_arguments`]
@@ -1171,6 +1274,12 @@ Await expression
 Suspend the execution of :term:`coroutine` on an :term:`awaitable` object.
 Can only be used inside a :term:`coroutine function`.
 
+.. grammar-snippet:: await_primary
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   await_primary: ['await'] `primary`
+
 .. productionlist:: python-grammar
    await_expr: "await" `primary`
 
@@ -1189,8 +1298,11 @@ The power operator
 The power operator binds more tightly than unary operators on its left; it binds
 less tightly than unary operators on its right.  The syntax is:
 
-.. productionlist:: python-grammar
-   power: (`await_expr` | `primary`) ["**" `u_expr`]
+.. grammar-snippet:: power
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   power: `await_primary` ['**' `factor`]
 
 Thus, in an unparenthesized sequence of power and unary operators, the operators
 are evaluated from right to left (this does not constrain the evaluation order
@@ -1223,8 +1335,11 @@ Unary arithmetic and bitwise operations
 
 All unary arithmetic and bitwise operations have the same priority:
 
-.. productionlist:: python-grammar
-   u_expr: `power` | "-" `u_expr` | "+" `u_expr` | "~" `u_expr`
+.. grammar-snippet:: factor
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   factor: ('+' | '-' | '~') `factor` | `power`
 
 .. index::
    single: negation
@@ -1272,11 +1387,12 @@ that some of these operations also apply to certain non-numeric types.  Apart
 from the power operator, there are only two levels, one for multiplicative
 operators and one for additive operators:
 
-.. productionlist:: python-grammar
-   m_expr: `u_expr` | `m_expr` "*" `u_expr` | `m_expr` "@" `m_expr` |
-         : `m_expr` "//" `u_expr` | `m_expr` "/" `u_expr` |
-         : `m_expr` "%" `u_expr`
-   a_expr: `m_expr` | `a_expr` "+" `m_expr` | `a_expr` "-" `m_expr`
+.. grammar-snippet:: term sum
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   term: [`term` ('*' | '/' | '//' | '%' | '@')] `factor`
+   sum: [`sum` ('+' | '-')] `term`
 
 .. index::
    single: multiplication
@@ -1381,8 +1497,11 @@ Shifting operations
 
 The shifting operations have lower priority than the arithmetic operations:
 
-.. productionlist:: python-grammar
-   shift_expr: `a_expr` | `shift_expr` ("<<" | ">>") `a_expr`
+.. grammar-snippet:: shift_expr
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   shift_expr: [`shift_expr` ('<<' | '>>')] `sum`
 
 These operators accept integers as arguments.  They shift the first argument to
 the left or right by the number of bits given by the second argument.
@@ -1404,6 +1523,14 @@ Binary bitwise operations
 .. index:: triple: binary; bitwise; operation
 
 Each of the three bitwise operations has a different priority level:
+
+.. grammar-snippet:: bitwise_or bitwise_xor bitwise_and
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   bitwise_or: [`bitwise_or` '|'] `bitwise_xor`
+   bitwise_xor: [`bitwise_xor` '^'] `bitwise_and`
+   bitwise_and: [`bitwise_and` '&'] `shift_expr`
 
 .. productionlist:: python-grammar
    and_expr: `shift_expr` | `and_expr` "&" `shift_expr`
@@ -1457,7 +1584,14 @@ lower than that of any arithmetic, shifting or bitwise operation.  Also unlike
 C, expressions like ``a < b < c`` have the interpretation that is conventional
 in mathematics:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: comparison compare_op_bitwise_or_pair
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   comparison: `bitwise_or` `compare_op_bitwise_or_pair`*
+   compare_op_bitwise_or_pair: ('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not']) `bitwise_or`
+
+.. productionlist:: python-grammar-old
    comparison: `or_expr` (`comp_operator` `or_expr`)*
    comp_operator: "<" | ">" | "==" | ">=" | "<=" | "!="
                 : | "is" ["not"] | ["not"] "in"
@@ -1720,10 +1854,13 @@ Boolean operations
    pair: Conditional; expression
    pair: Boolean; operation
 
-.. productionlist:: python-grammar
-   or_test: `and_test` | `or_test` "or" `and_test`
-   and_test: `not_test` | `and_test` "and" `not_test`
-   not_test: `comparison` | "not" `not_test`
+.. grammar-snippet:: disjunction conjunction inversion
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   disjunction: 'or'.`conjunction`+
+   conjunction: 'and'.`inversion`+
+   inversion: 'not' `inversion` | `comparison`
 
 In the context of Boolean operations, and also when expressions are used by
 control flow statements, the following values are interpreted as false:
@@ -1765,8 +1902,11 @@ returns a boolean value regardless of the type of its argument
 Assignment expressions
 ======================
 
-.. productionlist:: python-grammar
-   assignment_expression: [`identifier` ":="] `expression`
+.. grammar-snippet:: assignment_expression
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   assignment_expression: NAME ':=' `expression`
 
 An assignment expression (sometimes also called a "named expression" or
 "walrus") assigns an :token:`~python-grammar:expression` to an
@@ -1810,7 +1950,15 @@ Conditional expressions
    single: if; conditional expression
    single: else; conditional expression
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: expression
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   expression:
+     : | `disjunction` ['if' `disjunction` 'else' `expression`]
+     : | `lambdef`
+
+.. productionlist:: python-grammar-old
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
    expression: `conditional_expression` | `lambda_expr`
 
@@ -1836,7 +1984,30 @@ Lambdas
    pair: anonymous; function
    single: : (colon); lambda expression
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: lambdef
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   lambdef: 'lambda' [`lambda_params`] ':' `expression`
+
+.. grammar-snippet:: lambda_params
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   lambda_params:
+     : | ((`lambda_param_no_default`+ '/' [','] `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' [','] | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`]
+     : | `lambda_star_etc`
+   lambda_param_no_default: `lambda_param` [',']
+   lambda_param_with_default: `lambda_param` `default` [',']
+   lambda_star_etc:
+     : | '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`]
+     : | `lambda_kwds`
+   lambda_param: NAME
+   default: '=' `expression`
+   lambda_param_maybe_default: `lambda_param` [[`default`] ',' | `default`]
+   lambda_kwds: '**' `lambda_param_no_default`
+
+.. productionlist:: python-grammar-old
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
 
 Lambda expressions (sometimes called lambda forms) are used to create anonymous
@@ -1862,7 +2033,15 @@ Expression lists
    pair: expression; list
    single: , (comma); expression list
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: tuple star_named_expressions star_named_expression
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   tuple: '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
+   star_named_expressions: ','.`star_named_expression`+ [',']
+   star_named_expression: '*' `bitwise_or` | `named_expression`
+
+.. productionlist:: python-grammar-old
    expression_list: `expression` ("," `expression`)* [","]
    starred_list: `starred_item` ("," `starred_item`)* [","]
    starred_expression: `expression` | (`starred_item` ",")* [`starred_item`]
