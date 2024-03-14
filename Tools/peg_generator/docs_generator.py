@@ -49,21 +49,24 @@ FUTURE_TOPLEVEL_RULES = {
 }
 
 # TODO:
-# simplify:
-#   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
-# into:
-#   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
-#
-# don't simplify:
-#   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
-# instead keep 3 separate alternatives, like in the grammar
-# Similar for star_targets_tuple_seq
+# Better line wrapping
 #
 # Line-break with_stmt as:
 # with_stmt ::=  ['async'] 'with'
 #               ('(' ','.with_item+ [','] ')' | ','.with_item+)
 #               ':' block
 #
+# simplify:
+#   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
+# into:
+#   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
+#
+# Look at function parameters again
+#
+
+# NEED GRAMMAR CHANGES:
+#
+# Mark lookaheds as necessary or not
 # for:
 #   pattern_capture_target ::=  !'_' NAME
 # we might want to show the negative lookahead
@@ -74,8 +77,6 @@ FUTURE_TOPLEVEL_RULES = {
 # Remove the `func_type_comment` rule, so it doesn't show up
 # in function definitions
 #
-# Look at function parameters again
-#
 # See if naming `['(' [arguments] ')' ]` in class_def_raw as a new
 # `inheritance` rule would slow down the parser
 #
@@ -85,13 +86,15 @@ FUTURE_TOPLEVEL_RULES = {
 # is covered by the next rule:
 #    '(' [del_targets] ')'
 #
-#
-# Better line wrapping
-#
 # Remove unmarked invalid rule in for_if_clause
 #
 # Give names to the subexpressions here:
 # proper_slice ::=  [lower_bound] ":" [upper_bound] [ ":" [stride] ]
+#
+# don't simplify:
+#   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
+# instead keep 3 separate alternatives, like in the grammar
+# Similar for star_targets_tuple_seq
 
 
 def main():
