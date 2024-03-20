@@ -32,8 +32,6 @@ argparser.add_argument(
 
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
-    'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices', 'star_expressions', 'with_item',
     'decorators', 'type_params', 'function_def',
     'if_stmt', 'class_def', 'with_stmt', 'for_stmt', 'try_stmt', 'while_stmt',
     'match_stmt', 'named_expression', 'shift_expr',

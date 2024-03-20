@@ -5,6 +5,14 @@
 Simple statements
 *****************
 
+.. grammar-snippet:: statement
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   statement:
+     : | `compound_stmt`
+     : | ';'.`simple_stmt`+ [';'] NEWLINE
+
 .. index:: pair: simple; statement
 
 A simple statement is comprised within a single logical line. Several simple
@@ -102,19 +110,19 @@ attributes or items of mutable objects:
      : | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
 
-.. grammar-snippet:: star_targets star_atom star_targets_tuple_seq
+.. grammar-snippet:: star_targets star_target star_atom star_targets_tuple_seq
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    star_targets: ','.`star_target`+ [',']
+   star_target:
+     : | '*' `star_target`
+     : | `target_with_star_atom`
    star_atom:
      : | NAME
      : | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
      : | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   star_target:
-     : | '*' `star_target`
-     : | `target_with_star_atom`
    target_with_star_atom:
      : | `t_primary` ('.' NAME | '[' `slices` ']')
      : | `star_atom`

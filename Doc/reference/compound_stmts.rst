@@ -513,6 +513,7 @@ usage patterns to be encapsulated for convenient reuse.
    :generated-by: Tools/peg_generator/docs_generator.py
 
    with_stmt: ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
+   with_item: `expression` ['as' `star_target`]
 
 .. productionlist:: python-grammar-old
    with_stmt: "with" ( "(" `with_stmt_contents` ","? ")" | `with_stmt_contents` ) ":" `suite`
