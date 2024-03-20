@@ -1290,11 +1290,12 @@ Function definitions
 A function definition defines a user-defined function object (see section
 :ref:`types`):
 
-.. grammar-snippet:: function_def parameters slash_no_default
+.. grammar-snippet:: function_def decorators parameters slash_no_default
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' [NEWLINE] `block`
+   decorators: ('@' `named_expression` NEWLINE)+
    parameters:
      : | ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`]
      : | `star_etc`
