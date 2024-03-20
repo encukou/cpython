@@ -32,7 +32,6 @@ argparser.add_argument(
 
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = {
-    'bitwise_or', 'fstring_replacement_field', 'strings', 'literal_expr',
     'starred_expression', 'arguments',
     'assignment', 'type_alias', 'star_expressions', 'return_stmt',
     'import_stmt', 'raise_stmt', 'del_stmt', 'yield_stmt', 'assert_stmt',

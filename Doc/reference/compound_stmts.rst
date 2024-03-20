@@ -1102,7 +1102,7 @@ A mapping pattern contains one or more key-value patterns.  The syntax is
 similar to the construction of a dictionary.
 Syntax:
 
-.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern
+.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern literal_expr
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -1110,6 +1110,13 @@ Syntax:
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
+   literal_expr:
+     : | `signed_number`
+     : | `complex_number`
+     : | `strings`
+     : | 'None'
+     : | 'True'
+     : | 'False'
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
@@ -1290,7 +1297,7 @@ Function definitions
 A function definition defines a user-defined function object (see section
 :ref:`types`):
 
-.. grammar-snippet:: function_def decorators parameters slash_no_default
+.. grammar-snippet:: function_def decorators parameters slash_no_default default
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
@@ -1300,13 +1307,13 @@ A function definition defines a user-defined function object (see section
      : | ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`]
      : | `star_etc`
    slash_no_default: `param_no_default`+ '/' [',']
+   default: '=' `expression`
    param_no_default: `param` [',']
    param_with_default: `param` `default` [',']
    star_etc:
      : | '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [',']) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`]
      : | `kwds`
    param: NAME [':' `expression`]
-   default: '=' `expression`
    param_maybe_default: `param` [[`default`] ',' | `default`]
    kwds: '**' `param_no_default`
 

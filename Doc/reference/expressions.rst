@@ -146,6 +146,15 @@ same value (either the same occurrence in the program text or a different
 occurrence) may obtain the same object or a different object with the same
 value.
 
+Strings
+^^^^^^^
+
+.. grammar-snippet:: strings fstring_replacement_field
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   strings: (FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END | STRING)+
+   fstring_replacement_field: '{' (`yield_expr` | `star_expressions`) ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
 
 .. _parenthesized:
 
@@ -2006,7 +2015,6 @@ Lambdas
      : | '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`]
      : | `lambda_kwds`
    lambda_param: NAME
-   default: '=' `expression`
    lambda_param_maybe_default: `lambda_param` [[`default`] ',' | `default`]
    lambda_kwds: '**' `lambda_param_no_default`
 
