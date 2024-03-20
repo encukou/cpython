@@ -954,9 +954,7 @@ will generally select an element from the container. The subscription of a
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   slices:
-     : | `slice`
-     : | ','.(`slice` | '*' `expression`)+ [',']
+   slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
    slice:
      : | [`expression`] ':' [`expression`] [':' [`expression`]]
      : | `named_expression`

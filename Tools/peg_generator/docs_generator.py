@@ -178,6 +178,9 @@ class Node:
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + self.format()
 
+    def format_lines(self, columns):
+        yield self.format()
+
 
 @dataclass(frozen=True)
 class Container(Node):
@@ -318,6 +321,19 @@ class Choice(Container):
                 return [result], 2
 
         return [tail[0]], 1
+
+    def format_lines(self, columns):
+        simple = self.format()
+        if len(simple) <= columns:
+            yield simple
+        else:
+            yield ''
+            for choice in self:
+                for num, line in enumerate(choice.format_lines(columns - 2)):
+                    if num == 0:
+                        yield '| ' + line
+                    else:
+                        yield '  ' + line
 
 @dataclass(frozen=True)
 class Sequence(Container):
@@ -582,6 +598,9 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         old_ruleset = ruleset
         ruleset = simplify_ruleset(ruleset, requested_rule_names)
 
+    longest_name = max(ruleset, key=len)
+    available_space = 80 - len(longest_name) - len(' ::=  ')
+
     # Yield all the lines
     for name, node in ruleset.items():
         if debug:
@@ -589,14 +608,19 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
             yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
-        rhs_line = node.format()
-        if isinstance(node, Choice) and len(rhs_line) > 40:
-            # Present each alternative on its own line
-            yield f'{name}:'
-            for alt in node:
-                yield f'  : | {alt.format()}'
-        else:
-            yield f'{name}: {node.format()}'
+        for num, line in enumerate(node.format_lines(available_space)):
+            if num == 0:
+                yield f'{name}: {line}'.rstrip()
+            else:
+                yield f'  : {line}'.rstrip()
+        # rhs_line = node.format()
+        # if isinstance(node, Choice) and len(rhs_line) > 40:
+        #     # Present each alternative on its own line
+        #     yield f'{name}:'
+        #     for alt in node:
+        #         yield f'  : | {alt.format()}'
+        # else:
+        #     yield f'{name}: {node.format()}'
         if debug:
             yield from node.dump_tree()
 

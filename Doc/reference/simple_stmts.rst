@@ -9,9 +9,7 @@ Simple statements
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   statement:
-     : | `compound_stmt`
-     : | ';'.`simple_stmt`+ [';'] NEWLINE
+   statement: `compound_stmt` | ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -115,9 +113,7 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    star_targets: ','.`star_target`+ [',']
-   star_target:
-     : | '*' `star_target`
-     : | `target_with_star_atom`
+   star_target: '*' `star_target` | `target_with_star_atom`
    star_atom:
      : | NAME
      : | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
