@@ -956,7 +956,7 @@ will generally select an element from the container. The subscription of a
 
    slices:
      : | `slice`
-     : | ','.(`slice` | `starred_expression`)+ [',']
+     : | ','.(`slice` | '*' `expression`)+ [',']
    slice:
      : | [`expression`] ':' [`expression`] [':' [`expression`]]
      : | `named_expression`
@@ -1088,6 +1088,7 @@ series of :term:`arguments <argument>`:
    args:
      : | ','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
      : | `kwargs`
+   starred_expression: '*' `expression`
    kwargs:
      : | ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+]
      : | ','.`kwarg_or_double_starred`+

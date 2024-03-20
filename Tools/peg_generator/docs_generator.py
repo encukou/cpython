@@ -31,16 +31,7 @@ argparser.add_argument(
 
 
 # TODO: Document all these rules somewhere in the docs
-FUTURE_TOPLEVEL_RULES = {
-    'starred_expression', 'arguments',
-    'assignment', 'type_alias', 'star_expressions', 'return_stmt',
-    'import_stmt', 'raise_stmt', 'del_stmt', 'yield_stmt', 'assert_stmt',
-    'global_stmt', 'nonlocal_stmt', 'yield_expr',
-    'tuple', 'group', 'genexp',
-    'list', 'listcomp',
-    'dict', 'set', 'dictcomp', 'setcomp', 'disjunction',
-    'assignment_expression',
-}
+FUTURE_TOPLEVEL_RULES = set()
 
 # TODO:
 # Better line wrapping
