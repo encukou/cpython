@@ -393,6 +393,27 @@ class Sequence(Container):
             for item in self
         )
 
+    def format_lines(self, columns):
+        simple = self.format()
+        if len(simple) <= columns:
+            yield simple
+        else:
+            line_so_far = ''
+            for item in self:
+                simple_item = item.format()
+                if len(line_so_far) + len(simple_item) < columns:
+                    line_so_far += ' ' + simple_item
+                else:
+                    yield line_so_far
+                    line_so_far = ''
+                    if len(simple_item) > columns:
+                        for line in item.format_lines(columns):
+                            yield line
+                    else:
+                        line_so_far = simple_item
+            if line_so_far:
+                yield line_so_far
+
 @dataclass(frozen=True)
 class Decorator(Node):
     """Node with exactly one child"""
