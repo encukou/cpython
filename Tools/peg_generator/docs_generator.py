@@ -34,6 +34,30 @@ argparser.add_argument(
 FUTURE_TOPLEVEL_RULES = set()
 
 # TODO:
+# Think about "OptionalSequence with separators":
+
+# Gather:
+# s.e+
+#   Match one or more occurrences of e, separated by s. The generated parse tree
+#   does not include the separator. This is otherwise identical to (e (s e)*).
+#
+# Proposal:
+# s.{e1, e2, e3}
+#     Match the given expressions in the given order, separated by separator.
+#     Each of the expressions is individually optional, but at least one must be given.
+#     Equavalent to:
+#       e1 [s e2 [s e3]]
+#     |       e2 [s e3]
+#     |             e3
+#     (There can be any nonzero number of e_n, not necessarily 3)
+#
+#
+#      [[e1 s] e2 s] e3
+#     | [e1 s] e2 s
+#     |  e1
+
+
+# TODO:
 # Better line wrapping
 #
 # Line-break with_stmt as:
@@ -86,6 +110,9 @@ def main():
     args = argparser.parse_args()
 
     # Get all the top-level rule names, and the files we're updating
+    # "top-level" means a rule that the docs explicitly ask for in
+    # a `grammar-snippet` directive. Anything that references a top-level
+    # rule should link to it.
 
     files_with_grammar = set()
     # Maps the name of a top-level rule to the path of the file it's in
@@ -322,7 +349,7 @@ class Choice(Container):
 
         return [tail[0]], 1
 
-    def format_lines(self, columns):
+    def _format_lines(self, columns):
         simple = self.format()
         if len(simple) <= columns:
             yield simple
@@ -393,7 +420,7 @@ class Sequence(Container):
             for item in self
         )
 
-    def format_lines(self, columns):
+    def _format_lines(self, columns):
         simple = self.format()
         if len(simple) <= columns:
             yield simple

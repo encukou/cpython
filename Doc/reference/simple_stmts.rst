@@ -21,21 +21,7 @@ simple statements is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   simple_stmt:
-     : | `assignment`
-     : | `type_alias`
-     : | `star_expressions`
-     : | `return_stmt`
-     : | `import_stmt`
-     : | `raise_stmt`
-     : | 'pass'
-     : | `del_stmt`
-     : | `yield_stmt`
-     : | `assert_stmt`
-     : | 'break'
-     : | 'continue'
-     : | `global_stmt`
-     : | `nonlocal_stmt`
+   simple_stmt: `assignment` | `type_alias` | `star_expressions` | `return_stmt` | `import_stmt` | `raise_stmt` | 'pass' | `del_stmt` | `yield_stmt` | `assert_stmt` | 'break' | 'continue' | `global_stmt` | `nonlocal_stmt`
 
 .. _exprstmts:
 
@@ -99,13 +85,8 @@ attributes or items of mutable objects:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   assignment:
-     : | (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`]
-     : | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
-   single_target:
-     : | `single_subscript_attribute_target`
-     : | NAME
-     : | '(' `single_target` ')'
+   assignment: (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`] | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
+   single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
 
 .. grammar-snippet:: star_targets star_target star_atom star_targets_tuple_seq
@@ -114,14 +95,9 @@ attributes or items of mutable objects:
 
    star_targets: ','.`star_target`+ [',']
    star_target: '*' `star_target` | `target_with_star_atom`
-   star_atom:
-     : | NAME
-     : | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
-     : | '[' [','.`star_target`+ [',']] ']'
+   star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   target_with_star_atom:
-     : | `t_primary` ('.' NAME | '[' `slices` ']')
-     : | `star_atom`
+   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') | `star_atom`
 
 .. grammar-snippet:: single_subscript_attribute_target
    :group: python-grammar
@@ -329,20 +305,7 @@ operation and an assignment statement:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   augassign:
-     : | '+='
-     : | '-='
-     : | '*='
-     : | '@='
-     : | '/='
-     : | '%='
-     : | '&='
-     : | '|='
-     : | '^='
-     : | '<<='
-     : | '>>='
-     : | '**='
-     : | '//='
+   augassign: '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='
 
 .. productionlist:: python-grammar-old
    augmented_assignment_stmt: `augtarget` `augop` (`expression_list` | `yield_expression`)
@@ -520,11 +483,7 @@ The :keyword:`!del` statement
 
    del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
-   del_target:
-     : | `t_primary` ('.' NAME | '[' `slices` ']')
-     : | NAME
-     : | '(' [`del_target` | `del_targets`] ')'
-     : | '[' [`del_targets`] ']'
+   del_target: `t_primary` ('.' NAME | '[' `slices` ']') | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
@@ -837,13 +796,8 @@ The :keyword:`!import` statement
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   import_stmt:
-     : | 'import' ','.(`dotted_name` ['as' NAME])+
-     : | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
-   import_from_targets:
-     : | '(' `import_from_as_names` [','] ')'
-     : | `import_from_as_names`
-     : | '*'
+   import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
+   import_from_targets: '(' `import_from_as_names` [','] ')' | `import_from_as_names` | '*'
    import_from_as_names: ','.(NAME ['as' NAME])+
    dotted_name: [`dotted_name` '.'] NAME
 

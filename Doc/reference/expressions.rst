@@ -58,23 +58,7 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   atom:
-     : | NAME
-     : | 'True'
-     : | 'False'
-     : | 'None'
-     : | `strings`
-     : | NUMBER
-     : | `tuple`
-     : | `group`
-     : | `genexp`
-     : | `list`
-     : | `listcomp`
-     : | `dict`
-     : | `set`
-     : | `dictcomp`
-     : | `setcomp`
-     : | '...'
+   atom: NAME | 'True' | 'False' | 'None' | `strings` | NUMBER | `tuple` | `group` | `genexp` | `list` | `listcomp` | `dict` | `set` | `dictcomp` | `setcomp` | '...'
 
 .. productionlist:: python-grammar-old
    atom: `identifier` | `literal` | `enclosure`
@@ -882,12 +866,8 @@ syntax is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   primary:
-     : | `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']')
-     : | `atom`
-   t_primary:
-     : | `t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')')
-     : | `atom`
+   primary: `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']') | `atom`
+   t_primary: `t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`
 
 .. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
@@ -955,9 +935,7 @@ will generally select an element from the container. The subscription of a
    :generated-by: Tools/peg_generator/docs_generator.py
 
    slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
-   slice:
-     : | [`expression`] ':' [`expression`] [':' [`expression`]]
-     : | `named_expression`
+   slice: [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
 
 .. productionlist:: python-grammar-old
    subscription: `primary` "[" `expression_list` "]"
@@ -1083,13 +1061,9 @@ series of :term:`arguments <argument>`:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    arguments: `args` [',']
-   args:
-     : | ','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
-     : | `kwargs`
+   args: ','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`] | `kwargs`
    starred_expression: '*' `expression`
-   kwargs:
-     : | ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+]
-     : | ','.`kwarg_or_double_starred`+
+   kwargs: ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
 
 .. productionlist:: python-grammar-old
@@ -1965,9 +1939,7 @@ Conditional expressions
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   expression:
-     : | `disjunction` ['if' `disjunction` 'else' `expression`]
-     : | `lambdef`
+   expression: `disjunction` ['if' `disjunction` 'else' `expression`] | `lambdef`
 
 .. productionlist:: python-grammar-old
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
@@ -2005,14 +1977,10 @@ Lambdas
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   lambda_params:
-     : | ((`lambda_param_no_default`+ '/' [','] `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' [','] | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`]
-     : | `lambda_star_etc`
+   lambda_params: ((`lambda_param_no_default`+ '/' [','] `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' [','] | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`] | `lambda_star_etc`
    lambda_param_no_default: `lambda_param` [',']
    lambda_param_with_default: `lambda_param` `default` [',']
-   lambda_star_etc:
-     : | '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`]
-     : | `lambda_kwds`
+   lambda_star_etc: '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`] | `lambda_kwds`
    lambda_param: NAME
    lambda_param_maybe_default: `lambda_param` [[`default`] ',' | `default`]
    lambda_kwds: '**' `lambda_param_no_default`
