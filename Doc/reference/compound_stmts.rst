@@ -47,22 +47,12 @@ executed::
 
 Summarizing:
 
+.. grammar-snippet:: compound_stmt block
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
 
-.. productionlist:: python-grammar
-   compound_stmt: `if_stmt`
-                : | `while_stmt`
-                : | `for_stmt`
-                : | `try_stmt`
-                : | `with_stmt`
-                : | `match_stmt`
-                : | `funcdef`
-                : | `classdef`
-                : | `async_with_stmt`
-                : | `async_for_stmt`
-                : | `async_funcdef`
-   suite: `stmt_list` NEWLINE | NEWLINE INDENT `statement`+ DEDENT
-   statement: `stmt_list` NEWLINE | `compound_stmt`
-   stmt_list: `simple_stmt` (";" `simple_stmt`)* [";"]
+   compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
+   block: NEWLINE INDENT `statement`+ DEDENT | ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index::
    single: NEWLINE token
@@ -94,7 +84,15 @@ The :keyword:`!if` statement
 
 The :keyword:`if` statement is used for conditional execution:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: if_stmt else_block
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   if_stmt: 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
+   else_block: 'else' ':' `block`
+   elif_stmt: 'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
+
+.. productionlist:: python-grammar-old
    if_stmt: "if" `assignment_expression` ":" `suite`
           : ("elif" `assignment_expression` ":" `suite`)*
           : ["else" ":" `suite`]
@@ -120,7 +118,13 @@ The :keyword:`!while` statement
 The :keyword:`while` statement is used for repeated execution as long as an
 expression is true:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: while_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   while_stmt: 'while' `named_expression` ':' `block` [`else_block`]
+
+.. productionlist:: python-grammar-old
    while_stmt: "while" `assignment_expression` ":" `suite`
              : ["else" ":" `suite`]
 
@@ -156,7 +160,13 @@ The :keyword:`!for` statement
 The :keyword:`for` statement is used to iterate over the elements of a sequence
 (such as a string, tuple or list) or other iterable object:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: for_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   for_stmt: ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` [`else_block`]
+
+.. productionlist:: python-grammar-old
    for_stmt: "for" `target_list` "in" `starred_list` ":" `suite`
            : ["else" ":" `suite`]
 
@@ -218,7 +228,16 @@ The :keyword:`!try` statement
 The :keyword:`!try` statement specifies exception handlers and/or cleanup code
 for a group of statements:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: try_stmt except_block except_star_block
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   try_stmt: 'try' ':' `block` (`finally_block` | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`])
+   except_block: 'except' [`expression` ['as' NAME]] ':' `block`
+   except_star_block: 'except' '*' `expression` ['as' NAME] ':' `block`
+   finally_block: 'finally' ':' `block`
+
+.. productionlist:: python-grammar-old
    try_stmt: `try1_stmt` | `try2_stmt` | `try3_stmt`
    try1_stmt: "try" ":" `suite`
             : ("except" [`expression` ["as" `identifier`]] ":" `suite`)+
@@ -482,7 +501,14 @@ methods defined by a context manager (see section :ref:`context-managers`).
 This allows common :keyword:`try`...\ :keyword:`except`...\ :keyword:`finally`
 usage patterns to be encapsulated for convenient reuse.
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: with_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   with_stmt: ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
+   with_item: `expression` ['as' `star_target`]
+
+.. productionlist:: python-grammar-old
    with_stmt: "with" ( "(" `with_stmt_contents` ","? ")" | `with_stmt_contents` ) ":" `suite`
    with_stmt_contents: `with_item` ("," `with_item`)*
    with_item: `expression` ["as" `target`]
@@ -601,11 +627,13 @@ The :keyword:`!match` statement
 
 The match statement is used for pattern matching.  Syntax:
 
-.. productionlist:: python-grammar
-   match_stmt: 'match' `subject_expr` ":" NEWLINE INDENT `case_block`+ DEDENT
-   subject_expr: `star_named_expression` "," `star_named_expressions`?
-               : | `named_expression`
-   case_block: 'case' `patterns` [`guard`] ":" `block`
+.. grammar-snippet:: match_stmt subject_expr case_block
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   match_stmt: "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
+   subject_expr: `star_named_expression` ',' [`star_named_expressions`] | `named_expression`
+   case_block: "case" `patterns` [`guard`] ':' `block`
 
 .. note::
    This section uses single quotes to denote
@@ -693,8 +721,11 @@ Guards
 
 .. index:: ! guard
 
-.. productionlist:: python-grammar
-   guard: "if" `named_expression`
+.. grammar-snippet:: guard
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   guard: 'if' `named_expression`
 
 A ``guard`` (which is part of the ``case``) must succeed for code inside
 the ``case`` block to execute.  It takes the form: :keyword:`if` followed by an
@@ -768,17 +799,13 @@ Patterns
 
 The top-level syntax for ``patterns`` is:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: patterns pattern closed_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    patterns: `open_sequence_pattern` | `pattern`
    pattern: `as_pattern` | `or_pattern`
-   closed_pattern: | `literal_pattern`
-                 : | `capture_pattern`
-                 : | `wildcard_pattern`
-                 : | `value_pattern`
-                 : | `group_pattern`
-                 : | `sequence_pattern`
-                 : | `mapping_pattern`
-                 : | `class_pattern`
+   closed_pattern: `literal_pattern` | `pattern_capture_target` | `wildcard_pattern` | `value_pattern` | `group_pattern` | `sequence_pattern` | `mapping_pattern` | `class_pattern`
 
 The descriptions below will include a description "in simple terms" of what a pattern
 does for illustration purposes (credits to Raymond Hettinger for a document that
@@ -795,8 +822,11 @@ OR Patterns
 An OR pattern is two or more patterns separated by vertical
 bars ``|``.  Syntax:
 
-.. productionlist:: python-grammar
-   or_pattern: "|".`closed_pattern`+
+.. grammar-snippet:: or_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   or_pattern: '|'.`closed_pattern`+
 
 Only the final subpattern may be :ref:`irrefutable <irrefutable_case>`, and each
 subpattern must bind the same set of names to avoid ambiguity.
@@ -816,8 +846,11 @@ AS Patterns
 An AS pattern matches an OR pattern on the left of the :keyword:`as`
 keyword against a subject.  Syntax:
 
-.. productionlist:: python-grammar
-   as_pattern: `or_pattern` "as" `capture_pattern`
+.. grammar-snippet:: as_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   as_pattern: `or_pattern` 'as' `pattern_capture_target`
 
 If the OR pattern fails, the AS pattern fails.  Otherwise, the AS pattern binds
 the subject to the name on the right of the as keyword and succeeds.
@@ -835,15 +868,13 @@ Literal Patterns
 A literal pattern corresponds to most
 :ref:`literals <literals>` in Python.  Syntax:
 
-.. productionlist:: python-grammar
-   literal_pattern: `signed_number`
-                  : | `signed_number` "+" NUMBER
-                  : | `signed_number` "-" NUMBER
-                  : | `strings`
-                  : | "None"
-                  : | "True"
-                  : | "False"
-                  : | `signed_number`: NUMBER | "-" NUMBER
+.. grammar-snippet:: literal_pattern signed_number complex_number
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   literal_pattern: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   signed_number: ['-'] NUMBER
+   complex_number: ['-'] NUMBER ('+' | '-') NUMBER
 
 The rule ``strings`` and the token ``NUMBER`` are defined in the
 :doc:`standard Python grammar <./grammar>`.  Triple-quoted strings are
@@ -865,12 +896,17 @@ Capture Patterns
 A capture pattern binds the subject value to a name.
 Syntax:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: pattern_capture_target
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   pattern_capture_target: NAME
+
+.. productionlist:: python-grammar-old
    capture_pattern: !'_' NAME
 
-A single underscore ``_`` is not a capture pattern (this is what ``!'_'``
-expresses). It is instead treated as a
-:token:`~python-grammar:wildcard_pattern`.
+A single underscore ``_`` is **not** a capture pattern.
+It is instead treated as a :token:`~python-grammar:wildcard_pattern`.
 
 In a given pattern, a given name can only be bound once.  E.g.
 ``case x, x: ...`` is invalid while ``case [x] | x: ...`` is allowed.
@@ -890,8 +926,11 @@ Wildcard Patterns
 A wildcard pattern always succeeds (matches anything)
 and binds no name.  Syntax:
 
-.. productionlist:: python-grammar
-   wildcard_pattern: '_'
+.. grammar-snippet:: wildcard_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   wildcard_pattern: "_"
 
 ``_`` is a :ref:`soft keyword <soft-keywords>` within any pattern,
 but only within patterns.  It is an identifier, as usual, even within
@@ -907,10 +946,12 @@ Value Patterns
 A value pattern represents a named value in Python.
 Syntax:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: value_pattern attr
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
    value_pattern: `attr`
-   attr: `name_or_attr` "." NAME
-   name_or_attr: `attr` | NAME
+   attr: (`attr` | NAME) '.' NAME
 
 The dotted name in the pattern is looked up using standard Python
 :ref:`name resolution rules <resolve_names>`.  The pattern succeeds if the
@@ -935,8 +976,11 @@ A group pattern allows users to add parentheses around patterns to
 emphasize the intended grouping.  Otherwise, it has no additional syntax.
 Syntax:
 
-.. productionlist:: python-grammar
-   group_pattern: "(" `pattern` ")"
+.. grammar-snippet:: group_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   group_pattern: '(' `pattern` ')'
 
 In simple terms ``(P)`` has the same effect as ``P``.
 
@@ -948,13 +992,15 @@ Sequence Patterns
 A sequence pattern contains several subpatterns to be matched against sequence elements.
 The syntax is similar to the unpacking of a list or tuple.
 
-.. productionlist:: python-grammar
-  sequence_pattern: "[" [`maybe_sequence_pattern`] "]"
-                  : | "(" [`open_sequence_pattern`] ")"
-  open_sequence_pattern: `maybe_star_pattern` "," [`maybe_sequence_pattern`]
-  maybe_sequence_pattern: ",".`maybe_star_pattern`+ ","?
-  maybe_star_pattern: `star_pattern` | `pattern`
-  star_pattern: "*" (`capture_pattern` | `wildcard_pattern`)
+.. grammar-snippet:: sequence_pattern open_sequence_pattern maybe_sequence_pattern maybe_star_pattern star_pattern
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   sequence_pattern: '[' [`maybe_sequence_pattern`] ']' | '(' [`open_sequence_pattern`] ')'
+   open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
+   maybe_sequence_pattern: ','.`maybe_star_pattern`+ [',']
+   maybe_star_pattern: `star_pattern` | `pattern`
+   star_pattern: '*' (`pattern_capture_target` | `wildcard_pattern`)
 
 There is no difference if parentheses  or square brackets
 are used for sequence patterns (i.e. ``(...)`` vs ``[...]`` ).
@@ -1031,7 +1077,17 @@ A mapping pattern contains one or more key-value patterns.  The syntax is
 similar to the construction of a dictionary.
 Syntax:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern literal_expr
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   mapping_pattern: '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
+   items_pattern: ','.`key_value_pattern`+
+   double_star_pattern: '**' `pattern_capture_target`
+   key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
+   literal_expr: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+
+.. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
    items_pattern: ",".`key_value_pattern`+ ","?
    key_value_pattern: (`literal_pattern` | `value_pattern`) ":" `pattern`
@@ -1080,13 +1136,13 @@ Class Patterns
 A class pattern represents a class and its positional and keyword arguments
 (if any).  Syntax:
 
-.. productionlist:: python-grammar
-  class_pattern: `name_or_attr` "(" [`pattern_arguments` ","?] ")"
-  pattern_arguments: `positional_patterns` ["," `keyword_patterns`]
-                   : | `keyword_patterns`
-  positional_patterns: ",".`pattern`+
-  keyword_patterns: ",".`keyword_pattern`+
-  keyword_pattern: NAME "=" `pattern`
+.. grammar-snippet:: class_pattern keyword_patterns
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] `keyword_patterns`) [',']] ')'
+   keyword_patterns: ','.(NAME '=' `pattern`)+
+   positional_patterns: ','.`pattern`+
 
 The same keyword should not be repeated in class patterns.
 
@@ -1210,7 +1266,23 @@ Function definitions
 A function definition defines a user-defined function object (see section
 :ref:`types`):
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: function_def decorators parameters slash_no_default default
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' [NEWLINE] `block`
+   decorators: ('@' `named_expression` NEWLINE)+
+   parameters: ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
+   slash_no_default: `param_no_default`+ '/' [',']
+   default: '=' `expression`
+   param_no_default: `param` [',']
+   param_with_default: `param` `default` [',']
+   star_etc: '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [',']) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
+   param: NAME [':' `expression`]
+   param_maybe_default: `param` [[`default`] ',' | `default`]
+   kwds: '**' `param_no_default`
+
+.. productionlist:: python-grammar-old
    funcdef: [`decorators`] "def" `funcname` [`type_params`] "(" [`parameter_list`] ")"
           : ["->" `expression`] ":" `suite`
    decorators: `decorator`+
@@ -1395,7 +1467,13 @@ Class definitions
 
 A class definition defines a class object (see section :ref:`types`):
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: class_def
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   class_def: [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
+
+.. productionlist:: python-grammar-old
    classdef: [`decorators`] "class" `classname` [`type_params`] [`inheritance`] ":" `suite`
    inheritance: "(" [`argument_list`] ")"
    classname: `identifier`
@@ -1626,12 +1704,12 @@ Type parameter lists
 .. index::
    single: type parameters
 
-.. productionlist:: python-grammar
-   type_params: "[" `type_param` ("," `type_param`)* "]"
-   type_param: `typevar` | `typevartuple` | `paramspec`
-   typevar: `identifier` (":" `expression`)?
-   typevartuple: "*" `identifier`
-   paramspec: "**" `identifier`
+.. grammar-snippet:: type_params type_param
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   type_params: '[' ','.`type_param`+ [','] ']'
+   type_param: ['*' | '**'] NAME [':' `expression`]
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may

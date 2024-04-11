@@ -31,16 +31,88 @@ argparser.add_argument(
 
 
 # TODO: Document all these rules somewhere in the docs
-FUTURE_TOPLEVEL_RULES = {
-    'statement', 'compound_stmt', 'simple_stmt', 'expression',
-    't_primary', 'slices', 'star_expressions',
-}
+FUTURE_TOPLEVEL_RULES = set()
+
+# TODO:
+# Think about "OptionalSequence with separators":
+
+# Gather:
+# s.e+
+#   Match one or more occurrences of e, separated by s. The generated parse tree
+#   does not include the separator. This is otherwise identical to (e (s e)*).
+#
+# Proposal:
+# s.{e1, e2, e3}
+#     Match the given expressions in the given order, separated by separator.
+#     Each of the expressions is individually optional, but at least one must be given.
+#     Equavalent to:
+#       e1 [s e2 [s e3]]
+#     |       e2 [s e3]
+#     |             e3
+#     (There can be any nonzero number of e_n, not necessarily 3)
+#
+#
+#      [[e1 s] e2 s] e3
+#     | [e1 s] e2 s
+#     |  e1
+
+
+# TODO:
+# Better line wrapping
+#
+# Line-break with_stmt as:
+# with_stmt ::=  ['async'] 'with'
+#               ('(' ','.with_item+ [','] ')' | ','.with_item+)
+#               ':' block
+#
+# simplify:
+#   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
+# into:
+#   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
+#
+# Look at function parameters again
+#
+
+# NEED GRAMMAR CHANGES:
+#
+# Mark lookaheds as necessary or not
+# for:
+#   pattern_capture_target ::=  !'_' NAME
+# we might want to show the negative lookahead
+# for:
+#    star_target: | '*' (!'*' star_target)
+# as well
+#
+# Remove the `func_type_comment` rule, so it doesn't show up
+# in function definitions
+#
+# See if naming `['(' [arguments] ')' ]` in class_def_raw as a new
+# `inheritance` rule would slow down the parser
+#
+# Mark an alternative as optimization only, so it doesn't show up in docs.
+# For example, in del_t_atom, the rule
+#   '(' del_target ')'
+# is covered by the next rule:
+#    '(' [del_targets] ')'
+#
+# Remove unmarked invalid rule in for_if_clause
+#
+# Give names to the subexpressions here:
+# proper_slice ::=  [lower_bound] ":" [upper_bound] [ ":" [stride] ]
+#
+# don't simplify:
+#   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
+# instead keep 3 separate alternatives, like in the grammar
+# Similar for star_targets_tuple_seq
 
 
 def main():
     args = argparser.parse_args()
 
     # Get all the top-level rule names, and the files we're updating
+    # "top-level" means a rule that the docs explicitly ask for in
+    # a `grammar-snippet` directive. Anything that references a top-level
+    # rule should link to it.
 
     files_with_grammar = set()
     # Maps the name of a top-level rule to the path of the file it's in
@@ -70,16 +142,18 @@ def main():
         with path.open(encoding='utf-8') as file:
             original_lines = []
             new_lines = []
-            blocks_to_ignore = 0
+            ignoring = False
             for line in file:
                 original_lines.append(line)
-                if blocks_to_ignore:
-                    if not line.strip() and blocks_to_ignore > 0:
-                        blocks_to_ignore -= 1
-                else:
+                if ignoring:
+                    is_indented = (not line.strip()
+                                   or line.startswith((' ', '\t')))
+                    if not is_indented:
+                        ignoring = False
+                if not ignoring:
                     new_lines.append(line)
                 if match := HEADER_RE.fullmatch(line):
-                    blocks_to_ignore = 2
+                    ignoring = True
                     new_lines.append('   :group: python-grammar\n')
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
@@ -131,6 +205,9 @@ class Node:
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + self.format()
 
+    def format_lines(self, columns):
+        yield self.format()
+
 
 @dataclass(frozen=True)
 class Container(Node):
@@ -141,7 +218,7 @@ class Container(Node):
         yield from self.items
 
     def simplify_item(self, item):
-        return item.simplify()
+        return simplify_node(item)
 
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
@@ -171,11 +248,18 @@ class Choice(Container):
         for item in self:
             item = self.simplify_item(item)
             match item:
+                case None:
+                    pass
                 case Container([]):
                     is_optional = True
                     # ignore the item
+                case Optional(x):
+                    is_optional = True
+                    alternatives.append([x])
                 case Sequence(elements):
                     alternatives.append(elements)
+                case Choice(sub_alts):
+                    alternatives.extend([a] for a in sub_alts)
                 case _:
                     alternatives.append([item])
         assert all(isinstance(item, list) for item in alternatives)
@@ -200,7 +284,6 @@ class Choice(Container):
             index += num_processed
         alternatives = new_alts
 
-
         def wrap(node):
             if is_optional:
                 return Optional(node)
@@ -211,33 +294,51 @@ class Choice(Container):
             return wrap(Sequence(alternatives[0]))
         if not alternatives:
             return Sequence([])
-        first_alt = alternatives[0]
-        if all(alt[0] == first_alt[0] for alt in alternatives[1:]):
-            return wrap(Sequence([
-                first_alt[0],
-                Choice([
-                    Sequence(alt[1:]) for alt in alternatives
-                ]),
-            ]))
-        if all(alt[-1] == first_alt[-1] for alt in alternatives[1:]):
-            return wrap(Sequence([
-                Choice([
-                    Sequence(alt[:-1]) for alt in alternatives
-                ]),
-                first_alt[-1],
-            ]))
 
         return wrap(self_type(
-            [Sequence(alt).simplify() for alt in alternatives]
+            [simplify_node(Sequence(alt)) for alt in alternatives]
         ))
 
     def simplify_item(self, item):
         match item:
             case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
-                return Sequence([])
+                return None
         return super().simplify_item(item)
 
     def simplify_subsequence(self, tail):
+        if len(tail) >= 2:
+            # If two or more adjacent alternatives start or end with the
+            # same item, we pull that item out, and replace the alternatives
+            # with a sequence of
+            # [common item, Choice of the remainders of the alts].
+            first_alt = tail[0]
+            # We do this for both the start and the end; for that we need the
+            # index of the candidate item (0 or -1) and the slice to get the
+            # rest of the items.
+            for index, rest_slice in (
+                    (0, slice(1, None)),
+                    (-1, slice(None, -1)),
+                ):
+                num_alts_with_common_item = 1
+                for alt in tail[1:]:
+                    if alt[index] != first_alt[index]:
+                        break
+                    num_alts_with_common_item += 1
+                if num_alts_with_common_item > 1:
+                    common_item = first_alt[index]
+                    remaining_choice = Choice([
+                        Sequence(alt[rest_slice])
+                        for alt in tail[:num_alts_with_common_item]
+                    ])
+                    if index == 0:
+                        result = [
+                            [common_item, remaining_choice],
+                        ]
+                    else:
+                        result = [
+                            [remaining_choice, common_item],
+                        ]
+                    return result, num_alts_with_common_item
 
         match tail[:2]:
             case [
@@ -245,14 +346,21 @@ class Choice(Container):
                 [Gather(_, x1), Optional()] as result,
             ] if x == x1:
                 return [result], 2
-            case [
-                [*h1, common_last_node1],
-                [*h2, common_last_node2],
-            ] if common_last_node1 == common_last_node2:
-                result = [[Choice([Sequence(h1), Sequence(h2)]), common_last_node1]], 2
-                return result
 
         return [tail[0]], 1
+
+    def _format_lines(self, columns):
+        simple = self.format()
+        if len(simple) <= columns:
+            yield simple
+        else:
+            yield ''
+            for choice in self:
+                for num, line in enumerate(choice.format_lines(columns - 2)):
+                    if num == 0:
+                        yield '| ' + line
+                    else:
+                        yield '  ' + line
 
 @dataclass(frozen=True)
 class Sequence(Container):
@@ -312,6 +420,27 @@ class Sequence(Container):
             for item in self
         )
 
+    def _format_lines(self, columns):
+        simple = self.format()
+        if len(simple) <= columns:
+            yield simple
+        else:
+            line_so_far = ''
+            for item in self:
+                simple_item = item.format()
+                if len(line_so_far) + len(simple_item) < columns:
+                    line_so_far += ' ' + simple_item
+                else:
+                    yield line_so_far
+                    line_so_far = ''
+                    if len(simple_item) > columns:
+                        for line in item.format_lines(columns):
+                            yield line
+                    else:
+                        line_so_far = simple_item
+            if line_so_far:
+                yield line_so_far
+
 @dataclass(frozen=True)
 class Decorator(Node):
     """Node with exactly one child"""
@@ -326,10 +455,12 @@ class Decorator(Node):
 
     def simplify(self):
         self_type = type(self)
-        item = self.item.simplify()
+        item = simplify_node(self.item)
         match item:
             case Sequence([x]):
                 item = x
+            case Sequence([]):
+                return Sequence([])
         return self_type(item)
 
     def inlined(self, replaced_name, replacement):
@@ -350,6 +481,8 @@ class Optional(Decorator):
                 return Sequence([Optional(x), Optional(y1)])
             case OneOrMore(x):
                 return ZeroOrMore(x)
+            case Optional(x):
+                return self.item
         return super().simplify()
 
 
@@ -381,7 +514,7 @@ class Gather(Node):
 
     def simplify(self):
         self_type = type(self)
-        return self_type(self.separator.simplify(), self.item.simplify())
+        return self_type(simplify_node(self.separator), simplify_node(self.item))
 
     def format(self):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
@@ -513,14 +646,29 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         old_ruleset = ruleset
         ruleset = simplify_ruleset(ruleset, requested_rule_names)
 
+    longest_name = max(ruleset, key=len)
+    available_space = 80 - len(longest_name) - len(' ::=  ')
+
     # Yield all the lines
     for name, node in ruleset.items():
         if debug:
             # To compare with pegen's stringification:
-            yield f'{name} (from pegen): {pegen_rules[name]}'
+            yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
-        yield f'{name}: {node.format()}'
+        for num, line in enumerate(node.format_lines(available_space)):
+            if num == 0:
+                yield f'{name}: {line}'.rstrip()
+            else:
+                yield f'  : {line}'.rstrip()
+        # rhs_line = node.format()
+        # if isinstance(node, Choice) and len(rhs_line) > 40:
+        #     # Present each alternative on its own line
+        #     yield f'{name}:'
+        #     for alt in node:
+        #         yield f'  : | {alt.format()}'
+        # else:
+        #     yield f'{name}: {node.format()}'
         if debug:
             yield from node.dump_tree()
 
@@ -530,6 +678,14 @@ def simplify_node(node):
     while node != last_node:
         last_node = node
         node = node.simplify()
+        # nifty debug output:
+            # debug('simplified', last_node.format(), '->', node.format())
+            # debug('from:')
+            # for line in last_node.dump_tree():
+            #     debug(line)
+            # debug('to:')
+            # for line in node.dump_tree():
+            #     debug(line)
     return node
 
 

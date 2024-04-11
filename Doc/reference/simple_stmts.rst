@@ -5,6 +5,12 @@
 Simple statements
 *****************
 
+.. grammar-snippet:: statement
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   statement: `compound_stmt` | ';'.`simple_stmt`+ [';'] NEWLINE
+
 .. index:: pair: simple; statement
 
 .. note:: The grammar uses a combination of EBNF and PEG described in detail at :ref:`notation`
@@ -14,25 +20,11 @@ A simple statement is comprised within a single logical line. Several simple
 statements may occur on a single line separated by semicolons.  The syntax for
 simple statements is:
 
-.. productionlist:: python-grammar
-   simple_stmt: `expression_stmt`
-              : | `assert_stmt`
-              : | `assignment_stmt`
-              : | `augmented_assignment_stmt`
-              : | `annotated_assignment_stmt`
-              : | `pass_stmt`
-              : | `del_stmt`
-              : | `return_stmt`
-              : | `yield_stmt`
-              : | `raise_stmt`
-              : | `break_stmt`
-              : | `continue_stmt`
-              : | `import_stmt`
-              : | `future_stmt`
-              : | `global_stmt`
-              : | `nonlocal_stmt`
-              : | `type_stmt`
+.. grammar-snippet:: simple_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
 
+   simple_stmt: `assignment` | `type_alias` | `star_expressions` | `return_stmt` | `import_stmt` | `raise_stmt` | 'pass' | `del_stmt` | `yield_stmt` | `assert_stmt` | 'break' | 'continue' | `global_stmt` | `nonlocal_stmt`
 
 .. _exprstmts:
 
@@ -50,7 +42,13 @@ result; in Python, procedures return the value ``None``).  Other uses of
 expression statements are allowed and occasionally useful.  The syntax for an
 expression statement is:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: star_expressions
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   star_expressions: ','.('*' `bitwise_or` | `expression`)+ [',']
+
+.. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
 
 An expression statement evaluates the expression list (which may be a single
@@ -86,7 +84,31 @@ Assignment statements
 Assignment statements are used to (re)bind names to values and to modify
 attributes or items of mutable objects:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: assignment single_target annotated_rhs
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   assignment: (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`] | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
+   single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
+   annotated_rhs: `yield_expr` | `star_expressions`
+
+.. grammar-snippet:: star_targets star_target star_atom star_targets_tuple_seq
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   star_targets: ','.`star_target`+ [',']
+   star_target: '*' `star_target` | `target_with_star_atom`
+   star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
+   star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
+   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') | `star_atom`
+
+.. grammar-snippet:: single_subscript_attribute_target
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']')
+
+.. productionlist:: python-grammar-old
    assignment_stmt: (`target_list` "=")+ (`starred_expression` | `yield_expression`)
    target_list: `target` ("," `target`)* [","]
    target: `identifier`
@@ -282,7 +304,13 @@ Augmented assignment statements
 Augmented assignment is the combination, in a single statement, of a binary
 operation and an assignment statement:
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: augassign
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   augassign: '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='
+
+.. productionlist:: python-grammar-old
    augmented_assignment_stmt: `augtarget` `augop` (`expression_list` | `yield_expression`)
    augtarget: `identifier` | `attributeref` | `subscription` | `slicing`
    augop: "+=" | "-=" | "*=" | "@=" | "/=" | "//=" | "%=" | "**="
@@ -387,8 +415,11 @@ The :keyword:`!assert` statement
 Assert statements are a convenient way to insert debugging assertions into a
 program:
 
-.. productionlist:: python-grammar
-   assert_stmt: "assert" `expression` ["," `expression`]
+.. grammar-snippet:: assert_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   assert_stmt: 'assert' `expression` [',' `expression`]
 
 The simple form, ``assert expression``, is equivalent to ::
 
@@ -453,9 +484,9 @@ The :keyword:`!del` statement
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   del_stmt: ['del' `del_targets`]
+   del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
-   del_target: `t_primary` '.' NAME | `t_primary` '[' `slices` ']' | NAME | '(' (`del_target` | [`del_targets`]) ')' | '[' [`del_targets`] ']'
+   del_target: `t_primary` ('.' NAME | '[' `slices` ']') | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
@@ -493,8 +524,11 @@ The :keyword:`!return` statement
    pair: function; definition
    pair: class; definition
 
-.. productionlist:: python-grammar
-   return_stmt: "return" [`expression_list`]
+.. grammar-snippet:: return_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   return_stmt: 'return' [`star_expressions`]
 
 :keyword:`return` may only occur syntactically nested in a function definition,
 not within a nested class definition.
@@ -532,8 +566,11 @@ The :keyword:`!yield` statement
    single: function; generator
    pair: exception; StopIteration
 
-.. productionlist:: python-grammar
-   yield_stmt: `yield_expression`
+.. grammar-snippet:: yield_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   yield_stmt: `yield_expr`
 
 A :keyword:`yield` statement is semantically equivalent to a :ref:`yield
 expression <yieldexpr>`. The yield statement can be used to omit the parentheses
@@ -567,8 +604,11 @@ The :keyword:`!raise` statement
    pair: raising; exception
    single: __traceback__ (exception attribute)
 
-.. productionlist:: python-grammar
-   raise_stmt: "raise" [`expression` ["from" `expression`]]
+.. grammar-snippet:: raise_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   raise_stmt: 'raise' [`expression` ['from' `expression`]]
 
 If no expressions are present, :keyword:`raise` re-raises the
 exception that is currently being handled, which is also known as the *active exception*.
@@ -755,7 +795,16 @@ The :keyword:`!import` statement
    pair: exception; ImportError
    single: , (comma); import statement
 
-.. productionlist:: python-grammar
+.. grammar-snippet:: import_stmt import_from_targets
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
+   import_from_targets: '(' `import_from_as_names` [','] ')' | `import_from_as_names` | '*'
+   import_from_as_names: ','.(NAME ['as' NAME])+
+   dotted_name: [`dotted_name` '.'] NAME
+
+.. productionlist:: python-grammar-old
    import_stmt: "import" `module` ["as" `identifier`] ("," `module` ["as" `identifier`])*
               : | "from" `relative_module` "import" `identifier` ["as" `identifier`]
               : ("," `identifier` ["as" `identifier`])*
@@ -967,8 +1016,11 @@ The :keyword:`!global` statement
    triple: global; name; binding
    single: , (comma); identifier list
 
-.. productionlist:: python-grammar
-   global_stmt: "global" `identifier` ("," `identifier`)*
+.. grammar-snippet:: global_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   global_stmt: 'global' ','.NAME+
 
 The :keyword:`global` statement is a declaration which holds for the entire
 current code block.  It means that the listed identifiers are to be interpreted
@@ -1012,8 +1064,11 @@ The :keyword:`!nonlocal` statement
 .. index:: pair: statement; nonlocal
    single: , (comma); identifier list
 
-.. productionlist:: python-grammar
-   nonlocal_stmt: "nonlocal" `identifier` ("," `identifier`)*
+.. grammar-snippet:: nonlocal_stmt
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   nonlocal_stmt: 'nonlocal' ','.NAME+
 
 The :keyword:`nonlocal` statement causes the listed identifiers to refer to
 previously bound variables in the nearest enclosing scope excluding globals.
@@ -1041,8 +1096,11 @@ The :keyword:`!type` statement
 
 .. index:: pair: statement; type
 
-.. productionlist:: python-grammar
-   type_stmt: 'type' `identifier` [`type_params`] "=" `expression`
+.. grammar-snippet:: type_alias
+   :group: python-grammar
+   :generated-by: Tools/peg_generator/docs_generator.py
+
+   type_alias: "type" NAME [`type_params`] '=' `expression`
 
 The :keyword:`!type` statement declares a type alias, which is an instance
 of :class:`typing.TypeAliasType`.
