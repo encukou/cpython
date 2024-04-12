@@ -170,6 +170,13 @@ def add_entries(entries, variant=None):
             definition.variants[variant] = location
             entry.definitions.append(definition)
 
+    def tokenizer():
+        while (line := (yield)) is not None:
+            print(line)
+
+    tokenizer = tokenizer()
+    tokenizer.send(None)
+
     def split_macro_def(content):
         match = re.fullmatch(
             r'([a-zA-Z0-9_-]*)(\([^)]*\))?(.*)',
@@ -216,10 +223,20 @@ def add_entries(entries, variant=None):
                             ))
                         else:
                             print(line)
+                else:
+                    tokenizer.send(line)
             except:
-                print('Line was:', line)
+                print('Line was:', repr(line), f'({filename}:{lineno})')
                 raise
             lineno += 1
+
+    try:
+        val = next(tokenizer)
+    except StopIteration:
+        pass
+    else:
+        raise Exception(val)
+    tokenizer.close()
 
     if gcc_proc.wait():
         raise Exception(f'gcc failed with return code {gcc_proc.returncode}')
