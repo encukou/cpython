@@ -1,11 +1,21 @@
-from dataclasses import dataclass, field
 from functools import lru_cache, total_ordering, cached_property
+from dataclasses import dataclass, field
+from collections import namedtuple
 from pathlib import Path
 import subprocess
 import sysconfig
+import string
 import shlex
+import token
 import ast
+import sys
 import re
+
+try:
+    import pegen
+except ModuleNotFoundError:
+    sys.path.append(str(Path(__file__).parent.parent.resolve() / 'peg_generator'))
+    import pegen
 
 # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
 CSI_RE = re.compile(r'\033\[[0-?]*[ -/]*[@-~]')
@@ -20,6 +30,29 @@ DIM = csi('[2m')
 RED = csi('[1;31m')
 CYAN = csi('[36m')
 RESET = csi('[m')
+
+C_TOKEN_RE = re.compile(r'''
+    # white
+      \s+
+    # identifier
+    | [_a-zA-Z]
+      [_a-zA-Z0-9]+
+    # number
+    | \.?
+      [0-9]+
+      ([a-zA-Z0-9_.] | [eEpP][+-])*
+    # string
+    | ["] ([^"] | \\["])+ ["]
+    | ['] ([^'] | \\['])+ [']
+    # punct
+    | [-][>] | [+][+] | [-][-] | [<][<] | [>][>] | [<][=] | [>][=] | [=][=]
+    | [!][=] | [&][&] | [|][|] | [*][=] | [/][=] | [%][=] | [+][=] | [-][=]
+    | [&][=] | [^][=] | [|][=] | [#][#]
+    | [.][.][.] | [<][<][=] | [>][>][=]
+    | [<][:] | [:][>] | [<][%] | [%][>] | [%][:] | [%][:][%][:]
+    # other
+    | .
+''', re.VERBOSE)
 
 getvar = sysconfig.get_config_var
 
@@ -123,6 +156,10 @@ class Entry:
     name: str
     definitions: list[Definition]
 
+class Token(namedtuple('_Tok', 'type string start end line')):
+    pass
+
+
 def add_entries(entries, variant=None):
     gcc_proc = subprocess.Popen(
         [
@@ -170,12 +207,33 @@ def add_entries(entries, variant=None):
             definition.variants[variant] = location
             entry.definitions.append(definition)
 
-    def tokenizer():
-        while (line := (yield)) is not None:
-            print(line)
-
-    tokenizer = tokenizer()
-    tokenizer.send(None)
+    def tokenize_line(line):
+        for token_match in C_TOKEN_RE.finditer(line):
+            token_text = token_match[0]
+            toktype = None
+            if token_text[0].isspace():
+                continue
+            elif token_text[0] in string.ascii_letters:
+                toktype = token.NAME
+            elif token_text[0] == '_':
+                toktype = token.NAME
+            elif token_text[0] in string.digits:
+                toktype = token.NUMBER
+            elif token_text[0] == '.':
+                toktype = token.NUMBER
+            elif token_text[0] in '\'\"':
+                toktype = token.STRING
+            else:
+                toktype = token.OP
+            tok = Token(
+                toktype,
+                token_text,
+                (lineno, token_match.start()),
+                (lineno, token_match.end()),
+                line,
+            )
+            tok.filename = filename
+            yield tok
 
     def split_macro_def(content):
         match = re.fullmatch(
@@ -189,22 +247,24 @@ def add_entries(entries, variant=None):
 
     filename = '<start>'
     lineno = 0
+    preproc_flags = set()
+    c_tokens = []
     with gcc_proc.stdout as gcc_stdout:
         for line in gcc_stdout:
             line = line.rstrip('\n')
             try:
                 if line.startswith('# '):
-                    marks = set()
+                    preproc_flags = set()
                     rest = line
                     while rest.endswith((' 0', ' 1', ' 2', ' 3', ' 4')):
-                        marks.add(int(rest[-1]))
+                        preproc_flags.add(int(rest[-1]))
                         rest = rest[:-2]
                     _hash, lineno, filename = rest.rsplit(None, 2)
                     filename = ast.literal_eval(filename)
                     lineno = int(lineno)
                     continue
                 if line.startswith('#'):
-                    if filename.startswith(('Include', '.')):
+                    if 3 not in preproc_flags and filename != '<built-in>':
                         #print(filename, lineno, line)
                         if line.startswith('#define'):
                             content = line[len('#define'):].strip()
@@ -224,38 +284,43 @@ def add_entries(entries, variant=None):
                         else:
                             print(line)
                 else:
-                    tokenizer.send(line)
+                    if 3 not in preproc_flags and filename != '<builtin>' and line.strip():
+                        c_tokens.extend(tokenize_line(line))
             except:
                 print('Line was:', repr(line), f'({filename}:{lineno})')
                 raise
             lineno += 1
 
-    try:
-        val = next(tokenizer)
-    except StopIteration:
-        pass
-    else:
-        raise Exception(val)
-    tokenizer.close()
+    c_tokens.append(Token(token.ENDMARKER, "", (0, 0), (0, 0), ""))
+
+    import cparser
+    from pegen.tokenizer import Tokenizer
+    tokenizer = Tokenizer(iter(c_tokens), verbose=False)
+    parser = cparser.GeneratedParser(tokenizer, verbose=True)
+    tree = parser.start()
+    if not tree:
+        raise parser.make_syntax_error('Include.h')
 
     if gcc_proc.wait():
         raise Exception(f'gcc failed with return code {gcc_proc.returncode}')
 
+    return tree
+
 entries = {}
-add_entries(entries, Variant(None))
-add_entries(entries, Variant(3))
-add_entries(entries, Variant(0x03020000))
-add_entries(entries, Variant(0x03030000))
-add_entries(entries, Variant(0x03040000))
-add_entries(entries, Variant(0x03050000))
-add_entries(entries, Variant(0x03060000))
-add_entries(entries, Variant(0x03070000))
-add_entries(entries, Variant(0x03080000))
-add_entries(entries, Variant(0x03090000))
-add_entries(entries, Variant(0x030a0000))
-add_entries(entries, Variant(0x030b0000))
-add_entries(entries, Variant(0x030c0000))
-add_entries(entries, Variant(0x030d0000))
+# add_entries(entries, Variant(None))
+tree = add_entries(entries, Variant(3))
+# add_entries(entries, Variant(0x03020000))
+# add_entries(entries, Variant(0x03030000))
+# add_entries(entries, Variant(0x03040000))
+# add_entries(entries, Variant(0x03050000))
+# add_entries(entries, Variant(0x03060000))
+# add_entries(entries, Variant(0x03070000))
+# add_entries(entries, Variant(0x03080000))
+# add_entries(entries, Variant(0x03090000))
+# add_entries(entries, Variant(0x030a0000))
+# add_entries(entries, Variant(0x030b0000))
+# add_entries(entries, Variant(0x030c0000))
+# add_entries(entries, Variant(0x030d0000))
 
 @lru_cache
 def format_variant_range(variants):
@@ -286,3 +351,5 @@ for entry in entries.values():
         print(' ' * 3, definition.colorized)
         for location, variants in loc_to_var.items():
             print(' ' * 7, format_variant_range(frozenset(variants)), location)
+
+print(tree)
