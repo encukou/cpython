@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from functools import lru_cache, total_ordering, cached_property
 from pathlib import Path
 import subprocess
 import sysconfig
@@ -44,6 +45,8 @@ class Location:
     def __str__(self):
         return f'{self.filename}:{self.lineno}'
 
+@lru_cache
+@total_ordering
 @dataclass(frozen=True)
 class Variant:
     limited_api: str
@@ -54,20 +57,36 @@ class Variant:
         else:
             return [f'-DPy_LIMITED_API={hex(self.limited_api)}']
 
-    def __repr__(self):
+    def __str__(self):
         if self.limited_api:
             if self.limited_api == 3:
-                return f'<{3}>'
+                return f'L3'
             else:
                 major = (self.limited_api & 0xFF000000) >> 24
                 minor = (self.limited_api & 0x00FF0000) >> 16
                 rest = self.limited_api & ~0xFFFF0000
                 if not rest:
-                    return f'<{major}.{minor}>'
+                    return f'L{major}.{minor}'
                 else:
-                    return f'<{self.limited_api:x}>'
+                    return f'L{self.limited_api:x}'
         else:
-            return '<cpy>'
+            return 'cpy'
+
+    def __lt__(self, other):
+        return (self.limited_api or 0) < (other.limited_api or 0)
+
+    @cached_property
+    def next(self):
+        if self.limited_api == 3:
+            return Variant(limited_api=0x03020000)
+        elif self.limited_api:
+            major = (self.limited_api & 0xFF000000) >> 24
+            minor = (self.limited_api & 0x00FF0000) >> 16
+            rest = self.limited_api & ~0xFFFF0000
+            return Variant(limited_api=(major << 24) | ((minor+1) << 16) | rest)
+
+    def __repr__(self):
+        return f'<{self}>'
 
 @dataclass
 class Definition:
@@ -86,7 +105,6 @@ class Definition:
 
 @dataclass
 class MacroDef(Definition):
-    kind = 'define'
     body: str = ''
 
     @property
@@ -95,8 +113,6 @@ class MacroDef(Definition):
 
 @dataclass
 class MacroUndef(Definition):
-    kind = 'undef'
-
     @property
     def colorized(self):
         return f'#undef {DIM}{self.name}{RESET}{self.args or ''}'
@@ -136,18 +152,27 @@ def add_entries(entries, variant=None):
             lineno=lineno,
         )
         entry = get_entry(definition.name)
+        # Find the oldest definition that
+        # - has the same content (__eq__)
+        # - doesn't include this variant yet
+        # - isn't followed by another definition of this variant (e.g. #undef)
+        # If there is one, only add a new variant/location to it.
+        # Otherwise, append this `definition` to our entry.
+        definition_to_join = None
         for old_definition in reversed(entry.definitions):
             if variant in old_definition.variants:
                 break
             if old_definition == definition:
-                old_definition.variants[variant] = location
-                return
-        definition.variants[variant] = location
-        entry.definitions.append(definition)
+                definition_to_join = old_definition
+        if definition_to_join:
+            definition_to_join.variants[variant] = location
+        else:
+            definition.variants[variant] = location
+            entry.definitions.append(definition)
 
     def split_macro_def(content):
         match = re.fullmatch(
-            r'([a-zA-Z0-9_-]*)\s*(\([^)]*\))?(.*)',
+            r'([a-zA-Z0-9_-]*)(\([^)]*\))?(.*)',
             content,
         )
         name = match[1]
@@ -215,6 +240,23 @@ add_entries(entries, Variant(0x030b0000))
 add_entries(entries, Variant(0x030c0000))
 add_entries(entries, Variant(0x030d0000))
 
+@lru_cache
+def format_variant_range(variants):
+    variants = sorted(variants)
+    results = []
+    for variant in variants:
+        if results and results[-1][-1].next == variant:
+            results[-1][-1] = variant
+        else:
+            results.append([variant, variant])
+    return '[' + ', '.join(
+        'L' if start == Variant(3) and stop == Variant(0x030d0000)
+        else f'{start}+' if stop == Variant(0x030d0000)
+        else f'{start}' if start == stop
+        else f'{start}-{stop}'
+        for start, stop in results
+    ) + ']'
+
 for entry in entries.values():
     color = CYAN
     if not entry.name.startswith(('Py', 'PY', '_Py', '_PY')):
@@ -224,6 +266,6 @@ for entry in entries.values():
         loc_to_var = {}
         for variant, location in definition.variants.items():
             loc_to_var.setdefault(location, []).append(variant)
-        print('   ', definition.colorized)
+        print(' ' * 3, definition.colorized)
         for location, variants in loc_to_var.items():
-            print('       ', variants, location)
+            print(' ' * 7, format_variant_range(frozenset(variants)), location)
