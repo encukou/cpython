@@ -11,12 +11,6 @@ import ast
 import sys
 import re
 
-try:
-    import pegen
-except ModuleNotFoundError:
-    sys.path.append(str(Path(__file__).parent.parent.resolve() / 'peg_generator'))
-    import pegen
-
 # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
 CSI_RE = re.compile(r'\033\[[0-?]*[ -/]*[@-~]')
 
@@ -157,7 +151,8 @@ class Entry:
     definitions: list[Definition]
 
 class Token(namedtuple('_Tok', 'type string start end line')):
-    pass
+    def __repr__(self):
+        return f'<{self.string!r}>'
 
 
 def add_entries(entries, variant=None):
@@ -228,8 +223,8 @@ def add_entries(entries, variant=None):
             tok = Token(
                 toktype,
                 token_text,
-                (lineno, token_match.start()),
-                (lineno, token_match.end()),
+                (lineno, token_match.start(), filename),
+                (lineno, token_match.end(), filename),
                 line,
             )
             tok.filename = filename
@@ -291,20 +286,222 @@ def add_entries(entries, variant=None):
                 raise
             lineno += 1
 
-    c_tokens.append(Token(token.ENDMARKER, "", (0, 0), (0, 0), ""))
-
-    import cparser
-    from pegen.tokenizer import Tokenizer
-    tokenizer = Tokenizer(iter(c_tokens), verbose=False)
-    parser = cparser.GeneratedParser(tokenizer, verbose=True)
-    tree = parser.start()
-    if not tree:
-        raise parser.make_syntax_error('Include.h')
+    tree = parse_translation_unit(Tokenizer(iter(c_tokens)))
 
     if gcc_proc.wait():
         raise Exception(f'gcc failed with return code {gcc_proc.returncode}')
 
     return tree
+
+
+_depth = 0
+def parsefunc(func):
+    def decorated(*args, **kwargs):
+        global _depth
+        print(f'{' ' * _depth}{func.__name__}(*{args}, **{kwargs})')
+        _depth += 1
+        try:
+            result = func(*args, **kwargs)
+        except BaseException as e:
+            result = repr(e)
+            raise
+        finally:
+            _depth -= 1
+            print(f'{' ' * _depth}{func.__name__}->{result}')
+        return result
+    return decorated
+
+
+@parsefunc
+def parse_translation_unit(tokenizer):
+    #   | external-declaration+
+    result = []
+    while True:
+        result.append(parse_external_declaration(tokenizer))
+        if tokenizer.peek(token.ENDMARKER):
+            break
+    return result
+
+@parsefunc
+def parse_external_declaration(tokenizer):
+    # external_declaration:
+    #   | function_definition
+    #   | declaration
+    # function_definition:
+    #   | declaration_specifiers declarator [declaration+] compound_statement
+    # declaration:
+    #   | declaration_specifiers [','.init-declarator+] ';'
+    #   | static_assert_declaration
+    # static_assert_declaration:
+    #   | '_Static_assert' '(' constant-expression ',' string-literal ')' ';'
+    if tokenizer.peek('_Static_assert'):
+        return parse_static_assert_declaration(tokenizer)
+    declaration_specifiers = parse_declaration_specifiers(tokenizer)
+    return ['ED', declaration_specifiers]
+
+@parsefunc
+def parse_function_definition(tokenizer):
+    return parse_any(tokenizer, one=True)
+
+@parsefunc
+def parse_declaration(tokenizer):
+    return parse_any(tokenizer, one=True)
+
+@parsefunc
+def parse_static_assert_declaration(tokenizer):
+    # static_assert_declaration:
+    #   | '_Static_assert' '(' constant-expression ',' string-literal ')' ';'
+    return parse_any(tokenizer, one=True)
+
+@parsefunc
+def parse_declaration_specifiers(tokenizer):
+    # declaration_specifiers:
+    #   | storage-class-specifier [declaration-specifiers]
+    #   | type-specifier [declaration-specifiers]
+    #   | type-qualifier [declaration-specifiers
+    #   | function-specifier [declaration-specifiers
+    #   | alignment-specifier [declaration-specifiers]
+    specifiers = []
+    while True:
+        # storage-class-specifier
+        if tok := tokenizer.try_eat(
+            ('typedef', 'extern', 'static', '_Thread_local', 'auto', 'register')
+        ):
+            specifiers.append(tok.string)
+        # type-specifier
+        elif tok := tokenizer.try_eat(
+            ('void', 'char', 'short', 'int', 'long', 'float', 'double', 'signed',
+            'unsigned', '_Bool', '_Complex') # atomic; struct-or-union; enum; typedef-name
+        ):
+            specifiers.append(tok.string)
+        elif tok := tokenizer.try_eat('_Atomic'):
+            tokenizer.expect('(')
+            specifiers.append((tok.string, parse_any(tokenizer)))
+        elif tok := tokenizer.try_eat(('struct', 'union', 'enum')):
+            ident = tokenizer.try_eat(token.STRING)
+            if tokenizer.peek('{'):
+                if toke.string == 'enum':
+                    sdl = parse_enumerator_list(tokenizer)
+                else:
+                    sdl = parse_struct_declaration_list(tokenizer)
+            else:
+                sdl = None
+            if ident is None and sdl is None:
+                tokenizer._raise()
+            specifiers.append([tok.string, ident, sdl])
+        elif tok := tokenizer.try_eat(token.NAME):
+            specifiers.append(['(typedef)', tok.string])
+        else:
+            if not specifiers:
+                tokenizer._raise()
+            break
+    return specifiers
+
+@parsefunc
+def parse_struct_declaration_list(tokenizer):
+    return parse_any(tokenizer, one=True)
+
+@parsefunc
+def parse_enumerator_list(tokenizer):
+    return parse_any(tokenizer, one=True)
+
+@parsefunc
+def parse_any(tokenizer, one=False):
+    result = []
+    while True:
+        if tokenizer.try_eat('('):
+            result.append(['(', *parse_any(tokenizer), ')'])
+            tokenizer.eat(')')
+            continue
+        if tokenizer.try_eat('['):
+            result.append(['[', *parse_any(tokenizer), ']'])
+            tokenizer.eat(']')
+            continue
+        if tok := tokenizer.try_eat('{'):
+            result.append(['{', *parse_any(tokenizer), '}'])
+            if not tokenizer.peek('}'):
+                tokenizer._raise('unclosed {', bad_token=tok)
+            tokenizer.eat('}')
+            continue
+        if tokenizer.peek(')'):
+            break
+        if tokenizer.peek(']'):
+            break
+        if tokenizer.peek('}'):
+            break
+        if tokenizer.peek(token.ENDMARKER):
+            break
+        if one and (semi := tokenizer.try_eat(';')):
+            result.append(semi)
+            break
+        result.append(tokenizer.eat(None))
+    return result
+
+class Tokenizer:
+    def __init__(self, tokens):
+        self._tokens = iter(tokens)
+        self._current_token = None
+        self._advance()
+
+    def try_eat(self, s):
+        tok = self._current_token
+        if self._match(tok, s):
+            self._advance()
+            return tok
+        return None
+
+    def peek(self, s):
+        tok = self._current_token
+        if self._match(tok, s):
+            return tok
+        return None
+
+    def eat(self, s):
+        tok = self._current_token
+        if not self._match(tok, s):
+            self._raise(f'expected {s!r}')
+        return tok
+
+    def _match(self, tok, s):
+        if isinstance(s, tuple):
+            return any(self._match(tok, x) for x in s)
+        if s is None or tok.type == s or tok.string == s:
+            return True
+        return False
+
+    def _advance(self):
+        prev = self._current_token
+        try:
+            self._current_token = next(self._tokens)
+        except StopIteration:
+            self._current_token = Token(token.ENDMARKER, "", (0, 0, ""), (0, 0, ""), "")
+        return
+        if (
+            prev is None
+            or prev.start[0] != self._current_token.start[0]
+            or prev.start[-1] != self._current_token.start[-1]
+        ):
+            print('L', self._current_token.line)
+        return
+        print('A', self._current_token)
+
+    def _raise(self, msg=None, bad_token=None):
+        if bad_token is None:
+            bad_token = self._current_token
+        if msg is None:
+            msg = f'unexpected {bad_token.string!r}'
+        raise SyntaxError(
+            msg,
+            (
+                bad_token.filename,
+                bad_token.start[0],
+                1 + bad_token.start[1],
+                bad_token.line,
+            )
+        )
+
+    def __repr__(self):
+        return f'Tokenizer<{self._current_token}>'
 
 entries = {}
 # add_entries(entries, Variant(None))
