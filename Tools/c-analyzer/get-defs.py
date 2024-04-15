@@ -1,6 +1,7 @@
 from functools import lru_cache, total_ordering, cached_property
+from collections import namedtuple, ChainMap
 from dataclasses import dataclass, field
-from collections import namedtuple
+from contextlib import contextmanager
 from pathlib import Path
 import subprocess
 import sysconfig
@@ -150,7 +151,35 @@ C_TOKEN_RE = re.compile(r'''
     | .
 ''', re.VERBOSE)
 
+
+STORAGE_CLASS_KEYWORDS = frozenset({
+    'typedef', 'extern', 'static', '_Thread_local', 'auto', 'register',
+})
+TYPE_SPEC_KEYWORDS = frozenset({
+    'void', 'char', 'short', 'int', 'long', 'float', 'double', 'signed',
+    'unsigned', '_Bool', '_Complex',
+    '_Atomic', 'struct', 'union', 'enum',
+    '__attribute__',
+})
+TYPE_QUAL_KEYWORDS = frozenset({'const', 'restrict', 'volatile', '_Atomic'})
+FUNC_SPEC_KEYWORDS = frozenset({'inline', '_Noreturn',})
+STATEMENT_KEYWORDS = frozenset({
+    'break', 'case', 'continue', 'default', 'do', 'else', 'for', 'goto',
+    'if', 'return', 'switch', 'while', '_Static_assert',
+})
+EXPRESSION_KEYWORDS = frozenset({
+    '_Alignas', '_Alignof', '_Imaginary', '_Generic', 'sizeof',
+})
+DECLSPEC_KEYWORDS = (
+    STORAGE_CLASS_KEYWORDS | TYPE_SPEC_KEYWORDS | TYPE_QUAL_KEYWORDS
+    | FUNC_SPEC_KEYWORDS
+)
+KEYWORDS = (
+    DECLSPEC_KEYWORDS | STATEMENT_KEYWORDS | EXPRESSION_KEYWORDS
+)
+
 class TokenType(enum.Enum):
+    KEYWORD = 'K'
     NAME = 'n'
     NUMBER = '#'
     STRING = '"'
@@ -160,7 +189,7 @@ class TokenType(enum.Enum):
 
 class Token(namedtuple('_Tok', 'type string start end line')):
     def __repr__(self):
-        return f'<{self.string!r}>'
+        return f'<{self.type.value}{self.string!r}>'
 
 
 def add_entries(entries, variant=None):
@@ -216,10 +245,11 @@ def add_entries(entries, variant=None):
             toktype = None
             if token_text[0].isspace():
                 continue
-            elif token_text[0] in string.ascii_letters:
-                toktype = TokenType.NAME
-            elif token_text[0] == '_':
-                toktype = TokenType.NAME
+            elif token_text[0] in string.ascii_letters + '_':
+                if token_text in KEYWORDS:
+                    toktype = TokenType.KEYWORD
+                else:
+                    toktype = TokenType.NAME
             elif token_text[0] in string.digits:
                 toktype = TokenType.NUMBER
             elif token_text[0] == '.':
@@ -294,7 +324,7 @@ def add_entries(entries, variant=None):
                 raise
             lineno += 1
 
-    tree = Parser(c_tokens).parse_translation_unit()
+    tree = Parser(c_tokens).parse_block()
 
     if gcc_proc.wait():
         raise Exception(f'gcc failed with return code {gcc_proc.returncode}')
@@ -305,20 +335,100 @@ def add_entries(entries, variant=None):
 @dataclass
 class TypedefName:
     name: str
-    definition: object
+    definition: object = None
 
+
+@dataclass
+class Attribute:
+    content: object
+
+
+@dataclass
+class Alignas:
+    content: object
+
+
+@dataclass
+class Pointer:
+    spec_qual: object
+    inner: object
+
+
+@dataclass
+class Declaration:
+    storage_classes: list
+    type_specs: list
+    type_quals: list
+    func_specs: list
+    alignment_specs: list
+    declarators: list
+
+@dataclass
+class Declarator:
+    content: object
+
+    @cached_property
+    def identifier(self):
+        match self.content:
+            case Declaration(ident):
+                return ident
+            case _ as ident_token:
+                return ident_token.string
+
+
+@dataclass
+class Func:
+    declaration: Declaration
+    params: object
+
+@dataclass
+class StructType:
+    tag: str
+    contents: object
+
+@dataclass
+class Stuff:
+    contents: list
+
+    @cached_property
+    def string(self):
+        return self.opening + ' '.join(x.string for x in self.contents) + self.closing
+
+    def __str__(self):
+        return self.string
+
+    def __repr__(self):
+        return f'{type(self).__name__}<{self}>'
+
+class ParenthesizedStuff(Stuff):
+    opening = '('
+    closing = ')'
+
+class BracketedStuff(Stuff):
+    opening = '['
+    closing = ']'
+
+class BracedStuff(Stuff):
+    opening = '{'
+    closing = '}'
+
+class SemicolonStuff(Stuff):
+    opening = ''
+    closing = ';'
+
+Stuff.DELIMITED_CLASSES = ParenthesizedStuff, BracketedStuff, BracedStuff
 
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens, underscore_t_is_types=True):
+        self._underscore_t_is_types = underscore_t_is_types
         self._tokens = iter(tokens)
         self._current_token = None
         self._advance()
-        self.main_namespace = {
-            'uintptr_t': TypedefName('uintptr_t', 'unsigned int*'),
-        }
+        self.main_namespace = ChainMap({})
 
     def _advance(self):
         prev = self._current_token
+        #print(prev); import traceback; traceback.print_stack()
         try:
             self._current_token = next(self._tokens)
         except StopIteration:
@@ -341,6 +451,12 @@ class Parser:
             return tok
         return None
 
+    def expect(self, *want):
+        tok = self._current_token
+        if not self._match(tok, *want):
+            self.throw(f'expected {self._format_want(want)}')
+        return tok
+
     def try_eat(self, *want):
         tok = self._current_token
         if self._match(tok, *want):
@@ -349,9 +465,8 @@ class Parser:
         return None
 
     def eat(self, *want):
-        tok = self._current_token
-        if not self._match(tok, *want):
-            self.throw(f'expected {self._format_want(want)}')
+        tok = self.expect(*want)
+        self._advance()
         return tok
 
     def _format_want(self, want):
@@ -366,7 +481,7 @@ class Parser:
 
     def _match(self, tok, *want):
         for item in want:
-            if want is None or tok.type == item or tok.string == item:
+            if item is None or tok.type == item or tok.string == item:
                 return True
         #print(tok, '!=~', self._format_want(want))
         return False
@@ -385,6 +500,15 @@ class Parser:
                 bad_token.line,
             )
         )
+
+    @contextmanager
+    def scope(self):
+        old = self.main_namespace
+        self.main_namespace = old.new_child()
+        try:
+            yield
+        finally:
+            self.main_namespace = old
 
     _depth = 0
     def parsefunc(func):
@@ -405,179 +529,194 @@ class Parser:
 
 
     @parsefunc
-    def parse_translation_unit(self):
-        #   | external-declaration+
+    def parse_block(self, end=TokenType.ENDMARKER):
+        # In C there should be at least one external declaration. But allowing
+        # an empty file is a common extension even in real compilers.
+        # Let's do that.
+        # Also: we'll allow statements at the top level, and func definitions
+        # inside functions. Correct code shouldn't do that.
         result = []
-        while True:
-            result.append(self.parse_external_declaration())
-            if self.peek(TokenType.ENDMARKER):
-                break
+        with self.scope():
+            while not self.try_eat(end):
+                item = self.parse_block_item()
+                result.append(item)
+                if isinstance(item, Declaration) and 'typedef' in item.storage_classes:
+                    for declarator in item.declarators:
+                        ident = declarator.identifier
+                        self.main_namespace[ident] = TypedefName(ident, item)
+                print(';;'.join(self.main_namespace))
         return result
 
     @parsefunc
-    def parse_external_declaration(self):
-        # external_declaration:
-        #   | function_definition
-        #   | declaration
-        # function_definition:
-        #   | declaration_specifiers declarator [declaration+] compound_statement
-        #       (but we omit the old-style [declaration+])
-        # declaration:
-        #   | declaration_specifiers [','.init-declarator+] ';'
-        #   | static_assert_declaration
-        # static_assert_declaration:
-        #   | '_Static_assert' '(' constant-expression ',' string-literal ')' ';'
-        if self.peek('_Static_assert'):
-            return self.parse_static_assert_declaration()
-        declaration_specifiers = self.parse_declaration_specifiers()
-        declarator = self.parse_init_declarator()
-        if self.peek('{'):
-            body = self.parse_compound_statement()
-            return ['FD', declaration_specifiers, declarator, body]
-        else:
-            declarators = [declarator]
-            while self.peek(','):
-                declarators.append(self.parse_init_declarator())
-            self.eat(';')
-            return ['ED', declaration_specifiers, declarators]
-
-    @parsefunc
-    def parse_function_definition(self):
-        return self.parse_any(one=True)
-
-    @parsefunc
-    def parse_init_declarator(self):
-        declarator = self.parse_declarator()
-        if self.try_eat('='):
-            init = self.parse_initializer()
-            return [declarator, init]
-        return declarator
-
-    @parsefunc
-    def parse_static_assert_declaration(self):
-        # static_assert_declaration:
-        #   | '_Static_assert' '(' constant-expression ',' string-literal ')' ';'
-        return self.parse_any(one=True)
-
-    @parsefunc
-    def parse_declaration_specifiers(self):
-        # declaration_specifiers:
-        #   | storage-class-specifier [declaration-specifiers]
-        #   | type-specifier [declaration-specifiers]
-        #   | type-qualifier [declaration-specifiers
-        #   | function-specifier [declaration-specifiers]
-        #   | alignment-specifier [declaration-specifiers]
-        specifiers = []
-        while True:
-            # storage-class-specifier
-            if tok := self.try_eat(
-                'typedef', 'extern', 'static', '_Thread_local',
-                'auto', 'register'
-            ):
-                specifiers.append(tok.string)
-            # type-specifier
-            elif tok := self.try_eat(
-                'void', 'char', 'short', 'int', 'long', 'float', 'double',
-                'signed', 'unsigned', '_Bool', '_Complex'
-                # atomic; struct-or-union; enum; typedef-name
-            ):
-                specifiers.append(tok.string)
-            elif tok := self.try_eat('_Atomic'):
-                self.expect('(')
-                specifiers.append((tok.string, self.parse_any()))
-            elif tok := self.try_eat('struct', 'union', 'enum'):
-                ident = self.try_eat(TokenType.STRING)
-                if self.peek('{'):
-                    if toke.string == 'enum':
-                        sdl = self.parse_enumerator_list()
-                    else:
-                        sdl = self.parse_struct_declaration_list()
-                else:
-                    sdl = None
-                if ident is None and sdl is None:
-                    self.throw()
-                specifiers.append([tok.string, ident, sdl])
-            elif (
-                (tok := self.peek(TokenType.NAME))
-                and isinstance(
-                    (td := self.main_namespace.get(tok.string)),
-                    TypedefName,
-                )
-            ):
-                self.eat(TokenType.NAME)
-                specifiers.append(td)
-            # type-qualifier
-            elif tok := self.try_eat(
-                'const', 'restrict', 'volatile', '_Atomic',
-            ):
-                specifiers.append(tok.string)
-            # function-specifier
-            elif tok := self.try_eat(
-                'inline', '_Noreturn',
-            ):
-                specifiers.append(tok.string)
-            # alignment-specifier
-            #   | '_Alignas' ( type-name )
-            #   | '_Alignas' ( constant-expression )
-            elif tok := self.try_eat('_Alignas'):
-                self.expect('(')
-                specifiers.append((tok.string, self.parse_any()))
+    def parse_block_item(self):
+        # STATEMENTS
+        # - Labeled stmt: identifier ':', 'case', 'default'
+        # - Compount stmt: '{'
+        # - Expression stmt: anything else
+        # - Null stmt: ';'
+        # - Selecion stmt: 'if', 'switch'
+        # - Iteration stmt: 'while', 'do', 'for'
+        # - Jump: 'goto', 'continue', 'break', 'return'
+        # DECLARATIONS
+        # - declspec keyword
+        # - identifier (typedef name)
+        if tok := self.try_eat(TokenType.NAME):
+            if self.try_eat(':'):
+                statement = self.parse_block_item()
+                statement.labels.add(tok.string)
+                return statement
             else:
-                if not specifiers:
-                    self.throw()
+                return self.parse_declaration(initial_name=tok)
+        elif self.peek(*DECLSPEC_KEYWORDS):
+            return self.parse_declaration()
+        elif self.peek(*STATEMENT_KEYWORDS):
+            return self.parse_stuff(SemicolonStuff)
+        else:
+            self.throw()
+
+    @parsefunc
+    def parse_declaration(self, initial_name=None):
+        result = Declaration(
+            storage_classes=[],
+            type_specs=[],
+            type_quals=[],
+            func_specs=[],
+            alignment_specs=[],
+            declarators=[],
+        )
+        if initial_name:
+            result.type_specs.append(TypedefName(initial_name.string))
+        while True:
+            if tok := self.try_eat(*STORAGE_CLASS_KEYWORDS):
+                # There may be at most one of these -- with one exception, so
+                # let's just make this a list.
+                # Note that 'typedef' is grouped here for convenience.
+                result.storage_classes.append(tok.string)
+            elif tok := self.try_eat('struct', 'union', 'enum'):
+                tag = None
+                decllist = None
+                if tagtok := self.try_eat(TokenType.NAME):
+                    tag = tagtok.string
+                if self.peek('{'):
+                    # will be different for struct/union and enum
+                    decllist = self.parse_stuff(BracedStuff)
+                if tok.string == 'struct':
+                    result.type_specs.append(StructType(tag, decllist))
+                elif tok.string == 'union':
+                    result.type_specs.append(UnionType(tag, decllist))
+                elif tok.string == 'enum':
+                    result.type_specs.append(EnumType(tag, decllist))
+            elif tok := self.peek(TokenType.NAME):
+                if (
+                    (definition := self.main_namespace.get(tok.string))
+                    and isinstance(definition, TypedefName)
+                ):
+                    result.type_specs.append(definition)
+                    self.eat(None)
+                elif (
+                        self._underscore_t_is_types
+                        and tok.string.endswith('_t')
+                        and not any(isinstance(ts, TypedefName)
+                                    for ts in result.type_specs)
+                    ):
+                        self.main_namespace.maps[-1][tok.string] = TypedefName(
+                            tok.string, '<sys>',
+                        )
+                else:
+                    break
+            elif tok := self.try_eat('__attribute__'):
+                self.expect('(')
+                result.type_quals.append(Attribute(
+                    self.parse_stuff(ParenthesizedStuff)
+                ))
+            elif tok := self.try_eat('_Atomic'):
+                # '_Atomic(typename)' is a specifier;
+                # bare '_Atomic' is a qualifier.
+                if self.peek('('):
+                    result.type_specs.append(
+                        Atomic(self.parse_stuff(ParenthesizedStuff))
+                    )
+                else:
+                    result.type_quals.append(tok.string)
+            elif tok := self.try_eat(*TYPE_SPEC_KEYWORDS):
+                result.type_specs.append(tok.string)
+            elif tok := self.try_eat(*TYPE_QUAL_KEYWORDS):
+                result.type_quals.append(tok.string)
+            elif tok := self.try_eat(*FUNC_SPEC_KEYWORDS):
+                result.func_specs.append(tok.string)
+            elif tok := self.try_eat('_Alignas'):
+                result.alignment_specs.append(
+                    Alignas(self.parse_stuff(ParenthesizedStuff))
+                )
+            elif self.try_eat('*'):
+                return Pointer(
+                    result,
+                    self.parse_declaration(),
+                )
+            else:
                 break
-        return specifiers
+        while True:
+            if self.try_eat('{'):
+                result.body = self.parse_block(end='}')
+                return result
+            elif self.try_eat(';'):
+                print('eaten ;')
+                return result
+            elif self.try_eat('='):
+                result.declarators[-1].init = self.parse_initializer()
+            elif self.try_eat(','):
+                pass
+            else:
+                result.declarators.append(self.parse_declarator());
 
     @parsefunc
     def parse_declarator(self):
-        if self.try_eat('*'):
-            qualifiers = []
-            while tok := self.try_eat(
-                'const', 'restrict', 'volatile', '_Atomic',
-            ):
-                qualifiers.append(tok.string)
-            return ['*', qualifiers, self.parse_declarator()]
-        return self.parse_direct_declarator()
-
-    @parsefunc
-    def parse_direct_declarator(self):
-        if tok := self.try_eat(TokenType.NAME):
-            return tok.string
-        if self.peek('('):
-            return self.parse_any()
-        while self.peek('(', '['):
-            raise TODO
-
-
-    @parsefunc
-    def parse_struct_declaration_list(self):
-        return self.parse_any(one=True)
-
-    @parsefunc
-    def parse_enumerator_list(self):
-        return self.parse_any(one=True)
-
-    @parsefunc
-    def parse_any(self, one=False):
-        result = []
-        while True:
-            cont = False
-            for opening, closing in '()', '[]', '{}':
-                if self.try_eat(opening):
-                    result.append([opening, *parse_any(self), closing])
-                    if not self.try_eat(closing):
-                        self._raise(f'unclosed {closing!r}', bad_token=tok)
-                    break
-                if self.peek(closing):
-                    break
+        if self.try_eat('('):
+            result = self.parse_declarator()
+            self.eat(')')
+        else:
+            result = Declarator(self.eat(TokenType.NAME))
+        while tok := self.peek('[', '('):
+            if tok.string == '[':
+                result = Array(result, self.parse_stuff(BracketedStuff))
             else:
-                if self.peek(TokenType.ENDMARKER):
-                    break
-                if one and (semi := self.try_eat(';')):
-                    result.append(semi)
-                    break
-                result.append(self.eat(None))
+                result = Func(result, self.parse_stuff(ParenthesizedStuff))
         return result
+
+    @parsefunc
+    def parse_stuff(self, cls):
+        contents = []
+        result = cls(contents)
+        if cls.opening:
+            opening_token = self.eat(cls.opening)
+        while True:
+            if self.try_eat(cls.closing):
+                return result
+            if self.peek(TokenType.ENDMARKER):
+                if cls.opening:
+                    self.throw(
+                        f'unclosed {opening_token.string!r} (at end of file)',
+                        bad_token=opening_token,
+                    )
+                else:
+                    return result
+            for other in Stuff.DELIMITED_CLASSES:
+                if self.peek(other.opening):
+                    contents.append(self.parse_stuff(other))
+                    break
+                if self.peek(other.closing):
+                    if cls.opening:
+                        try:
+                            self.throw(
+                                f'unclosed {opening_token.string!r}',
+                                bad_token=opening_token,
+                            )
+                        except SyntaxError:
+                            self.throw()
+                    else:
+                        self.throw()
+            else:
+                contents.append(self.eat(None))
 
 entries = {}
 # add_entries(entries, Variant(None))
