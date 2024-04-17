@@ -41,7 +41,7 @@ FUTURE_TOPLEVEL_RULES = set()
 #   Match one or more occurrences of e, separated by s. The generated parse tree
 #   does not include the separator. This is otherwise identical to (e (s e)*).
 #
-# Proposal:
+# Proposal: Optional sequence; but for diagrams only:
 # s.{e1, e2, e3}
 #     Match the given expressions in the given order, separated by separator.
 #     Each of the expressions is individually optional, but at least one must be given.
@@ -68,7 +68,7 @@ FUTURE_TOPLEVEL_RULES = set()
 # simplify:
 #   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
 # into:
-#   elif_stmt  ::=  ('elif' named_expression ':' block)*  [else_block]
+#   elif_stmt  ::=  ('elif' named_expression ':' block)+  [else_block]
 #
 # Look at function parameters again
 #
@@ -94,8 +94,6 @@ FUTURE_TOPLEVEL_RULES = set()
 #   '(' del_target ')'
 # is covered by the next rule:
 #    '(' [del_targets] ')'
-#
-# Remove unmarked invalid rule in for_if_clause
 #
 # Give names to the subexpressions here:
 # proper_slice ::=  [lower_bound] ":" [upper_bound] [ ":" [stride] ]
@@ -264,7 +262,6 @@ class Choice(Container):
                     alternatives.append([item])
         assert all(isinstance(item, list) for item in alternatives)
 
-
         # Simplify subsequences: call simplify_subsequence on all
         # "tails" of `alternatives`.
         new_alts = []
@@ -293,7 +290,7 @@ class Choice(Container):
         if len(alternatives) == 1:
             return wrap(Sequence(alternatives[0]))
         if not alternatives:
-            return Sequence([])
+            return Sequence([])  # TODO: not parseable?
 
         return wrap(self_type(
             [simplify_node(Sequence(alt)) for alt in alternatives]
