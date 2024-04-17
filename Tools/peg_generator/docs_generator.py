@@ -234,6 +234,8 @@ class Choice(Container):
     precedence = Precedence.CHOICE
 
     def format(self):
+        if not self.items:
+            return '<UNPARSEABLE>'
         return " | ".join(
             item.format_for_precedence(Precedence.CHOICE)
             for item in self
@@ -248,9 +250,12 @@ class Choice(Container):
             match item:
                 case None:
                     pass
-                case Container([]):
+                case self.EMPTY:
                     is_optional = True
                     # ignore the item
+                case self.UNREACHABLE:
+                    # ignore the item
+                    pass
                 case Optional(x):
                     is_optional = True
                     alternatives.append([x])
@@ -289,18 +294,10 @@ class Choice(Container):
 
         if len(alternatives) == 1:
             return wrap(Sequence(alternatives[0]))
-        if not alternatives:
-            return Sequence([])  # TODO: not parseable?
 
         return wrap(self_type(
             [simplify_node(Sequence(alt)) for alt in alternatives]
         ))
-
-    def simplify_item(self, item):
-        match item:
-            case Sequence([Nonterminal(name)]) if name.startswith('invalid_'):
-                return None
-        return super().simplify_item(item)
 
     def simplify_subsequence(self, tail):
         if len(tail) >= 2:
@@ -369,14 +366,16 @@ class Sequence(Container):
         for item in self:
             item = self.simplify_item(item)
             match item:
-                case Container([]):
+                case self.EMPTY:
                     pass
+                case self.UNREACHABLE:
+                    return UNREACHABLE
                 case Sequence(subitems):
                     items.extend(self.simplify_item(si) for si in subitems)
                 case _:
                     items.append(item)
         if not items:
-            return Sequence([])
+            return EMPTY
 
         # Simplify subsequences: call simplify_subsequence on all
         # "tails" of `items`.
@@ -456,8 +455,8 @@ class Decorator(Node):
         match item:
             case Sequence([x]):
                 item = x
-            case Sequence([]):
-                return Sequence([])
+            case self.EMPTY:
+                return EMPTY
         return self_type(item)
 
     def inlined(self, replaced_name, replacement):
@@ -480,6 +479,8 @@ class Optional(Decorator):
                 return ZeroOrMore(x)
             case Optional(x):
                 return self.item
+            case self.UNREACHABLE:
+                return EMPTY
         return super().simplify()
 
 
@@ -568,6 +569,8 @@ class Nonterminal(Leaf):
 class String(Leaf):
     pass
 
+EMPTY = Node.EMPTY = Sequence([])
+UNREACHABLE = Node.UNREACHABLE = Choice([])
 
 def convert_grammar_node(grammar_node):
     """Convert a pegen grammar node to our AST node"""
@@ -584,9 +587,11 @@ def convert_grammar_node(grammar_node):
             return Optional(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NameLeaf():
             if grammar_node.value == 'TYPE_COMMENT':
-                return Sequence([])
+                return EMPTY
             if grammar_node.value.isupper():
                 return Token(grammar_node.value)
+            if grammar_node.value.startswith('invalid'):
+                return UNREACHABLE
             else:
                 return Nonterminal(grammar_node.value)
         case pegen.grammar.StringLeaf():
@@ -596,11 +601,11 @@ def convert_grammar_node(grammar_node):
         case pegen.grammar.Repeat0():
             return ZeroOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.PositiveLookahead():
-            return Sequence([])
+            return EMPTY
         case pegen.grammar.NegativeLookahead():
-            return Sequence([])
+            return EMPTY
         case pegen.grammar.Cut():
-            return Sequence([])
+            return EMPTY
         case pegen.grammar.Forced():
             return convert_grammar_node(grammar_node.node)
         case pegen.grammar.Gather():
