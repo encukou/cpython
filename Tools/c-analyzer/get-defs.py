@@ -1,9 +1,14 @@
 from dataclasses import dataclass, field
-from functools import lru_cache, total_ordering, cached_property
+from functools import lru_cache, total_ordering, cached_property, partial
 from pathlib import Path
+import concurrent.futures
+import collections.abc
 import subprocess
+import contextlib
 import sysconfig
 import shlex
+import json
+import sys
 import ast
 import re
 
@@ -34,7 +39,7 @@ while not projectpath.joinpath('Include').exists():
         raise Exception('Could not find project root')
     projectpath = projectpath.parent
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Location:
     filename: str
     lineno: int
@@ -92,7 +97,6 @@ class Variant:
 class Definition:
     kind: str
     name: str
-    args: str
     variants: dict[Variant, Location] = field(default_factory=dict, compare=False)
 
     def __str__(self):
@@ -106,6 +110,7 @@ class Definition:
 @dataclass
 class MacroDef(Definition):
     body: str = ''
+    args: str = ''
 
     @property
     def colorized(self):
@@ -113,45 +118,24 @@ class MacroDef(Definition):
 
 @dataclass
 class MacroUndef(Definition):
+    args: str = ''
     @property
     def colorized(self):
         return f'#undef {DIM}{self.name}{RESET}{self.args or ''}'
-
 
 @dataclass
 class Entry:
     name: str
     definitions: list[Definition]
 
-def add_entries(entries, variant=None):
-    gcc_proc = subprocess.Popen(
-        [
-            'gcc',
-            '-E', '-dD',
-            '-I.', '-IInclude/',
-            *shlex.split(CFLAGS),
-            *variant.cflags(),
-            'Include/Python.h',
-        ],
-        stdout=subprocess.PIPE,
-        encoding='utf-8',
-        cwd=projectpath,
-        errors='backslashreplace',
-    )
-
-    def get_entry(name):
+class Entries(dict):
+    def add_definition(self, definition, *, variant, location):
+        name = definition.name
         try:
-            return entries[name]
+            entry = self[name]
         except KeyError:
-            entry = entries[name] = Entry(name, [])
-            return entry
+            entry = self[name] = Entry(name, [])
 
-    def add_definition(definition):
-        location = Location(
-            filename=filename,
-            lineno=lineno,
-        )
-        entry = get_entry(definition.name)
         # Find the oldest definition that
         # - has the same content (__eq__)
         # - doesn't include this variant yet
@@ -170,12 +154,53 @@ def add_entries(entries, variant=None):
             definition.variants[variant] = location
             entry.definitions.append(definition)
 
-    def tokenizer():
-        while (line := (yield)) is not None:
-            print(line)
+def add_entries(entries, variant=None):
+    gcc_proc = subprocess.Popen(
+        [
+            'gcc',
+            '-E', '-dD',
+            '-I.', '-IInclude/',
+            *shlex.split(CFLAGS),
+            *variant.cflags(),
+            'Include/Python.h',
+            '-D_Float32=float',
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf-8',
+        cwd=projectpath,
+        errors='backslashreplace',
+    )
 
-    tokenizer = tokenizer()
-    tokenizer.send(None)
+    clang_proc = subprocess.Popen(
+        [
+            'clang',
+            '-Xclang', '-ast-dump=json', '-fsyntax-only',
+            '-I.', '-IInclude/',
+            *shlex.split(CFLAGS),
+            *variant.cflags(),
+            'Include/Python.h',
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding='utf-8',
+        cwd=projectpath,
+        errors='backslashreplace',
+    )
+
+    def get_entry(name):
+        try:
+            return entries[name]
+        except KeyError:
+            entry = entries[name] = Entry(name, [])
+            return entry
+
+    def add_definition(definition):
+        location = Location(
+            filename=filename,
+            lineno=lineno,
+        )
+        entries.add_definition(definition, location=location, variant=variant)
 
     def split_macro_def(content):
         match = re.fullmatch(
@@ -189,9 +214,12 @@ def add_entries(entries, variant=None):
 
     filename = '<start>'
     lineno = 0
-    with gcc_proc.stdout as gcc_stdout:
-        for line in gcc_stdout:
-            line = line.rstrip('\n')
+    with contextlib.ExitStack() as exitstack:
+        executor = exitstack.enter_context(concurrent.futures.ThreadPoolExecutor(1))
+        ast_future = executor.submit(json.load, clang_proc.stdout)
+
+        for orig_line in exitstack.enter_context(gcc_proc.stdout):
+            line = orig_line.rstrip('\n')
             try:
                 if line.startswith('# '):
                     marks = set()
@@ -223,25 +251,64 @@ def add_entries(entries, variant=None):
                             ))
                         else:
                             print(line)
-                else:
-                    tokenizer.send(line)
             except:
                 print('Line was:', repr(line), f'({filename}:{lineno})')
                 raise
             lineno += 1
 
-    try:
-        val = next(tokenizer)
-    except StopIteration:
-        pass
-    else:
-        raise Exception(val)
-    tokenizer.close()
+    for name, proc in ('gcc', gcc_proc), ('clang', clang_proc):
+        if proc.wait():
+            for line in proc.stderr:
+                print(line, file=sys.stderr, end='')
+            print(file=sys.stderr, end='')
+            raise Exception(f'{name} failed with return code {proc.returncode}')
 
-    if gcc_proc.wait():
-        raise Exception(f'gcc failed with return code {gcc_proc.returncode}')
+    clang_ast = ASTNode(ast_future.result(1))
+    clang_ast.dump()
 
-entries = {}
+    add_clang_ast(entries, clang_ast, variant=variant)
+
+@dataclass
+class TypeDef(Definition):
+    qual_type: str = None
+    @property
+    def colorized(self):
+        return f'typedef {DIM}{self.qual_type}{RESET} {INTENSE}{self.name}{RESET}'
+
+@dataclass
+class FunctionDef(Definition):
+    params: list = None
+    qual_type: str = None
+    body: object = None
+    storage_class: str = None
+    @property
+    def colorized(self):
+        return f'funcdef {DIM}{self.qual_type}{RESET}{INTENSE}{self.name}{RESET}({', '.join(str(p) for p in self.params)}) {self.body}'
+
+
+class ASTNode(collections.abc.Mapping):
+    def __init__(self, data):
+        self._data = data
+
+    def __getitem__(self, key): return self._data[key]
+    def __iter__(self): return iter(self._data)
+    def __len__(self): return len(self._data)
+
+    @cached_property
+    def inner(self):
+        return tuple(ASTNode(d) for d in self.get('inner', ()))
+
+    @cached_property
+    def kind(self):
+        return self.get('kind', None)
+
+    def dump(self, indent=0):
+        print('  ' * indent + str(self.kind))
+        for child in self.inner:
+            child.dump(indent=indent + 1)
+
+
+entries = Entries()
 add_entries(entries, Variant(None))
 add_entries(entries, Variant(3))
 add_entries(entries, Variant(0x03020000))
