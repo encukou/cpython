@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, KW_ONLY
 from functools import lru_cache, total_ordering, cached_property, partial
 from pathlib import Path
 import concurrent.futures
@@ -95,7 +95,6 @@ class Variant:
 
 @dataclass
 class Definition:
-    kind: str
     name: str
     variants: dict[Variant, Location] = field(default_factory=dict, compare=False)
 
@@ -122,6 +121,25 @@ class MacroUndef(Definition):
     @property
     def colorized(self):
         return f'#undef {DIM}{self.name}{RESET}{self.args or ''}'
+
+@dataclass
+class FuncDef(Definition):
+    _: KW_ONLY
+    name: str
+    type: object
+    params: list
+    body: object
+    variadic: bool
+
+    @property
+    def colorized(self):
+        params = ', '.join(str(p) for p in self.params)
+        if self.variadic:
+            params += ', ...'
+        return (
+            f'fn {DIM}{self.type}{RESET}{INTENSE}{self.name}{RESET}'
+            + f'({DIM}{params}{RESET}) {self.body}'
+        )
 
 @dataclass
 class Entry:
@@ -217,6 +235,10 @@ def add_entries(entries, variant=None):
     with contextlib.ExitStack() as exitstack:
         executor = exitstack.enter_context(concurrent.futures.ThreadPoolExecutor(1))
         ast_future = executor.submit(json.load, clang_proc.stdout)
+        exitstack.callback(gcc_proc.stdout.close)
+        exitstack.callback(gcc_proc.stderr.close)
+        exitstack.callback(clang_proc.stdout.close)
+        exitstack.callback(clang_proc.stderr.close)
 
         for orig_line in exitstack.enter_context(gcc_proc.stdout):
             line = orig_line.rstrip('\n')
@@ -238,7 +260,6 @@ def add_entries(entries, variant=None):
                             content = line[len('#define'):].strip()
                             name, args, body = split_macro_def(content)
                             add_definition(MacroDef(
-                                kind = 'define',
                                 name=name, args=args, body=body,
                             ))
                         elif line.startswith('#undef'):
@@ -246,7 +267,6 @@ def add_entries(entries, variant=None):
                             name, args, body = split_macro_def(content)
                             assert not body
                             add_definition(MacroUndef(
-                                kind='undef',
                                 name=name, args=args,
                             ))
                         else:
@@ -256,37 +276,38 @@ def add_entries(entries, variant=None):
                 raise
             lineno += 1
 
-    for name, proc in ('gcc', gcc_proc), ('clang', clang_proc):
-        if proc.wait():
+        for name, proc in ('gcc', gcc_proc), ('clang', clang_proc):
             for line in proc.stderr:
                 print(line, file=sys.stderr, end='')
-            print(file=sys.stderr, end='')
-            raise Exception(f'{name} failed with return code {proc.returncode}')
+            if proc.wait():
+                print(file=sys.stderr, end='')
+                raise Exception(f'{name} failed with return code {proc.returncode}')
 
-    clang_ast = ASTNode(ast_future.result(1))
-    clang_ast.dump()
+    clang_translation_unit = ASTNode(ast_future.result(1))
+    clang_translation_unit.dump()
 
-    add_clang_ast(entries, clang_ast, variant=variant)
-
-@dataclass
-class TypeDef(Definition):
-    qual_type: str = None
-    @property
-    def colorized(self):
-        return f'typedef {DIM}{self.qual_type}{RESET} {INTENSE}{self.name}{RESET}'
-
-@dataclass
-class FunctionDef(Definition):
-    params: list = None
-    qual_type: str = None
-    body: object = None
-    storage_class: str = None
-    @property
-    def colorized(self):
-        return f'funcdef {DIM}{self.qual_type}{RESET}{INTENSE}{self.name}{RESET}({', '.join(str(p) for p in self.params)}) {self.body}'
+    add_clang_ast(entries, clang_translation_unit, variant=variant)
 
 
 class ASTNode(collections.abc.Mapping):
+    _registry = {}
+    @classmethod
+    def register(cls):
+        def decorator(cls):
+            cls._registry[cls.__name__] = cls
+            return cls
+        return decorator
+
+    def __new__(cls, data):
+        if cls is __class__:
+            try:
+                cls = cls._registry[data['kind']]
+            except KeyError:
+                return super().__new__(cls)
+            else:
+                return super().__new__(cls)
+        return cls.__new__(cls, data)
+
     def __init__(self, data):
         self._data = data
 
@@ -302,27 +323,114 @@ class ASTNode(collections.abc.Mapping):
     def kind(self):
         return self.get('kind', None)
 
+    def __str__(self):
+        return str(self.kind)
+
     def dump(self, indent=0):
-        print('  ' * indent + str(self.kind))
+        print('  ' * indent + str(self), type(self), self.get('name'))
         for child in self.inner:
             child.dump(indent=indent + 1)
 
+@ASTNode.register()
+class TypedefDecl(ASTNode):
+    @cached_property
+    def name(self):
+        return self['name']
+
+@ASTNode.register()
+class FunctionDecl(ASTNode):
+    @cached_property
+    def name(self):
+        return self['name']
+
+    @cached_property
+    def location(self):
+        return make_location(self['loc'])
+
+    @cached_property
+    def type(self):
+        return self['type']['qualType']
+
+    @cached_property
+    def params(self):
+        params = []
+        for child in self.inner:
+            match child:
+                case ParmVarDecl():
+                    params.append(child)
+        return params
+
+    @cached_property
+    def variadic(self):
+        return self.get('variadic')
+
+    @cached_property
+    def body(self):
+        for child in self.inner:
+            match child:
+                case CompoundStatement():
+                    return child
+
+@ASTNode.register()
+class ParmVarDecl(ASTNode):
+    def __str__(self):
+        return f'{self.type} {self.name}'
+
+    @cached_property
+    def name(self):
+        return self.get('name', '$')
+
+    @cached_property
+    def type(self):
+        return self.get('type', {}).get('qualType')
+
+@ASTNode.register()
+class CompoundStatement(ASTNode):
+    pass
+
+def make_location(loc):
+    match loc:
+        case {'file': filename, 'line': lineno}:
+            return Location(filename=filename, lineno=lineno)
+        case {'line': lineno}:
+            return Location(filename=f'<???>', lineno=lineno)
+        case {'expansionLoc': inner}:
+            return make_location(inner)
+        case {}:
+            return Location(filename=f'<???>', lineno=-1)
+    raise ValueError(loc)
+
+def add_clang_ast(entries, clang_translation_unit, variant):
+    for child in clang_translation_unit.inner:
+        match child:
+            case FunctionDecl():
+                entries.add_definition(
+                    FuncDef(
+                        name=child.name,
+                        type=child.type,
+                        params=child.params,
+                        body=child.body,
+                        variadic=child.variadic,
+                    ),
+                    location=(l:=child.location),
+                    variant=variant,
+                )
 
 entries = Entries()
 add_entries(entries, Variant(None))
 add_entries(entries, Variant(3))
-add_entries(entries, Variant(0x03020000))
-add_entries(entries, Variant(0x03030000))
-add_entries(entries, Variant(0x03040000))
-add_entries(entries, Variant(0x03050000))
-add_entries(entries, Variant(0x03060000))
-add_entries(entries, Variant(0x03070000))
-add_entries(entries, Variant(0x03080000))
-add_entries(entries, Variant(0x03090000))
-add_entries(entries, Variant(0x030a0000))
-add_entries(entries, Variant(0x030b0000))
-add_entries(entries, Variant(0x030c0000))
-add_entries(entries, Variant(0x030d0000))
+# add_entries(entries, Variant(0x03020000))
+# add_entries(entries, Variant(0x03030000))
+# add_entries(entries, Variant(0x03040000))
+# add_entries(entries, Variant(0x03050000))
+# add_entries(entries, Variant(0x03060000))
+# add_entries(entries, Variant(0x03070000))
+# add_entries(entries, Variant(0x03080000))
+# add_entries(entries, Variant(0x03090000))
+# add_entries(entries, Variant(0x030a0000))
+# add_entries(entries, Variant(0x030b0000))
+# add_entries(entries, Variant(0x030c0000))
+# add_entries(entries, Variant(0x030d0000))
 
 @lru_cache
 def format_variant_range(variants):
