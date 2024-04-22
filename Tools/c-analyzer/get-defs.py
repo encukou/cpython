@@ -12,6 +12,9 @@ import sys
 import ast
 import re
 
+from clang.cindex import Index
+import clang.cindex
+
 # https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences
 CSI_RE = re.compile(r'\033\[[0-?]*[ -/]*[@-~]')
 
@@ -113,14 +116,14 @@ class MacroDef(Definition):
 
     @property
     def colorized(self):
-        return f'#define {INTENSE}{self.name}{RESET}{self.args or ''} {self.body}'
+        return f'#define {INTENSE}{self.name}{RESET}{self.args or ""} {self.body}'
 
 @dataclass
 class MacroUndef(Definition):
     args: str = ''
     @property
     def colorized(self):
-        return f'#undef {DIM}{self.name}{RESET}{self.args or ''}'
+        return f'#undef {DIM}{self.name}{RESET}{self.args or ""}'
 
 @dataclass
 class FuncDef(Definition):
@@ -283,11 +286,55 @@ def add_entries(entries, variant=None):
                 print(file=sys.stderr, end='')
                 raise Exception(f'{name} failed with return code {proc.returncode}')
 
+    index = Index.create()
+    args = [
+        '-I.', '-IInclude/',
+        '-xc',
+        #'-I/usr/lib64/clang/15.0.7/include/', '-I/usr/include/', '-I/usr/include/linux/',
+        #*shlex.split(CFLAGS),
+        *variant.cflags(),
+        'Include/Python.h.c',
+    ]
+    tu = index.parse(None, args)
+    if not tu:
+        raise Exception('unable to load input')
+    for diag in tu.diagnostics:
+        print({
+            "severity": diag.severity,
+            "location": diag.location,
+            "spelling": diag.spelling,
+            "ranges": diag.ranges,
+            "fixits": list(diag.fixits),
+        })
+    dump_info(tu)
+
+    exit('.')
+
     clang_translation_unit = ASTNode(ast_future.result(1))
     clang_translation_unit.dump()
 
     add_clang_ast(entries, clang_translation_unit, variant=variant)
 
+def dump_info(node, depth=0):
+    #children = [get_info(c, depth + 1) for c in node.get_children()]
+    print(node, dir(node))
+    print(clang.cindex, dir(clang.cindex))
+    print({
+        "kind": type(node).__name__,
+        "spelling": node.spelling,
+        #"location": node.get_extent(),
+        "c": list(node),
+    })
+    return
+    return {
+        #"id": get_cursor_id(node),
+        "usr": node.get_usr(),
+        "extent.start": node.extent.start,
+        "extent.end": node.extent.end,
+        "is_definition": node.is_definition(),
+        #"definition id": get_cursor_id(node.get_definition()),
+        #"children": children,
+    }
 
 class ASTNode(collections.abc.Mapping):
     _registry = {}
