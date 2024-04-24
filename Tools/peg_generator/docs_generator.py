@@ -235,7 +235,7 @@ class Choice(Container):
 
     def format(self):
         if not self.items:
-            return '<UNPARSEABLE>'
+            return '<UNREACHABLE>'
         return " | ".join(
             item.format_for_precedence(Precedence.CHOICE)
             for item in self
