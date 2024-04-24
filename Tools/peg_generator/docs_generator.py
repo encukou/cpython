@@ -587,7 +587,7 @@ def convert_grammar_node(grammar_node):
             return Optional(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NameLeaf():
             if grammar_node.value == 'TYPE_COMMENT':
-                return EMPTY
+                return UNREACHABLE
             if grammar_node.value.isupper():
                 return Token(grammar_node.value)
             if grammar_node.value.startswith('invalid'):
