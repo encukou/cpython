@@ -1706,7 +1706,7 @@ Type parameter lists
    :generated-by: Tools/peg_generator/docs_generator.py
 
    type_params: '[' ','.`type_param`+ [','] ']'
-   type_param: ['*' | '**'] NAME [':' `expression`]
+   type_param: NAME [':' `expression`] | ('*' | '**') NAME
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may

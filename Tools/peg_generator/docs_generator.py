@@ -578,6 +578,10 @@ def convert_grammar_node(grammar_node):
         case pegen.grammar.Rhs():
             return Choice([convert_grammar_node(alt) for alt in grammar_node.alts])
         case pegen.grammar.Alt():
+            if 'RAISE_SYNTAX_ERROR' in (grammar_node.action or ''):
+                # This is actually invalid syntax,
+                # see https://github.com/python/cpython/issues/118235
+                return UNREACHABLE
             return Sequence([convert_grammar_node(item) for item in grammar_node.items])
         case pegen.grammar.Group():
             return convert_grammar_node(grammar_node.rhs)
@@ -587,6 +591,8 @@ def convert_grammar_node(grammar_node):
             return Optional(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NameLeaf():
             if grammar_node.value == 'TYPE_COMMENT':
+                # The tokenizer doesn't emit TYPE_COMMENT unless it's in
+                # a special mode
                 return UNREACHABLE
             if grammar_node.value.isupper():
                 return Token(grammar_node.value)
