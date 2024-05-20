@@ -199,7 +199,7 @@ Common syntax elements for comprehensions are:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    for_if_clauses: `for_if_clause`+
-   for_if_clause: ['async'] 'for' (`star_targets` 'in' 'if'.`disjunction`+ | ','.`bitwise_or`+ [','])
+   for_if_clause: ['async'] 'for' `star_targets` 'in' 'if'.`disjunction`+
 
 .. productionlist:: python-grammar
    comprehension: `assignment_expression` `comp_for`
