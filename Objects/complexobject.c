@@ -188,16 +188,16 @@ _Py_c_abs(Py_complex z)
     /* sets errno = ERANGE on overflow;  otherwise errno = 0 */
     double result;
 
-    if (!Py_IS_FINITE(z.real) || !Py_IS_FINITE(z.imag)) {
+    if (!isfinite(z.real) || !isfinite(z.imag)) {
         /* C99 rules: if either the real or the imaginary part is an
            infinity, return infinity, even if the other part is a
            NaN. */
-        if (Py_IS_INFINITY(z.real)) {
+        if (isinf(z.real)) {
             result = fabs(z.real);
             errno = 0;
             return result;
         }
-        if (Py_IS_INFINITY(z.imag)) {
+        if (isinf(z.imag)) {
             result = fabs(z.imag);
             errno = 0;
             return result;
@@ -207,7 +207,7 @@ _Py_c_abs(Py_complex z)
         return Py_NAN;
     }
     result = hypot(z.real, z.imag);
-    if (!Py_IS_FINITE(result))
+    if (!isfinite(result))
         errno = ERANGE;
     else
         errno = 0;
@@ -256,26 +256,51 @@ PyComplex_FromDoubles(double real, double imag)
     return PyComplex_FromCComplex(c);
 }
 
+static PyObject * try_complex_special_method(PyObject *);
+
 double
 PyComplex_RealAsDouble(PyObject *op)
 {
+    double real = -1.0;
+
     if (PyComplex_Check(op)) {
-        return ((PyComplexObject *)op)->cval.real;
+        real = ((PyComplexObject *)op)->cval.real;
     }
     else {
-        return PyFloat_AsDouble(op);
+        PyObject* newop = try_complex_special_method(op);
+        if (newop) {
+            real = ((PyComplexObject *)newop)->cval.real;
+            Py_DECREF(newop);
+        } else if (!PyErr_Occurred()) {
+            real = PyFloat_AsDouble(op);
+        }
     }
+
+    return real;
 }
 
 double
 PyComplex_ImagAsDouble(PyObject *op)
 {
+    double imag = -1.0;
+
     if (PyComplex_Check(op)) {
-        return ((PyComplexObject *)op)->cval.imag;
+        imag = ((PyComplexObject *)op)->cval.imag;
     }
     else {
-        return 0.0;
+        PyObject* newop = try_complex_special_method(op);
+        if (newop) {
+            imag = ((PyComplexObject *)newop)->cval.imag;
+            Py_DECREF(newop);
+        } else if (!PyErr_Occurred()) {
+            PyFloat_AsDouble(op);
+            if (!PyErr_Occurred()) {
+                imag = 0.0;
+            }
+        }
     }
+
+    return imag;
 }
 
 static PyObject *
