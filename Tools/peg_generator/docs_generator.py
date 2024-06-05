@@ -105,6 +105,11 @@ FUTURE_TOPLEVEL_RULES = set()
 
 # Always inline `star_expression`?
 
+# with_stmt ::=  ['async'] 'with' ('(' ','.with_item+ [','] ')' | ','.with_item+) ':' block
+# with_item ::=  expression ['as' star_target &(',' | ')' | ':')]
+#                                             ^^^^^^^^^^^^^^^^^^ remove that!
+#
+
 
 def main():
     args = argparser.parse_args()
@@ -137,6 +142,13 @@ def main():
     pegen_rules = dict(grammar.rules)
 
     rules = convert_grammar(pegen_rules, toplevel_rules)
+
+    if args.debug:
+        for name, rule in rules.items():
+            print()
+            print(name, rule.format())
+            for line in rule.dump_tree():
+                print(line)
 
     # Update the files
 
