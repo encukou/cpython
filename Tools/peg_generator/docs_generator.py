@@ -626,11 +626,6 @@ class Nonterminal(Leaf):
         rule = rules[self.value]
         return rule.get_possible_start_tokens(rules)
 
-
-@dataclass(frozen=True)
-class String(Leaf):
-    pass
-
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
 
@@ -663,7 +658,7 @@ def convert_grammar_node(grammar_node):
             else:
                 return Nonterminal(grammar_node.value)
         case pegen.grammar.StringLeaf():
-            return String(grammar_node.value)
+            return Token(grammar_node.value)
         case pegen.grammar.Repeat1():
             return OneOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.Repeat0():

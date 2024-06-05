@@ -48,7 +48,7 @@ Summarizing:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   compound_stmt: &('def' | '@' | 'async') `function_def` | &'if' `if_stmt` | &('class' | '@') `class_def` | &('with' | 'async') `with_stmt` | &('for' | 'async') `for_stmt` | &'try' `try_stmt` | &'while' `while_stmt` | `match_stmt`
+   compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
    block: NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`
 
 .. index::

@@ -22,7 +22,7 @@ simple statements is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   simple_stmt: `assignment` | &"type" `type_alias` | `star_expressions` | &'return' `return_stmt` | &('import' | 'from') `import_stmt` | &'raise' `raise_stmt` | 'pass' | &'del' `del_stmt` | &'yield' `yield_stmt` | &'assert' `assert_stmt` | 'break' | 'continue' | &'global' `global_stmt` | &'nonlocal' `nonlocal_stmt`
+   simple_stmt: `assignment` | `type_alias` | `star_expressions` | `return_stmt` | `import_stmt` | `raise_stmt` | 'pass' | `del_stmt` | `yield_stmt` | `assert_stmt` | 'break' | 'continue' | `global_stmt` | `nonlocal_stmt`
 
 .. _exprstmts:
 
