@@ -361,6 +361,12 @@ class Choice(Container):
                     else:
                         yield '  ' + line
 
+    def get_possible_start_tokens(self, rules):
+        result = set()
+        for item in self.items:
+            result.update(item.get_possible_start_tokens(rules))
+        return result
+
 @dataclass(frozen=True)
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
@@ -421,9 +427,9 @@ class Sequence(Container):
                         return [subsequence[0]], 1
                 else:
                     tokens = {lookahead}
-                #if tokens.issuperset(next_node.get_possible_start_tokens(rules)):
+                if tokens.issuperset(next_node.get_possible_start_tokens(rules)):
                     # the lookahead is redundant
-                #    return [], 1
+                    return [], 1
         return [subsequence[0]], 1
 
     def format(self):
@@ -452,6 +458,21 @@ class Sequence(Container):
                         line_so_far = simple_item
             if line_so_far:
                 yield line_so_far
+
+    def get_possible_start_tokens(self, rules):
+        if not self.items:
+            return {None}
+        result = set()
+        for item in self.items:
+            item_start_tokens = item.get_possible_start_tokens(rules)
+            result.update(item_start_tokens)
+            item_can_be_empty = (None in item_start_tokens)
+            if item_can_be_empty:
+                continue
+            else:
+                result.discard(None)
+                break
+        return result
 
 @dataclass(frozen=True)
 class Decorator(Node):
@@ -506,6 +527,9 @@ class OneOrMore(Decorator):
 
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '+'
+
+    def get_possible_start_tokens(self, rules):
+        return self.item.get_possible_start_tokens(rules)
 
 
 @dataclass(frozen=True)
@@ -584,7 +608,8 @@ class Leaf(Node):
 
 @dataclass(frozen=True)
 class Token(Leaf):
-    pass
+    def get_possible_start_tokens(self, rules):
+        return {self}
 
 
 @dataclass(frozen=True)

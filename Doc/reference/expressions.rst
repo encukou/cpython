@@ -58,7 +58,7 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   atom: NAME | 'True' | 'False' | 'None' | &(STRING | FSTRING_START) `strings` | NUMBER | &'(' (`tuple` | `group` | `genexp`) | &'[' (`list` | `listcomp`) | &'{' (`dict` | `set` | `dictcomp` | `setcomp`) | '...'
+   atom: NAME | 'True' | 'False' | 'None' | `strings` | NUMBER | &'(' (`tuple` | `group` | `genexp`) | &'[' (`list` | `listcomp`) | &'{' (`dict` | `set` | `dictcomp` | `setcomp`) | '...'
 
 .. productionlist:: python-grammar-old
    atom: `identifier` | `literal` | `enclosure`
