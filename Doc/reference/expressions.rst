@@ -138,7 +138,7 @@ Strings
    :generated-by: Tools/peg_generator/docs_generator.py
 
    strings: (FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END | STRING)+
-   fstring_replacement_field: '{' (`yield_expr` | `star_expressions`) ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
+   fstring_replacement_field: '{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
 
 .. _parenthesized:
 
