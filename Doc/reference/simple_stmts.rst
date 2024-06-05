@@ -5,11 +5,12 @@
 Simple statements
 *****************
 
-.. grammar-snippet:: statement
+.. grammar-snippet:: statement simple_stmts
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   statement: `compound_stmt` | (`simple_stmt` !';' | ';'.`simple_stmt`+ [';']) NEWLINE
+   statement: `compound_stmt` | `simple_stmts`
+   simple_stmts: (`simple_stmt` !';' | ';'.`simple_stmt`+ [';']) NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -39,11 +40,12 @@ result; in Python, procedures return the value ``None``).  Other uses of
 expression statements are allowed and occasionally useful.  The syntax for an
 expression statement is:
 
-.. grammar-snippet:: star_expressions
+.. grammar-snippet:: star_expressions star_expression
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   star_expressions: ','.('*' `bitwise_or` | `expression`)+ [',']
+   star_expressions: ','.`star_expression`+ [',']
+   star_expression: '*' `bitwise_or` | `expression`
 
 .. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
@@ -97,13 +99,13 @@ attributes or items of mutable objects:
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') !('(' | '[' | '.') | `star_atom`
+   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead` | `star_atom`
 
 .. grammar-snippet:: single_subscript_attribute_target
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']') !('(' | '[' | '.')
+   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead`
 
 .. productionlist:: python-grammar-old
    assignment_stmt: (`target_list` "=")+ (`starred_expression` | `yield_expression`)
@@ -483,7 +485,7 @@ The :keyword:`!del` statement
 
    del_stmt: 'del' `del_targets` &(';' | NEWLINE)
    del_targets: ','.`del_target`+ [',']
-   del_target: `t_primary` ('.' NAME | '[' `slices` ']') !('(' | '[' | '.') | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
+   del_target: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead` | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.
@@ -796,8 +798,7 @@ The :keyword:`!import` statement
    :generated-by: Tools/peg_generator/docs_generator.py
 
    import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
-   import_from_targets: '(' `import_from_as_names` [','] ')' | `import_from_as_names` !',' | '*'
-   import_from_as_names: ','.(NAME ['as' NAME])+
+   import_from_targets: '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ !',' | '*'
    dotted_name: [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old

@@ -103,6 +103,8 @@ FUTURE_TOPLEVEL_RULES = set()
 # instead keep 3 separate alternatives, like in the grammar
 # Similar for star_targets_tuple_seq
 
+# Always inline `star_expression`?
+
 
 def main():
     args = argparser.parse_args()
@@ -134,6 +136,8 @@ def main():
     grammar, parser, tokenizer = build_parser(args.grammar_filename)
     pegen_rules = dict(grammar.rules)
 
+    rules = convert_grammar(pegen_rules, toplevel_rules)
+
     # Update the files
 
     for path in files_with_grammar:
@@ -156,7 +160,7 @@ def main():
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
                     for line in generate_rule_lines(
-                        pegen_rules,
+                        rules,
                         match[1].split(),
                         set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
                         debug=args.debug,
@@ -192,7 +196,7 @@ class Node:
     def format_enclosed(self):
         return self.format()
 
-    def simplify(self):
+    def simplify(self, rules):
         return self
 
     def format_for_precedence(self, parent_precedence):
@@ -216,8 +220,8 @@ class Container(Node):
     def __iter__(self):
         yield from self.items
 
-    def simplify_item(self, item):
-        return simplify_node(item)
+    def simplify_item(self, rules, item):
+        return simplify_node(rules, item)
 
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
@@ -242,12 +246,12 @@ class Choice(Container):
             for item in self
         )
 
-    def simplify(self):
+    def simplify(self, rules):
         self_type = type(self)
         alternatives = []
         is_optional = False
         for item in self:
-            item = self.simplify_item(item)
+            item = self.simplify_item(rules, item)
             match item:
                 case None:
                     pass
@@ -273,7 +277,7 @@ class Choice(Container):
         new_alts = []
         index = 0
         while index < len(alternatives):
-            replacement, num_processed = self.simplify_subsequence(alternatives[index:])
+            replacement, num_processed = self.simplify_subsequence(rules, alternatives[index:])
 
             # replacement should be list[list[Node]]
             assert isinstance(replacement, list)
@@ -297,10 +301,10 @@ class Choice(Container):
             return wrap(Sequence(alternatives[0]))
 
         return wrap(self_type(
-            [simplify_node(Sequence(alt)) for alt in alternatives]
+            [simplify_node(rules, Sequence(alt)) for alt in alternatives]
         ))
 
-    def simplify_subsequence(self, tail):
+    def simplify_subsequence(self, rules, tail):
         if len(tail) >= 2:
             # If two or more adjacent alternatives start or end with the
             # same item, we pull that item out, and replace the alternatives
@@ -361,18 +365,18 @@ class Choice(Container):
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
 
-    def simplify(self):
+    def simplify(self, rules):
         self_type = type(self)
         items = []
         for item in self:
-            item = self.simplify_item(item)
+            item = self.simplify_item(rules, item)
             match item:
                 case self.EMPTY:
                     pass
                 case self.UNREACHABLE:
                     return UNREACHABLE
                 case Sequence(subitems):
-                    items.extend(self.simplify_item(si) for si in subitems)
+                    items.extend(self.simplify_item(rules, si) for si in subitems)
                 case _:
                     items.append(item)
         if not items:
@@ -383,7 +387,7 @@ class Sequence(Container):
         new_items = []
         index = 0
         while index < len(items):
-            replacement, num_processed = self.simplify_subsequence(items[index:])
+            replacement, num_processed = self.simplify_subsequence(rules, items[index:])
 
             # Single nodes are iterable; they act as a sequence of their
             # children, and we don't want that in this case.
@@ -400,7 +404,7 @@ class Sequence(Container):
             return items[0]
         return self_type(items)
 
-    def simplify_subsequence(self, subsequence):
+    def simplify_subsequence(self, rules, subsequence):
         """Simplify the start of the given (sub)sequence.
 
         Return the simplified result and the number of items that were
@@ -409,6 +413,17 @@ class Sequence(Container):
         match subsequence[:2]:
             case [e1, ZeroOrMore(Sequence([s, e2]))] if e1 == e2:
                 return [Gather(s, e2)], 2
+            case [PositiveLookahead((Choice() | Token()) as lookahead), next_node]:
+                if isinstance(lookahead, Choice):
+                    tokens = set(lookahead.items)
+                    if not all(isinstance(tok, Token) for tok in tokens):
+                        # Can't simplify this yet
+                        return [subsequence[0]], 1
+                else:
+                    tokens = {lookahead}
+                #if tokens.issuperset(next_node.get_possible_start_tokens(rules)):
+                    # the lookahead is redundant
+                #    return [], 1
         return [subsequence[0]], 1
 
     def format(self):
@@ -450,9 +465,9 @@ class Decorator(Node):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
         yield from self.item.dump_tree(indent + 1)
 
-    def simplify(self):
+    def simplify(self, rules):
         self_type = type(self)
-        item = simplify_node(self.item)
+        item = simplify_node(rules, self.item)
         match item:
             case Sequence([x]):
                 item = x
@@ -471,7 +486,7 @@ class Optional(Decorator):
     def format(self):
         return '[' + self.item.format() + ']'
 
-    def simplify(self):
+    def simplify(self, rules):
         match self.item:
             #  [x [y] | y]  ->  [x] [y]
             case Choice([Sequence([x, Optional(y1)]), y2]) if y1 == y2:
@@ -482,7 +497,7 @@ class Optional(Decorator):
                 return self.item
             case self.UNREACHABLE:
                 return EMPTY
-        return super().simplify()
+        return super().simplify(rules)
 
 
 @dataclass(frozen=True)
@@ -516,6 +531,7 @@ class PositiveLookahead(Decorator):
     def format(self):
         return '&' + self.item.format_for_precedence(Precedence.LOOKAHEAD)
 
+
 @dataclass(frozen=True)
 class Gather(Node):
     separator: Node
@@ -527,9 +543,9 @@ class Gather(Node):
         yield self.separator
         yield self.item
 
-    def simplify(self):
+    def simplify(self, rules):
         self_type = type(self)
-        return self_type(simplify_node(self.separator), simplify_node(self.item))
+        return self_type(simplify_node(rules, self.separator), simplify_node(rules, self.item))
 
     def format(self):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
@@ -580,6 +596,10 @@ class Nonterminal(Leaf):
         if self.value == replaced_name:
             return replacement
         return super().inlined(replaced_name, replacement)
+
+    def get_possible_start_tokens(self, rules):
+        rule = rules[self.value]
+        return rule.get_possible_start_tokens(rules)
 
 
 @dataclass(frozen=True)
@@ -639,46 +659,55 @@ def convert_grammar_node(grammar_node):
         case _:
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
-def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
-    # Figure out all rules we want to document.
-    # This includes the ones we were asked to document (`requested_rule_names`),
-    # and also rules referenced from them (recursively), except ones that will
-    # be documented elsewhere (those in `toplevel_rule_names`).
-    requested_rule_names = list(rule_names)
-    rule_names_to_add = list(rule_names)
+def convert_grammar(pegen_rules, toplevel_rule_names):
     ruleset = {}
-    while rule_names_to_add:
-        rule_name = rule_names_to_add.pop(0)
-        if rule_name in ruleset:
-            continue
-        pegen_rule = pegen_rules[rule_name]
+    for rule_name, pegen_rule in pegen_rules.items():
         node = convert_grammar_node(pegen_rule.rhs)
-
-        node = simplify_node(node)
         ruleset[rule_name] = node
 
-        for descendant in generate_all_descendants(node, filter=Nonterminal):
-            rule_name = descendant.value
-            if (
-                rule_name in pegen_rules
-                and rule_name not in toplevel_rule_names
-            ):
-                rule_names_to_add.append(rule_name)
+    for name, node in ruleset.items():
+        ruleset[name] = simplify_node(ruleset, node)
 
     # Simplify ruleset repeatedly, until simplification no longer changes it
     old_ruleset = None
     while ruleset != old_ruleset:
         old_ruleset = ruleset
-        ruleset = simplify_ruleset(ruleset, requested_rule_names)
+        ruleset = simplify_ruleset(ruleset, toplevel_rule_names)
 
-    longest_name = max(ruleset, key=len)
+    return ruleset
+
+
+def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
+    # Figure out all rules we want to document.
+    # This includes the ones we were asked to document (`rule_names`),
+    # and also rules referenced from them (recursively), except ones that will
+    # be documented elsewhere (those in `toplevel_rule_names`).
+    requested_rule_names = list(rule_names)
+    rule_names_to_consider = list(rule_names)
+    rule_names_to_generate = []
+    while rule_names_to_consider:
+        rule_name = rule_names_to_consider.pop(0)
+        if rule_name in rule_names_to_generate:
+            continue
+        rule_names_to_generate.append(rule_name)
+
+        node = rules[rule_name]
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            rule_name = descendant.value
+            if (
+                rule_name in rules
+                and rule_name not in toplevel_rule_names
+            ):
+                rule_names_to_consider.append(rule_name)
+
+    longest_name = max(rule_names_to_generate, key=len)
     available_space = 80 - len(longest_name) - len(' ::=  ')
 
     # Yield all the lines
-    for name, node in ruleset.items():
+    for name in rule_names_to_generate:
+        node = rules[name]
         if debug:
             # To compare with pegen's stringification:
-            yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
         for num, line in enumerate(node.format_lines(available_space)):
@@ -697,12 +726,12 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         if debug:
             yield from node.dump_tree()
 
-def simplify_node(node):
+def simplify_node(rules, node):
     """Simplifies a node repeatedly until simplification no longer changes it"""
     last_node = None
     while node != last_node:
         last_node = node
-        node = node.simplify()
+        node = node.simplify(rules)
         # nifty debug output:
             # debug('simplified', last_node.format(), '->', node.format())
             # debug('from:')
@@ -714,28 +743,33 @@ def simplify_node(node):
     return node
 
 
-def simplify_ruleset(old_ruleset: dict, requested_rule_names):
+def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
     """Simplify and inline a bunch of rules"""
 
     # Generate new ruleset with simplified nodes
     new_ruleset = {}
     for rule_name, node in old_ruleset.items():
-        new_ruleset[rule_name] = simplify_node(node)
+        new_ruleset[rule_name] = simplify_node(old_ruleset, node)
+
+    # A rule will be inlined if we were not explicitly asked to provide a
+    # definition for it (i.e. it is not in `toplevel_rule_names`), and:
+    # - is only mentioned once, or
+    # - its definition is short
 
     # Count up all the references to rules we're documenting.
-    # A rule that's only mentioned once should be inlined, except if we were
-    # explicitly asked to provide a definition for it (i.e. it is in
-    # `requested_rule_names`).
     reference_counts = collections.Counter()
     for node in new_ruleset.values():
         for descendant in generate_all_descendants(node, filter=Nonterminal):
             name = descendant.value
-            if name in new_ruleset and name not in requested_rule_names:
+            if name in new_ruleset:
                 reference_counts[name] += 1
 
     # Inline the rules we found
     for name, count in reference_counts.items():
-        if count == 1:
+        if name not in toplevel_rule_names and (
+            count == 1
+            or len(new_ruleset[name].format()) <= len(name) * 1.2
+        ):
             print(f'rule named {name} will be inlined.')
             replaced_name = name
             replacement = new_ruleset[replaced_name]

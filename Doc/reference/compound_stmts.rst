@@ -49,7 +49,7 @@ Summarizing:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    compound_stmt: &('def' | '@' | 'async') `function_def` | &'if' `if_stmt` | &('class' | '@') `class_def` | &('with' | 'async') `with_stmt` | &('for' | 'async') `for_stmt` | &'try' `try_stmt` | &'while' `while_stmt` | `match_stmt`
-   block: NEWLINE INDENT `statement`+ DEDENT | (`simple_stmt` !';' | ';'.`simple_stmt`+ [';']) NEWLINE
+   block: NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`
 
 .. index::
    single: NEWLINE token
@@ -1137,9 +1137,8 @@ A class pattern represents a class and its positional and keyword arguments
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] `keyword_patterns`) [',']] ')'
+   class_pattern: (`attr` | NAME) '(' [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']] ')'
    keyword_patterns: ','.(NAME '=' `pattern`)+
-   positional_patterns: ','.`pattern`+
 
 The same keyword should not be repeated in class patterns.
 
@@ -1267,14 +1266,16 @@ A function definition defines a user-defined function object (see section
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
+   function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`params`] ')' ['->' `expression`] ':' `block`
    decorators: ('@' `named_expression` NEWLINE)+
-   parameters: ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' (',' | &')') | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
+   parameters: ((`slash_no_default` `param_no_default`* | `slash_with_default` | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
    slash_no_default: `param_no_default`+ '/' (',' | &')')
    default: '=' `expression`
+   params: `parameters`
    param_no_default: `param` (',' | &')')
+   slash_with_default: `param_no_default`* `param_with_default`+ '/' (',' | &')')
    param_with_default: `param` `default` (',' | &')')
-   star_etc: '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
+   star_etc: '*' ((`param_no_default` | NAME ':' `star_expression` (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
    param: NAME [':' `expression`]
    param_maybe_default: `param` [`default`] (',' | &')')
    kwds: '**' `param_no_default`
@@ -1709,8 +1710,7 @@ Type parameter lists
    :generated-by: Tools/peg_generator/docs_generator.py
 
    type_params: '[' ','.`type_param`+ [','] ']'
-   type_param: NAME [':' `expression`] [`type_param_default`] | '*' NAME ['=' ('*' `bitwise_or` | `expression`)] | '**' NAME [`type_param_default`]
-   type_param_default: '=' `expression`
+   type_param: NAME [':' `expression`] ['=' `expression`] | '*' NAME ['=' `star_expression`] | '**' NAME ['=' `expression`]
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may

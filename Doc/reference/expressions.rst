@@ -863,12 +863,13 @@ Primaries
 Primaries represent the most tightly bound operations of the language. Their
 syntax is:
 
-.. grammar-snippet:: primary t_primary
+.. grammar-snippet:: primary t_primary t_lookahead
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    primary: `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']') | `atom`
-   t_primary: (`t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`) &('(' | '[' | '.')
+   t_primary: (`t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`) &`t_lookahead`
+   t_lookahead: '(' | '[' | '.'
 
 .. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
@@ -1062,9 +1063,8 @@ series of :term:`arguments <argument>`:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    arguments: `args` [','] &')'
-   args: ','.(`starred_expression` | (`assignment_expression` | `expression` !':=') !'=')+ [',' `kwargs`] | `kwargs`
-   starred_expression: '*' `expression`
-   kwargs: ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
+   args: ','.('*' `expression` | (`assignment_expression` | `expression` !':=') !'=')+ [',' `kwargs`] | `kwargs`
+   kwargs: ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
 
 .. productionlist:: python-grammar-old
@@ -1988,13 +1988,10 @@ Lambdas
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   lambda_params: ((`lambda_param_no_default`+ '/' (',' | &':') `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' (',' | &':') | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`] | `lambda_star_etc`
-   lambda_param_no_default: `lambda_param` (',' | &':')
-   lambda_param_with_default: `lambda_param` `default` (',' | &':')
-   lambda_star_etc: '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`] | `lambda_kwds`
-   lambda_param: NAME
-   lambda_param_maybe_default: `lambda_param` [`default`] (',' | &':')
-   lambda_kwds: '**' `lambda_param_no_default`
+   lambda_params: (((NAME (',' | &':'))+ '/' NAME.(',' | &':')+ | `lambda_slash_with_default` | (NAME (',' | &':'))+) (NAME `default` (',' | &':'))* | (NAME `default` (',' | &':'))+) [`lambda_star_etc`] | `lambda_star_etc`
+   lambda_slash_with_default: (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (',' | &':')
+   lambda_star_etc: '*' (NAME (',' | &':') (NAME [`default`] (',' | &':'))* | ',' (NAME [`default`] (',' | &':'))+) [`lambda_kwds`] | `lambda_kwds`
+   lambda_kwds: '**' NAME (',' | &':')
 
 .. productionlist:: python-grammar-old
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
