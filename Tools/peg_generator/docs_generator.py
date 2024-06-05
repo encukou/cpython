@@ -755,6 +755,7 @@ def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
     # definition for it (i.e. it is not in `toplevel_rule_names`), and:
     # - is only mentioned once, or
     # - its definition is short
+    # - it expands to a single nonterminal
 
     # Count up all the references to rules we're documenting.
     reference_counts = collections.Counter()
@@ -766,13 +767,15 @@ def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
 
     # Inline the rules we found
     for name, count in reference_counts.items():
+        node = new_ruleset[name]
         if name not in toplevel_rule_names and (
             count == 1
-            or len(new_ruleset[name].format()) <= len(name) * 1.2
+            or len(node.format()) <= len(name) * 1.2
+            or isinstance(node, Nonterminal)
         ):
             print(f'rule named {name} will be inlined.')
             replaced_name = name
-            replacement = new_ruleset[replaced_name]
+            replacement = node
             for rule_name, rule_node in new_ruleset.items():
                 new_node = rule_node.inlined(replaced_name, replacement)
                 new_ruleset[rule_name] = new_node
