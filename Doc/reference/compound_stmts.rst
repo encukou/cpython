@@ -48,8 +48,8 @@ Summarizing:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
-   block: NEWLINE INDENT `statement`+ DEDENT | ';'.`simple_stmt`+ [';'] NEWLINE
+   compound_stmt: &('def' | '@' | 'async') `function_def` | &'if' `if_stmt` | &('class' | '@') `class_def` | &('with' | 'async') `with_stmt` | &('for' | 'async') `for_stmt` | &'try' `try_stmt` | &'while' `while_stmt` | `match_stmt`
+   block: NEWLINE INDENT `statement`+ DEDENT | (`simple_stmt` !';' | ';'.`simple_stmt`+ [';']) NEWLINE
 
 .. index::
    single: NEWLINE token
@@ -503,7 +503,7 @@ usage patterns to be encapsulated for convenient reuse.
    :generated-by: Tools/peg_generator/docs_generator.py
 
    with_stmt: ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
-   with_item: `expression` ['as' `star_target`]
+   with_item: `expression` ['as' `star_target` &(',' | ')' | ':')]
 
 .. productionlist:: python-grammar-old
    with_stmt: "with" ( "(" `with_stmt_contents` ","? ")" | `with_stmt_contents` ) ":" `suite`
@@ -869,7 +869,7 @@ A literal pattern corresponds to most
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   literal_pattern: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   literal_pattern: `signed_number` !('+' | '-') | `complex_number` | `strings` | 'None' | 'True' | 'False'
    signed_number: ['-'] NUMBER
    complex_number: ['-'] NUMBER ('+' | '-') NUMBER
 
@@ -897,7 +897,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   pattern_capture_target: NAME
+   pattern_capture_target: !"_" NAME !('.' | '(' | '=')
 
 .. productionlist:: python-grammar-old
    capture_pattern: !'_' NAME
@@ -947,7 +947,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   value_pattern: `attr`
+   value_pattern: `attr` !('.' | '(' | '=')
    attr: (`attr` | NAME) '.' NAME
 
 The dotted name in the pattern is looked up using standard Python
@@ -1082,7 +1082,7 @@ Syntax:
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
-   literal_expr: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   literal_expr: `signed_number` !('+' | '-') | `complex_number` | `strings` | 'None' | 'True' | 'False'
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
@@ -1269,14 +1269,14 @@ A function definition defines a user-defined function object (see section
 
    function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
    decorators: ('@' `named_expression` NEWLINE)+
-   parameters: ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
-   slash_no_default: `param_no_default`+ '/' [',']
+   parameters: ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' (',' | &')') | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
+   slash_no_default: `param_no_default`+ '/' (',' | &')')
    default: '=' `expression`
-   param_no_default: `param` [',']
-   param_with_default: `param` `default` [',']
-   star_etc: '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [',']) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
+   param_no_default: `param` (',' | &')')
+   param_with_default: `param` `default` (',' | &')')
+   star_etc: '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
    param: NAME [':' `expression`]
-   param_maybe_default: `param` [[`default`] ',' | `default`]
+   param_maybe_default: `param` [`default`] (',' | &')')
    kwds: '**' `param_no_default`
 
 .. productionlist:: python-grammar-old

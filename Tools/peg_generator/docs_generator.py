@@ -184,6 +184,7 @@ class Precedence(enum.IntEnum):
     CHOICE = enum.auto()
     SEQUENCE = enum.auto()
     REPEAT = enum.auto()
+    LOOKAHEAD = enum.auto()
     ATOM = enum.auto()
 
 @dataclass(frozen=True)
@@ -499,6 +500,22 @@ class ZeroOrMore(Decorator):
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '*'
 
+
+@dataclass(frozen=True)
+class NegativeLookahead(Decorator):
+    precedence = Precedence.LOOKAHEAD
+
+    def format(self):
+        return '!' + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+
+
+@dataclass(frozen=True)
+class PositiveLookahead(Decorator):
+    precedence = Precedence.LOOKAHEAD
+
+    def format(self):
+        return '&' + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+
 @dataclass(frozen=True)
 class Gather(Node):
     separator: Node
@@ -607,9 +624,9 @@ def convert_grammar_node(grammar_node):
         case pegen.grammar.Repeat0():
             return ZeroOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.PositiveLookahead():
-            return EMPTY
+            return PositiveLookahead(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NegativeLookahead():
-            return EMPTY
+            return NegativeLookahead(convert_grammar_node(grammar_node.node))
         case pegen.grammar.Cut():
             return EMPTY
         case pegen.grammar.Forced():

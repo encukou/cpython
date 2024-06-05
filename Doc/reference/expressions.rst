@@ -58,7 +58,7 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   atom: NAME | 'True' | 'False' | 'None' | `strings` | NUMBER | `tuple` | `group` | `genexp` | `list` | `listcomp` | `dict` | `set` | `dictcomp` | `setcomp` | '...'
+   atom: NAME | 'True' | 'False' | 'None' | &(STRING | FSTRING_START) `strings` | NUMBER | &'(' (`tuple` | `group` | `genexp`) | &'[' (`list` | `listcomp`) | &'{' (`dict` | `set` | `dictcomp` | `setcomp`) | '...'
 
 .. productionlist:: python-grammar-old
    atom: `identifier` | `literal` | `enclosure`
@@ -156,7 +156,7 @@ A parenthesized form is an optional expression list enclosed in parentheses:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    group: '(' (`yield_expr` | `named_expression`) ')'
-   named_expression: `assignment_expression` | `expression`
+   named_expression: `assignment_expression` | `expression` !':='
 
 .. productionlist:: python-grammar-old
    parenth_form: "(" [`starred_expression`] ")"
@@ -422,7 +422,7 @@ A generator expression is a compact generator notation in parentheses:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   genexp: '(' (`assignment_expression` | `expression`) `for_if_clauses` ')'
+   genexp: '(' (`assignment_expression` | `expression` !':=') `for_if_clauses` ')'
 
 .. productionlist:: python-grammar-old
    generator_expression: "(" `expression` `comp_for` ")"
@@ -868,7 +868,7 @@ syntax is:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    primary: `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']') | `atom`
-   t_primary: `t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`
+   t_primary: (`t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`) &('(' | '[' | '.')
 
 .. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
@@ -935,7 +935,7 @@ will generally select an element from the container. The subscription of a
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
+   slices: `slice` !',' | ','.(`slice` | '*' `expression`)+ [',']
    slice: [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
 
 .. productionlist:: python-grammar-old
@@ -1061,8 +1061,8 @@ series of :term:`arguments <argument>`:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   arguments: `args` [',']
-   args: ','.(`starred_expression` | `assignment_expression` | `expression`)+ [',' `kwargs`] | `kwargs`
+   arguments: `args` [','] &')'
+   args: ','.(`starred_expression` | (`assignment_expression` | `expression` !':=') !'=')+ [',' `kwargs`] | `kwargs`
    starred_expression: '*' `expression`
    kwargs: ','.(NAME '=' `expression` | `starred_expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
@@ -1988,12 +1988,12 @@ Lambdas
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   lambda_params: ((`lambda_param_no_default`+ '/' [','] `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' [','] | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`] | `lambda_star_etc`
-   lambda_param_no_default: `lambda_param` [',']
-   lambda_param_with_default: `lambda_param` `default` [',']
+   lambda_params: ((`lambda_param_no_default`+ '/' (',' | &':') `lambda_param_no_default`* | `lambda_param_no_default`* `lambda_param_with_default`+ '/' (',' | &':') | `lambda_param_no_default`+) `lambda_param_with_default`* | `lambda_param_with_default`+) [`lambda_star_etc`] | `lambda_star_etc`
+   lambda_param_no_default: `lambda_param` (',' | &':')
+   lambda_param_with_default: `lambda_param` `default` (',' | &':')
    lambda_star_etc: '*' (`lambda_param_no_default` `lambda_param_maybe_default`* | ',' `lambda_param_maybe_default`+) [`lambda_kwds`] | `lambda_kwds`
    lambda_param: NAME
-   lambda_param_maybe_default: `lambda_param` [[`default`] ',' | `default`]
+   lambda_param_maybe_default: `lambda_param` [`default`] (',' | &':')
    lambda_kwds: '**' `lambda_param_no_default`
 
 .. productionlist:: python-grammar-old
