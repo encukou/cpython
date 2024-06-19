@@ -444,6 +444,9 @@ class Sequence(Container):
                     # the lookahead is redundant
                     return [], 1
             case [Nonterminal() as nt, PositiveLookahead((Choice() | Token()) as lookahead)]:
+                # XXX: in del_stmt    ::=  'del' del_targets &(';' | NEWLINE)
+                # we need to look at the follow set of the *lookahead itself*,
+                # not the nonterminal that includes it.
                 if isinstance(lookahead, Choice):
                     tokens = set(lookahead.items)
                     if not all(isinstance(tok, Token) for tok in tokens):
