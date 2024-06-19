@@ -439,9 +439,22 @@ class Sequence(Container):
                         return [subsequence[0]], 1
                 else:
                     tokens = {lookahead}
+                # XXX: next_node can be the empty etring
                 if tokens.issuperset(next_node.get_possible_start_tokens(rules)):
                     # the lookahead is redundant
                     return [], 1
+            case [Nonterminal() as nt, PositiveLookahead((Choice() | Token()) as lookahead)]:
+                if isinstance(lookahead, Choice):
+                    tokens = set(lookahead.items)
+                    if not all(isinstance(tok, Token) for tok in tokens):
+                        # Can't simplify this yet
+                        return [subsequence[0]], 1
+                else:
+                    tokens = {lookahead}
+                follow_set = nt.get_follow_set(rules)
+                print(nt, follow_set, tokens)
+                if follow_set.issubset(tokens):
+                    return [nt], 2
         return [subsequence[0]], 1
 
     def format(self):
@@ -532,6 +545,9 @@ class Optional(Decorator):
                 return EMPTY
         return super().simplify(rules)
 
+    def get_possible_start_tokens(self, rules):
+        return self.item.get_possible_start_tokens(rules) | {None}
+
 
 @dataclass(frozen=True)
 class OneOrMore(Decorator):
@@ -551,21 +567,25 @@ class ZeroOrMore(Decorator):
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '*'
 
-
-@dataclass(frozen=True)
-class NegativeLookahead(Decorator):
-    precedence = Precedence.LOOKAHEAD
-
-    def format(self):
-        return '!' + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+    def get_possible_start_tokens(self, rules):
+        return self.item.get_possible_start_tokens(rules) | {None}
 
 
 @dataclass(frozen=True)
-class PositiveLookahead(Decorator):
+class Lookahead(Decorator):
     precedence = Precedence.LOOKAHEAD
 
     def format(self):
-        return '&' + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+        return self.sigil + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+
+    def get_possible_start_tokens(self, rules):
+        return {None}
+
+class NegativeLookahead(Lookahead):
+    sigil = '!'
+
+class PositiveLookahead(Lookahead):
+    sigil = '&'
 
 
 @dataclass(frozen=True)
@@ -637,6 +657,79 @@ class Nonterminal(Leaf):
     def get_possible_start_tokens(self, rules):
         rule = rules[self.value]
         return rule.get_possible_start_tokens(rules)
+
+    def get_follow_set(self, rules, rules_considered=None):
+        if rules_considered is None:
+            rules_considered = set()
+        rules_considered.add(self.value)
+
+        result = set()
+        # Go through all the rules, and find Nonterminals with `self.value`.
+
+        def handle_node(node):
+            """Returns True if the follow set of `node` should be included in result"""
+            match node:
+                case Sequence(items):
+                    for pos, current in enumerate(items):
+                        add_follow_set = False
+                        match current:
+                            case Nonterminal(self.value):
+                                # we found Nonterminal with the value we're searching for
+                                add_follow_set = True
+                            case _:
+                                if handle_node(current):
+                                    add_follow_set = True
+                        if add_follow_set:
+                            for following in items[pos+1:]:
+                                start_tokens = following.get_possible_start_tokens(rules)
+                                result.update(start_tokens - {None})
+                                if None not in start_tokens:
+                                    break
+                            else:
+                                return True
+                case Optional(item):
+                    return handle_node(item)
+                case ZeroOrMore(item) | OneOrMore(item):
+                    if handle_node(item):
+                        start_tokens = item.get_possible_start_tokens(rules)
+                        result.update(start_tokens - {None})
+                        return True
+                case Choice(alts):
+                    include_follow = False
+                    for alt in alts:
+                        if handle_node(alt):
+                            include_follow = True
+                    return include_follow
+                case Gather(sep, item):
+                    match sep:
+                        case Token():
+                            pass
+                        case _:
+                            raise NotImplementedError()
+                    if handle_node(item):
+                        start_tokens = sep.get_possible_start_tokens(rules)
+                        result.update(start_tokens - {None})
+                        if None in start_tokens:
+                            raise NotImplementedError()
+                        return True
+                case Nonterminal(value):
+                    if value == self.value:
+                        return True
+                    else:
+                        pass
+                case Token() | NegativeLookahead() | PositiveLookahead():
+                    pass
+                case _:
+                    raise NotImplementedError(repr(node))
+
+        for name, rule in rules.items():
+            if handle_node(rule):
+                if name not in rules_considered:
+                    result.update(Nonterminal(name).get_follow_set(
+                        rules, rules_considered,
+                    ))
+
+        return result
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
