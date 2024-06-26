@@ -483,7 +483,7 @@ The :keyword:`!del` statement
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   del_stmt: 'del' `del_targets` &(';' | NEWLINE)
+   del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
    del_target: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead` | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
 

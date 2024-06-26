@@ -1062,7 +1062,7 @@ series of :term:`arguments <argument>`:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   arguments: `args` [','] &')'
+   arguments: `args` [',']
    args: ','.('*' `expression` | (`assignment_expression` | `expression` !':=') !'=')+ [',' `kwargs`] | `kwargs`
    kwargs: ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
@@ -1991,7 +1991,7 @@ Lambdas
    lambda_params: (((NAME (',' | &':'))+ '/' NAME.(',' | &':')+ | `lambda_slash_with_default` | (NAME (',' | &':'))+) (NAME `default` (',' | &':'))* | (NAME `default` (',' | &':'))+) [`lambda_star_etc`] | `lambda_star_etc`
    lambda_slash_with_default: (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (',' | &':')
    lambda_star_etc: '*' (NAME (',' | &':') (NAME [`default`] (',' | &':'))* | ',' (NAME [`default`] (',' | &':'))+) [`lambda_kwds`] | `lambda_kwds`
-   lambda_kwds: '**' NAME (',' | &':')
+   lambda_kwds: '**' NAME [',']
 
 .. productionlist:: python-grammar-old
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
