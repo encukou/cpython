@@ -863,13 +863,12 @@ Primaries
 Primaries represent the most tightly bound operations of the language. Their
 syntax is:
 
-.. grammar-snippet:: primary t_primary t_lookahead
+.. grammar-snippet:: primary t_primary
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    primary: `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']') | `atom`
-   t_primary: (`t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`) &`t_lookahead`
-   t_lookahead: '(' | '[' | '.'
+   t_primary: `t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')') | `atom`
 
 .. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`

@@ -99,13 +99,13 @@ attributes or items of mutable objects:
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead` | `star_atom`
+   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') | `star_atom`
 
 .. grammar-snippet:: single_subscript_attribute_target
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead`
+   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']')
 
 .. productionlist:: python-grammar-old
    assignment_stmt: (`target_list` "=")+ (`starred_expression` | `yield_expression`)
@@ -485,7 +485,7 @@ The :keyword:`!del` statement
 
    del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
-   del_target: `t_primary` ('.' NAME | '[' `slices` ']') !`t_lookahead` | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
+   del_target: `t_primary` ('.' NAME | '[' `slices` ']') | NAME | '(' [`del_target` | `del_targets`] ')' | '[' [`del_targets`] ']'
 
 Deletion is recursively defined very similar to the way assignment is defined.
 Rather than spelling it out in full details, here are some hints.

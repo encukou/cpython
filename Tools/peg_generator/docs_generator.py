@@ -598,14 +598,16 @@ class Lookahead(Decorator):
     def get_possible_start_tokens(self, rules, rules_considered):
         return {None}
 
-    def tokens_in_self(self):
+    def tokens_in_self(self, rules):
         """Return the set of tokens contained in this lookahead, or None if
         the lookahead can match more than one token"""
-        if isinstance(self.item, Choice):
-            print(self.item.items)
-            tokens_in_self = self.item.items
+        item = self.item
+        if isinstance(item, Nonterminal):
+            item = rules[item.value]
+        if isinstance(item, Choice):
+            tokens_in_self = item.items
         else:
-            tokens_in_self = {self.item}
+            tokens_in_self = {item}
         if not all(isinstance(item, Token) for item in tokens_in_self):
             # we only simplify lookaheads that only contain tokens
             return None
@@ -618,7 +620,7 @@ class NegativeLookahead(Lookahead):
     def simplify(self, rules, path):
         # Find all the tokens the lookahead contains
         # (We don't simplify lookaheads that contain more than tokens)
-        tokens_in_self = self.tokens_in_self()
+        tokens_in_self = self.tokens_in_self(rules)
         if tokens_in_self:
             self_follow_set = get_follow_set_for_path(path, rules)
 
@@ -634,7 +636,7 @@ class PositiveLookahead(Lookahead):
     def simplify(self, rules, path):
         # Find all the tokens the lookahead contains
         # (We don't simplify lookaheads that contain more than tokens)
-        tokens_in_self = self.tokens_in_self()
+        tokens_in_self = self.tokens_in_self(rules)
         if tokens_in_self:
             self_follow_set = get_follow_set_for_path(path, rules)
 
