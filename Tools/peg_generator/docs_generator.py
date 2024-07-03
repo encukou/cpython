@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import enum
 import collections
 import typing
+import tokenize
+import token
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -35,9 +37,6 @@ argparser.add_argument(
 FUTURE_TOPLEVEL_RULES = set()
 
 # TODO:
-
-#   pattern_capture_target: !"_" NAME !('.' | '(' | '=')
-# - "_" is avctually a sppecial case of NAME
 
 # literal_pattern is the same as literal_expr
 
@@ -608,10 +607,10 @@ class Lookahead(Decorator):
             tokens_in_self = item.items
         else:
             tokens_in_self = {item}
-        if not all(isinstance(item, Token) for item in tokens_in_self):
+        if not all(isinstance(item, BaseToken) for item in tokens_in_self):
             # we only simplify lookaheads that only contain tokens
             return None
-        return set(tokens_in_self)
+        return TokenSet(tokens_in_self)
 
 
 class NegativeLookahead(Lookahead):
@@ -622,7 +621,7 @@ class NegativeLookahead(Lookahead):
         # (We don't simplify lookaheads that contain more than tokens)
         tokens_in_self = self.tokens_in_self(rules)
         if tokens_in_self:
-            self_follow_set = get_follow_set_for_path(path, rules)
+            self_follow_set = TokenSet(get_follow_set_for_path(path, rules))
 
             if not tokens_in_self.issubset(self_follow_set):
                 # no tokens in the neg.lookahead can follow it,
@@ -638,7 +637,7 @@ class PositiveLookahead(Lookahead):
         # (We don't simplify lookaheads that contain more than tokens)
         tokens_in_self = self.tokens_in_self(rules)
         if tokens_in_self:
-            self_follow_set = get_follow_set_for_path(path, rules)
+            self_follow_set = TokenSet(get_follow_set_for_path(path, rules))
 
             if tokens_in_self.issuperset(self_follow_set):
                 # no other tokens than what's in the lookahead can follow it,
@@ -731,9 +730,41 @@ class Leaf(Node):
 
 
 @dataclass(frozen=True)
-class Token(Leaf):
+class BaseToken(Leaf):
     def get_possible_start_tokens(self, rules, rules_considered):
         return {self}
+
+class LiteralToken(BaseToken):
+    """A token that matches an exact string, like "_" or ','or 'if'
+    """
+    @property
+    def kind(self):
+        # Remove quotes
+        assert self.value[0] in ("'", '"')
+        assert self.value[0] == self.value[-1]
+        content = self.value[1:-1]
+        kinds = {
+            '[': "OP",  ']': "OP",
+            '(': "OP",  ')': "OP",
+            '{': "OP",  '}': "OP",
+        }
+        result = kinds.get(content)
+        if result is not None:
+            return result
+        # Tokenize the result. The tokenize module is meant to be used on
+        # files, not single tokens, so this is cumbersome.
+        # We get extra NEWLINE and ENDMARKER tokens after the one we want.
+        try:
+            tok, newline, end = tokenize.generate_tokens(iter([content]).__next__)
+        except:
+            raise NotImplementedError(
+                f'kind of token {content!r} could not be determined. '
+                + 'special case it!')
+        return token.tok_name[tok.type]
+
+class SymbolicToken(BaseToken):
+    """A token name, like NAME or NUMBER or NEWLINE
+    """
 
 
 @dataclass(frozen=True)
@@ -779,13 +810,13 @@ def convert_grammar_node(grammar_node):
                 # a special mode
                 return UNREACHABLE
             if grammar_node.value.isupper():
-                return Token(grammar_node.value)
+                return SymbolicToken(grammar_node.value)
             if grammar_node.value.startswith('invalid'):
                 return UNREACHABLE
             else:
                 return Nonterminal(grammar_node.value)
         case pegen.grammar.StringLeaf():
-            return Token(grammar_node.value)
+            return LiteralToken(grammar_node.value)
         case pegen.grammar.Repeat1():
             return OneOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.Repeat0():
@@ -818,6 +849,32 @@ class PathEntry:
     @classmethod
     def root_path(cls, rule_name):
         return cls(None, None, rule_name)
+
+
+class TokenSet:
+    """A set of tokens, whose operations take into account that, for example,
+    a NAME token is actually a set that includes e.g. "_"
+    """
+    def __init__(self, tokens):
+        self.tokens = set(tokens)
+
+    def issubset(self, other):
+        # each element of self needs to appear in other
+        for element in self.tokens:
+            if element in other.tokens:
+                continue
+            if isinstance(element, LiteralToken):
+                if SymbolicToken(element.kind) not in other.tokens:
+                    return False
+            else:
+                return False
+        return True
+
+    def issuperset(self, other):
+        return other.issubset(self)
+
+# XXX convert this to a test
+assert TokenSet([LiteralToken('"_"')]).issubset(TokenSet([SymbolicToken('NAME')]))
 
 def convert_grammar(pegen_rules, toplevel_rule_names):
     ruleset = {}
@@ -887,7 +944,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                 return include_follow
             case Gather(sep, item):
                 match sep:
-                    case Token():
+                    case BaseToken():
                         pass
                     case _:
                         raise NotImplementedError()
@@ -902,7 +959,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                     return True
                 else:
                     pass
-            case Token() | NegativeLookahead() | PositiveLookahead():
+            case BaseToken() | NegativeLookahead() | PositiveLookahead():
                 pass
             case _:
                 raise NotImplementedError(repr(node))
@@ -1014,7 +1071,6 @@ def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
             or len(node.format()) <= len(name) * 1.2
             or isinstance(node, Nonterminal)
         ):
-            print(f'rule named {name} will be inlined.')
             replaced_name = name
             replacement = node
             for rule_name, rule_node in new_ruleset.items():

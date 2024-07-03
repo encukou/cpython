@@ -897,7 +897,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   pattern_capture_target: NAME
+   pattern_capture_target: !"_" NAME
 
 .. productionlist:: python-grammar-old
    capture_pattern: !'_' NAME
