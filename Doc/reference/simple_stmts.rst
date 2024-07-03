@@ -10,7 +10,7 @@ Simple statements
    :generated-by: Tools/peg_generator/docs_generator.py
 
    statement: `compound_stmt` | `simple_stmts`
-   simple_stmts: (`simple_stmt` !';' | ';'.`simple_stmt`+ [';']) NEWLINE
+   simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -87,7 +87,7 @@ attributes or items of mutable objects:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   assignment: (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`] | (`star_targets` '=')+ (`yield_expr` | `star_expressions`) !'=' | `single_target` `augassign` (`yield_expr` | `star_expressions`)
+   assignment: (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`] | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
    single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
 
@@ -95,7 +95,7 @@ attributes or items of mutable objects:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   star_targets: `star_target` !',' | ','.`star_target`+ [',']
+   star_targets: ','.`star_target`+ [',']
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
@@ -798,7 +798,7 @@ The :keyword:`!import` statement
    :generated-by: Tools/peg_generator/docs_generator.py
 
    import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
-   import_from_targets: '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ !',' | '*'
+   import_from_targets: '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ | '*'
    dotted_name: [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old

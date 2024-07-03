@@ -156,7 +156,7 @@ A parenthesized form is an optional expression list enclosed in parentheses:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    group: '(' (`yield_expr` | `named_expression`) ')'
-   named_expression: `assignment_expression` | `expression` !':='
+   named_expression: `assignment_expression` | `expression`
 
 .. productionlist:: python-grammar-old
    parenth_form: "(" [`starred_expression`] ")"
@@ -422,7 +422,7 @@ A generator expression is a compact generator notation in parentheses:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   genexp: '(' (`assignment_expression` | `expression` !':=') `for_if_clauses` ')'
+   genexp: '(' (`assignment_expression` | `expression`) `for_if_clauses` ')'
 
 .. productionlist:: python-grammar-old
    generator_expression: "(" `expression` `comp_for` ")"
@@ -936,7 +936,7 @@ will generally select an element from the container. The subscription of a
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   slices: `slice` !',' | ','.(`slice` | '*' `expression`)+ [',']
+   slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
    slice: [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
 
 .. productionlist:: python-grammar-old
@@ -1063,7 +1063,7 @@ series of :term:`arguments <argument>`:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    arguments: `args` [',']
-   args: ','.('*' `expression` | (`assignment_expression` | `expression` !':=') !'=')+ [',' `kwargs`] | `kwargs`
+   args: ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`] | `kwargs`
    kwargs: ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+] | ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
 

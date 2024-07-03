@@ -35,6 +35,13 @@ argparser.add_argument(
 FUTURE_TOPLEVEL_RULES = set()
 
 # TODO:
+
+#   pattern_capture_target: !"_" NAME !('.' | '(' | '=')
+# - "_" is avctually a sppecial case of NAME
+
+# literal_pattern is the same as literal_expr
+
+
 # Think about "OptionalSequence with separators":
 
 # Gather:
@@ -370,10 +377,10 @@ class Choice(Container):
                     else:
                         yield '  ' + line
 
-    def get_possible_start_tokens(self, rules):
+    def get_possible_start_tokens(self, rules, rules_considered):
         result = set()
         for item in self.items:
-            result.update(item.get_possible_start_tokens(rules))
+            result.update(item.get_possible_start_tokens(rules, rules_considered))
         return result
 
     def get_follow_set_for_path(self, path, rules):
@@ -460,12 +467,12 @@ class Sequence(Container):
             if line_so_far:
                 yield line_so_far
 
-    def get_possible_start_tokens(self, rules):
+    def get_possible_start_tokens(self, rules, rules_considered):
         if not self.items:
             return {None}
         result = set()
         for item in self.items:
-            item_start_tokens = item.get_possible_start_tokens(rules)
+            item_start_tokens = item.get_possible_start_tokens(rules, rules_considered)
             result.update(item_start_tokens)
             item_can_be_empty = (None in item_start_tokens)
             if item_can_be_empty:
@@ -480,7 +487,7 @@ class Sequence(Container):
         items = self.items[path.position+1:]
         result = {None}
         for item in items:
-            item_start_tokens = item.get_possible_start_tokens(rules)
+            item_start_tokens = item.get_possible_start_tokens(rules, set())
             result.update(item_start_tokens)
             item_can_be_empty = (None in item_start_tokens)
             if item_can_be_empty:
@@ -540,8 +547,8 @@ class Optional(Decorator):
                 return EMPTY
         return super().simplify(rules, path)
 
-    def get_possible_start_tokens(self, rules):
-        return self.item.get_possible_start_tokens(rules) | {None}
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
 
 
 @dataclass(frozen=True)
@@ -551,11 +558,11 @@ class OneOrMore(Decorator):
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '+'
 
-    def get_possible_start_tokens(self, rules):
-        return self.item.get_possible_start_tokens(rules)
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered)
 
     def get_follow_set_for_path(self, path, rules):
-        item_start_tokens = self.item.get_possible_start_tokens(rules)
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
         item_start_tokens.discard(None)
         return (
             item_start_tokens
@@ -569,11 +576,11 @@ class ZeroOrMore(Decorator):
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '*'
 
-    def get_possible_start_tokens(self, rules):
-        return self.item.get_possible_start_tokens(rules) | {None}
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
 
     def get_follow_set_for_path(self, path, rules):
-        item_start_tokens = self.item.get_possible_start_tokens(rules)
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
         item_start_tokens.discard(None)
         return (
             item_start_tokens
@@ -588,18 +595,12 @@ class Lookahead(Decorator):
     def format(self):
         return self.sigil + self.item.format_for_precedence(Precedence.LOOKAHEAD)
 
-    def get_possible_start_tokens(self, rules):
+    def get_possible_start_tokens(self, rules, rules_considered):
         return {None}
 
-class NegativeLookahead(Lookahead):
-    sigil = '!'
-
-class PositiveLookahead(Lookahead):
-    sigil = '&'
-
-    def simplify(self, rules, path):
-        # Find all the tokens the lookahead contains
-        # (We don't simplify lookaheads that contain more than tokens)
+    def tokens_in_self(self):
+        """Return the set of tokens contained in this lookahead, or None if
+        the lookahead can match more than one token"""
         if isinstance(self.item, Choice):
             print(self.item.items)
             tokens_in_self = self.item.items
@@ -607,15 +608,40 @@ class PositiveLookahead(Lookahead):
             tokens_in_self = {self.item}
         if not all(isinstance(item, Token) for item in tokens_in_self):
             # we only simplify lookaheads that only contain tokens
-            return super().simplify(rules, path)
-        tokens_in_self = set(tokens_in_self)
+            return None
+        return set(tokens_in_self)
 
-        self_follow_set = get_follow_set_for_path(path, rules)
 
-        if tokens_in_self.issuperset(self_follow_set):
-            # no other tokens than what's in the lookahead can follow it,
-            # so the lookahead is redundant
-            return EMPTY
+class NegativeLookahead(Lookahead):
+    sigil = '!'
+
+    def simplify(self, rules, path):
+        # Find all the tokens the lookahead contains
+        # (We don't simplify lookaheads that contain more than tokens)
+        tokens_in_self = self.tokens_in_self()
+        if tokens_in_self:
+            self_follow_set = get_follow_set_for_path(path, rules)
+
+            if not tokens_in_self.issubset(self_follow_set):
+                # no tokens in the neg.lookahead can follow it,
+                # so the lookahead is redundant
+                return EMPTY
+        return super().simplify(rules, path)
+
+class PositiveLookahead(Lookahead):
+    sigil = '&'
+
+    def simplify(self, rules, path):
+        # Find all the tokens the lookahead contains
+        # (We don't simplify lookaheads that contain more than tokens)
+        tokens_in_self = self.tokens_in_self()
+        if tokens_in_self:
+            self_follow_set = get_follow_set_for_path(path, rules)
+
+            if tokens_in_self.issuperset(self_follow_set):
+                # no other tokens than what's in the lookahead can follow it,
+                # so the lookahead is redundant
+                return EMPTY
         return super().simplify(rules, path)
 
 
@@ -655,9 +681,16 @@ class Gather(Node):
             self.item.inlined(replaced_name, replacement),
         )
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        result = self.item.get_possible_start_tokens(rules, rules_considered)
+        if None in result:
+            result.remove(None)
+            result.update(self.separator.get_possible_start_tokens(rules, rules_considered))
+        return result
+
     def get_follow_set_for_path(self, path, rules):
-        sep_start_tokens = self.separator.get_possible_start_tokens(rules)
-        item_start_tokens = self.item.get_possible_start_tokens(rules)
+        sep_start_tokens = self.separator.get_possible_start_tokens(rules, set())
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
         match path.position:
             case 'sep':
                 result = set(item_start_tokens)
@@ -697,7 +730,7 @@ class Leaf(Node):
 
 @dataclass(frozen=True)
 class Token(Leaf):
-    def get_possible_start_tokens(self, rules):
+    def get_possible_start_tokens(self, rules, rules_considered):
         return {self}
 
 
@@ -711,9 +744,12 @@ class Nonterminal(Leaf):
             return replacement
         return super().inlined(replaced_name, replacement)
 
-    def get_possible_start_tokens(self, rules):
+    def get_possible_start_tokens(self, rules, rules_considered):
+        if self.value in rules_considered:
+            # don't recurse into a rule we're already evaluating
+            return set()
         rule = rules[self.value]
-        return rule.get_possible_start_tokens(rules)
+        return rule.get_possible_start_tokens(rules, rules_considered | {self.value})
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
@@ -828,7 +864,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                                 add_follow_set = True
                     if add_follow_set:
                         for following in items[pos+1:]:
-                            start_tokens = following.get_possible_start_tokens(rules)
+                            start_tokens = following.get_possible_start_tokens(rules, set())
                             result.update(start_tokens - {None})
                             if None not in start_tokens:
                                 break
@@ -838,7 +874,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                 return handle_node(item)
             case ZeroOrMore(item) | OneOrMore(item):
                 if handle_node(item):
-                    start_tokens = item.get_possible_start_tokens(rules)
+                    start_tokens = item.get_possible_start_tokens(rules, set())
                     result.update(start_tokens - {None})
                     return True
             case Choice(alts):
@@ -854,7 +890,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                     case _:
                         raise NotImplementedError()
                 if handle_node(item):
-                    start_tokens = sep.get_possible_start_tokens(rules)
+                    start_tokens = sep.get_possible_start_tokens(rules, set())
                     result.update(start_tokens - {None})
                     if None in start_tokens:
                         raise NotImplementedError()

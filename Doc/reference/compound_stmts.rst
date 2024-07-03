@@ -869,7 +869,7 @@ A literal pattern corresponds to most
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   literal_pattern: `signed_number` !('+' | '-') | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   literal_pattern: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
    signed_number: ['-'] NUMBER
    complex_number: ['-'] NUMBER ('+' | '-') NUMBER
 
@@ -897,7 +897,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   pattern_capture_target: !"_" NAME !('.' | '(' | '=')
+   pattern_capture_target: NAME
 
 .. productionlist:: python-grammar-old
    capture_pattern: !'_' NAME
@@ -947,7 +947,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   value_pattern: `attr` !('.' | '(' | '=')
+   value_pattern: `attr`
    attr: (`attr` | NAME) '.' NAME
 
 The dotted name in the pattern is looked up using standard Python
@@ -1082,7 +1082,7 @@ Syntax:
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
-   literal_expr: `signed_number` !('+' | '-') | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   literal_expr: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
