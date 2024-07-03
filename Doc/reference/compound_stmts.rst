@@ -1074,15 +1074,14 @@ A mapping pattern contains one or more key-value patterns.  The syntax is
 similar to the construction of a dictionary.
 Syntax:
 
-.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern literal_expr
+.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    mapping_pattern: '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
-   key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
-   literal_expr: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   key_value_pattern: (`literal_pattern` | `attr`) ':' `pattern`
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"

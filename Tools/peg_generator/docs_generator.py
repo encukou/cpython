@@ -36,10 +36,16 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = set()
 
+
+# Rules that should be replaced by another rule, *if* they have the
+# same contents.
+# (In the grammar, these rules may have different actions, which we ignore
+# here.)
+REPLACED_SYNONYMS = {
+    'literal_expr': 'literal_pattern',
+}
+
 # TODO:
-
-# literal_pattern is the same as literal_expr
-
 
 # Think about "OptionalSequence with separators":
 
@@ -783,6 +789,14 @@ class Nonterminal(Leaf):
             return set()
         rule = rules[self.value]
         return rule.get_possible_start_tokens(rules, rules_considered | {self.value})
+
+    def simplify(self, rules, path):
+        if other_rule_name := REPLACED_SYNONYMS.get(self.value):
+            self_rule = rules[self.value]
+            other_rule = rules[other_rule_name]
+            if self_rule == other_rule:
+                return Nonterminal(other_rule_name)
+        return super().simplify(rules, path)
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
