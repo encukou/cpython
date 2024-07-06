@@ -887,9 +887,6 @@ class TokenSet:
     def issuperset(self, other):
         return other.issubset(self)
 
-# XXX convert this to a test
-assert TokenSet([LiteralToken('"_"')]).issubset(TokenSet([SymbolicToken('NAME')]))
-
 def convert_grammar(pegen_rules, toplevel_rule_names):
     ruleset = {}
     for rule_name, pegen_rule in pegen_rules.items():
