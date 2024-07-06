@@ -4,6 +4,9 @@ import argparse
 from dataclasses import dataclass
 import enum
 import collections
+import typing
+import tokenize
+import token
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -33,7 +36,17 @@ argparser.add_argument(
 # TODO: Document all these rules somewhere in the docs
 FUTURE_TOPLEVEL_RULES = set()
 
+
+# Rules that should be replaced by another rule, *if* they have the
+# same contents.
+# (In the grammar, these rules may have different actions, which we ignore
+# here.)
+REPLACED_SYNONYMS = {
+    'literal_expr': 'literal_pattern',
+}
+
 # TODO:
+
 # Think about "OptionalSequence with separators":
 
 # Gather:
@@ -103,6 +116,8 @@ FUTURE_TOPLEVEL_RULES = set()
 # instead keep 3 separate alternatives, like in the grammar
 # Similar for star_targets_tuple_seq
 
+# Always inline `star_expression`?
+
 
 def main():
     args = argparser.parse_args()
@@ -134,6 +149,15 @@ def main():
     grammar, parser, tokenizer = build_parser(args.grammar_filename)
     pegen_rules = dict(grammar.rules)
 
+    rules = convert_grammar(pegen_rules, toplevel_rules)
+
+    if args.debug:
+        for name, rule in rules.items():
+            print()
+            print(name, rule.format())
+            for line in rule.dump_tree():
+                print(line)
+
     # Update the files
 
     for path in files_with_grammar:
@@ -156,7 +180,7 @@ def main():
                     new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
                     new_lines.append('\n')
                     for line in generate_rule_lines(
-                        pegen_rules,
+                        rules,
                         match[1].split(),
                         set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
                         debug=args.debug,
@@ -184,6 +208,7 @@ class Precedence(enum.IntEnum):
     CHOICE = enum.auto()
     SEQUENCE = enum.auto()
     REPEAT = enum.auto()
+    LOOKAHEAD = enum.auto()
     ATOM = enum.auto()
 
 @dataclass(frozen=True)
@@ -191,7 +216,7 @@ class Node:
     def format_enclosed(self):
         return self.format()
 
-    def simplify(self):
+    def simplify(self, rules, path):
         return self
 
     def format_for_precedence(self, parent_precedence):
@@ -215,8 +240,8 @@ class Container(Node):
     def __iter__(self):
         yield from self.items
 
-    def simplify_item(self, item):
-        return simplify_node(item)
+    def simplify_item(self, rules, item, path):
+        return simplify_node(rules, item, path)
 
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
@@ -241,12 +266,12 @@ class Choice(Container):
             for item in self
         )
 
-    def simplify(self):
+    def simplify(self, rules, path):
         self_type = type(self)
         alternatives = []
         is_optional = False
-        for item in self:
-            item = self.simplify_item(item)
+        for i, item in enumerate(self):
+            item = self.simplify_item(rules, item, path.child(self, i))
             match item:
                 case None:
                     pass
@@ -272,7 +297,7 @@ class Choice(Container):
         new_alts = []
         index = 0
         while index < len(alternatives):
-            replacement, num_processed = self.simplify_subsequence(alternatives[index:])
+            replacement, num_processed = self.simplify_subsequence(rules, alternatives[index:])
 
             # replacement should be list[list[Node]]
             assert isinstance(replacement, list)
@@ -295,11 +320,12 @@ class Choice(Container):
         if len(alternatives) == 1:
             return wrap(Sequence(alternatives[0]))
 
-        return wrap(self_type(
-            [simplify_node(Sequence(alt)) for alt in alternatives]
-        ))
+        return wrap(self_type([
+            simplify_node(rules, Sequence(alt), path.child(self, None))
+            for alt in alternatives
+        ]))
 
-    def simplify_subsequence(self, tail):
+    def simplify_subsequence(self, rules, tail):
         if len(tail) >= 2:
             # If two or more adjacent alternatives start or end with the
             # same item, we pull that item out, and replace the alternatives
@@ -356,22 +382,31 @@ class Choice(Container):
                     else:
                         yield '  ' + line
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        result = set()
+        for item in self.items:
+            result.update(item.get_possible_start_tokens(rules, rules_considered))
+        return result
+
+    def get_follow_set_for_path(self, path, rules):
+        return get_follow_set_for_path(path.parent_entry, rules)
+
 @dataclass(frozen=True)
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
 
-    def simplify(self):
+    def simplify(self, rules, path):
         self_type = type(self)
         items = []
-        for item in self:
-            item = self.simplify_item(item)
+        for i, item in enumerate(self):
+            item = self.simplify_item(rules, item, path.child(self, i))
             match item:
                 case self.EMPTY:
                     pass
                 case self.UNREACHABLE:
                     return UNREACHABLE
                 case Sequence(subitems):
-                    items.extend(self.simplify_item(si) for si in subitems)
+                    items.extend(subitems)
                 case _:
                     items.append(item)
         if not items:
@@ -382,7 +417,7 @@ class Sequence(Container):
         new_items = []
         index = 0
         while index < len(items):
-            replacement, num_processed = self.simplify_subsequence(items[index:])
+            replacement, num_processed = self.simplify_subsequence(rules, items[index:])
 
             # Single nodes are iterable; they act as a sequence of their
             # children, and we don't want that in this case.
@@ -399,7 +434,7 @@ class Sequence(Container):
             return items[0]
         return self_type(items)
 
-    def simplify_subsequence(self, subsequence):
+    def simplify_subsequence(self, rules, subsequence):
         """Simplify the start of the given (sub)sequence.
 
         Return the simplified result and the number of items that were
@@ -437,6 +472,40 @@ class Sequence(Container):
             if line_so_far:
                 yield line_so_far
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        if not self.items:
+            return {None}
+        result = set()
+        for item in self.items:
+            item_start_tokens = item.get_possible_start_tokens(rules, rules_considered)
+            result.update(item_start_tokens)
+            item_can_be_empty = (None in item_start_tokens)
+            if item_can_be_empty:
+                continue
+            else:
+                result.discard(None)
+                break
+        return result
+
+    def get_follow_set_for_path(self, path, rules):
+        assert path.node == self
+        items = self.items[path.position+1:]
+        result = {None}
+        for item in items:
+            item_start_tokens = item.get_possible_start_tokens(rules, set())
+            result.update(item_start_tokens)
+            item_can_be_empty = (None in item_start_tokens)
+            if item_can_be_empty:
+                continue
+            else:
+                result.discard(None)
+                break
+        if None in result:
+            result.discard(None)
+            result.update(get_follow_set_for_path(path.parent_entry, rules))
+        return result
+
+
 @dataclass(frozen=True)
 class Decorator(Node):
     """Node with exactly one child"""
@@ -449,9 +518,9 @@ class Decorator(Node):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
         yield from self.item.dump_tree(indent + 1)
 
-    def simplify(self):
+    def simplify(self, rules, path):
         self_type = type(self)
-        item = simplify_node(self.item)
+        item = simplify_node(rules, self.item, path.child(self))
         match item:
             case Sequence([x]):
                 item = x
@@ -470,7 +539,7 @@ class Optional(Decorator):
     def format(self):
         return '[' + self.item.format() + ']'
 
-    def simplify(self):
+    def simplify(self, rules, path):
         match self.item:
             #  [x [y] | y]  ->  [x] [y]
             case Choice([Sequence([x, Optional(y1)]), y2]) if y1 == y2:
@@ -481,7 +550,10 @@ class Optional(Decorator):
                 return self.item
             case self.UNREACHABLE:
                 return EMPTY
-        return super().simplify()
+        return super().simplify(rules, path)
+
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
 
 
 @dataclass(frozen=True)
@@ -491,6 +563,16 @@ class OneOrMore(Decorator):
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '+'
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered)
+
+    def get_follow_set_for_path(self, path, rules):
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
+        item_start_tokens.discard(None)
+        return (
+            item_start_tokens
+            | get_follow_set_for_path(path.parent_entry, rules)
+        )
 
 @dataclass(frozen=True)
 class ZeroOrMore(Decorator):
@@ -498,6 +580,77 @@ class ZeroOrMore(Decorator):
 
     def format(self):
         return self.item.format_for_precedence(Precedence.REPEAT) + '*'
+
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
+
+    def get_follow_set_for_path(self, path, rules):
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
+        item_start_tokens.discard(None)
+        return (
+            item_start_tokens
+            | get_follow_set_for_path(path.parent_entry, rules)
+        )
+
+
+@dataclass(frozen=True)
+class Lookahead(Decorator):
+    precedence = Precedence.LOOKAHEAD
+
+    def format(self):
+        return self.sigil + self.item.format_for_precedence(Precedence.LOOKAHEAD)
+
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return {None}
+
+    def tokens_in_self(self, rules):
+        """Return the set of tokens contained in this lookahead, or None if
+        the lookahead can match more than one token"""
+        item = self.item
+        if isinstance(item, Nonterminal):
+            item = rules[item.value]
+        if isinstance(item, Choice):
+            tokens_in_self = item.items
+        else:
+            tokens_in_self = {item}
+        if not all(isinstance(item, BaseToken) for item in tokens_in_self):
+            # we only simplify lookaheads that only contain tokens
+            return None
+        return TokenSet(tokens_in_self)
+
+
+class NegativeLookahead(Lookahead):
+    sigil = '!'
+
+    def simplify(self, rules, path):
+        # Find all the tokens the lookahead contains
+        # (We don't simplify lookaheads that contain more than tokens)
+        tokens_in_self = self.tokens_in_self(rules)
+        if tokens_in_self:
+            self_follow_set = TokenSet(get_follow_set_for_path(path, rules))
+
+            if not tokens_in_self.issubset(self_follow_set):
+                # no tokens in the neg.lookahead can follow it,
+                # so the lookahead is redundant
+                return EMPTY
+        return super().simplify(rules, path)
+
+class PositiveLookahead(Lookahead):
+    sigil = '&'
+
+    def simplify(self, rules, path):
+        # Find all the tokens the lookahead contains
+        # (We don't simplify lookaheads that contain more than tokens)
+        tokens_in_self = self.tokens_in_self(rules)
+        if tokens_in_self:
+            self_follow_set = TokenSet(get_follow_set_for_path(path, rules))
+
+            if tokens_in_self.issuperset(self_follow_set):
+                # no other tokens than what's in the lookahead can follow it,
+                # so the lookahead is redundant
+                return EMPTY
+        return super().simplify(rules, path)
+
 
 @dataclass(frozen=True)
 class Gather(Node):
@@ -510,9 +663,12 @@ class Gather(Node):
         yield self.separator
         yield self.item
 
-    def simplify(self):
+    def simplify(self, rules, path):
         self_type = type(self)
-        return self_type(simplify_node(self.separator), simplify_node(self.item))
+        return self_type(
+            simplify_node(rules, self.separator, path.child(self, 'sep')),
+            simplify_node(rules, self.item, path.child(self, 'item')),
+        )
 
     def format(self):
         sep_rep = self.separator.format_for_precedence(Precedence.REPEAT)
@@ -532,6 +688,36 @@ class Gather(Node):
             self.item.inlined(replaced_name, replacement),
         )
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        result = self.item.get_possible_start_tokens(rules, rules_considered)
+        if None in result:
+            result.remove(None)
+            result.update(self.separator.get_possible_start_tokens(rules, rules_considered))
+        return result
+
+    def get_follow_set_for_path(self, path, rules):
+        sep_start_tokens = self.separator.get_possible_start_tokens(rules, set())
+        item_start_tokens = self.item.get_possible_start_tokens(rules, set())
+        match path.position:
+            case 'sep':
+                result = set(item_start_tokens)
+                if None in result:
+                    result.update(sep_start_tokens)
+                    result.update(
+                        get_follow_set_for_path(path.parent_entry, rules)
+                    )
+                    result.discard(None)
+                return result
+            case 'item':
+                result = set(sep_start_tokens)
+                if None in result:
+                    result.update(item_start_tokens)
+                    result.discard(None)
+                result.update(get_follow_set_for_path(path.parent_entry, rules))
+                return result
+            case _:
+                raise ValueError(path.position)
+
 @dataclass(frozen=True)
 class Leaf(Node):
     """Node with no children"""
@@ -550,8 +736,41 @@ class Leaf(Node):
 
 
 @dataclass(frozen=True)
-class Token(Leaf):
-    pass
+class BaseToken(Leaf):
+    def get_possible_start_tokens(self, rules, rules_considered):
+        return {self}
+
+class LiteralToken(BaseToken):
+    """A token that matches an exact string, like "_" or ','or 'if'
+    """
+    @property
+    def kind(self):
+        # Remove quotes
+        assert self.value[0] in ("'", '"')
+        assert self.value[0] == self.value[-1]
+        content = self.value[1:-1]
+        kinds = {
+            '[': "OP",  ']': "OP",
+            '(': "OP",  ')': "OP",
+            '{': "OP",  '}': "OP",
+        }
+        result = kinds.get(content)
+        if result is not None:
+            return result
+        # Tokenize the result. The tokenize module is meant to be used on
+        # files, not single tokens, so this is cumbersome.
+        # We get extra NEWLINE and ENDMARKER tokens after the one we want.
+        try:
+            tok, newline, end = tokenize.generate_tokens(iter([content]).__next__)
+        except:
+            raise NotImplementedError(
+                f'kind of token {content!r} could not be determined. '
+                + 'special case it!')
+        return token.tok_name[tok.type]
+
+class SymbolicToken(BaseToken):
+    """A token name, like NAME or NUMBER or NEWLINE
+    """
 
 
 @dataclass(frozen=True)
@@ -564,10 +783,20 @@ class Nonterminal(Leaf):
             return replacement
         return super().inlined(replaced_name, replacement)
 
+    def get_possible_start_tokens(self, rules, rules_considered):
+        if self.value in rules_considered:
+            # don't recurse into a rule we're already evaluating
+            return set()
+        rule = rules[self.value]
+        return rule.get_possible_start_tokens(rules, rules_considered | {self.value})
 
-@dataclass(frozen=True)
-class String(Leaf):
-    pass
+    def simplify(self, rules, path):
+        if other_rule_name := REPLACED_SYNONYMS.get(self.value):
+            self_rule = rules[self.value]
+            other_rule = rules[other_rule_name]
+            if self_rule == other_rule:
+                return Nonterminal(other_rule_name)
+        return super().simplify(rules, path)
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
@@ -595,21 +824,21 @@ def convert_grammar_node(grammar_node):
                 # a special mode
                 return UNREACHABLE
             if grammar_node.value.isupper():
-                return Token(grammar_node.value)
+                return SymbolicToken(grammar_node.value)
             if grammar_node.value.startswith('invalid'):
                 return UNREACHABLE
             else:
                 return Nonterminal(grammar_node.value)
         case pegen.grammar.StringLeaf():
-            return String(grammar_node.value)
+            return LiteralToken(grammar_node.value)
         case pegen.grammar.Repeat1():
             return OneOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.Repeat0():
             return ZeroOrMore(convert_grammar_node(grammar_node.node))
         case pegen.grammar.PositiveLookahead():
-            return EMPTY
+            return PositiveLookahead(convert_grammar_node(grammar_node.node))
         case pegen.grammar.NegativeLookahead():
-            return EMPTY
+            return NegativeLookahead(convert_grammar_node(grammar_node.node))
         case pegen.grammar.Cut():
             return EMPTY
         case pegen.grammar.Forced():
@@ -622,46 +851,173 @@ def convert_grammar_node(grammar_node):
         case _:
             raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
 
-def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
-    # Figure out all rules we want to document.
-    # This includes the ones we were asked to document (`requested_rule_names`),
-    # and also rules referenced from them (recursively), except ones that will
-    # be documented elsewhere (those in `toplevel_rule_names`).
-    requested_rule_names = list(rule_names)
-    rule_names_to_add = list(rule_names)
-    ruleset = {}
-    while rule_names_to_add:
-        rule_name = rule_names_to_add.pop(0)
-        if rule_name in ruleset:
-            continue
-        pegen_rule = pegen_rules[rule_name]
-        node = convert_grammar_node(pegen_rule.rhs)
+@dataclass(frozen=True)
+class PathEntry:
+    parent_entry: typing.Union["PathEntry", None]
+    node: Node | None  # (None stands for the root -- the entire grammar)
+    position: object
 
-        node = simplify_node(node)
+    def child(self, node, position=None):
+        return PathEntry(self, node, position)
+
+    @classmethod
+    def root_path(cls, rule_name):
+        return cls(None, None, rule_name)
+
+
+class TokenSet:
+    """A set of tokens, whose operations take into account that, for example,
+    a NAME token is actually a set that includes e.g. "_"
+    """
+    def __init__(self, tokens):
+        self.tokens = set(tokens)
+
+    def issubset(self, other):
+        # each element of self needs to appear in other
+        for element in self.tokens:
+            if element in other.tokens:
+                continue
+            if isinstance(element, LiteralToken):
+                if SymbolicToken(element.kind) not in other.tokens:
+                    return False
+            else:
+                return False
+        return True
+
+    def issuperset(self, other):
+        return other.issubset(self)
+
+# XXX convert this to a test
+assert TokenSet([LiteralToken('"_"')]).issubset(TokenSet([SymbolicToken('NAME')]))
+
+def convert_grammar(pegen_rules, toplevel_rule_names):
+    ruleset = {}
+    for rule_name, pegen_rule in pegen_rules.items():
+        node = convert_grammar_node(pegen_rule.rhs)
         ruleset[rule_name] = node
 
-        for descendant in generate_all_descendants(node, filter=Nonterminal):
-            rule_name = descendant.value
-            if (
-                rule_name in pegen_rules
-                and rule_name not in toplevel_rule_names
-            ):
-                rule_names_to_add.append(rule_name)
+    for name, node in ruleset.items():
+        path = PathEntry.root_path(name)
+        ruleset[name] = simplify_node(ruleset, node, path)
 
     # Simplify ruleset repeatedly, until simplification no longer changes it
     old_ruleset = None
     while ruleset != old_ruleset:
         old_ruleset = ruleset
-        ruleset = simplify_ruleset(ruleset, requested_rule_names)
+        ruleset = simplify_ruleset(ruleset, toplevel_rule_names)
 
-    longest_name = max(ruleset, key=len)
+    return ruleset
+
+def get_follow_set_for_path(path, rules):
+    if path.node:
+        return path.node.get_follow_set_for_path(path, rules)
+    else:
+       return get_rule_follow_set(path.position, rules)
+
+def get_rule_follow_set(rule_name, rules, rules_considered=None):
+    if rules_considered is None:
+        rules_considered = set()
+    rules_considered.add(rule_name)
+
+    result = set()
+    # Go through all the rules, and find Nonterminals with `rule_name`.
+
+    def handle_node(node):
+        """Returns True if the follow set of `node` should be included in result"""
+        match node:
+            case Sequence(items):
+                for pos, current in enumerate(items):
+                    add_follow_set = False
+                    match current:
+                        case Nonterminal(n) if n == rule_name:
+                            # we found Nonterminal with the value we're searching for
+                            add_follow_set = True
+                        case _:
+                            if handle_node(current):
+                                add_follow_set = True
+                    if add_follow_set:
+                        for following in items[pos+1:]:
+                            start_tokens = following.get_possible_start_tokens(rules, set())
+                            result.update(start_tokens - {None})
+                            if None not in start_tokens:
+                                break
+                        else:
+                            return True
+            case Optional(item):
+                return handle_node(item)
+            case ZeroOrMore(item) | OneOrMore(item):
+                if handle_node(item):
+                    start_tokens = item.get_possible_start_tokens(rules, set())
+                    result.update(start_tokens - {None})
+                    return True
+            case Choice(alts):
+                include_follow = False
+                for alt in alts:
+                    if handle_node(alt):
+                        include_follow = True
+                return include_follow
+            case Gather(sep, item):
+                match sep:
+                    case BaseToken():
+                        pass
+                    case _:
+                        raise NotImplementedError()
+                if handle_node(item):
+                    start_tokens = sep.get_possible_start_tokens(rules, set())
+                    result.update(start_tokens - {None})
+                    if None in start_tokens:
+                        raise NotImplementedError()
+                    return True
+            case Nonterminal(value):
+                if value == rule_name:
+                    return True
+                else:
+                    pass
+            case BaseToken() | NegativeLookahead() | PositiveLookahead():
+                pass
+            case _:
+                raise NotImplementedError(repr(node))
+
+    for name, rule in rules.items():
+        if handle_node(rule):
+            if name not in rules_considered:
+                result.update(get_rule_follow_set(
+                    name, rules, rules_considered,
+                ))
+
+    return result
+
+def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
+    # Figure out all rules we want to document.
+    # This includes the ones we were asked to document (`rule_names`),
+    # and also rules referenced from them (recursively), except ones that will
+    # be documented elsewhere (those in `toplevel_rule_names`).
+    requested_rule_names = list(rule_names)
+    rule_names_to_consider = list(rule_names)
+    rule_names_to_generate = []
+    while rule_names_to_consider:
+        rule_name = rule_names_to_consider.pop(0)
+        if rule_name in rule_names_to_generate:
+            continue
+        rule_names_to_generate.append(rule_name)
+
+        node = rules[rule_name]
+        for descendant in generate_all_descendants(node, filter=Nonterminal):
+            rule_name = descendant.value
+            if (
+                rule_name in rules
+                and rule_name not in toplevel_rule_names
+            ):
+                rule_names_to_consider.append(rule_name)
+
+    longest_name = max(rule_names_to_generate, key=len)
     available_space = 80 - len(longest_name) - len(' ::=  ')
 
     # Yield all the lines
-    for name, node in ruleset.items():
+    for name in rule_names_to_generate:
+        node = rules[name]
         if debug:
             # To compare with pegen's stringification:
-            yield f'{name} (from pegen): {pegen_rules[name]!r}'
             yield f'{name} (repr): {node!r}'
 
         for num, line in enumerate(node.format_lines(available_space)):
@@ -680,12 +1036,12 @@ def generate_rule_lines(pegen_rules, rule_names, toplevel_rule_names, debug):
         if debug:
             yield from node.dump_tree()
 
-def simplify_node(node):
+def simplify_node(rules, node, path):
     """Simplifies a node repeatedly until simplification no longer changes it"""
     last_node = None
     while node != last_node:
         last_node = node
-        node = node.simplify()
+        node = node.simplify(rules, path)
         # nifty debug output:
             # debug('simplified', last_node.format(), '->', node.format())
             # debug('from:')
@@ -697,31 +1053,40 @@ def simplify_node(node):
     return node
 
 
-def simplify_ruleset(old_ruleset: dict, requested_rule_names):
+def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
     """Simplify and inline a bunch of rules"""
 
     # Generate new ruleset with simplified nodes
     new_ruleset = {}
     for rule_name, node in old_ruleset.items():
-        new_ruleset[rule_name] = simplify_node(node)
+        new_ruleset[rule_name] = simplify_node(
+            old_ruleset, node, PathEntry.root_path(rule_name),
+        )
+
+    # A rule will be inlined if we were not explicitly asked to provide a
+    # definition for it (i.e. it is not in `toplevel_rule_names`), and:
+    # - is only mentioned once, or
+    # - its definition is short
+    # - it expands to a single nonterminal
 
     # Count up all the references to rules we're documenting.
-    # A rule that's only mentioned once should be inlined, except if we were
-    # explicitly asked to provide a definition for it (i.e. it is in
-    # `requested_rule_names`).
     reference_counts = collections.Counter()
     for node in new_ruleset.values():
         for descendant in generate_all_descendants(node, filter=Nonterminal):
             name = descendant.value
-            if name in new_ruleset and name not in requested_rule_names:
+            if name in new_ruleset:
                 reference_counts[name] += 1
 
     # Inline the rules we found
     for name, count in reference_counts.items():
-        if count == 1:
-            print(f'rule named {name} will be inlined.')
+        node = new_ruleset[name]
+        if name not in toplevel_rule_names and (
+            count == 1
+            or len(node.format()) <= len(name) * 1.2
+            or isinstance(node, Nonterminal)
+        ):
             replaced_name = name
-            replacement = new_ruleset[replaced_name]
+            replacement = node
             for rule_name, rule_node in new_ruleset.items():
                 new_node = rule_node.inlined(replaced_name, replacement)
                 new_ruleset[rule_name] = new_node

@@ -52,7 +52,7 @@ Summarizing:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
-   block: NEWLINE INDENT `statement`+ DEDENT | ';'.`simple_stmt`+ [';'] NEWLINE
+   block: NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`
 
 .. index::
    single: NEWLINE token
@@ -900,7 +900,7 @@ Syntax:
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   pattern_capture_target: NAME
+   pattern_capture_target: !"_" NAME
 
 .. productionlist:: python-grammar-old
    capture_pattern: !'_' NAME
@@ -1077,15 +1077,14 @@ A mapping pattern contains one or more key-value patterns.  The syntax is
 similar to the construction of a dictionary.
 Syntax:
 
-.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern literal_expr
+.. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
    mapping_pattern: '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
-   key_value_pattern: (`literal_expr` | `attr`) ':' `pattern`
-   literal_expr: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+   key_value_pattern: (`literal_pattern` | `attr`) ':' `pattern`
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
@@ -1140,9 +1139,8 @@ A class pattern represents a class and its positional and keyword arguments
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   class_pattern: (`attr` | NAME) '(' [(`positional_patterns` | [`positional_patterns` ','] `keyword_patterns`) [',']] ')'
+   class_pattern: (`attr` | NAME) '(' [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']] ')'
    keyword_patterns: ','.(NAME '=' `pattern`)+
-   positional_patterns: ','.`pattern`+
 
 The same keyword should not be repeated in class patterns.
 
@@ -1272,14 +1270,15 @@ A function definition defines a user-defined function object (see section
 
    function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
    decorators: ('@' `named_expression` NEWLINE)+
-   parameters: ((`slash_no_default` `param_no_default`* | `param_no_default`* `param_with_default`+ '/' [','] | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
-   slash_no_default: `param_no_default`+ '/' [',']
+   parameters: ((`slash_no_default` `param_no_default`* | `slash_with_default` | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`
+   slash_no_default: `param_no_default`+ '/' (',' | &')')
    default: '=' `expression`
-   param_no_default: `param` [',']
-   param_with_default: `param` `default` [',']
-   star_etc: '*' ((`param_no_default` | NAME ':' ('*' `bitwise_or` | `expression`) [',']) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
+   param_no_default: `param` (',' | &')')
+   slash_with_default: `param_no_default`* `param_with_default`+ '/' (',' | &')')
+   param_with_default: `param` `default` (',' | &')')
+   star_etc: '*' ((`param_no_default` | NAME ':' `star_expression` (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`
    param: NAME [':' `expression`]
-   param_maybe_default: `param` [[`default`] ',' | `default`]
+   param_maybe_default: `param` [`default`] (',' | &')')
    kwds: '**' `param_no_default`
 
 .. productionlist:: python-grammar-old
@@ -1701,6 +1700,9 @@ Type parameter lists
 
 .. versionadded:: 3.12
 
+.. versionchanged:: 3.13
+   Support for default values was added (see :pep:`696`).
+
 .. index::
    single: type parameters
 
@@ -1709,7 +1711,7 @@ Type parameter lists
    :generated-by: Tools/peg_generator/docs_generator.py
 
    type_params: '[' ','.`type_param`+ [','] ']'
-   type_param: NAME [':' `expression`] | ('*' | '**') NAME
+   type_param: NAME [':' `expression`] ['=' `expression`] | '*' NAME ['=' `star_expression`] | '**' NAME ['=' `expression`]
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may
@@ -1775,19 +1777,31 @@ evaluated in a separate :ref:`annotation scope <annotation-scopes>`.
 :data:`typing.TypeVarTuple`\ s and :data:`typing.ParamSpec`\ s cannot have bounds
 or constraints.
 
+All three flavors of type parameters can also have a *default value*, which is used
+when the type parameter is not explicitly provided. This is added by appending
+a single equals sign (``=``) followed by an expression. Like the bounds and
+constraints of type variables, the default value is not evaluated when the
+object is created, but only when the type parameter's ``__default__`` attribute
+is accessed. To this end, the default value is evaluated in a separate
+:ref:`annotation scope <annotation-scopes>`. If no default value is specified
+for a type parameter, the ``__default__`` attribute is set to the special
+sentinel object :data:`typing.NoDefault`.
+
 The following example indicates the full set of allowed type parameter declarations::
 
    def overly_generic[
       SimpleTypeVar,
+      TypeVarWithDefault = int,
       TypeVarWithBound: int,
       TypeVarWithConstraints: (str, bytes),
-      *SimpleTypeVarTuple,
-      **SimpleParamSpec,
+      *SimpleTypeVarTuple = (int, float),
+      **SimpleParamSpec = (str, bytearray),
    ](
       a: SimpleTypeVar,
-      b: TypeVarWithBound,
-      c: Callable[SimpleParamSpec, TypeVarWithConstraints],
-      *d: SimpleTypeVarTuple,
+      b: TypeVarWithDefault,
+      c: TypeVarWithBound,
+      d: Callable[SimpleParamSpec, TypeVarWithConstraints],
+      *e: SimpleTypeVarTuple,
    ): ...
 
 .. _generic-functions:

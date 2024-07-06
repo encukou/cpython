@@ -5,11 +5,12 @@
 Simple statements
 *****************
 
-.. grammar-snippet:: statement
+.. grammar-snippet:: statement simple_stmts
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   statement: `compound_stmt` | ';'.`simple_stmt`+ [';'] NEWLINE
+   statement: `compound_stmt` | `simple_stmts`
+   simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -42,11 +43,12 @@ result; in Python, procedures return the value ``None``).  Other uses of
 expression statements are allowed and occasionally useful.  The syntax for an
 expression statement is:
 
-.. grammar-snippet:: star_expressions
+.. grammar-snippet:: star_expressions star_expression
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   star_expressions: ','.('*' `bitwise_or` | `expression`)+ [',']
+   star_expressions: ','.`star_expression`+ [',']
+   star_expression: '*' `bitwise_or` | `expression`
 
 .. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
@@ -97,7 +99,7 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
 
    star_targets: ','.`star_target`+ [',']
-   star_target: '*' `star_target` | `target_with_star_atom`
+   star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: NAME | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')' | '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
    target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') | `star_atom`
@@ -712,8 +714,7 @@ and information about handling exceptions is in section :ref:`try`.
 .. versionchanged:: 3.3
     :const:`None` is now permitted as ``Y`` in ``raise X from Y``.
 
-.. versionadded:: 3.3
-    The :attr:`~BaseException.__suppress_context__` attribute to suppress
+    Added the :attr:`~BaseException.__suppress_context__` attribute to suppress
     automatic display of the exception context.
 
 .. versionchanged:: 3.11
@@ -800,8 +801,7 @@ The :keyword:`!import` statement
    :generated-by: Tools/peg_generator/docs_generator.py
 
    import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
-   import_from_targets: '(' `import_from_as_names` [','] ')' | `import_from_as_names` | '*'
-   import_from_as_names: ','.(NAME ['as' NAME])+
+   import_from_targets: '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ | '*'
    dotted_name: [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old
@@ -1070,24 +1070,28 @@ The :keyword:`!nonlocal` statement
 
    nonlocal_stmt: 'nonlocal' ','.NAME+
 
-The :keyword:`nonlocal` statement causes the listed identifiers to refer to
-previously bound variables in the nearest enclosing scope excluding globals.
-This is important because the default behavior for binding is to search the
-local namespace first.  The statement allows encapsulated code to rebind
-variables outside of the local scope besides the global (module) scope.
+When the definition of a function or class is nested (enclosed) within
+the definitions of other functions, its nonlocal scopes are the local
+scopes of the enclosing functions. The :keyword:`nonlocal` statement
+causes the listed identifiers to refer to names previously bound in
+nonlocal scopes. It allows encapsulated code to rebind such nonlocal
+identifiers.  If a name is bound in more than one nonlocal scope, the
+nearest binding is used. If a name is not bound in any nonlocal scope,
+or if there is no nonlocal scope, a :exc:`SyntaxError` is raised.
 
-Names listed in a :keyword:`nonlocal` statement, unlike those listed in a
-:keyword:`global` statement, must refer to pre-existing bindings in an
-enclosing scope (the scope in which a new binding should be created cannot
-be determined unambiguously).
-
-Names listed in a :keyword:`nonlocal` statement must not collide with
-pre-existing bindings in the local scope.
+The nonlocal statement applies to the entire scope of a function or
+class body. A :exc:`SyntaxError` is raised if a variable is used or
+assigned to prior to its nonlocal declaration in the scope.
 
 .. seealso::
 
    :pep:`3104` - Access to Names in Outer Scopes
       The specification for the :keyword:`nonlocal` statement.
+
+**Programmer's note:** :keyword:`nonlocal` is a directive to the parser
+and applies only to code parsed along with it.  See the note for the
+:keyword:`global` statement.
+
 
 .. _type:
 
