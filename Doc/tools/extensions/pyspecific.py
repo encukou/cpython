@@ -605,7 +605,7 @@ def parse_monitoring_event(env, sig, signode):
 
 # Support for auto-generated syntax snippets
 
-class GrammarSnippetDirective(Directive):
+class GrammarSnippetDirective(SphinxDirective):
     """Transform a grammar-snippet directive to a Sphinx productionlist
 
     That is, turn something like:
@@ -645,6 +645,11 @@ class GrammarSnippetDirective(Directive):
         )
         node = nodes.paragraph()
         self.state.nested_parse(self.content, 0, node)
+        self.content.append('', source=__file__)
+        self.content.append('.. raw:: html', source=__file__)
+        self.content.append('', source=__file__)
+        self.content.append('   <i>hi world!</i>', source=__file__)
+        self.content.append('', source=__file__)
         return node.children
 
 
