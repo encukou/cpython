@@ -79,7 +79,7 @@ REPLACED_SYNONYMS = {
 #               ':' block
 #
 # simplify:
-#   elif_stmt  ::=  'elif' named_expression ':' block (elif_stmt | [else_block])
+#   elif_stmt  ::=  'elif' named_expression ':' block [elif_stmt | else_block]
 # into:
 #   elif_stmt  ::=  ('elif' named_expression ':' block)+  [else_block]
 #
@@ -88,35 +88,22 @@ REPLACED_SYNONYMS = {
 
 # NEED GRAMMAR CHANGES:
 #
-# Mark lookaheds as necessary or not
-# for:
-#   pattern_capture_target ::=  !'_' NAME
-# we might want to show the negative lookahead
-# for:
-#    star_target: | '*' (!'*' star_target)
-# as well
-#
-# Remove the `func_type_comment` rule, so it doesn't show up
-# in function definitions
-#
-# See if naming `['(' [arguments] ')' ]` in class_def_raw as a new
-# `inheritance` rule would slow down the parser
-#
+# (leave for later)
 # Mark an alternative as optimization only, so it doesn't show up in docs.
 # For example, in del_t_atom, the rule
 #   '(' del_target ')'
 # is covered by the next rule:
 #    '(' [del_targets] ')'
 #
+# (leave for later)
 # Give names to the subexpressions here:
 # proper_slice ::=  [lower_bound] ":" [upper_bound] [ ":" [stride] ]
 #
+# (leave for later)
 # don't simplify:
 #   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
 # instead keep 3 separate alternatives, like in the grammar
 # Similar for star_targets_tuple_seq
-
-# Always inline `star_expression`?
 
 
 def main():
