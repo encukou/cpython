@@ -14,6 +14,28 @@ extern "C" {
 #include "pycore_pystate.h"       // _PyInterpreterState_GET()
 #include "pycore_runtime.h"       // _PyRuntime
 
+#define _Py_IMMORTAL_REFCNT_LOOSE ((_Py_IMMORTAL_REFCNT >> 1) + 1)
+
+// gh-121528, gh-118997: Similar to _Py_IsImmortal() but be more loose when
+// comparing the reference count to stay compatible with C extensions built
+// with the stable ABI 3.11 or older. Such extensions implement INCREF/DECREF
+// as refcnt++ and refcnt-- without taking in account immortal objects. For
+// example, the reference count of an immortal object can change from
+// _Py_IMMORTAL_REFCNT to _Py_IMMORTAL_REFCNT+1 (INCREF) or
+// _Py_IMMORTAL_REFCNT-1 (DECREF).
+//
+// This function should only be used in assertions. Otherwise, _Py_IsImmortal()
+// must be used instead.
+static inline int _Py_IsImmortalLoose(PyObject *op)
+{
+#if defined(Py_GIL_DISABLED)
+    return _Py_IsImmortal(op);
+#else
+    return (op->ob_refcnt >= _Py_IMMORTAL_REFCNT_LOOSE);
+#endif
+}
+#define _Py_IsImmortalLoose(op) _Py_IsImmortalLoose(_PyObject_CAST(op))
+
 /* We need to maintain an internal copy of Py{Var}Object_HEAD_INIT to avoid
    designated initializer conflicts in C++20. If we use the deinition in
    object.h, we will be mixing designated and non-designated initializers in
