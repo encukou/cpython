@@ -3190,6 +3190,25 @@ class TestPyThreadId(unittest.TestCase):
         self.assertEqual(len(set(py_thread_ids)), len(py_thread_ids),
                          py_thread_ids)
 
+class TestVersions(unittest.TestCase):
+    def test_pack_version(self):
+        for *args, expected in (
+            (3, 4, 1, 0xA, 2, 0x030401a2),
+            (3, 10, 0, 0xF, 0, 0x030a00f0),
+        ):
+            with self.subTest(hexversion=hex(expected)):
+                result = _testlimitedcapi.pack_version(*args)
+                self.assertEqual(result, expected)
+
+    def test_pack_ver(self):
+        for *args, expected in (
+            (3, 4, 0x03040000),
+            (3, 10, 0x030a0000),
+        ):
+            with self.subTest(hexversion=hex(expected)):
+                result = _testlimitedcapi.pack_ver(*args)
+                self.assertEqual(result, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

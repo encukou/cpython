@@ -37,28 +37,9 @@ See :ref:`stable` for a discussion of API and ABI stability across versions.
 .. c:macro:: PY_VERSION_HEX
 
    The Python version number encoded in a single integer.
+   See :c:func:`Py_PACK_VERSION` for the encoding details.
 
-   The underlying version information can be found by treating it as a 32 bit
-   number in the following manner:
-
-   +-------+-------------------------+-------------------------+--------------------------+
-   | Bytes | Bits (big endian order) | Meaning                 | Value for ``3.4.1a2``    |
-   +=======+=========================+=========================+==========================+
-   |   1   |         1-8             |  ``PY_MAJOR_VERSION``   | ``0x03``                 |
-   +-------+-------------------------+-------------------------+--------------------------+
-   |   2   |         9-16            |  ``PY_MINOR_VERSION``   | ``0x04``                 |
-   +-------+-------------------------+-------------------------+--------------------------+
-   |   3   |         17-24           |  ``PY_MICRO_VERSION``   | ``0x01``                 |
-   +-------+-------------------------+-------------------------+--------------------------+
-   |   4   |         25-28           |  ``PY_RELEASE_LEVEL``   | ``0xA``                  |
-   +       +-------------------------+-------------------------+--------------------------+
-   |       |         29-32           |  ``PY_RELEASE_SERIAL``  | ``0x2``                  |
-   +-------+-------------------------+-------------------------+--------------------------+
-
-   Thus ``3.4.1a2`` is hexversion ``0x030401a2`` and ``3.10.0`` is
-   hexversion ``0x030a00f0``.
-
-   Use this for numeric comparisons, e.g. ``#if PY_VERSION_HEX >= ...``.
+   Use this for numeric comparisons, e.g. ``#if PY_VERSION_HEX >= Py_PACK_VER(3, 14)``.
 
    This version is also available via the symbol :c:var:`Py_Version`.
 
@@ -70,4 +51,51 @@ See :ref:`stable` for a discussion of API and ABI stability across versions.
 
    .. versionadded:: 3.11
 
-All the given macros are defined in :source:`Include/patchlevel.h`.
+.. c:function:: uint32_t Py_PACK_VERSION(major, minor, micro, release_level, release_serial)
+
+   Return the given version, encoded as a single 32-bit integer with
+   the following structure:
+
+   +-------+-------------+------------------+------------------------------+-----------------------+
+   | Bytes | Bits [#be]_ | Argument         | Constant                     | Value for ``3.4.1a2`` |
+   +=======+=============+==================+==============================+=======================+
+   |   1   | 1-8         | *major*          | :c:macro:`PY_MAJOR_VERSION`  | ``0x03``              |
+   +-------+-------------+------------------+------------------------------+-----------------------+
+   |   2   | 9-16        | *minor*          | :c:macro:`PY_MINOR_VERSION`  | ``0x04``              |
+   +-------+-------------+------------------+------------------------------+-----------------------+
+   |   3   | 17-24       | *micro*          | :c:macro:`PY_MICRO_VERSION`  | ``0x01``              |
+   +-------+-------------+------------------+------------------------------+-----------------------+
+   |   4   | 25-28       | *release_level*  | :c:macro:`PY_RELEASE_LEVEL`  | ``0xA``               |
+   +       +-------------+------------------+------------------------------+-----------------------+
+   |       | 29-32       | *release_serial* | :c:macro:`PY_RELEASE_SERIAL` | ``0x2``               |
+   +-------+-------------+------------------+------------------------------+-----------------------+
+
+   .. [#be]
+
+      Bit positions are given in big-endian order
+
+   For example:
+
+   +-------------+---------------------------------------+---------------------+
+   | Version     | ``Py_PACK_VERSION`` call              | Hexadecimal integer |
+   +=============+=======================================+=====================+
+   | ``3.4.1a2`` | ``Py_PACK_VERSION(3, 4, 1, 0xA, 2)``  | ``0x030401a2``      |
+   +-------------+---------------------------------------+---------------------+
+   | ``3.10.0``  | ``Py_PACK_VERSION(3, 10, 0, 0xF, 0)`` | ``0x030a00f0``      |
+   +-------------+---------------------------------------+---------------------+
+
+   :c:func:`!Py_PACK_VERSION` is primarily a macro, but is also available as
+   an exported function. All arguments are of type ``unsigned char``.
+
+   .. versionadded:: 3.14
+
+.. c:function:: uint32_t Py_PACK_VER(major, minor)
+
+   Equivalent to :c:expr:`Py_PACK_VERSION(major, minor, 0, 0, 0)`.
+   This does not correspond to any released version of CPython,
+   but it is useful for comparisons.
+
+   Like :c:func:`!Py_PACK_VERSION`, :c:func:`!Py_PACK_VER` is also available as
+   an exported function.
+
+   .. versionadded:: 3.14

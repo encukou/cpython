@@ -190,4 +190,20 @@
 // "comparison of unsigned expression in '< 0' is always false".
 #define _Py_IS_TYPE_SIGNED(type) ((type)(-1) <= 0)
 
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030E0000 // 3.14
+// Version helpers. These are primarily macros, but have exported equivalents.
+PyAPI_FUNC(uint32_t) Py_PACK_VERSION(
+    unsigned char x,
+    unsigned char y,
+    unsigned char z,
+    unsigned char level,
+    unsigned char serial);
+PyAPI_FUNC(uint32_t) Py_PACK_VER(
+    unsigned char x,
+    unsigned char y);
+#define Py_PACK_VERSION _Py_PACK_VERSION
+#define Py_PACK_VER(X, Y) _Py_PACK_VERSION(X, Y, 0, 0, 0)
+#endif // Py_LIMITED_API < 3.14
+
+
 #endif /* Py_PYMACRO_H */

@@ -648,3 +648,25 @@ PyModule_AddType(PyObject *module, PyTypeObject *type)
 
     return PyModule_AddObjectRef(module, name, (PyObject *)type);
 }
+
+
+/* Exported functions for version helper macros */
+
+#undef Py_PACK_VERSION
+uint32_t
+Py_PACK_VERSION(
+    unsigned char x,
+    unsigned char y,
+    unsigned char z,
+    unsigned char level,
+    unsigned char serial)
+{
+    return _Py_PACK_VERSION(x, y, z, level, serial);
+}
+
+#undef Py_PACK_VER
+uint32_t
+Py_PACK_VER(unsigned char x, unsigned char y)
+{
+    return _Py_PACK_VERSION(x, y, 0, 0, 0);
+}
