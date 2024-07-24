@@ -1,13 +1,13 @@
-<svg class="railroad-diagram" height="71" viewBox="0 0 482.0 71" width="482.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="71" viewBox="0 0 458.0 71" width="458.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 30v20m10 -20v20m-10 -10h44.0" /><text style="text-anchor:start" x="20" y="25">list</text></g><path d="M64.0 40h10" /><g>
-<path d="M74.0 40h0.0" /><path d="M432.0 40h0.0" /><g class="terminal ">
-<path d="M74.0 40h0.0" /><path d="M119.5 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="74" y="29"></rect><text x="96.75" y="44">&apos;[&apos;</text></g><path d="M119.5 40h10" /><g>
-<path d="M129.5 40h0.0" /><path d="M376.5 40h0.0" /><path d="M129.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
-<path d="M149.5 20h207.0" /></g><path d="M356.5 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M129.5 40h20" /><g class="non-terminal ">
-<path d="M149.5 40h0.0" /><path d="M356.5 40h0.0" /><rect height="22" width="207" x="149.5" y="29"></rect><text x="253" y="44">star_named_expressions</text></g><path d="M356.5 40h20" /></g><path d="M376.5 40h10" /><g class="terminal ">
-<path d="M386.5 40h0.0" /><path d="M432.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="386.5" y="29"></rect><text x="409.25" y="44">&apos;]&apos;</text></g></g><path d="M432.0 40h10" /><path d="M 442.0 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 30v20m10 -20v20m-10 -10h20" /></g><path d="M40 40h10" /><g>
+<path d="M50 40h0.0" /><path d="M408.0 40h0.0" /><g class="terminal ">
+<path d="M50.0 40h0.0" /><path d="M95.5 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="29"></rect><text x="72.75" y="44">&apos;[&apos;</text></g><path d="M95.5 40h10" /><g>
+<path d="M105.5 40h0.0" /><path d="M352.5 40h0.0" /><path d="M105.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M125.5 20h207.0" /></g><path d="M332.5 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M105.5 40h20" /><g class="non-terminal ">
+<path d="M125.5 40h0.0" /><path d="M332.5 40h0.0" /><rect height="22" width="207" x="125.5" y="29"></rect><text x="229" y="44">star_named_expressions</text></g><path d="M332.5 40h20" /></g><path d="M352.5 40h10" /><g class="terminal ">
+<path d="M362.5 40h0.0" /><path d="M408.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="362.5" y="29"></rect><text x="385.25" y="44">&apos;]&apos;</text></g></g><path d="M408.0 40h10" /><path d="M 418.0 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

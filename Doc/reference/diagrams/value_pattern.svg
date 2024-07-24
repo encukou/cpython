@@ -1,8 +1,8 @@
-<svg class="railroad-diagram" height="62" viewBox="0 0 254.5 62" width="254.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="62" viewBox="0 0 154.0 62" width="154.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h120.5" /><text style="text-anchor:start" x="20" y="16">value_pattern</text></g><path d="M140.5 31h10" /><g class="non-terminal ">
-<path d="M150.5 31h0.0" /><path d="M204.5 31h0.0" /><rect height="22" width="54" x="150.5" y="20"></rect><text x="177.5" y="35">attr</text></g><path d="M204.5 31h10" /><path d="M 214.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g class="non-terminal ">
+<path d="M50 31h0.0" /><path d="M104.0 31h0.0" /><rect height="22" width="54" x="50" y="20"></rect><text x="77" y="35">attr</text></g><path d="M104.0 31h10" /><path d="M 114.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

@@ -640,20 +640,24 @@ class GrammarSnippetDirective(SphinxDirective):
         group_name = self.options['group']
         content = self.content[:]
         content.disconnect()
+
+        rule_names = []
         for index, line in enumerate(content):
             content[index] = '   ' + line
+            rule_name, sep, rule_content = line.partition(':')
+            rule_names.append(rule_name)
+
         content.insert(
             0, f'.. productionlist:: {group_name}', source=__file__,
         )
+
+        for rule_name in rule_names:
+            content.append('', source=__file__)
+            content.append(f'``{rule_name}``:', source=__file__)
+            content.append('', source=__file__)
+            content.append(f'.. image:: diagrams/{rule_name}.svg', source=__file__)
+
         node = nodes.paragraph()
-        for line in [
-            '',
-            '.. raw:: html',
-            '',
-            '   <i>hi world!</i>',
-            '',
-        ]:
-            content.append(line, source=__file__)
         self.state.nested_parse(content, 0, node)
         return node.children
 

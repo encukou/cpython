@@ -1,12 +1,12 @@
-<svg class="railroad-diagram" height="92" viewBox="0 0 365.5 92" width="365.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="92" viewBox="0 0 299.0 92" width="299.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h86.5" /><text style="text-anchor:start" x="20" y="16">inversion</text></g><g>
-<path d="M106.5 31h0.0" /><path d="M325.5 31h0.0" /><path d="M106.5 31h20" /><g>
-<path d="M126.5 31h0.0" /><path d="M305.5 31h0.0" /><g class="terminal ">
-<path d="M126.5 31h0.0" /><path d="M189.0 31h0.0" /><rect height="22" rx="10" ry="10" width="62.5" x="126.5" y="20"></rect><text x="157.75" y="35">&apos;not&apos;</text></g><path d="M189.0 31h10" /><path d="M199.0 31h10" /><g class="non-terminal ">
-<path d="M209.0 31h0.0" /><path d="M305.5 31h0.0" /><rect height="22" width="96.5" x="209" y="20"></rect><text x="257.25" y="35">inversion</text></g></g><path d="M305.5 31h20" /><path d="M106.5 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M126.5 61h37.0" /><path d="M268.5 61h37.0" /><rect height="22" width="105" x="163.5" y="50"></rect><text x="216" y="65">comparison</text></g><path d="M305.5 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><path d="M 325.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><g>
+<path d="M40 31h0.0" /><path d="M259.0 31h0.0" /><path d="M40.0 31h20" /><g>
+<path d="M60.0 31h0.0" /><path d="M239.0 31h0.0" /><g class="terminal ">
+<path d="M60.0 31h0.0" /><path d="M122.5 31h0.0" /><rect height="22" rx="10" ry="10" width="62.5" x="60" y="20"></rect><text x="91.25" y="35">&apos;not&apos;</text></g><path d="M122.5 31h10" /><path d="M132.5 31h10" /><g class="non-terminal ">
+<path d="M142.5 31h0.0" /><path d="M239.0 31h0.0" /><rect height="22" width="96.5" x="142.5" y="20"></rect><text x="190.75" y="35">inversion</text></g></g><path d="M239.0 31h20" /><path d="M40.0 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M60.0 61h37.0" /><path d="M202.0 61h37.0" /><rect height="22" width="105" x="97" y="50"></rect><text x="149.5" y="65">comparison</text></g><path d="M239.0 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><path d="M 259.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

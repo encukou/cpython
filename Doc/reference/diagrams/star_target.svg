@@ -1,15 +1,15 @@
-<svg class="railroad-diagram" height="124" viewBox="0 0 538.5 124" width="538.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="124" viewBox="0 0 455.0 124" width="455.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 45v20m10 -20v20m-10 -10h103.5" /><text style="text-anchor:start" x="20" y="40">star_target</text></g><g>
-<path d="M123.5 55h0.0" /><path d="M498.5 55h0.0" /><path d="M123.5 55h20" /><g>
-<path d="M143.5 55h0.0" /><path d="M478.5 55h0.0" /><g class="terminal ">
-<path d="M143.5 55h0.0" /><path d="M189.0 55h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="143.5" y="44"></rect><text x="166.25" y="59">&apos;*&apos;</text></g><path d="M189.0 55h10" /><path d="M199.0 55h10" /><g>
-<path d="M209.0 55h0.0" /><path d="M345.0 55h0.0" /><rect class="group-box" height="38" rx="10" ry="10" width="136" x="209" y="36"></rect><g class="terminal ">
-<path d="M209.0 55h45.25" /><path d="M299.75 55h45.25" /><rect height="22" rx="10" ry="10" width="45.5" x="254.25" y="44"></rect><text x="277" y="59">&apos;*&apos;</text></g><g class="non-terminal ">
-<path d="M209.0 28h0.0" /><path d="M345.0 28h0.0" /><text class="comment" x="277" y="33">negative lookahead</text></g></g><path d="M345.0 55h10" /><path d="M355.0 55h10" /><g class="non-terminal ">
-<path d="M365.0 55h0.0" /><path d="M478.5 55h0.0" /><rect height="22" width="113.5" x="365" y="44"></rect><text x="421.75" y="59">star_target</text></g></g><path d="M478.5 55h20" /><path d="M123.5 55a10 10 0 0 1 10 10v18a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M143.5 93h68.25" /><path d="M410.25 93h68.25" /><rect height="22" width="198.5" x="211.75" y="82"></rect><text x="311" y="97">target_with_star_atom</text></g><path d="M478.5 93a10 10 0 0 0 10 -10v-18a10 10 0 0 1 10 -10" /></g><path d="M 498.5 55 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 45v20m10 -20v20m-10 -10h20" /></g><g>
+<path d="M40 55h0.0" /><path d="M415.0 55h0.0" /><path d="M40.0 55h20" /><g>
+<path d="M60.0 55h0.0" /><path d="M395.0 55h0.0" /><g class="terminal ">
+<path d="M60.0 55h0.0" /><path d="M105.5 55h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="60" y="44"></rect><text x="82.75" y="59">&apos;*&apos;</text></g><path d="M105.5 55h10" /><path d="M115.5 55h10" /><g>
+<path d="M125.5 55h0.0" /><path d="M261.5 55h0.0" /><rect class="group-box" height="38" rx="10" ry="10" width="136" x="125.5" y="36"></rect><g class="terminal ">
+<path d="M125.5 55h45.25" /><path d="M216.25 55h45.25" /><rect height="22" rx="10" ry="10" width="45.5" x="170.75" y="44"></rect><text x="193.5" y="59">&apos;*&apos;</text></g><g class="non-terminal ">
+<path d="M125.5 28h0.0" /><path d="M261.5 28h0.0" /><text class="comment" x="193.5" y="33">negative lookahead</text></g></g><path d="M261.5 55h10" /><path d="M271.5 55h10" /><g class="non-terminal ">
+<path d="M281.5 55h0.0" /><path d="M395.0 55h0.0" /><rect height="22" width="113.5" x="281.5" y="44"></rect><text x="338.25" y="59">star_target</text></g></g><path d="M395.0 55h20" /><path d="M40.0 55a10 10 0 0 1 10 10v18a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M60.0 93h68.25" /><path d="M326.75 93h68.25" /><rect height="22" width="198.5" x="128.25" y="82"></rect><text x="227.5" y="97">target_with_star_atom</text></g><path d="M395.0 93a10 10 0 0 0 10 -10v-18a10 10 0 0 1 10 -10" /></g><path d="M 415.0 55 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

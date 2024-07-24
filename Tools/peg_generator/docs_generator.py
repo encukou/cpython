@@ -1160,7 +1160,7 @@ def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
             continue
         dest_path = path / f'{name}.svg'
         print(f'Generating: {dest_path}')
-        d = railroad.Diagram(railroad.Start(label=name), node_to_diagram_element(railroad, node))
+        d = railroad.Diagram(node_to_diagram_element(railroad, node), type='simple')
         with open(dest_path, 'w') as file:
             d.writeStandalone(file.write)
 

@@ -1,11 +1,11 @@
-<svg class="railroad-diagram" height="62" viewBox="0 0 453.5 62" width="453.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="62" viewBox="0 0 438.0 62" width="438.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h35.5" /><text style="text-anchor:start" x="20" y="16">set</text></g><path d="M55.5 31h10" /><g>
-<path d="M65.5 31h0.0" /><path d="M403.5 31h0.0" /><g class="terminal ">
-<path d="M65.5 31h0.0" /><path d="M111.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="65.5" y="20"></rect><text x="88.25" y="35">&apos;{&apos;</text></g><path d="M111.0 31h10" /><path d="M121.0 31h10" /><g class="non-terminal ">
-<path d="M131.0 31h0.0" /><path d="M338.0 31h0.0" /><rect height="22" width="207" x="131" y="20"></rect><text x="234.5" y="35">star_named_expressions</text></g><path d="M338.0 31h10" /><path d="M348.0 31h10" /><g class="terminal ">
-<path d="M358.0 31h0.0" /><path d="M403.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="358" y="20"></rect><text x="380.75" y="35">&apos;}&apos;</text></g></g><path d="M403.5 31h10" /><path d="M 413.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g>
+<path d="M50 31h0.0" /><path d="M388.0 31h0.0" /><g class="terminal ">
+<path d="M50.0 31h0.0" /><path d="M95.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="20"></rect><text x="72.75" y="35">&apos;{&apos;</text></g><path d="M95.5 31h10" /><path d="M105.5 31h10" /><g class="non-terminal ">
+<path d="M115.5 31h0.0" /><path d="M322.5 31h0.0" /><rect height="22" width="207" x="115.5" y="20"></rect><text x="219" y="35">star_named_expressions</text></g><path d="M322.5 31h10" /><path d="M332.5 31h10" /><g class="terminal ">
+<path d="M342.5 31h0.0" /><path d="M388.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="342.5" y="20"></rect><text x="365.25" y="35">&apos;}&apos;</text></g></g><path d="M388.0 31h10" /><path d="M 398.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

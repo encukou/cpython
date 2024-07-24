@@ -1,8 +1,8 @@
-<svg class="railroad-diagram" height="62" viewBox="0 0 280.0 62" width="280.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="62" viewBox="0 0 205.0 62" width="205.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h95.0" /><text style="text-anchor:start" x="20" y="16">yield_stmt</text></g><path d="M115.0 31h10" /><g class="non-terminal ">
-<path d="M125.0 31h0.0" /><path d="M230.0 31h0.0" /><rect height="22" width="105" x="125" y="20"></rect><text x="177.5" y="35">yield_expr</text></g><path d="M230.0 31h10" /><path d="M 240.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g class="non-terminal ">
+<path d="M50 31h0.0" /><path d="M155.0 31h0.0" /><rect height="22" width="105" x="50" y="20"></rect><text x="102.5" y="35">yield_expr</text></g><path d="M155.0 31h10" /><path d="M 165.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

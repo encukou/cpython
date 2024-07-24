@@ -1,8 +1,8 @@
-<svg class="railroad-diagram" height="62" viewBox="0 0 271.5 62" width="271.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="62" viewBox="0 0 145.5 62" width="145.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h146.0" /><text style="text-anchor:start" x="20" y="16">wildcard_pattern</text></g><path d="M166.0 31h10" /><g class="terminal ">
-<path d="M176.0 31h0.0" /><path d="M221.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="176" y="20"></rect><text x="198.75" y="35">&quot;_&quot;</text></g><path d="M221.5 31h10" /><path d="M 231.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g class="terminal ">
+<path d="M50 31h0.0" /><path d="M95.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="20"></rect><text x="72.75" y="35">&quot;_&quot;</text></g><path d="M95.5 31h10" /><path d="M 105.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

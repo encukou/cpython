@@ -1,12 +1,12 @@
-<svg class="railroad-diagram" height="92" viewBox="0 0 494.5 92" width="494.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="92" viewBox="0 0 402.5 92" width="402.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h112.0" /><text style="text-anchor:start" x="20" y="16">star_pattern</text></g><path d="M132.0 31h10" /><g>
-<path d="M142.0 31h0.0" /><path d="M444.5 31h0.0" /><g class="terminal ">
-<path d="M142.0 31h0.0" /><path d="M187.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="142" y="20"></rect><text x="164.75" y="35">&apos;*&apos;</text></g><path d="M187.5 31h10" /><g>
-<path d="M197.5 31h0.0" /><path d="M444.5 31h0.0" /><path d="M197.5 31h20" /><g class="non-terminal ">
-<path d="M217.5 31h0.0" /><path d="M424.5 31h0.0" /><rect height="22" width="207" x="217.5" y="20"></rect><text x="321" y="35">pattern_capture_target</text></g><path d="M424.5 31h20" /><path d="M197.5 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M217.5 61h25.5" /><path d="M399.0 61h25.5" /><rect height="22" width="156" x="243" y="50"></rect><text x="321" y="65">wildcard_pattern</text></g><path d="M424.5 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g></g><path d="M444.5 31h10" /><path d="M 454.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g>
+<path d="M50 31h0.0" /><path d="M352.5 31h0.0" /><g class="terminal ">
+<path d="M50.0 31h0.0" /><path d="M95.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="20"></rect><text x="72.75" y="35">&apos;*&apos;</text></g><path d="M95.5 31h10" /><g>
+<path d="M105.5 31h0.0" /><path d="M352.5 31h0.0" /><path d="M105.5 31h20" /><g class="non-terminal ">
+<path d="M125.5 31h0.0" /><path d="M332.5 31h0.0" /><rect height="22" width="207" x="125.5" y="20"></rect><text x="229" y="35">pattern_capture_target</text></g><path d="M332.5 31h20" /><path d="M105.5 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M125.5 61h25.5" /><path d="M307.0 61h25.5" /><rect height="22" width="156" x="151" y="50"></rect><text x="229" y="65">wildcard_pattern</text></g><path d="M332.5 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g></g><path d="M352.5 31h10" /><path d="M 362.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

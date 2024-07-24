@@ -1,12 +1,12 @@
-<svg class="railroad-diagram" height="62" viewBox="0 0 519.0 62" width="519.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="62" viewBox="0 0 461.0 62" width="461.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h78.0" /><text style="text-anchor:start" x="20" y="16">dictcomp</text></g><path d="M98.0 31h10" /><g>
-<path d="M108.0 31h0.0" /><path d="M469.0 31h0.0" /><g class="terminal ">
-<path d="M108.0 31h0.0" /><path d="M153.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="108" y="20"></rect><text x="130.75" y="35">&apos;{&apos;</text></g><path d="M153.5 31h10" /><path d="M163.5 31h10" /><g class="non-terminal ">
-<path d="M173.5 31h0.0" /><path d="M244.5 31h0.0" /><rect height="22" width="71" x="173.5" y="20"></rect><text x="209" y="35">kvpair</text></g><path d="M244.5 31h10" /><path d="M254.5 31h10" /><g class="non-terminal ">
-<path d="M264.5 31h0.0" /><path d="M403.5 31h0.0" /><rect height="22" width="139" x="264.5" y="20"></rect><text x="334" y="35">for_if_clauses</text></g><path d="M403.5 31h10" /><path d="M413.5 31h10" /><g class="terminal ">
-<path d="M423.5 31h0.0" /><path d="M469.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="423.5" y="20"></rect><text x="446.25" y="35">&apos;}&apos;</text></g></g><path d="M469.0 31h10" /><path d="M 479.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g>
+<path d="M50 31h0.0" /><path d="M411.0 31h0.0" /><g class="terminal ">
+<path d="M50.0 31h0.0" /><path d="M95.5 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="20"></rect><text x="72.75" y="35">&apos;{&apos;</text></g><path d="M95.5 31h10" /><path d="M105.5 31h10" /><g class="non-terminal ">
+<path d="M115.5 31h0.0" /><path d="M186.5 31h0.0" /><rect height="22" width="71" x="115.5" y="20"></rect><text x="151" y="35">kvpair</text></g><path d="M186.5 31h10" /><path d="M196.5 31h10" /><g class="non-terminal ">
+<path d="M206.5 31h0.0" /><path d="M345.5 31h0.0" /><rect height="22" width="139" x="206.5" y="20"></rect><text x="276" y="35">for_if_clauses</text></g><path d="M345.5 31h10" /><path d="M355.5 31h10" /><g class="terminal ">
+<path d="M365.5 31h0.0" /><path d="M411.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="365.5" y="20"></rect><text x="388.25" y="35">&apos;}&apos;</text></g></g><path d="M411.0 31h10" /><path d="M 421.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}
