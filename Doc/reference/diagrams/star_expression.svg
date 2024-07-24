@@ -1,0 +1,40 @@
+<svg class="railroad-diagram" height="92" viewBox="0 0 408.0 92" width="408.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 21v20m10 -20v20m-10 -10h137.5" /><text style="text-anchor:start" x="20" y="16">star_expression</text></g><g>
+<path d="M157.5 31h0.0" /><path d="M368.0 31h0.0" /><path d="M157.5 31h20" /><g>
+<path d="M177.5 31h0.0" /><path d="M348.0 31h0.0" /><g class="terminal ">
+<path d="M177.5 31h0.0" /><path d="M223.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="177.5" y="20"></rect><text x="200.25" y="35">&apos;*&apos;</text></g><path d="M223.0 31h10" /><path d="M233.0 31h10" /><g class="non-terminal ">
+<path d="M243.0 31h0.0" /><path d="M348.0 31h0.0" /><rect height="22" width="105" x="243" y="20"></rect><text x="295.5" y="35">bitwise_or</text></g></g><path d="M348.0 31h20" /><path d="M157.5 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M177.5 61h32.75" /><path d="M315.25 61h32.75" /><rect height="22" width="105" x="210.25" y="50"></rect><text x="262.75" y="65">expression</text></g><path d="M348.0 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><path d="M 368.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>

@@ -1,0 +1,47 @@
+<svg class="railroad-diagram" height="122" viewBox="0 0 637.0 122" width="637.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 21v20m10 -20v20m-10 -10h188.5" /><text style="text-anchor:start" x="20" y="16">target_with_star_atom</text></g><g>
+<path d="M208.5 31h0.0" /><path d="M597.0 31h0.0" /><path d="M208.5 31h20" /><g>
+<path d="M228.5 31h0.0" /><path d="M577.0 31h0.0" /><g class="non-terminal ">
+<path d="M228.5 31h0.0" /><path d="M325.0 31h0.0" /><rect height="22" width="96.5" x="228.5" y="20"></rect><text x="276.75" y="35">t_primary</text></g><path d="M325.0 31h10" /><g>
+<path d="M335.0 31h0.0" /><path d="M577.0 31h0.0" /><path d="M335.0 31h20" /><g>
+<path d="M355.0 31h41.25" /><path d="M515.75 31h41.25" /><g class="terminal ">
+<path d="M396.25 31h0.0" /><path d="M441.75 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="396.25" y="20"></rect><text x="419" y="35">&apos;.&apos;</text></g><path d="M441.75 31h10" /><path d="M451.75 31h10" /><g class="terminal ">
+<path d="M461.75 31h0.0" /><path d="M515.75 31h0.0" /><rect height="22" rx="10" ry="10" width="54" x="461.75" y="20"></rect><text x="488.75" y="35">NAME</text></g></g><path d="M557.0 31h20" /><path d="M335.0 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g>
+<path d="M355.0 61h0.0" /><path d="M557.0 61h0.0" /><g class="terminal ">
+<path d="M355.0 61h0.0" /><path d="M400.5 61h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="355" y="50"></rect><text x="377.75" y="65">&apos;[&apos;</text></g><path d="M400.5 61h10" /><path d="M410.5 61h10" /><g class="non-terminal ">
+<path d="M420.5 61h0.0" /><path d="M491.5 61h0.0" /><rect height="22" width="71" x="420.5" y="50"></rect><text x="456" y="65">slices</text></g><path d="M491.5 61h10" /><path d="M501.5 61h10" /><g class="terminal ">
+<path d="M511.5 61h0.0" /><path d="M557.0 61h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="511.5" y="50"></rect><text x="534.25" y="65">&apos;]&apos;</text></g></g><path d="M557.0 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g></g><path d="M577.0 31h20" /><path d="M208.5 31a10 10 0 0 1 10 10v40a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M228.5 91h126.0" /><path d="M451.0 91h126.0" /><rect height="22" width="96.5" x="354.5" y="80"></rect><text x="402.75" y="95">star_atom</text></g><path d="M577.0 91a10 10 0 0 0 10 -10v-40a10 10 0 0 1 10 -10" /></g><path d="M 597.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>

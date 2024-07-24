@@ -1,0 +1,43 @@
+<svg class="railroad-diagram" height="71" viewBox="0 0 617.0 71" width="617.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 30v20m10 -20v20m-10 -10h103.5" /><text style="text-anchor:start" x="20" y="25">assert_stmt</text></g><path d="M123.5 40h10" /><g>
+<path d="M133.5 40h0.0" /><path d="M567.0 40h0.0" /><g class="terminal ">
+<path d="M133.5 40h0.0" /><path d="M221.5 40h0.0" /><rect height="22" rx="10" ry="10" width="88" x="133.5" y="29"></rect><text x="177.5" y="44">&apos;assert&apos;</text></g><path d="M221.5 40h10" /><path d="M231.5 40h10" /><g class="non-terminal ">
+<path d="M241.5 40h0.0" /><path d="M346.5 40h0.0" /><rect height="22" width="105" x="241.5" y="29"></rect><text x="294" y="44">expression</text></g><path d="M346.5 40h10" /><g>
+<path d="M356.5 40h0.0" /><path d="M567.0 40h0.0" /><path d="M356.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M376.5 20h170.5" /></g><path d="M547.0 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M356.5 40h20" /><g>
+<path d="M376.5 40h0.0" /><path d="M547.0 40h0.0" /><g class="terminal ">
+<path d="M376.5 40h0.0" /><path d="M422.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="376.5" y="29"></rect><text x="399.25" y="44">&apos;,&apos;</text></g><path d="M422.0 40h10" /><path d="M432.0 40h10" /><g class="non-terminal ">
+<path d="M442.0 40h0.0" /><path d="M547.0 40h0.0" /><rect height="22" width="105" x="442" y="29"></rect><text x="494.5" y="44">expression</text></g></g><path d="M547.0 40h20" /></g></g><path d="M567.0 40h10" /><path d="M 577.0 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>

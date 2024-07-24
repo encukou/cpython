@@ -1,0 +1,38 @@
+<svg class="railroad-diagram" height="81" viewBox="0 0 300.0 81" width="300.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 20v20m10 -20v20m-10 -10h103.5" /><text style="text-anchor:start" x="20" y="15">conjunction</text></g><g>
+<path d="M123.5 30h0.0" /><path d="M260.0 30h0.0" /><path d="M123.5 30h20" /><g>
+<path d="M143.5 30h96.5" /></g><path d="M240.0 30h20" /><path d="M123.5 30a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M143.5 50h0.0" /><path d="M240.0 50h0.0" /><rect height="22" width="96.5" x="143.5" y="39"></rect><text x="191.75" y="54">inversion</text></g><path d="M240.0 50a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /></g><path d="M 260.0 30 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>

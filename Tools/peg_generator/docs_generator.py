@@ -31,6 +31,12 @@ argparser.add_argument(
     '--debug', action='store_true',
     help="Include debug information in the generated docs.",
 )
+argparser.add_argument(
+    "--image-dir",
+    help="Directory into which diagrams are written. All .svg files in this "
+        + "directory will be removed before new ones are generated. "
+        + "Requires the railroad-diagrams library from PyPI.",
+)
 
 
 # TODO: Document all these rules somewhere in the docs
@@ -114,15 +120,23 @@ def main():
     # a `grammar-snippet` directive. Anything that references a top-level
     # rule should link to it.
 
+
     files_with_grammar = set()
+
     # Maps the name of a top-level rule to the path of the file it's in
     toplevel_rules = {}
+
+    # List of tuples of top-level rules that appear together
+    toplevel_rule_groups = []
+
     for path in Path(args.docs_dir).glob('**/*.rst'):
         with path.open(encoding='utf-8') as file:
             for line in file:
                 if match := HEADER_RE.fullmatch(line):
                     files_with_grammar.add(path)
-                    for rule in match[1].split():
+                    group = tuple(match[1].split())
+                    toplevel_rule_groups.append(group)
+                    for rule in group:
                         if rule in toplevel_rules:
                             raise ValueError(
                                 f'rule {rule!r} appears both in '
@@ -187,6 +201,10 @@ def main():
                 file.writelines(new_lines)
         else:
             print(f'Unchanged: {path}')
+
+    if args.image_dir:
+        generate_diagrams(rules, args.image_dir, toplevel_rule_groups,
+                          set(toplevel_rules))
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -971,12 +989,13 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
 
     return result
 
-def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
-    # Figure out all rules we want to document.
-    # This includes the ones we were asked to document (`rule_names`),
-    # and also rules referenced from them (recursively), except ones that will
-    # be documented elsewhere (those in `toplevel_rule_names`).
-    requested_rule_names = list(rule_names)
+def get_rules_to_document(rules, rule_names, toplevel_rule_names):
+    """Figure out all rules to include in a grammar snippet.
+
+    This includes the ones we were asked to document (`rule_names`),
+    and also rules referenced from them (recursively), except ones that will
+    be documented elsewhere (those in `toplevel_rule_names`).
+    """
     rule_names_to_consider = list(rule_names)
     rule_names_to_generate = []
     while rule_names_to_consider:
@@ -993,6 +1012,10 @@ def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
                 and rule_name not in toplevel_rule_names
             ):
                 rule_names_to_consider.append(rule_name)
+    return rule_names_to_generate
+
+def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
+    rule_names_to_generate = get_rules_to_document(rules, rule_names, toplevel_rule_names)
 
     longest_name = max(rule_names_to_generate, key=len)
     available_space = 80 - len(longest_name) - len(' ::=  ')
@@ -1083,6 +1106,64 @@ def generate_all_descendants(node, filter=Node):
         yield node
     for value in node:
         yield from generate_all_descendants(value, filter)
+
+
+def node_to_diagram_element(railroad, node):
+    match node:
+        case Sequence(children):
+            return railroad.Sequence(*(node_to_diagram_element(railroad, c) for c in children))
+        case Choice(children):
+            return railroad.Choice(0, *(node_to_diagram_element(railroad, c) for c in children))
+        case Optional(child):
+            return railroad.Optional(node_to_diagram_element(railroad, child))
+        case ZeroOrMore(child):
+            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child))
+        case OneOrMore(child):
+            return railroad.OneOrMore(node_to_diagram_element(railroad, child))
+        case Gather(sep, item):
+            return railroad.Optional(
+                node_to_diagram_element(railroad, item),
+                node_to_diagram_element(railroad, sep),
+            )
+        case PositiveLookahead(child):
+            return railroad.Group(
+                node_to_diagram_element(railroad, child),
+                "lookahead",
+            )
+        case NegativeLookahead(child):
+            return railroad.Group(
+                node_to_diagram_element(railroad, child),
+                "negative lookahead",
+            )
+        case Nonterminal(name):
+            return railroad.NonTerminal(name)
+        case SymbolicToken(name):
+            return railroad.Terminal(name)
+        case LiteralToken(name):
+            return railroad.Terminal(name)
+        case _:
+            raise ValueError(node)
+
+
+def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
+    print(toplevel_groups)
+    import railroad
+
+    path = Path(image_dir)
+    try:
+        path.mkdir()
+    except FileExistsError:
+        for old_path in path.glob('*.svg'):
+            old_path.unlink()
+    for name, node in rules.items():
+        if name.startswith("invalid_"):
+            continue
+        dest_path = path / f'{name}.svg'
+        print(f'Generating: {dest_path}')
+        d = railroad.Diagram(railroad.Start(label=name), node_to_diagram_element(railroad, node))
+        with open(dest_path, 'w') as file:
+            d.writeStandalone(file.write)
+
 
 if __name__ == "__main__":
     main()

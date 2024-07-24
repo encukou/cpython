@@ -1,0 +1,45 @@
+<svg class="railroad-diagram" height="71" viewBox="0 0 888.5 71" width="888.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g transform="translate(.5 .5)">
+<g>
+<path d="M20 21v20m10 -20v20m-10 -10h95.0" /><text style="text-anchor:start" x="20" y="16">match_stmt</text></g><path d="M115.0 31h10" /><g>
+<path d="M125.0 31h0.0" /><path d="M838.5 31h0.0" /><g class="terminal ">
+<path d="M125.0 31h0.0" /><path d="M204.5 31h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="125" y="20"></rect><text x="164.75" y="35">&quot;match&quot;</text></g><path d="M204.5 31h10" /><path d="M214.5 31h10" /><g class="non-terminal ">
+<path d="M224.5 31h0.0" /><path d="M346.5 31h0.0" /><rect height="22" width="122" x="224.5" y="20"></rect><text x="285.5" y="35">subject_expr</text></g><path d="M346.5 31h10" /><path d="M356.5 31h10" /><g class="terminal ">
+<path d="M366.5 31h0.0" /><path d="M412.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="366.5" y="20"></rect><text x="389.25" y="35">&apos;:&apos;</text></g><path d="M412.0 31h10" /><path d="M422.0 31h10" /><g class="terminal ">
+<path d="M432.0 31h0.0" /><path d="M511.5 31h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="432" y="20"></rect><text x="471.75" y="35">NEWLINE</text></g><path d="M511.5 31h10" /><path d="M521.5 31h10" /><g class="terminal ">
+<path d="M531.5 31h0.0" /><path d="M602.5 31h0.0" /><rect height="22" rx="10" ry="10" width="71" x="531.5" y="20"></rect><text x="567" y="35">INDENT</text></g><path d="M602.5 31h10" /><path d="M612.5 31h10" /><g>
+<path d="M622.5 31h0.0" /><path d="M747.5 31h0.0" /><path d="M622.5 31h10" /><g class="non-terminal ">
+<path d="M632.5 31h0.0" /><path d="M737.5 31h0.0" /><rect height="22" width="105" x="632.5" y="20"></rect><text x="685" y="35">case_block</text></g><path d="M737.5 31h10" /><path d="M632.5 31a10 10 0 0 0 -10 10v0a10 10 0 0 0 10 10" /><g>
+<path d="M632.5 51h105.0" /></g><path d="M737.5 51a10 10 0 0 0 10 -10v0a10 10 0 0 0 -10 -10" /></g><path d="M747.5 31h10" /><path d="M757.5 31h10" /><g class="terminal ">
+<path d="M767.5 31h0.0" /><path d="M838.5 31h0.0" /><rect height="22" rx="10" ry="10" width="71" x="767.5" y="20"></rect><text x="803" y="35">DEDENT</text></g></g><path d="M838.5 31h10" /><path d="M 848.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+	svg.railroad-diagram {
+		background-color:hsl(30,20%,95%);
+	}
+	svg.railroad-diagram path {
+		stroke-width:3;
+		stroke:black;
+		fill:rgba(0,0,0,0);
+	}
+	svg.railroad-diagram text {
+		font:bold 14px monospace;
+		text-anchor:middle;
+	}
+	svg.railroad-diagram text.label{
+		text-anchor:start;
+	}
+	svg.railroad-diagram text.comment{
+		font:italic 12px monospace;
+	}
+	svg.railroad-diagram rect{
+		stroke-width:3;
+		stroke:black;
+		fill:hsl(120,100%,90%);
+	}
+	svg.railroad-diagram rect.group-box {
+		stroke: gray;
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+/* ]]> */
+</style></svg>
