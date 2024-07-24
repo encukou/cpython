@@ -638,18 +638,23 @@ class GrammarSnippetDirective(SphinxDirective):
 
     def run(self):
         group_name = self.options['group']
-        for index, line in enumerate(self.content):
-            self.content[index] = '   ' + line
-        self.content.insert(
+        content = self.content[:]
+        content.disconnect()
+        for index, line in enumerate(content):
+            content[index] = '   ' + line
+        content.insert(
             0, f'.. productionlist:: {group_name}', source=__file__,
         )
         node = nodes.paragraph()
-        self.state.nested_parse(self.content, 0, node)
-        self.content.append('', source=__file__)
-        self.content.append('.. raw:: html', source=__file__)
-        self.content.append('', source=__file__)
-        self.content.append('   <i>hi world!</i>', source=__file__)
-        self.content.append('', source=__file__)
+        for line in [
+            '',
+            '.. raw:: html',
+            '',
+            '   <i>hi world!</i>',
+            '',
+        ]:
+            content.append(line, source=__file__)
+        self.state.nested_parse(content, 0, node)
         return node.children
 
 
