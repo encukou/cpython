@@ -53,6 +53,13 @@ REPLACED_SYNONYMS = {
 
 # TODO:
 
+# Do more inlining for the diagrams (we can preserve the names!)
+# - OptionalSequence (for import)
+
+# Make compare_op_bitwise_or_pair not be top-level?
+
+# Add tests
+
 # Think about "OptionalSequence with separators":
 
 # Gather:
@@ -110,6 +117,11 @@ REPLACED_SYNONYMS = {
 #   try_stmt          ::=  'try' ':' block (finally_block | (except_block+ ...
 # instead keep 3 separate alternatives, like in the grammar
 # Similar for star_targets_tuple_seq
+
+
+# Ideas for extending the library:
+# - Aligning
+# - OptionalSequence with separators
 
 
 def main():
@@ -1121,7 +1133,7 @@ def node_to_diagram_element(railroad, node):
         case OneOrMore(child):
             return railroad.OneOrMore(node_to_diagram_element(railroad, child))
         case Gather(sep, item):
-            return railroad.Optional(
+            return railroad.OneOrMore(
                 node_to_diagram_element(railroad, item),
                 node_to_diagram_element(railroad, sep),
             )

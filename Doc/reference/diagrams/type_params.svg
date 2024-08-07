@@ -1,12 +1,12 @@
-<svg class="railroad-diagram" height="91" viewBox="0 0 441.5 91" width="441.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="101" viewBox="0 0 441.5 101" width="441.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
 <path d="M20 30v20m10 -20v20m-10 -10h20" /></g><path d="M40 40h10" /><g>
 <path d="M50 40h0.0" /><path d="M391.5 40h0.0" /><g class="terminal ">
-<path d="M50.0 40h0.0" /><path d="M95.5 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="29"></rect><text x="72.75" y="44">&apos;[&apos;</text></g><path d="M95.5 40h10" /><g>
-<path d="M105.5 40h0.0" /><path d="M250.5 40h0.0" /><path d="M105.5 40h20" /><g>
-<path d="M125.5 40h105.0" /></g><path d="M230.5 40h20" /><path d="M105.5 40a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M125.5 60h0.0" /><path d="M230.5 60h0.0" /><rect height="22" width="105" x="125.5" y="49"></rect><text x="178" y="64">type_param</text></g><path d="M230.5 60a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /></g><g>
+<path d="M50.0 40h0.0" /><path d="M95.5 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="29"></rect><text x="72.75" y="44">&apos;[&apos;</text></g><path d="M95.5 40h10" /><path d="M105.5 40h10" /><g>
+<path d="M115.5 40h0.0" /><path d="M240.5 40h0.0" /><path d="M115.5 40h10" /><g class="non-terminal ">
+<path d="M125.5 40h0.0" /><path d="M230.5 40h0.0" /><rect height="22" width="105" x="125.5" y="29"></rect><text x="178" y="44">type_param</text></g><path d="M230.5 40h10" /><path d="M125.5 40a10 10 0 0 0 -10 10v10a10 10 0 0 0 10 10" /><g class="terminal ">
+<path d="M125.5 70h29.75" /><path d="M200.75 70h29.75" /><rect height="22" rx="10" ry="10" width="45.5" x="155.25" y="59"></rect><text x="178" y="74">&apos;,&apos;</text></g><path d="M230.5 70a10 10 0 0 0 10 -10v-10a10 10 0 0 0 -10 -10" /></g><path d="M240.5 40h10" /><g>
 <path d="M250.5 40h0.0" /><path d="M336.0 40h0.0" /><path d="M250.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
 <path d="M270.5 20h45.5" /></g><path d="M316.0 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M250.5 40h20" /><g class="terminal ">
 <path d="M270.5 40h0.0" /><path d="M316.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="270.5" y="29"></rect><text x="293.25" y="44">&apos;,&apos;</text></g><path d="M316.0 40h20" /></g><path d="M336.0 40h10" /><g class="terminal ">

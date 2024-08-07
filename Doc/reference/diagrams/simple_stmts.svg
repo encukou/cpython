@@ -1,15 +1,15 @@
-<svg class="railroad-diagram" height="91" viewBox="0 0 428.5 91" width="428.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="101" viewBox="0 0 418.5 101" width="418.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
 <path d="M20 30v20m10 -20v20m-10 -10h20" /></g><path d="M40 40h10" /><g>
-<path d="M50 40h0.0" /><path d="M378.5 40h0.0" /><g>
-<path d="M50.0 40h0.0" /><path d="M203.5 40h0.0" /><path d="M50.0 40h20" /><g>
-<path d="M70.0 40h113.5" /></g><path d="M183.5 40h20" /><path d="M50.0 40a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M70.0 60h0.0" /><path d="M183.5 60h0.0" /><rect height="22" width="113.5" x="70" y="49"></rect><text x="126.75" y="64">simple_stmt</text></g><path d="M183.5 60a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /></g><g>
-<path d="M203.5 40h0.0" /><path d="M289.0 40h0.0" /><path d="M203.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
-<path d="M223.5 20h45.5" /></g><path d="M269.0 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M203.5 40h20" /><g class="terminal ">
-<path d="M223.5 40h0.0" /><path d="M269.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="223.5" y="29"></rect><text x="246.25" y="44">&apos;;&apos;</text></g><path d="M269.0 40h20" /></g><path d="M289.0 40h10" /><g class="terminal ">
-<path d="M299.0 40h0.0" /><path d="M378.5 40h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="299" y="29"></rect><text x="338.75" y="44">NEWLINE</text></g></g><path d="M378.5 40h10" /><path d="M 388.5 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M50 40h0.0" /><path d="M368.5 40h0.0" /><g>
+<path d="M50.0 40h0.0" /><path d="M183.5 40h0.0" /><path d="M50.0 40h10" /><g class="non-terminal ">
+<path d="M60.0 40h0.0" /><path d="M173.5 40h0.0" /><rect height="22" width="113.5" x="60" y="29"></rect><text x="116.75" y="44">simple_stmt</text></g><path d="M173.5 40h10" /><path d="M60.0 40a10 10 0 0 0 -10 10v10a10 10 0 0 0 10 10" /><g class="terminal ">
+<path d="M60.0 70h34.0" /><path d="M139.5 70h34.0" /><rect height="22" rx="10" ry="10" width="45.5" x="94" y="59"></rect><text x="116.75" y="74">&apos;;&apos;</text></g><path d="M173.5 70a10 10 0 0 0 10 -10v-10a10 10 0 0 0 -10 -10" /></g><path d="M183.5 40h10" /><g>
+<path d="M193.5 40h0.0" /><path d="M279.0 40h0.0" /><path d="M193.5 40a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M213.5 20h45.5" /></g><path d="M259.0 20a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M193.5 40h20" /><g class="terminal ">
+<path d="M213.5 40h0.0" /><path d="M259.0 40h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="213.5" y="29"></rect><text x="236.25" y="44">&apos;;&apos;</text></g><path d="M259.0 40h20" /></g><path d="M279.0 40h10" /><g class="terminal ">
+<path d="M289.0 40h0.0" /><path d="M368.5 40h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="289" y="29"></rect><text x="328.75" y="44">NEWLINE</text></g></g><path d="M368.5 40h10" /><path d="M 378.5 40 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

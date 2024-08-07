@@ -1,19 +1,19 @@
-<svg class="railroad-diagram" height="99" viewBox="0 0 575.0 99" width="575.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="109" viewBox="0 0 565.0 109" width="565.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
 <path d="M20 38v20m10 -20v20m-10 -10h20" /></g><path d="M40 48h10" /><g>
-<path d="M50 48h0.0" /><path d="M525.0 48h0.0" /><g class="terminal ">
+<path d="M50 48h0.0" /><path d="M515.0 48h0.0" /><g class="terminal ">
 <path d="M50.0 48h0.0" /><path d="M95.5 48h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="50" y="37"></rect><text x="72.75" y="52">&apos;{&apos;</text></g><path d="M95.5 48h10" /><g>
-<path d="M105.5 48h0.0" /><path d="M469.5 48h0.0" /><path d="M105.5 48a10 10 0 0 0 10 -10v-8a10 10 0 0 1 10 -10" /><g>
-<path d="M125.5 20h324.0" /></g><path d="M449.5 20a10 10 0 0 1 10 10v8a10 10 0 0 0 10 10" /><path d="M105.5 48h20" /><g>
-<path d="M125.5 48h0.0" /><path d="M449.5 48h0.0" /><g>
-<path d="M125.5 48h0.0" /><path d="M364.0 48h0.0" /><path d="M125.5 48h20" /><g>
-<path d="M145.5 48h198.5" /></g><path d="M344.0 48h20" /><path d="M125.5 48a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M145.5 68h0.0" /><path d="M344.0 68h0.0" /><rect height="22" width="198.5" x="145.5" y="57"></rect><text x="244.75" y="72">double_starred_kvpair</text></g><path d="M344.0 68a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /></g><g>
-<path d="M364.0 48h0.0" /><path d="M449.5 48h0.0" /><path d="M364.0 48a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
-<path d="M384.0 28h45.5" /></g><path d="M429.5 28a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M364.0 48h20" /><g class="terminal ">
-<path d="M384.0 48h0.0" /><path d="M429.5 48h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="384" y="37"></rect><text x="406.75" y="52">&apos;,&apos;</text></g><path d="M429.5 48h20" /></g></g><path d="M449.5 48h20" /></g><path d="M469.5 48h10" /><g class="terminal ">
-<path d="M479.5 48h0.0" /><path d="M525.0 48h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="479.5" y="37"></rect><text x="502.25" y="52">&apos;}&apos;</text></g></g><path d="M525.0 48h10" /><path d="M 535.0 48 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M105.5 48h0.0" /><path d="M459.5 48h0.0" /><path d="M105.5 48a10 10 0 0 0 10 -10v-8a10 10 0 0 1 10 -10" /><g>
+<path d="M125.5 20h314.0" /></g><path d="M439.5 20a10 10 0 0 1 10 10v8a10 10 0 0 0 10 10" /><path d="M105.5 48h20" /><g>
+<path d="M125.5 48h0.0" /><path d="M439.5 48h0.0" /><g>
+<path d="M125.5 48h0.0" /><path d="M344.0 48h0.0" /><path d="M125.5 48h10" /><g class="non-terminal ">
+<path d="M135.5 48h0.0" /><path d="M334.0 48h0.0" /><rect height="22" width="198.5" x="135.5" y="37"></rect><text x="234.75" y="52">double_starred_kvpair</text></g><path d="M334.0 48h10" /><path d="M135.5 48a10 10 0 0 0 -10 10v10a10 10 0 0 0 10 10" /><g class="terminal ">
+<path d="M135.5 78h76.5" /><path d="M257.5 78h76.5" /><rect height="22" rx="10" ry="10" width="45.5" x="212" y="67"></rect><text x="234.75" y="82">&apos;,&apos;</text></g><path d="M334.0 78a10 10 0 0 0 10 -10v-10a10 10 0 0 0 -10 -10" /></g><path d="M344.0 48h10" /><g>
+<path d="M354.0 48h0.0" /><path d="M439.5 48h0.0" /><path d="M354.0 48a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M374.0 28h45.5" /></g><path d="M419.5 28a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M354.0 48h20" /><g class="terminal ">
+<path d="M374.0 48h0.0" /><path d="M419.5 48h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="374" y="37"></rect><text x="396.75" y="52">&apos;,&apos;</text></g><path d="M419.5 48h20" /></g></g><path d="M439.5 48h20" /></g><path d="M459.5 48h10" /><g class="terminal ">
+<path d="M469.5 48h0.0" /><path d="M515.0 48h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="469.5" y="37"></rect><text x="492.25" y="52">&apos;}&apos;</text></g></g><path d="M515.0 48h10" /><path d="M 525.0 48 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

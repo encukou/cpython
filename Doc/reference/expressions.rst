@@ -137,7 +137,7 @@ Strings
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   strings: (FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END | STRING)+
+   strings: (STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
    fstring_replacement_field: '{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
 
 .. _parenthesized:
@@ -203,12 +203,11 @@ called "displays", each of them in two flavors:
 
 Common syntax elements for comprehensions are:
 
-.. grammar-snippet:: for_if_clauses for_if_clause
+.. grammar-snippet:: for_if_clauses
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
 
-   for_if_clauses: `for_if_clause`+
-   for_if_clause: ['async'] 'for' `star_targets` 'in' 'if'.`disjunction`+
+   for_if_clauses: (['async'] 'for' `star_targets` 'in' 'if'.`disjunction`+)+
 
 .. productionlist:: python-grammar
    comprehension: `assignment_expression` `comp_for`
