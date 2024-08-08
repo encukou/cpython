@@ -3383,7 +3383,7 @@ _PyBytesWriter_Init(_PyBytesWriter *writer)
 #endif
 }
 
-
+/*
 PyBytesWriter* PyBytesWriter_Create(Py_ssize_t size, char **pstr)
 {
     _PyBytesWriter *writer = PyMem_Malloc(sizeof(_PyBytesWriter));
@@ -3405,7 +3405,7 @@ PyBytesWriter* PyBytesWriter_Create(Py_ssize_t size, char **pstr)
     *pstr = str;
     return (PyBytesWriter*)writer;
 }
-
+*/
 
 void
 _PyBytesWriter_Dealloc(_PyBytesWriter *writer)
@@ -3413,14 +3413,14 @@ _PyBytesWriter_Dealloc(_PyBytesWriter *writer)
     Py_CLEAR(writer->buffer);
 }
 
-
+/*
 void
 PyBytesWriter_Discard(PyBytesWriter *writer)
 {
     _PyBytesWriter_Dealloc((_PyBytesWriter*)writer);
     PyMem_Free(writer);
 }
-
+*/
 
 Py_LOCAL_INLINE(char*)
 _PyBytesWriter_AsString(_PyBytesWriter *writer)
@@ -3593,7 +3593,7 @@ _PyBytesWriter_Prepare(_PyBytesWriter *writer, void *str, Py_ssize_t size)
     return str;
 }
 
-
+/*
 int
 PyBytesWriter_Prepare(PyBytesWriter *writer, char **str, Py_ssize_t size)
 {
@@ -3609,6 +3609,7 @@ PyBytesWriter_Prepare(PyBytesWriter *writer, char **str, Py_ssize_t size)
     *str = str2;
     return 0;
 }
+*/
 
 
 /* Allocate the buffer to write size bytes.
@@ -3688,7 +3689,7 @@ _PyBytesWriter_Finish(_PyBytesWriter *writer, void *str)
     return result;
 }
 
-
+/*
 PyObject *
 PyBytesWriter_Finish(PyBytesWriter *writer, char *str)
 {
@@ -3696,6 +3697,7 @@ PyBytesWriter_Finish(PyBytesWriter *writer, char *str)
     PyMem_Free(writer);
     return res;
 }
+*/
 
 
 void*
@@ -3714,7 +3716,7 @@ _PyBytesWriter_WriteBytes(_PyBytesWriter *writer, void *ptr,
     return str;
 }
 
-
+/*
 int
 PyBytesWriter_WriteBytes(PyBytesWriter *writer, char **str,
                          const void *bytes, Py_ssize_t size)
@@ -3728,7 +3730,7 @@ PyBytesWriter_WriteBytes(PyBytesWriter *writer, char **str,
     *str = str2;
     return 0;
 }
-
+*/
 
 void
 _PyBytes_Repeat(char* dest, Py_ssize_t len_dest,
@@ -3751,5 +3753,80 @@ _PyBytes_Repeat(char* dest, Py_ssize_t len_dest,
             copied += bytes_to_copy;
         }
     }
+}
+
+static inline char* _PyBytesWriter_AS_STRING(PyObject *op)
+{
+    return _Py_CAST(PyBytesObject*, op)->ob_sval;
+}
+
+// Create a bytes writer instance.
+PyBytesWriter* PyBytesWriter_Create(Py_ssize_t size, char **str) {
+    if (size < 0) {
+        size = 0;
+    }
+    PyObject *res = PyBytes_FromStringAndSize(NULL, size);
+    if (!res) return NULL;
+    Py_SET_TYPE(res, NULL);
+    *str = _PyBytesWriter_AS_STRING(res);
+    return (PyBytesWriter*)res;
+}
+
+// Return the final Python bytes object and destroy the writer instance.
+PyObject* PyBytesWriter_Finish(PyBytesWriter *writer, char *str) {
+    PyObject *o = (PyObject *)writer;
+    assert(Py_TYPE(o) == NULL);
+    Py_ssize_t size_written = str - _PyBytesWriter_AS_STRING(o);
+    Py_SET_TYPE(o, &PyBytes_Type);
+    if (size_written == Py_SIZE(o)) {
+        return o;
+    }
+    PyObject *res = PyBytes_FromStringAndSize(_PyBytesWriter_AS_STRING(o), size_written);
+    Py_DECREF(o);
+    return res;
+}
+
+// Discard the internal bytes buffer and destroy the writer instance.
+void PyBytesWriter_Discard(PyBytesWriter *writer) {
+    PyObject *o = (PyObject *)writer;
+    Py_SET_TYPE(o, &PyBytes_Type);
+    Py_DECREF(o);
+}
+
+// Allocate *size* bytes to prepare writing *size* bytes into *writer*.
+int PyBytesWriter_Prepare(PyBytesWriter **writer, char **str, Py_ssize_t size) {
+    if (size < 0) {
+        PyErr_SetString(PyExc_ValueError, "PyBytesWriter: size must not be negative");
+        return -1;
+    }
+    PyObject *o = (PyObject *)*writer;
+    Py_ssize_t size_written = *str - _PyBytesWriter_AS_STRING(o);
+    assert(size_written >= 0);
+    Py_ssize_t size_left = Py_SIZE(o) - size_written;
+    assert(size_left >= 0);
+    if (size_left >= size) {
+        return 0;
+    }
+    char *new_str;
+    PyBytesWriter *new_writer = PyBytesWriter_Create(size_written + size, &new_str);
+    if (!new_writer) {
+        return -1;
+    }
+    memcpy(new_str, _PyBytesWriter_AS_STRING(o), size_written);
+    *str = new_str + size_written;
+    Py_SET_TYPE(new_writer, NULL);
+    Py_SET_TYPE(o, &PyBytes_Type);
+    Py_SETREF(*writer, new_writer);
+    return 0;
+}
+
+// Write a the bytes string *bytes* of *size* bytes into *writer*.
+int PyBytesWriter_WriteBytes(PyBytesWriter **writer, char **str, const void *bytes, Py_ssize_t size) {
+    if (PyBytesWriter_Prepare(writer, str, size) == -1) {
+        return -1;
+    }
+    memcpy(*str, bytes, size);
+    *str += size;
+    return 0;
 }
 

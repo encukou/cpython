@@ -55,12 +55,12 @@ test_byteswriter(PyObject *Py_UNUSED(module), PyObject *Py_UNUSED(args))
         return NULL;
     }
 
-    if (PyBytesWriter_WriteBytes(writer, &str, "abc", 3) < 0) {
+    if (PyBytesWriter_WriteBytes(&writer, &str, "abc", 3) < 0) {
         goto error;
     }
 
     // write empty string
-    if (PyBytesWriter_WriteBytes(writer, &str, "", 0) < 0) {
+    if (PyBytesWriter_WriteBytes(&writer, &str, "", 0) < 0) {
         goto error;
     }
 
@@ -89,7 +89,7 @@ test_byteswriter_discard(PyObject *Py_UNUSED(module), PyObject *Py_UNUSED(args))
     if (writer == NULL) {
         return NULL;
     }
-    assert(PyBytesWriter_WriteBytes(writer, &str, "abc", 3) == 0);
+    assert(PyBytesWriter_WriteBytes(&writer, &str, "abc", 3) == 0);
 
     PyBytesWriter_Discard(writer);
     Py_RETURN_NONE;
@@ -106,10 +106,10 @@ test_byteswriter_writebytes(PyObject *Py_UNUSED(module), PyObject *Py_UNUSED(arg
         return NULL;
     }
 
-    if (PyBytesWriter_WriteBytes(writer, &str, "abc", 3) < 0) {
+    if (PyBytesWriter_WriteBytes(&writer, &str, "abc", 3) < 0) {
         goto error;
     }
-    if (PyBytesWriter_WriteBytes(writer, &str, "def", 3) < 0) {
+    if (PyBytesWriter_WriteBytes(&writer, &str, "def", 3) < 0) {
         goto error;
     }
 
@@ -140,11 +140,11 @@ test_byteswriter_prepare(PyObject *Py_UNUSED(module), PyObject *Py_UNUSED(args))
     }
 
     // test error on purpose (negative size)
-    assert(PyBytesWriter_Prepare(writer, &str, -3) < 0);
+    assert(PyBytesWriter_Prepare(&writer, &str, -3) < 0);
     assert(PyErr_ExceptionMatches(PyExc_ValueError));
     PyErr_Clear();
 
-    if (PyBytesWriter_Prepare(writer, &str, 3) < 0) {
+    if (PyBytesWriter_Prepare(&writer, &str, 3) < 0) {
         PyBytesWriter_Discard(writer);
         return NULL;
     }

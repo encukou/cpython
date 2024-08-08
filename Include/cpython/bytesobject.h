@@ -49,11 +49,11 @@ PyAPI_FUNC(PyObject *) PyBytesWriter_Finish(
 PyAPI_FUNC(void) PyBytesWriter_Discard(PyBytesWriter *writer);
 
 PyAPI_FUNC(int) PyBytesWriter_Prepare(
-    PyBytesWriter *writer,
+    PyBytesWriter **writer,
     char **str,
     Py_ssize_t size);
 PyAPI_FUNC(int) PyBytesWriter_WriteBytes(
-    PyBytesWriter *writer,
+    PyBytesWriter **writer,
     char **str,
     const void *bytes,
     Py_ssize_t size);
