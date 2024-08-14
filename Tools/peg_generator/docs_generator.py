@@ -50,13 +50,12 @@ FUTURE_TOPLEVEL_RULES = set()
 REPLACED_SYNONYMS = {
     'literal_expr': 'literal_pattern',
     't_primary': 'primary',  # TODO: add logic to tell that these are the same
-    'value_pattern': 'attr',   # TODO: add logic to tell that these are the same
+    'value_pattern': 'attr',
 }
 
 # TODO:
 
 # Do more inlining for the diagrams (we can preserve the names!)
-# Remove "value_pattern ::=  attr"
 # - OptionalSequence (for import)
 
 # Make compare_op_bitwise_or_pair not be top-level?
@@ -819,6 +818,8 @@ class Nonterminal(Leaf):
             self_rule = rules[self.value]
             other_rule = rules[other_rule_name]
             if self_rule == other_rule:
+                return Nonterminal(other_rule_name)
+            if self_rule == Nonterminal(other_rule_name):
                 return Nonterminal(other_rule_name)
         return super().simplify(rules, path)
 

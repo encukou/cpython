@@ -811,7 +811,7 @@ The top-level syntax for ``patterns`` is:
 
    patterns: `open_sequence_pattern` | `pattern`
    pattern: `as_pattern` | `or_pattern`
-   closed_pattern: `literal_pattern` | `pattern_capture_target` | `wildcard_pattern` | `value_pattern` | `group_pattern` | `sequence_pattern` | `mapping_pattern` | `class_pattern`
+   closed_pattern: `literal_pattern` | `pattern_capture_target` | `wildcard_pattern` | `attr` | `group_pattern` | `sequence_pattern` | `mapping_pattern` | `class_pattern`
 
 The descriptions below will include a description "in simple terms" of what a pattern
 does for illustration purposes (credits to Raymond Hettinger for a document that
@@ -957,12 +957,11 @@ Value Patterns
 A value pattern represents a named value in Python.
 Syntax:
 
-.. grammar-snippet:: value_pattern attr
+.. grammar-snippet:: attr
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
-   :diagrams: value_pattern
+   :diagrams: attr
 
-   value_pattern: `attr`
    attr: (`attr` | NAME) '.' NAME
 
 The dotted name in the pattern is looked up using standard Python
