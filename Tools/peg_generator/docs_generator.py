@@ -1123,32 +1123,32 @@ def generate_all_descendants(node, filter=Node):
 def node_to_diagram_element(railroad, node, rules, rules_to_inline, depth):
     match node:
         case Sequence(children):
-            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth+1) for c in children))
+            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth) for c in children))
         case Choice(children):
-            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth+1) for c in children))
+            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth) for c in children))
         case Optional(child):
-            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
+            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
         case ZeroOrMore(child):
-            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
+            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
         case OneOrMore(child):
-            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
+            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
         case Gather(sep, item):
             return railroad.OneOrMore(
-                node_to_diagram_element(railroad, item, rules, rules_to_inline, depth+1),
-                node_to_diagram_element(railroad, sep, rules, rules_to_inline, depth+1),
+                node_to_diagram_element(railroad, item, rules, rules_to_inline, depth),
+                node_to_diagram_element(railroad, sep, rules, rules_to_inline, depth),
             )
         case PositiveLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth),
                 "lookahead",
             )
         case NegativeLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth),
                 "negative lookahead",
             )
         case Nonterminal(name):
-            if name in rules_to_inline and depth < 5:
+            if name in rules_to_inline and depth < 11:
                 inlined_diagram = node_to_diagram_element(railroad, rules[name],
                                                           rules, rules_to_inline, depth+1)
                 return railroad.Group(inlined_diagram, name)
