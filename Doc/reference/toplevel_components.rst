@@ -69,6 +69,7 @@ All input read from non-interactive files has the same form:
 .. grammar-snippet:: file
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: file
 
    file: `statement`* ENDMARKER
 
@@ -91,6 +92,7 @@ Input in interactive mode is parsed using the following grammar:
 .. grammar-snippet:: interactive
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: interactive
 
    interactive: `compound_stmt` NEWLINE | `simple_stmts` | NEWLINE | ENDMARKER
 
@@ -112,6 +114,7 @@ string argument to :func:`eval` must have the following form:
 .. grammar-snippet:: eval
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: eval
 
    eval: `expressions` NEWLINE* ENDMARKER
    expressions: ','.`expression`+ [',']

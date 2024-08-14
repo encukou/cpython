@@ -628,6 +628,7 @@ class GrammarSnippetDirective(SphinxDirective):
     option_spec = {
         'group': directives.unchanged,
         'generated-by': directives.unchanged,
+        'diagrams': directives.unchanged,
     }
 
     # Arguments are used by the tool that generates grammar-snippet,
@@ -651,7 +652,7 @@ class GrammarSnippetDirective(SphinxDirective):
             0, f'.. productionlist:: {group_name}', source=__file__,
         )
 
-        for rule_name in rule_names:
+        for rule_name in self.options['diagrams'].split():
             content.append('', source=__file__)
             content.append(f'``{rule_name}``:', source=__file__)
             content.append('', source=__file__)

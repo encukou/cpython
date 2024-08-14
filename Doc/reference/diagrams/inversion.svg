@@ -1,12 +1,18 @@
-<svg class="railroad-diagram" height="92" viewBox="0 0 299.0 92" width="299.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="154" viewBox="0 0 421.5 154" width="421.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><g>
-<path d="M40 31h0.0" /><path d="M259.0 31h0.0" /><path d="M40.0 31h20" /><g>
-<path d="M60.0 31h0.0" /><path d="M239.0 31h0.0" /><g class="terminal ">
-<path d="M60.0 31h0.0" /><path d="M122.5 31h0.0" /><rect height="22" rx="10" ry="10" width="62.5" x="60" y="20"></rect><text x="91.25" y="35">&apos;not&apos;</text></g><path d="M122.5 31h10" /><path d="M132.5 31h10" /><g class="non-terminal ">
-<path d="M142.5 31h0.0" /><path d="M239.0 31h0.0" /><rect height="22" width="96.5" x="142.5" y="20"></rect><text x="190.75" y="35">inversion</text></g></g><path d="M239.0 31h20" /><path d="M40.0 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M60.0 61h37.0" /><path d="M202.0 61h37.0" /><rect height="22" width="105" x="97" y="50"></rect><text x="149.5" y="65">comparison</text></g><path d="M239.0 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><path d="M 259.0 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 45v20m10 -20v20m-10 -10h20" /></g><g>
+<path d="M40 55h0.0" /><path d="M381.5 55h0.0" /><path d="M40.0 55h20" /><g>
+<path d="M60.0 55h0.0" /><path d="M361.5 55h0.0" /><g class="terminal ">
+<path d="M60.0 55h0.0" /><path d="M122.5 55h0.0" /><rect height="22" rx="10" ry="10" width="62.5" x="60" y="44"></rect><text x="91.25" y="59">&apos;not&apos;</text></g><path d="M122.5 55h10" /><path d="M132.5 55h10" /><g>
+<path d="M142.5 55h0.0" /><path d="M361.5 55h0.0" /><rect class="group-box" height="68" rx="10" ry="10" width="219" x="142.5" y="36"></rect><g>
+<path d="M142.5 55h0.0" /><path d="M361.5 55h0.0" /><path d="M142.5 55h20" /><g>
+<path d="M162.5 55h0.0" /><path d="M341.5 55h0.0" /><g class="terminal ">
+<path d="M162.5 55h0.0" /><path d="M225.0 55h0.0" /><rect height="22" rx="10" ry="10" width="62.5" x="162.5" y="44"></rect><text x="193.75" y="59">&apos;not&apos;</text></g><path d="M225.0 55h10" /><path d="M235.0 55h10" /><g class="non-terminal ">
+<path d="M245.0 55h0.0" /><path d="M341.5 55h0.0" /><rect height="22" width="96.5" x="245" y="44"></rect><text x="293.25" y="59">inversion</text></g></g><path d="M341.5 55h20" /><path d="M142.5 55a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M162.5 85h37.0" /><path d="M304.5 85h37.0" /><rect height="22" width="105" x="199.5" y="74"></rect><text x="252" y="89">comparison</text></g><path d="M341.5 85a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><g class="non-terminal ">
+<path d="M142.5 28h0.0" /><path d="M215.5 28h0.0" /><text class="comment" x="179" y="33">inversion</text></g></g></g><path d="M361.5 55h20" /><path d="M40.0 55a10 10 0 0 1 10 10v48a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M60.0 123h98.25" /><path d="M263.25 123h98.25" /><rect height="22" width="105" x="158.25" y="112"></rect><text x="210.75" y="127">comparison</text></g><path d="M361.5 123a10 10 0 0 0 10 -10v-48a10 10 0 0 1 10 -10" /></g><path d="M 381.5 55 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

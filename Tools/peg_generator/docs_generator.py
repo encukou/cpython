@@ -49,11 +49,14 @@ FUTURE_TOPLEVEL_RULES = set()
 # here.)
 REPLACED_SYNONYMS = {
     'literal_expr': 'literal_pattern',
+    't_primary': 'primary',  # TODO: add logic to tell that these are the same
+    'value_pattern': 'attr',   # TODO: add logic to tell that these are the same
 }
 
 # TODO:
 
 # Do more inlining for the diagrams (we can preserve the names!)
+# Remove "value_pattern ::=  attr"
 # - OptionalSequence (for import)
 
 # Make compare_op_bitwise_or_pair not be top-level?
@@ -171,6 +174,9 @@ def main():
             for line in rule.dump_tree():
                 print(line)
 
+    rule_names_to_inline = get_rule_names_to_inline(
+        rules, toplevel_rule_groups, set(toplevel_rules))
+
     # Update the files
 
     for path in files_with_grammar:
@@ -189,16 +195,17 @@ def main():
                     new_lines.append(line)
                 if match := HEADER_RE.fullmatch(line):
                     ignoring = True
-                    new_lines.append('   :group: python-grammar\n')
-                    new_lines.append(f'   :generated-by: {SCRIPT_NAME}\n')
-                    new_lines.append('\n')
                     for line in generate_rule_lines(
                         rules,
                         match[1].split(),
                         set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
+                        rule_names_to_inline,
                         debug=args.debug,
                     ):
-                        new_lines.append(f'   {line}\n')
+                        if line.strip():
+                            new_lines.append(f'   {line}\n')
+                        else:
+                            new_lines.append('\n')
                     new_lines.append('\n')
 
         # TODO: It would be nice to trim final blank lines,
@@ -216,7 +223,7 @@ def main():
 
     if args.image_dir:
         generate_diagrams(rules, args.image_dir, toplevel_rule_groups,
-                          set(toplevel_rules))
+                          set(toplevel_rules), rule_names_to_inline)
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -1026,8 +1033,19 @@ def get_rules_to_document(rules, rule_names, toplevel_rule_names):
                 rule_names_to_consider.append(rule_name)
     return rule_names_to_generate
 
-def generate_rule_lines(rules, rule_names, toplevel_rule_names, debug):
+def generate_rule_lines(rules, rule_names, toplevel_rule_names, rule_names_to_inline, debug):
     rule_names_to_generate = get_rules_to_document(rules, rule_names, toplevel_rule_names)
+
+    rule_names_to_inline = set(rule_names_to_inline)
+    diagram_names = [
+        name for name in rule_names_to_generate
+        if name not in rule_names_to_inline
+    ]
+
+    yield ':group: python-grammar'
+    yield f':generated-by: {SCRIPT_NAME}'
+    yield f':diagrams: {' '.join(diagram_names)}'
+    yield ''
 
     longest_name = max(rule_names_to_generate, key=len)
     available_space = 80 - len(longest_name) - len(' ::=  ')
@@ -1120,37 +1138,38 @@ def generate_all_descendants(node, filter=Node):
         yield from generate_all_descendants(value, filter)
 
 
-def node_to_diagram_element(railroad, node, rules, rules_to_inline, depth):
+def node_to_diagram_element(railroad, node, rules, rules_to_inline):
     match node:
         case Sequence(children):
-            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth) for c in children))
+            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline) for c in children))
         case Choice(children):
-            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth) for c in children))
+            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline) for c in children))
         case Optional(child):
-            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
+            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline))
         case ZeroOrMore(child):
-            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
+            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline))
         case OneOrMore(child):
-            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth))
+            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline))
         case Gather(sep, item):
             return railroad.OneOrMore(
-                node_to_diagram_element(railroad, item, rules, rules_to_inline, depth),
-                node_to_diagram_element(railroad, sep, rules, rules_to_inline, depth),
+                node_to_diagram_element(railroad, item, rules, rules_to_inline),
+                node_to_diagram_element(railroad, sep, rules, rules_to_inline),
             )
         case PositiveLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline),
                 "lookahead",
             )
         case NegativeLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline),
                 "negative lookahead",
             )
         case Nonterminal(name):
-            if name in rules_to_inline and depth < 11:
+            if name in rules_to_inline and name in rules_to_inline:
+                rules_to_inline = rules_to_inline - {name}
                 inlined_diagram = node_to_diagram_element(railroad, rules[name],
-                                                          rules, rules_to_inline, depth+1)
+                                                          rules, rules_to_inline)
                 return railroad.Group(inlined_diagram, name)
             return railroad.NonTerminal(name)
         case SymbolicToken(name):
@@ -1161,7 +1180,27 @@ def node_to_diagram_element(railroad, node, rules, rules_to_inline, depth):
             raise ValueError(node)
 
 
-def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
+def get_rule_names_to_inline(rules, toplevel_groups, toplevel_rule_names):
+    result = set()
+    for group in toplevel_groups:
+        rules_to_generate = get_rules_to_document(rules, group, toplevel_rule_names)
+
+        reference_counts = collections.Counter()
+        for name in rules_to_generate:
+            node = rules[name]
+            for descendant in generate_all_descendants(node, filter=Nonterminal):
+                nonterminal_name = descendant.value
+                if nonterminal_name in rules_to_generate and nonterminal_name != name:
+                    reference_counts[nonterminal_name] += 1
+
+        result.update(
+            name for name, count in reference_counts.items() if count == 1
+        )
+    return result
+
+
+
+def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names, rule_names_to_inline):
     print(toplevel_groups)
     import railroad
 
@@ -1173,19 +1212,7 @@ def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
             old_path.unlink()
     for group in toplevel_groups:
         rules_to_generate = get_rules_to_document(rules, group, toplevel_rule_names)
-
-        # Count up all the references to rules we're documenting.
-        reference_counts = collections.Counter()
-        for name in rules_to_generate:
-            node = rules[name]
-            for descendant in generate_all_descendants(node, filter=Nonterminal):
-                nonterminal_name = descendant.value
-                if nonterminal_name in rules_to_generate:
-                    reference_counts[nonterminal_name] += 1
-
-        rules_to_inline = [
-            name for name, count in reference_counts.items() if count == 1
-        ]
+        rules_to_inline = set(rule_names_to_inline).intersection(rules_to_generate)
 
         for name in rules_to_generate:
             node = rules[name]
@@ -1193,9 +1220,8 @@ def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
                 continue
             dest_path = path / f'{name}.svg'
             print(f'Generating: {dest_path}')
-            print(reference_counts)
             d = railroad.Diagram(
-                node_to_diagram_element(railroad, node, rules, rules_to_inline, 0),
+                node_to_diagram_element(railroad, node, rules, rules_to_inline),
                 type='simple',
             )
             with open(dest_path, 'w') as file:

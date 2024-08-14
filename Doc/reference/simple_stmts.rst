@@ -8,6 +8,7 @@ Simple statements
 .. grammar-snippet:: statement simple_stmts
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: statement
 
    statement: `compound_stmt` | `simple_stmts`
    simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
@@ -21,6 +22,7 @@ simple statements is:
 .. grammar-snippet:: simple_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: simple_stmt
 
    simple_stmt: `assignment` | `type_alias` | `star_expressions` | `return_stmt` | `import_stmt` | `raise_stmt` | 'pass' | `del_stmt` | `yield_stmt` | `assert_stmt` | 'break' | 'continue' | `global_stmt` | `nonlocal_stmt`
 
@@ -43,6 +45,7 @@ expression statement is:
 .. grammar-snippet:: star_expressions star_expression
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: star_expressions
 
    star_expressions: ','.`star_expression`+ [',']
    star_expression: '*' `bitwise_or` | `expression`
@@ -83,17 +86,20 @@ Assignment statements
 Assignment statements are used to (re)bind names to values and to modify
 attributes or items of mutable objects:
 
-.. grammar-snippet:: assignment single_target annotated_rhs
+.. grammar-snippet:: assignment single_target annotated_rhs augassign
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: assignment single_target
 
    assignment: (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`) ':' `expression` ['=' `annotated_rhs`] | ((`star_targets` '=')+ | `single_target` `augassign`) (`yield_expr` | `star_expressions`)
    single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
+   augassign: '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='
 
 .. grammar-snippet:: star_targets star_target star_atom star_targets_tuple_seq
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: star_targets star_target target_with_star_atom
 
    star_targets: ','.`star_target`+ [',']
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
@@ -104,6 +110,7 @@ attributes or items of mutable objects:
 .. grammar-snippet:: single_subscript_attribute_target
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: single_subscript_attribute_target
 
    single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']')
 
@@ -303,12 +310,6 @@ Augmented assignment statements
 Augmented assignment is the combination, in a single statement, of a binary
 operation and an assignment statement:
 
-.. grammar-snippet:: augassign
-   :group: python-grammar
-   :generated-by: Tools/peg_generator/docs_generator.py
-
-   augassign: '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//='
-
 .. productionlist:: python-grammar-old
    augmented_assignment_stmt: `augtarget` `augop` (`expression_list` | `yield_expression`)
    augtarget: `identifier` | `attributeref` | `subscription` | `slicing`
@@ -417,6 +418,7 @@ program:
 .. grammar-snippet:: assert_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: assert_stmt
 
    assert_stmt: 'assert' `expression` [',' `expression`]
 
@@ -482,6 +484,7 @@ The :keyword:`!del` statement
 .. grammar-snippet:: del_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: del_stmt del_targets
 
    del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
@@ -526,6 +529,7 @@ The :keyword:`!return` statement
 .. grammar-snippet:: return_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: return_stmt
 
    return_stmt: 'return' [`star_expressions`]
 
@@ -568,6 +572,7 @@ The :keyword:`!yield` statement
 .. grammar-snippet:: yield_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: yield_stmt
 
    yield_stmt: `yield_expr`
 
@@ -606,6 +611,7 @@ The :keyword:`!raise` statement
 .. grammar-snippet:: raise_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: raise_stmt
 
    raise_stmt: 'raise' [`expression` ['from' `expression`]]
 
@@ -796,6 +802,7 @@ The :keyword:`!import` statement
 .. grammar-snippet:: import_stmt import_from_targets
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: import_stmt dotted_name
 
    import_stmt: 'import' ','.(`dotted_name` ['as' NAME])+ | 'from' (('.' | '...')* `dotted_name` | ('.' | '...')+) 'import' `import_from_targets`
    import_from_targets: '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ | '*'
@@ -1016,6 +1023,7 @@ The :keyword:`!global` statement
 .. grammar-snippet:: global_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: global_stmt
 
    global_stmt: 'global' ','.NAME+
 
@@ -1064,6 +1072,7 @@ The :keyword:`!nonlocal` statement
 .. grammar-snippet:: nonlocal_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: nonlocal_stmt
 
    nonlocal_stmt: 'nonlocal' ','.NAME+
 
@@ -1100,6 +1109,7 @@ The :keyword:`!type` statement
 .. grammar-snippet:: type_alias
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: type_alias
 
    type_alias: "type" NAME [`type_params`] '=' `expression`
 

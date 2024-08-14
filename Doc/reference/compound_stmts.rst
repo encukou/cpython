@@ -47,6 +47,7 @@ Summarizing:
 .. grammar-snippet:: compound_stmt block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: compound_stmt block
 
    compound_stmt: `function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`
    block: NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`
@@ -84,6 +85,7 @@ The :keyword:`if` statement is used for conditional execution:
 .. grammar-snippet:: if_stmt else_block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: if_stmt else_block
 
    if_stmt: 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
    else_block: 'else' ':' `block`
@@ -118,6 +120,7 @@ expression is true:
 .. grammar-snippet:: while_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: while_stmt
 
    while_stmt: 'while' `named_expression` ':' `block` [`else_block`]
 
@@ -160,6 +163,7 @@ The :keyword:`for` statement is used to iterate over the elements of a sequence
 .. grammar-snippet:: for_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: for_stmt
 
    for_stmt: ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` [`else_block`]
 
@@ -228,6 +232,7 @@ for a group of statements:
 .. grammar-snippet:: try_stmt except_block except_star_block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: try_stmt finally_block
 
    try_stmt: 'try' ':' `block` (`finally_block` | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`])
    except_block: 'except' [`expression` ['as' NAME]] ':' `block`
@@ -501,6 +506,7 @@ usage patterns to be encapsulated for convenient reuse.
 .. grammar-snippet:: with_stmt
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: with_stmt with_item
 
    with_stmt: ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
    with_item: `expression` ['as' `star_target`]
@@ -627,6 +633,7 @@ The match statement is used for pattern matching.  Syntax:
 .. grammar-snippet:: match_stmt subject_expr case_block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: match_stmt
 
    match_stmt: "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
    subject_expr: `star_named_expression` ',' [`star_named_expressions`] | `named_expression`
@@ -721,6 +728,7 @@ Guards
 .. grammar-snippet:: guard
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: guard
 
    guard: 'if' `named_expression`
 
@@ -799,6 +807,7 @@ The top-level syntax for ``patterns`` is:
 .. grammar-snippet:: patterns pattern closed_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: patterns closed_pattern
 
    patterns: `open_sequence_pattern` | `pattern`
    pattern: `as_pattern` | `or_pattern`
@@ -822,6 +831,7 @@ bars ``|``.  Syntax:
 .. grammar-snippet:: or_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: or_pattern
 
    or_pattern: '|'.`closed_pattern`+
 
@@ -846,6 +856,7 @@ keyword against a subject.  Syntax:
 .. grammar-snippet:: as_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: as_pattern
 
    as_pattern: `or_pattern` 'as' `pattern_capture_target`
 
@@ -868,6 +879,7 @@ A literal pattern corresponds to most
 .. grammar-snippet:: literal_pattern signed_number complex_number
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: literal_pattern
 
    literal_pattern: `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
    signed_number: ['-'] NUMBER
@@ -896,6 +908,7 @@ Syntax:
 .. grammar-snippet:: pattern_capture_target
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: pattern_capture_target
 
    pattern_capture_target: !"_" NAME
 
@@ -926,6 +939,7 @@ and binds no name.  Syntax:
 .. grammar-snippet:: wildcard_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: wildcard_pattern
 
    wildcard_pattern: "_"
 
@@ -946,6 +960,7 @@ Syntax:
 .. grammar-snippet:: value_pattern attr
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: value_pattern
 
    value_pattern: `attr`
    attr: (`attr` | NAME) '.' NAME
@@ -976,6 +991,7 @@ Syntax:
 .. grammar-snippet:: group_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: group_pattern
 
    group_pattern: '(' `pattern` ')'
 
@@ -992,6 +1008,7 @@ The syntax is similar to the unpacking of a list or tuple.
 .. grammar-snippet:: sequence_pattern open_sequence_pattern maybe_sequence_pattern maybe_star_pattern star_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: sequence_pattern maybe_sequence_pattern maybe_star_pattern
 
    sequence_pattern: '[' [`maybe_sequence_pattern`] ']' | '(' [`open_sequence_pattern`] ')'
    open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
@@ -1077,6 +1094,7 @@ Syntax:
 .. grammar-snippet:: mapping_pattern items_pattern double_star_pattern key_value_pattern
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: mapping_pattern items_pattern
 
    mapping_pattern: '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
@@ -1135,6 +1153,7 @@ A class pattern represents a class and its positional and keyword arguments
 .. grammar-snippet:: class_pattern keyword_patterns
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: class_pattern
 
    class_pattern: (`attr` | NAME) '(' [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']] ')'
    keyword_patterns: ','.(NAME '=' `pattern`)+
@@ -1264,6 +1283,7 @@ A function definition defines a user-defined function object (see section
 .. grammar-snippet:: function_def decorators parameters slash_no_default default
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: function_def default param_no_default param_with_default star_etc param param_maybe_default kwds
 
    function_def: [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
    decorators: ('@' `named_expression` NEWLINE)+
@@ -1466,6 +1486,7 @@ A class definition defines a class object (see section :ref:`types`):
 .. grammar-snippet:: class_def
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: class_def
 
    class_def: [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
 
@@ -1706,6 +1727,7 @@ Type parameter lists
 .. grammar-snippet:: type_params type_param
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
+   :diagrams: type_params
 
    type_params: '[' ','.`type_param`+ [','] ']'
    type_param: NAME [':' `expression`] ['=' `expression`] | '*' NAME ['=' `star_expression`] | '**' NAME ['=' `expression`]
