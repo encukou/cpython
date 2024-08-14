@@ -1120,34 +1120,38 @@ def generate_all_descendants(node, filter=Node):
         yield from generate_all_descendants(value, filter)
 
 
-def node_to_diagram_element(railroad, node):
+def node_to_diagram_element(railroad, node, rules, rules_to_inline, depth):
     match node:
         case Sequence(children):
-            return railroad.Sequence(*(node_to_diagram_element(railroad, c) for c in children))
+            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth+1) for c in children))
         case Choice(children):
-            return railroad.Choice(0, *(node_to_diagram_element(railroad, c) for c in children))
+            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline, depth+1) for c in children))
         case Optional(child):
-            return railroad.Optional(node_to_diagram_element(railroad, child))
+            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
         case ZeroOrMore(child):
-            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child))
+            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
         case OneOrMore(child):
-            return railroad.OneOrMore(node_to_diagram_element(railroad, child))
+            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1))
         case Gather(sep, item):
             return railroad.OneOrMore(
-                node_to_diagram_element(railroad, item),
-                node_to_diagram_element(railroad, sep),
+                node_to_diagram_element(railroad, item, rules, rules_to_inline, depth+1),
+                node_to_diagram_element(railroad, sep, rules, rules_to_inline, depth+1),
             )
         case PositiveLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1),
                 "lookahead",
             )
         case NegativeLookahead(child):
             return railroad.Group(
-                node_to_diagram_element(railroad, child),
+                node_to_diagram_element(railroad, child, rules, rules_to_inline, depth+1),
                 "negative lookahead",
             )
         case Nonterminal(name):
+            if name in rules_to_inline and depth < 5:
+                inlined_diagram = node_to_diagram_element(railroad, rules[name],
+                                                          rules, rules_to_inline, depth+1)
+                return railroad.Group(inlined_diagram, name)
             return railroad.NonTerminal(name)
         case SymbolicToken(name):
             return railroad.Terminal(name)
@@ -1167,14 +1171,35 @@ def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names):
     except FileExistsError:
         for old_path in path.glob('*.svg'):
             old_path.unlink()
-    for name, node in rules.items():
-        if name.startswith("invalid_"):
-            continue
-        dest_path = path / f'{name}.svg'
-        print(f'Generating: {dest_path}')
-        d = railroad.Diagram(node_to_diagram_element(railroad, node), type='simple')
-        with open(dest_path, 'w') as file:
-            d.writeStandalone(file.write)
+    for group in toplevel_groups:
+        rules_to_generate = get_rules_to_document(rules, group, toplevel_rule_names)
+
+        # Count up all the references to rules we're documenting.
+        reference_counts = collections.Counter()
+        for name in rules_to_generate:
+            node = rules[name]
+            for descendant in generate_all_descendants(node, filter=Nonterminal):
+                nonterminal_name = descendant.value
+                if nonterminal_name in rules_to_generate:
+                    reference_counts[nonterminal_name] += 1
+
+        rules_to_inline = [
+            name for name, count in reference_counts.items() if count == 1
+        ]
+
+        for name in rules_to_generate:
+            node = rules[name]
+            if name.startswith("invalid_"):
+                continue
+            dest_path = path / f'{name}.svg'
+            print(f'Generating: {dest_path}')
+            print(reference_counts)
+            d = railroad.Diagram(
+                node_to_diagram_element(railroad, node, rules, rules_to_inline, 0),
+                type='simple',
+            )
+            with open(dest_path, 'w') as file:
+                d.writeStandalone(file.write)
 
 
 if __name__ == "__main__":

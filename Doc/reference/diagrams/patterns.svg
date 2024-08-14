@@ -1,10 +1,14 @@
-<svg class="railroad-diagram" height="92" viewBox="0 0 318.5 92" width="318.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="154" viewBox="0 0 318.5 154" width="318.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
 <path d="M20 21v20m10 -20v20m-10 -10h20" /></g><g>
 <path d="M40 31h0.0" /><path d="M278.5 31h0.0" /><path d="M40.0 31h20" /><g class="non-terminal ">
-<path d="M60.0 31h0.0" /><path d="M258.5 31h0.0" /><rect height="22" width="198.5" x="60" y="20"></rect><text x="159.25" y="35">open_sequence_pattern</text></g><path d="M258.5 31h20" /><path d="M40.0 31a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
-<path d="M60.0 61h59.5" /><path d="M199.0 61h59.5" /><rect height="22" width="79.5" x="119.5" y="50"></rect><text x="159.25" y="65">pattern</text></g><path d="M258.5 61a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><path d="M 278.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M60.0 31h0.0" /><path d="M258.5 31h0.0" /><rect height="22" width="198.5" x="60" y="20"></rect><text x="159.25" y="35">open_sequence_pattern</text></g><path d="M258.5 31h20" /><path d="M40.0 31a10 10 0 0 1 10 10v34a10 10 0 0 0 10 10" /><g>
+<path d="M60.0 85h26.75" /><path d="M231.75 85h26.75" /><rect class="group-box" height="68" rx="10" ry="10" width="145" x="86.75" y="66"></rect><g>
+<path d="M86.75 85h0.0" /><path d="M231.75 85h0.0" /><path d="M86.75 85h20" /><g class="non-terminal ">
+<path d="M106.75 85h0.0" /><path d="M211.75 85h0.0" /><rect height="22" width="105" x="106.75" y="74"></rect><text x="159.25" y="89">as_pattern</text></g><path d="M211.75 85h20" /><path d="M86.75 85a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M106.75 115h0.0" /><path d="M211.75 115h0.0" /><rect height="22" width="105" x="106.75" y="104"></rect><text x="159.25" y="119">or_pattern</text></g><path d="M211.75 115a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><g class="non-terminal ">
+<path d="M86.75 58h0.0" /><path d="M145.75 58h0.0" /><text class="comment" x="116.25" y="63">pattern</text></g></g><path d="M258.5 85a10 10 0 0 0 10 -10v-34a10 10 0 0 1 10 -10" /></g><path d="M 278.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}

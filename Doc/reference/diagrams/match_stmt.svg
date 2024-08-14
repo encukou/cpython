@@ -1,17 +1,35 @@
-<svg class="railroad-diagram" height="71" viewBox="0 0 813.5 71" width="813.5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg class="railroad-diagram" height="133" viewBox="0 0 1597.0 133" width="1597.0" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g transform="translate(.5 .5)">
 <g>
-<path d="M20 21v20m10 -20v20m-10 -10h20" /></g><path d="M40 31h10" /><g>
-<path d="M50 31h0.0" /><path d="M763.5 31h0.0" /><g class="terminal ">
-<path d="M50.0 31h0.0" /><path d="M129.5 31h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="50" y="20"></rect><text x="89.75" y="35">&quot;match&quot;</text></g><path d="M129.5 31h10" /><path d="M139.5 31h10" /><g class="non-terminal ">
-<path d="M149.5 31h0.0" /><path d="M271.5 31h0.0" /><rect height="22" width="122" x="149.5" y="20"></rect><text x="210.5" y="35">subject_expr</text></g><path d="M271.5 31h10" /><path d="M281.5 31h10" /><g class="terminal ">
-<path d="M291.5 31h0.0" /><path d="M337.0 31h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="291.5" y="20"></rect><text x="314.25" y="35">&apos;:&apos;</text></g><path d="M337.0 31h10" /><path d="M347.0 31h10" /><g class="terminal ">
-<path d="M357.0 31h0.0" /><path d="M436.5 31h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="357" y="20"></rect><text x="396.75" y="35">NEWLINE</text></g><path d="M436.5 31h10" /><path d="M446.5 31h10" /><g class="terminal ">
-<path d="M456.5 31h0.0" /><path d="M527.5 31h0.0" /><rect height="22" rx="10" ry="10" width="71" x="456.5" y="20"></rect><text x="492" y="35">INDENT</text></g><path d="M527.5 31h10" /><path d="M537.5 31h10" /><g>
-<path d="M547.5 31h0.0" /><path d="M672.5 31h0.0" /><path d="M547.5 31h10" /><g class="non-terminal ">
-<path d="M557.5 31h0.0" /><path d="M662.5 31h0.0" /><rect height="22" width="105" x="557.5" y="20"></rect><text x="610" y="35">case_block</text></g><path d="M662.5 31h10" /><path d="M557.5 31a10 10 0 0 0 -10 10v0a10 10 0 0 0 10 10" /><g>
-<path d="M557.5 51h105.0" /></g><path d="M662.5 51a10 10 0 0 0 10 -10v0a10 10 0 0 0 -10 -10" /></g><path d="M672.5 31h10" /><path d="M682.5 31h10" /><g class="terminal ">
-<path d="M692.5 31h0.0" /><path d="M763.5 31h0.0" /><rect height="22" rx="10" ry="10" width="71" x="692.5" y="20"></rect><text x="728" y="35">DEDENT</text></g></g><path d="M763.5 31h10" /><path d="M 773.5 31 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
+<path d="M20 54v20m10 -20v20m-10 -10h20" /></g><path d="M40 64h10" /><g>
+<path d="M50 64h0.0" /><path d="M1547.0 64h0.0" /><g class="terminal ">
+<path d="M50.0 64h0.0" /><path d="M129.5 64h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="50" y="53"></rect><text x="89.75" y="68">&quot;match&quot;</text></g><path d="M129.5 64h10" /><path d="M139.5 64h10" /><g>
+<path d="M149.5 64h0.0" /><path d="M710.5 64h0.0" /><rect class="group-box" height="77" rx="10" ry="10" width="561" x="149.5" y="36"></rect><g>
+<path d="M149.5 64h0.0" /><path d="M710.5 64h0.0" /><path d="M149.5 64h20" /><g>
+<path d="M169.5 64h0.0" /><path d="M690.5 64h0.0" /><g class="non-terminal ">
+<path d="M169.5 64h0.0" /><path d="M368.0 64h0.0" /><rect height="22" width="198.5" x="169.5" y="53"></rect><text x="268.75" y="68">star_named_expression</text></g><path d="M368.0 64h10" /><path d="M378.0 64h10" /><g class="terminal ">
+<path d="M388.0 64h0.0" /><path d="M433.5 64h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="388" y="53"></rect><text x="410.75" y="68">&apos;,&apos;</text></g><path d="M433.5 64h10" /><g>
+<path d="M443.5 64h0.0" /><path d="M690.5 64h0.0" /><path d="M443.5 64a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M463.5 44h207.0" /></g><path d="M670.5 44a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M443.5 64h20" /><g class="non-terminal ">
+<path d="M463.5 64h0.0" /><path d="M670.5 64h0.0" /><rect height="22" width="207" x="463.5" y="53"></rect><text x="567" y="68">star_named_expressions</text></g><path d="M670.5 64h20" /></g></g><path d="M690.5 64h20" /><path d="M149.5 64a10 10 0 0 1 10 10v10a10 10 0 0 0 10 10" /><g class="non-terminal ">
+<path d="M169.5 94h182.5" /><path d="M508.0 94h182.5" /><rect height="22" width="156" x="352" y="83"></rect><text x="430" y="98">named_expression</text></g><path d="M690.5 94a10 10 0 0 0 10 -10v-10a10 10 0 0 1 10 -10" /></g><g class="non-terminal ">
+<path d="M149.5 28h0.0" /><path d="M243.5 28h0.0" /><text class="comment" x="196.5" y="33">subject_expr</text></g></g><path d="M710.5 64h10" /><path d="M720.5 64h10" /><g class="terminal ">
+<path d="M730.5 64h0.0" /><path d="M776.0 64h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="730.5" y="53"></rect><text x="753.25" y="68">&apos;:&apos;</text></g><path d="M776.0 64h10" /><path d="M786.0 64h10" /><g class="terminal ">
+<path d="M796.0 64h0.0" /><path d="M875.5 64h0.0" /><rect height="22" rx="10" ry="10" width="79.5" x="796" y="53"></rect><text x="835.75" y="68">NEWLINE</text></g><path d="M875.5 64h10" /><path d="M885.5 64h10" /><g class="terminal ">
+<path d="M895.5 64h0.0" /><path d="M966.5 64h0.0" /><rect height="22" rx="10" ry="10" width="71" x="895.5" y="53"></rect><text x="931" y="68">INDENT</text></g><path d="M966.5 64h10" /><path d="M976.5 64h10" /><g>
+<path d="M986.5 64h0.0" /><path d="M1456.0 64h0.0" /><path d="M986.5 64h10" /><g>
+<path d="M996.5 64h0.0" /><path d="M1446.0 64h0.0" /><rect class="group-box" height="47" rx="10" ry="10" width="449.5" x="996.5" y="36"></rect><g>
+<path d="M996.5 64h10.0" /><path d="M1436.0 64h10.0" /><g class="terminal ">
+<path d="M1006.5 64h0.0" /><path d="M1077.5 64h0.0" /><rect height="22" rx="10" ry="10" width="71" x="1006.5" y="53"></rect><text x="1042" y="68">&quot;case&quot;</text></g><path d="M1077.5 64h10" /><path d="M1087.5 64h10" /><g class="non-terminal ">
+<path d="M1097.5 64h0.0" /><path d="M1185.5 64h0.0" /><rect height="22" width="88" x="1097.5" y="53"></rect><text x="1141.5" y="68">patterns</text></g><path d="M1185.5 64h10" /><g>
+<path d="M1195.5 64h0.0" /><path d="M1298.0 64h0.0" /><path d="M1195.5 64a10 10 0 0 0 10 -10v0a10 10 0 0 1 10 -10" /><g>
+<path d="M1215.5 44h62.5" /></g><path d="M1278.0 44a10 10 0 0 1 10 10v0a10 10 0 0 0 10 10" /><path d="M1195.5 64h20" /><g class="non-terminal ">
+<path d="M1215.5 64h0.0" /><path d="M1278.0 64h0.0" /><rect height="22" width="62.5" x="1215.5" y="53"></rect><text x="1246.75" y="68">guard</text></g><path d="M1278.0 64h20" /></g><path d="M1298.0 64h10" /><g class="terminal ">
+<path d="M1308.0 64h0.0" /><path d="M1353.5 64h0.0" /><rect height="22" rx="10" ry="10" width="45.5" x="1308" y="53"></rect><text x="1330.75" y="68">&apos;:&apos;</text></g><path d="M1353.5 64h10" /><path d="M1363.5 64h10" /><g class="non-terminal ">
+<path d="M1373.5 64h0.0" /><path d="M1436.0 64h0.0" /><rect height="22" width="62.5" x="1373.5" y="53"></rect><text x="1404.75" y="68">block</text></g></g><g class="non-terminal ">
+<path d="M996.5 28h0.0" /><path d="M1076.5 28h0.0" /><text class="comment" x="1036.5" y="33">case_block</text></g></g><path d="M1446.0 64h10" /><path d="M996.5 64a10 10 0 0 0 -10 10v7a10 10 0 0 0 10 10" /><g>
+<path d="M996.5 91h449.5" /></g><path d="M1446.0 91a10 10 0 0 0 10 -10v-7a10 10 0 0 0 -10 -10" /></g><path d="M1456.0 64h10" /><path d="M1466.0 64h10" /><g class="terminal ">
+<path d="M1476.0 64h0.0" /><path d="M1547.0 64h0.0" /><rect height="22" rx="10" ry="10" width="71" x="1476" y="53"></rect><text x="1511.5" y="68">DEDENT</text></g></g><path d="M1547.0 64h10" /><path d="M 1557.0 64 h 20 m -10 -10 v 20 m 10 -20 v 20"></path></g><style>/* <![CDATA[ */
 	svg.railroad-diagram {
 		background-color:hsl(30,20%,95%);
 	}
