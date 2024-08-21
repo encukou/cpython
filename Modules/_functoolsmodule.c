@@ -1268,8 +1268,9 @@ lru_cache_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 }
 
 static lru_list_elem *
-lru_cache_unlink_list(lru_cache_object *self)
+lru_cache_unlink_list(PyObject *obj)
 {
+    lru_cache_object *self = (lru_cache_object *)obj;
     lru_list_elem *root = &self->root;
     lru_list_elem *link = root->next;
     if (link == root)
@@ -1289,9 +1290,10 @@ lru_cache_clear_list(lru_list_elem *link)
 }
 
 static int
-lru_cache_tp_clear(lru_cache_object *self)
+lru_cache_tp_clear(PyObject *obj)
 {
-    lru_list_elem *list = lru_cache_unlink_list(self);
+    lru_cache_object *self = (lru_cache_object *)obj;
+    lru_list_elem *list = lru_cache_unlink_list(obj);
     Py_CLEAR(self->cache);
     Py_CLEAR(self->func);
     Py_CLEAR(self->kwd_mark);
@@ -1303,8 +1305,9 @@ lru_cache_tp_clear(lru_cache_object *self)
 }
 
 static void
-lru_cache_dealloc(lru_cache_object *obj)
+lru_cache_dealloc(PyObject *self)
 {
+    lru_cache_object *obj = (lru_cache_object *)self;
     PyTypeObject *tp = Py_TYPE(obj);
     /* bpo-31095: UnTrack is needed before calling any callbacks */
     PyObject_GC_UnTrack(obj);
@@ -1312,14 +1315,15 @@ lru_cache_dealloc(lru_cache_object *obj)
         PyObject_ClearWeakRefs((PyObject*)obj);
     }
 
-    (void)lru_cache_tp_clear(obj);
+    (void)lru_cache_tp_clear(self);
     tp->tp_free(obj);
     Py_DECREF(tp);
 }
 
 static PyObject *
-lru_cache_call(lru_cache_object *self, PyObject *args, PyObject *kwds)
+lru_cache_call(PyObject *obj, PyObject *args, PyObject *kwds)
 {
+    lru_cache_object *self = (lru_cache_object *)obj;
     PyObject *result;
     Py_BEGIN_CRITICAL_SECTION(self);
     result = self->wrapper(self, args, kwds);

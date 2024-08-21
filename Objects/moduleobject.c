@@ -1068,8 +1068,9 @@ _Py_module_getattro(PyModuleObject *m, PyObject *name)
 }
 
 static int
-module_traverse(PyModuleObject *m, visitproc visit, void *arg)
+module_traverse(PyObject *_m, visitproc visit, void *arg)
 {
+    PyModuleObject *m = (PyModuleObject *)_m;
     /* bpo-39824: Don't call m_traverse() if m_size > 0 and md_state=NULL */
     if (m->md_def && m->md_def->m_traverse
         && (m->md_def->m_size <= 0 || m->md_state != NULL))
@@ -1083,8 +1084,9 @@ module_traverse(PyModuleObject *m, visitproc visit, void *arg)
 }
 
 static int
-module_clear(PyModuleObject *m)
+module_clear(PyObject *_m)
 {
+    PyModuleObject *m = (PyModuleObject *)_m;
     /* bpo-39824: Don't call m_clear() if m_size > 0 and md_state=NULL */
     if (m->md_def && m->md_def->m_clear
         && (m->md_def->m_size <= 0 || m->md_state != NULL))
@@ -1310,8 +1312,8 @@ PyTypeObject PyModule_Type = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC |
         Py_TPFLAGS_BASETYPE,                    /* tp_flags */
     module___init____doc__,                     /* tp_doc */
-    (traverseproc)module_traverse,              /* tp_traverse */
-    (inquiry)module_clear,                      /* tp_clear */
+    module_traverse,                            /* tp_traverse */
+    module_clear,                               /* tp_clear */
     0,                                          /* tp_richcompare */
     offsetof(PyModuleObject, md_weaklist),      /* tp_weaklistoffset */
     0,                                          /* tp_iter */

@@ -156,8 +156,9 @@ PyCMethod_GetClass(PyObject *op)
 /* Methods (the standard built-in methods, that is) */
 
 static void
-meth_dealloc(PyCFunctionObject *m)
+meth_dealloc(PyObject *_m)
 {
+    PyCFunctionObject *m = (PyCFunctionObject *)_m;
     // The Py_TRASHCAN mechanism requires that we be able to
     // call PyObject_GC_UnTrack twice on an object.
     PyObject_GC_UnTrack(m);
@@ -334,7 +335,7 @@ PyTypeObject PyCFunction_Type = {
     "builtin_function_or_method",
     sizeof(PyCFunctionObject),
     0,
-    (destructor)meth_dealloc,                   /* tp_dealloc */
+    meth_dealloc,                               /* tp_dealloc */
     offsetof(PyCFunctionObject, vectorcall),    /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */

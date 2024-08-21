@@ -2139,8 +2139,9 @@ error:
 }
 
 static PyObject *
-generic_init_subclass(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
+generic_init_subclass(PyObject *obj, PyObject *args, PyObject *kwargs)
 {
+    PyTypeObject *cls = (PyTypeObject *)obj;
     return call_typing_args_kwargs("_generic_init_subclass", cls, args, kwargs);
 }
 

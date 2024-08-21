@@ -181,8 +181,9 @@ PyTuple_Pack(Py_ssize_t n, ...)
 /* Methods */
 
 static void
-tupledealloc(PyTupleObject *op)
+tupledealloc(PyObject *_op)
 {
+    PyTupleObject *op = (PyTupleObject *)_op;
     if (Py_SIZE(op) == 0) {
         /* The empty tuple is statically allocated. */
         if (op == &_Py_SINGLETON(tuple_empty)) {
@@ -781,8 +782,9 @@ static PySequenceMethods tuple_as_sequence = {
 };
 
 static PyObject*
-tuplesubscript(PyTupleObject* self, PyObject* item)
+tuplesubscript(PyObject* obj, PyObject* item)
 {
+    PyTupleObject *self = (PyTupleObject *)obj;
     if (_PyIndex_Check(item)) {
         Py_ssize_t i = PyNumber_AsSsize_t(item, PyExc_IndexError);
         if (i == -1 && PyErr_Occurred())
@@ -867,7 +869,7 @@ PyTypeObject PyTuple_Type = {
     "tuple",
     sizeof(PyTupleObject) - sizeof(PyObject *),
     sizeof(PyObject *),
-    (destructor)tupledealloc,                   /* tp_dealloc */
+    tupledealloc,                               /* tp_dealloc */
     0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
@@ -984,11 +986,12 @@ _PyTuple_Resize(PyObject **pv, Py_ssize_t newsize)
 
 
 static void
-tupleiter_dealloc(_PyTupleIterObject *it)
+tupleiter_dealloc(PyObject *_it)
 {
-    _PyObject_GC_UNTRACK(it);
+    _PyTupleIterObject *it = (_PyTupleIterObject *)_it;
+    _PyObject_GC_UNTRACK(_it);
     Py_XDECREF(it->it_seq);
-    PyObject_GC_Del(it);
+    PyObject_GC_Del(_it);
 }
 
 static int
@@ -1080,7 +1083,7 @@ PyTypeObject PyTupleIter_Type = {
     sizeof(_PyTupleIterObject),                    /* tp_basicsize */
     0,                                          /* tp_itemsize */
     /* methods */
-    (destructor)tupleiter_dealloc,              /* tp_dealloc */
+    tupleiter_dealloc,                          /* tp_dealloc */
     0,                                          /* tp_vectorcall_offset */
     0,                                          /* tp_getattr */
     0,                                          /* tp_setattr */
