@@ -169,8 +169,7 @@ def main():
         args.debug,
     )
 
-    rule_names_to_inline = get_rule_names_to_inline(
-        grammar, group_rule_names)
+    rule_names_to_inline = grammar.get_rule_names_to_inline()
 
     # Update the files
 
@@ -190,11 +189,11 @@ def main():
                     new_lines.append(line)
                 if match := HEADER_RE.fullmatch(line):
                     ignoring = True
+                    first_rule_name = match[1].split(maxsplit=1)[0]
+                    group = grammar.groups[first_rule_name]
                     for line in generate_rule_lines(
-                        grammar,
-                        match[1].split(),
+                        group,
                         rule_names_to_inline,
-                        debug=args.debug,
                     ):
                         if line.strip():
                             new_lines.append(f'   {line}\n')
@@ -216,8 +215,7 @@ def main():
             print(f'Unchanged: {path}')
 
     if args.image_dir:
-        generate_diagrams(grammar, args.image_dir, group_rule_names,
-                          rule_names_to_inline)
+        generate_diagrams(grammar, args.image_dir, rule_names_to_inline)
 
 
 class Grammar:
@@ -251,10 +249,13 @@ class Grammar:
 
     def __init__(self, rules, group_rule_names, debug=False):
         self.rules = rules
+        self.groups = {}
 
         toplevel_rule_names = set()
-        for group in group_rule_names:
-            toplevel_rule_names.update(group)
+        for names in group_rule_names:
+            toplevel_rule_names.update(names)
+            group = RuleGroup(self, names)
+            self.groups[names[0]] = group
 
         self.toplevel_rule_names = frozenset(toplevel_rule_names)
         self.debug = debug
@@ -270,6 +271,24 @@ class Grammar:
         while self.rules != old_rules:
             old_rules = self.rules
             self.rules = simplify_ruleset(self.rules, self.toplevel_rule_names)
+
+    def get_rule_names_to_inline(self):
+        result = set()
+        for group in self.groups.values():
+            rules_to_generate = get_rules_to_document(self, group)
+
+            reference_counts = collections.Counter()
+            for name in rules_to_generate:
+                node = self.rules[name]
+                for descendant in generate_all_descendants(node, filter=Nonterminal):
+                    nonterminal_name = descendant.value
+                    if nonterminal_name in rules_to_generate and nonterminal_name != name:
+                        reference_counts[nonterminal_name] += 1
+
+            result.update(
+                name for name, count in reference_counts.items() if count == 1
+            )
+        return result
 
 
 class RuleGroup:
@@ -1044,7 +1063,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
 
     return result
 
-def get_rules_to_document(grammar, rule_names):
+def get_rules_to_document(grammar, group):
     """Figure out all rules to include in a grammar snippet.
 
     This includes the ones we were asked to document (`rule_names`),
@@ -1052,7 +1071,7 @@ def get_rules_to_document(grammar, rule_names):
     be documented elsewhere (those in `toplevel_rule_names`).
     """
     toplevel_rule_names = grammar.toplevel_rule_names | FUTURE_TOPLEVEL_RULES
-    rule_names_to_consider = list(rule_names)
+    rule_names_to_consider = list(group.initial_rule_names)
     rule_names_to_generate = []
     while rule_names_to_consider:
         rule_name = rule_names_to_consider.pop(0)
@@ -1070,8 +1089,9 @@ def get_rules_to_document(grammar, rule_names):
                 rule_names_to_consider.append(rule_name)
     return rule_names_to_generate
 
-def generate_rule_lines(grammar, rule_names, rule_names_to_inline, debug):
-    rule_names_to_generate = get_rules_to_document(grammar, rule_names)
+def generate_rule_lines(group, rule_names_to_inline):
+    grammar = group.grammar
+    rule_names_to_generate = get_rules_to_document(grammar, group)
 
     rule_names_to_inline = set(rule_names_to_inline)
     diagram_names = [
@@ -1090,7 +1110,7 @@ def generate_rule_lines(grammar, rule_names, rule_names_to_inline, debug):
     # Yield all the lines
     for name in rule_names_to_generate:
         node = grammar.rules[name]
-        if debug:
+        if grammar.debug:
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
@@ -1107,7 +1127,7 @@ def generate_rule_lines(grammar, rule_names, rule_names_to_inline, debug):
         #         yield f'  : | {alt.format()}'
         # else:
         #     yield f'{name}: {node.format()}'
-        if debug:
+        if grammar.debug:
             yield from node.dump_tree()
 
 def simplify_node(rules, node, path):
@@ -1218,27 +1238,7 @@ def node_to_diagram_element(railroad, node, rules, rules_to_inline):
     return recurse(node, rules_to_inline)
 
 
-def get_rule_names_to_inline(grammar, toplevel_groups):
-    result = set()
-    for group in toplevel_groups:
-        rules_to_generate = get_rules_to_document(grammar, group)
-
-        reference_counts = collections.Counter()
-        for name in rules_to_generate:
-            node = grammar.rules[name]
-            for descendant in generate_all_descendants(node, filter=Nonterminal):
-                nonterminal_name = descendant.value
-                if nonterminal_name in rules_to_generate and nonterminal_name != name:
-                    reference_counts[nonterminal_name] += 1
-
-        result.update(
-            name for name, count in reference_counts.items() if count == 1
-        )
-    return result
-
-
-def generate_diagrams(grammar, image_dir, toplevel_groups, rule_names_to_inline):
-    print(toplevel_groups)
+def generate_diagrams(grammar, image_dir, rule_names_to_inline):
     import railroad
 
     path = Path(image_dir)
@@ -1247,7 +1247,7 @@ def generate_diagrams(grammar, image_dir, toplevel_groups, rule_names_to_inline)
     except FileExistsError:
         for old_path in path.glob('*.svg'):
             old_path.unlink()
-    for group in toplevel_groups:
+    for group in grammar.groups.values():
         rules_to_generate = get_rules_to_document(grammar, group)
         rules_to_inline = set(rule_names_to_inline).intersection(rules_to_generate)
 
