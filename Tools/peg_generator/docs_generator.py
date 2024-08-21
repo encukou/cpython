@@ -236,7 +236,6 @@ class Grammar:
             snippet_rule_names,
             debug=debug,
         )
-        self.simplify()
 
         if self.debug:
             for name, rule in self.rules.items():
@@ -249,16 +248,19 @@ class Grammar:
 
     def __init__(self, rules, snippet_rule_names, debug=False):
         self.rules = rules
-        self.snippets = {}
+        self.debug = debug
 
         toplevel_rule_names = set()
         for names in snippet_rule_names:
             toplevel_rule_names.update(names)
+        self.toplevel_rule_names = frozenset(toplevel_rule_names)
+
+        self.simplify()
+
+        self.snippets = {}
+        for names in snippet_rule_names:
             snippet = Snippet(self, names)
             self.snippets[names[0]] = snippet
-
-        self.toplevel_rule_names = frozenset(toplevel_rule_names)
-        self.debug = debug
 
     def simplify(self):
         for name, node in self.rules.items():
@@ -275,14 +277,11 @@ class Grammar:
     def get_rule_names_to_inline(self):
         result = set()
         for snippet in self.snippets.values():
-            rules_to_generate = get_rules_to_document(self, snippet)
-
             reference_counts = collections.Counter()
-            for name in rules_to_generate:
-                node = self.rules[name]
+            for name, node in snippet.documented_rules.items():
                 for descendant in generate_all_descendants(node, filter=Nonterminal):
                     nonterminal_name = descendant.value
-                    if nonterminal_name in rules_to_generate and nonterminal_name != name:
+                    if nonterminal_name in snippet.documented_rules and nonterminal_name != name:
                         reference_counts[nonterminal_name] += 1
 
             result.update(
@@ -297,6 +296,38 @@ class Snippet:
     def __init__(self, grammar, initial_rule_names):
         self.grammar = grammar
         self.initial_rule_names = initial_rule_names
+
+        self.documented_rules = {
+            name: grammar.rules[name]
+            for name in self._get_documented_rule_names()
+        }
+
+    def _get_documented_rule_names(self):
+        """Figure out all rules to include in this grammar snippet.
+
+        This includes the ones we were asked to document (`initial_rule_names`),
+        and also rules referenced from them (recursively), except ones that will
+        be documented elsewhere (those in `self.toplevel_rule_names`).
+        """
+        grammar = self.grammar
+        toplevel_rule_names = grammar.toplevel_rule_names | FUTURE_TOPLEVEL_RULES
+        rule_names_to_consider = list(self.initial_rule_names)
+        rule_names_to_generate = []
+        while rule_names_to_consider:
+            rule_name = rule_names_to_consider.pop(0)
+            if rule_name in rule_names_to_generate:
+                continue
+            rule_names_to_generate.append(rule_name)
+
+            node = grammar.rules[rule_name]
+            for descendant in generate_all_descendants(node, filter=Nonterminal):
+                rule_name = descendant.value
+                if (
+                    rule_name in grammar.rules
+                    and rule_name not in toplevel_rule_names
+                ):
+                    rule_names_to_consider.append(rule_name)
+        return rule_names_to_generate
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -1065,39 +1096,14 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
 
     return result
 
-def get_rules_to_document(grammar, snippet):
-    """Figure out all rules to include in a grammar snippet.
-
-    This includes the ones we were asked to document (`rule_names`),
-    and also rules referenced from them (recursively), except ones that will
-    be documented elsewhere (those in `toplevel_rule_names`).
-    """
-    toplevel_rule_names = grammar.toplevel_rule_names | FUTURE_TOPLEVEL_RULES
-    rule_names_to_consider = list(snippet.initial_rule_names)
-    rule_names_to_generate = []
-    while rule_names_to_consider:
-        rule_name = rule_names_to_consider.pop(0)
-        if rule_name in rule_names_to_generate:
-            continue
-        rule_names_to_generate.append(rule_name)
-
-        node = grammar.rules[rule_name]
-        for descendant in generate_all_descendants(node, filter=Nonterminal):
-            rule_name = descendant.value
-            if (
-                rule_name in grammar.rules
-                and rule_name not in toplevel_rule_names
-            ):
-                rule_names_to_consider.append(rule_name)
-    return rule_names_to_generate
 
 def generate_rule_lines(snippet, rule_names_to_inline):
     grammar = snippet.grammar
-    rule_names_to_generate = get_rules_to_document(grammar, snippet)
+    rule_names_to_generate = snippet.documented_rules
 
     rule_names_to_inline = set(rule_names_to_inline)
     diagram_names = [
-        name for name in rule_names_to_generate
+        name for name in snippet.documented_rules
         if name not in rule_names_to_inline
     ]
 
@@ -1106,12 +1112,11 @@ def generate_rule_lines(snippet, rule_names_to_inline):
     yield f':diagrams: {' '.join(diagram_names)}'
     yield ''
 
-    longest_name = max(rule_names_to_generate, key=len)
+    longest_name = max(snippet.documented_rules, key=len)
     available_space = 80 - len(longest_name) - len(' ::=  ')
 
     # Yield all the lines
-    for name in rule_names_to_generate:
-        node = grammar.rules[name]
+    for name, node in snippet.documented_rules.items():
         if grammar.debug:
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
@@ -1250,11 +1255,9 @@ def generate_diagrams(grammar, image_dir, rule_names_to_inline):
         for old_path in path.glob('*.svg'):
             old_path.unlink()
     for snippet in grammar.snippets.values():
-        rules_to_generate = get_rules_to_document(grammar, snippet)
-        rules_to_inline = set(rule_names_to_inline).intersection(rules_to_generate)
+        rules_to_inline = set(rule_names_to_inline).intersection(snippet.documented_rules)
 
-        for name in rules_to_generate:
-            node = grammar.rules[name]
+        for name, node in snippet.documented_rules.items():
             if name.startswith("invalid_"):
                 continue
             dest_path = path / f'{name}.svg'
