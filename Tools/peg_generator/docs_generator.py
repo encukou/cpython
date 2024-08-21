@@ -137,7 +137,7 @@ def parse_docs(docs_dir):
     toplevel_rule_locations = {}
 
     # List of tuples of top-level rules that appear together
-    group_rule_names = []
+    snippet_rule_names = []
 
     for path in Path(docs_dir).glob('**/*.rst'):
         with path.open(encoding='utf-8') as file:
@@ -145,7 +145,7 @@ def parse_docs(docs_dir):
                 if match := HEADER_RE.fullmatch(line):
                     files_with_grammar.add(path)
                     names = tuple(match[1].split())
-                    group_rule_names.append(names)
+                    snippet_rule_names.append(names)
                     for name in names:
                         if name in toplevel_rule_locations:
                             raise ValueError(
@@ -155,17 +155,17 @@ def parse_docs(docs_dir):
                         toplevel_rule_locations[name] = path
     print(f'{toplevel_rule_locations=}')
 
-    return files_with_grammar, group_rule_names
+    return files_with_grammar, snippet_rule_names
 
 
 def main():
     args = argparser.parse_args()
 
-    files_with_grammar, group_rule_names = parse_docs(args.docs_dir)
+    files_with_grammar, snippet_rule_names = parse_docs(args.docs_dir)
 
     grammar = Grammar.from_pegen_file(
         args.grammar_filename,
-        group_rule_names,
+        snippet_rule_names,
         args.debug,
     )
 
@@ -190,9 +190,9 @@ def main():
                 if match := HEADER_RE.fullmatch(line):
                     ignoring = True
                     first_rule_name = match[1].split(maxsplit=1)[0]
-                    group = grammar.groups[first_rule_name]
+                    snippet = grammar.snippets[first_rule_name]
                     for line in generate_rule_lines(
-                        group,
+                        snippet,
                         rule_names_to_inline,
                     ):
                         if line.strip():
@@ -222,7 +222,7 @@ class Grammar:
     """A representation of the complete grammar"""
 
     @classmethod
-    def from_pegen_file(cls, grammar_filename, group_rule_names, debug=False):
+    def from_pegen_file(cls, grammar_filename, snippet_rule_names, debug=False):
         pegen_grammar, parser, tokenizer = build_parser(grammar_filename)
         pegen_rules = dict(pegen_grammar.rules)
 
@@ -233,7 +233,7 @@ class Grammar:
 
         self = cls(
             rules,
-            group_rule_names,
+            snippet_rule_names,
             debug=debug,
         )
         self.simplify()
@@ -247,15 +247,15 @@ class Grammar:
 
         return self
 
-    def __init__(self, rules, group_rule_names, debug=False):
+    def __init__(self, rules, snippet_rule_names, debug=False):
         self.rules = rules
-        self.groups = {}
+        self.snippets = {}
 
         toplevel_rule_names = set()
-        for names in group_rule_names:
+        for names in snippet_rule_names:
             toplevel_rule_names.update(names)
-            group = RuleGroup(self, names)
-            self.groups[names[0]] = group
+            snippet = Snippet(self, names)
+            self.snippets[names[0]] = snippet
 
         self.toplevel_rule_names = frozenset(toplevel_rule_names)
         self.debug = debug
@@ -274,8 +274,8 @@ class Grammar:
 
     def get_rule_names_to_inline(self):
         result = set()
-        for group in self.groups.values():
-            rules_to_generate = get_rules_to_document(self, group)
+        for snippet in self.snippets.values():
+            rules_to_generate = get_rules_to_document(self, snippet)
 
             reference_counts = collections.Counter()
             for name in rules_to_generate:
@@ -291,7 +291,9 @@ class Grammar:
         return result
 
 
-class RuleGroup:
+class Snippet:
+    """Represents one group of rules in the documentation"""
+
     def __init__(self, grammar, initial_rule_names):
         self.grammar = grammar
         self.initial_rule_names = initial_rule_names
@@ -1063,7 +1065,7 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
 
     return result
 
-def get_rules_to_document(grammar, group):
+def get_rules_to_document(grammar, snippet):
     """Figure out all rules to include in a grammar snippet.
 
     This includes the ones we were asked to document (`rule_names`),
@@ -1071,7 +1073,7 @@ def get_rules_to_document(grammar, group):
     be documented elsewhere (those in `toplevel_rule_names`).
     """
     toplevel_rule_names = grammar.toplevel_rule_names | FUTURE_TOPLEVEL_RULES
-    rule_names_to_consider = list(group.initial_rule_names)
+    rule_names_to_consider = list(snippet.initial_rule_names)
     rule_names_to_generate = []
     while rule_names_to_consider:
         rule_name = rule_names_to_consider.pop(0)
@@ -1089,9 +1091,9 @@ def get_rules_to_document(grammar, group):
                 rule_names_to_consider.append(rule_name)
     return rule_names_to_generate
 
-def generate_rule_lines(group, rule_names_to_inline):
-    grammar = group.grammar
-    rule_names_to_generate = get_rules_to_document(grammar, group)
+def generate_rule_lines(snippet, rule_names_to_inline):
+    grammar = snippet.grammar
+    rule_names_to_generate = get_rules_to_document(grammar, snippet)
 
     rule_names_to_inline = set(rule_names_to_inline)
     diagram_names = [
@@ -1247,8 +1249,8 @@ def generate_diagrams(grammar, image_dir, rule_names_to_inline):
     except FileExistsError:
         for old_path in path.glob('*.svg'):
             old_path.unlink()
-    for group in grammar.groups.values():
-        rules_to_generate = get_rules_to_document(grammar, group)
+    for snippet in grammar.snippets.values():
+        rules_to_generate = get_rules_to_document(grammar, snippet)
         rules_to_inline = set(rule_names_to_inline).intersection(rules_to_generate)
 
         for name in rules_to_generate:
