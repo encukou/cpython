@@ -58,8 +58,6 @@ REPLACED_SYNONYMS = {
 # Do more inlining for the diagrams (we can preserve the names!)
 # - OptionalSequence (for import)
 
-# Make compare_op_bitwise_or_pair not be top-level?
-
 # Add tests
 
 # Think about "OptionalSequence with separators":
@@ -125,56 +123,54 @@ REPLACED_SYNONYMS = {
 # - Aligning
 # - OptionalSequence with separators
 
-
-def main():
-    args = argparser.parse_args()
-
-    # Get all the top-level rule names, and the files we're updating
-    # "top-level" means a rule that the docs explicitly ask for in
-    # a `grammar-snippet` directive. Anything that references a top-level
-    # rule should link to it.
-
+def parse_docs(docs_dir):
+    """
+    Get all the top-level rule names, and the files we're updating
+    "top-level" means a rule that the docs explicitly ask for in
+    a `grammar-snippet` directive. Anything that references a top-level
+    rule should link to it.
+    """
 
     files_with_grammar = set()
 
     # Maps the name of a top-level rule to the path of the file it's in
-    toplevel_rules = {}
+    toplevel_rule_locations = {}
 
     # List of tuples of top-level rules that appear together
-    toplevel_rule_groups = []
+    group_rule_names = []
 
-    for path in Path(args.docs_dir).glob('**/*.rst'):
+    for path in Path(docs_dir).glob('**/*.rst'):
         with path.open(encoding='utf-8') as file:
             for line in file:
                 if match := HEADER_RE.fullmatch(line):
                     files_with_grammar.add(path)
-                    group = tuple(match[1].split())
-                    toplevel_rule_groups.append(group)
-                    for rule in group:
-                        if rule in toplevel_rules:
+                    names = tuple(match[1].split())
+                    group_rule_names.append(names)
+                    for name in names:
+                        if name in toplevel_rule_locations:
                             raise ValueError(
-                                f'rule {rule!r} appears both in '
-                                + f'{toplevel_rules[rule]} and in {path}. It '
+                                f'rule {name!r} appears both in '
+                                + f'{toplevel_rule_locations[name]} and in {path}. It '
                                 + f'should only be documented in one place.')
-                        toplevel_rules[rule] = path
-    print(f'{toplevel_rules=}')
+                        toplevel_rule_locations[name] = path
+    print(f'{toplevel_rule_locations=}')
 
-    # Parse the grammar
+    return files_with_grammar, group_rule_names
 
-    grammar, parser, tokenizer = build_parser(args.grammar_filename)
-    pegen_rules = dict(grammar.rules)
 
-    rules = convert_grammar(pegen_rules, toplevel_rules)
+def main():
+    args = argparser.parse_args()
 
-    if args.debug:
-        for name, rule in rules.items():
-            print()
-            print(name, rule.format())
-            for line in rule.dump_tree():
-                print(line)
+    files_with_grammar, group_rule_names = parse_docs(args.docs_dir)
+
+    grammar = Grammar.from_pegen_file(
+        args.grammar_filename,
+        group_rule_names,
+        args.debug,
+    )
 
     rule_names_to_inline = get_rule_names_to_inline(
-        rules, toplevel_rule_groups, set(toplevel_rules))
+        grammar, group_rule_names)
 
     # Update the files
 
@@ -195,9 +191,8 @@ def main():
                 if match := HEADER_RE.fullmatch(line):
                     ignoring = True
                     for line in generate_rule_lines(
-                        rules,
+                        grammar,
                         match[1].split(),
-                        set(toplevel_rules) | FUTURE_TOPLEVEL_RULES,
                         rule_names_to_inline,
                         debug=args.debug,
                     ):
@@ -221,8 +216,66 @@ def main():
             print(f'Unchanged: {path}')
 
     if args.image_dir:
-        generate_diagrams(rules, args.image_dir, toplevel_rule_groups,
-                          set(toplevel_rules), rule_names_to_inline)
+        generate_diagrams(grammar, args.image_dir, group_rule_names,
+                          rule_names_to_inline)
+
+
+class Grammar:
+    """A representation of the complete grammar"""
+
+    @classmethod
+    def from_pegen_file(cls, grammar_filename, group_rule_names, debug=False):
+        pegen_grammar, parser, tokenizer = build_parser(grammar_filename)
+        pegen_rules = dict(pegen_grammar.rules)
+
+        rules = {}
+        for rule_name, pegen_rule in pegen_rules.items():
+            node = convert_pegen_node(pegen_rule.rhs)
+            rules[rule_name] = node
+
+        self = cls(
+            rules,
+            group_rule_names,
+            debug=debug,
+        )
+        self.simplify()
+
+        if self.debug:
+            for name, rule in self.rules.items():
+                print()
+                print(name, rule.format())
+                for line in rule.dump_tree():
+                    print(line)
+
+        return self
+
+    def __init__(self, rules, group_rule_names, debug=False):
+        self.rules = rules
+
+        toplevel_rule_names = set()
+        for group in group_rule_names:
+            toplevel_rule_names.update(group)
+
+        self.toplevel_rule_names = frozenset(toplevel_rule_names)
+        self.debug = debug
+
+    def simplify(self):
+        for name, node in self.rules.items():
+            path = PathEntry.root_path(name)
+            self.rules[name] = simplify_node(self.rules, node, path)
+
+        # Simplify the rules repeatedly,
+        # until simplification no longer changes them
+        old_rules = None
+        while self.rules != old_rules:
+            old_rules = self.rules
+            self.rules = simplify_ruleset(self.rules, self.toplevel_rule_names)
+
+
+class RuleGroup:
+    def __init__(self, grammar, initial_rule_names):
+        self.grammar = grammar
+        self.initial_rule_names = initial_rule_names
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -826,55 +879,55 @@ class Nonterminal(Leaf):
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
 
-def convert_grammar_node(grammar_node):
+def convert_pegen_node(pegen_node):
     """Convert a pegen grammar node to our AST node"""
-    match grammar_node:
+    match pegen_node:
         case pegen.grammar.Rhs():
-            return Choice([convert_grammar_node(alt) for alt in grammar_node.alts])
+            return Choice([convert_pegen_node(alt) for alt in pegen_node.alts])
         case pegen.grammar.Alt():
-            if 'RAISE_SYNTAX_ERROR' in (grammar_node.action or ''):
+            if 'RAISE_SYNTAX_ERROR' in (pegen_node.action or ''):
                 # This is actually invalid syntax,
                 # see https://github.com/python/cpython/issues/118235
                 return UNREACHABLE
-            return Sequence([convert_grammar_node(item) for item in grammar_node.items])
+            return Sequence([convert_pegen_node(item) for item in pegen_node.items])
         case pegen.grammar.Group():
-            return convert_grammar_node(grammar_node.rhs)
+            return convert_pegen_node(pegen_node.rhs)
         case pegen.grammar.NamedItem():
-            return convert_grammar_node(grammar_node.item)
+            return convert_pegen_node(pegen_node.item)
         case pegen.grammar.Opt():
-            return Optional(convert_grammar_node(grammar_node.node))
+            return Optional(convert_pegen_node(pegen_node.node))
         case pegen.grammar.NameLeaf():
-            if grammar_node.value == 'TYPE_COMMENT':
+            if pegen_node.value == 'TYPE_COMMENT':
                 # The tokenizer doesn't emit TYPE_COMMENT unless it's in
                 # a special mode
                 return UNREACHABLE
-            if grammar_node.value.isupper():
-                return SymbolicToken(grammar_node.value)
-            if grammar_node.value.startswith('invalid'):
+            if pegen_node.value.isupper():
+                return SymbolicToken(pegen_node.value)
+            if pegen_node.value.startswith('invalid'):
                 return UNREACHABLE
             else:
-                return Nonterminal(grammar_node.value)
+                return Nonterminal(pegen_node.value)
         case pegen.grammar.StringLeaf():
-            return LiteralToken(grammar_node.value)
+            return LiteralToken(pegen_node.value)
         case pegen.grammar.Repeat1():
-            return OneOrMore(convert_grammar_node(grammar_node.node))
+            return OneOrMore(convert_pegen_node(pegen_node.node))
         case pegen.grammar.Repeat0():
-            return ZeroOrMore(convert_grammar_node(grammar_node.node))
+            return ZeroOrMore(convert_pegen_node(pegen_node.node))
         case pegen.grammar.PositiveLookahead():
-            return PositiveLookahead(convert_grammar_node(grammar_node.node))
+            return PositiveLookahead(convert_pegen_node(pegen_node.node))
         case pegen.grammar.NegativeLookahead():
-            return NegativeLookahead(convert_grammar_node(grammar_node.node))
+            return NegativeLookahead(convert_pegen_node(pegen_node.node))
         case pegen.grammar.Cut():
             return EMPTY
         case pegen.grammar.Forced():
-            return convert_grammar_node(grammar_node.node)
+            return convert_pegen_node(pegen_node.node)
         case pegen.grammar.Gather():
             return Gather(
-                convert_grammar_node(grammar_node.separator),
-                convert_grammar_node(grammar_node.node),
+                convert_pegen_node(pegen_node.separator),
+                convert_pegen_node(pegen_node.node),
             )
         case _:
-            raise TypeError(f'{grammar_node!r} has unknown type {type(grammar_node).__name__}')
+            raise TypeError(f'{pegen_node!r} has unknown type {type(pegen_node).__name__}')
 
 @dataclass(frozen=True)
 class PathEntry:
@@ -911,24 +964,6 @@ class TokenSet:
 
     def issuperset(self, other):
         return other.issubset(self)
-
-def convert_grammar(pegen_rules, toplevel_rule_names):
-    ruleset = {}
-    for rule_name, pegen_rule in pegen_rules.items():
-        node = convert_grammar_node(pegen_rule.rhs)
-        ruleset[rule_name] = node
-
-    for name, node in ruleset.items():
-        path = PathEntry.root_path(name)
-        ruleset[name] = simplify_node(ruleset, node, path)
-
-    # Simplify ruleset repeatedly, until simplification no longer changes it
-    old_ruleset = None
-    while ruleset != old_ruleset:
-        old_ruleset = ruleset
-        ruleset = simplify_ruleset(ruleset, toplevel_rule_names)
-
-    return ruleset
 
 def get_follow_set_for_path(path, rules):
     if path.node:
@@ -1009,13 +1044,14 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
 
     return result
 
-def get_rules_to_document(rules, rule_names, toplevel_rule_names):
+def get_rules_to_document(grammar, rule_names):
     """Figure out all rules to include in a grammar snippet.
 
     This includes the ones we were asked to document (`rule_names`),
     and also rules referenced from them (recursively), except ones that will
     be documented elsewhere (those in `toplevel_rule_names`).
     """
+    toplevel_rule_names = grammar.toplevel_rule_names | FUTURE_TOPLEVEL_RULES
     rule_names_to_consider = list(rule_names)
     rule_names_to_generate = []
     while rule_names_to_consider:
@@ -1024,18 +1060,18 @@ def get_rules_to_document(rules, rule_names, toplevel_rule_names):
             continue
         rule_names_to_generate.append(rule_name)
 
-        node = rules[rule_name]
+        node = grammar.rules[rule_name]
         for descendant in generate_all_descendants(node, filter=Nonterminal):
             rule_name = descendant.value
             if (
-                rule_name in rules
+                rule_name in grammar.rules
                 and rule_name not in toplevel_rule_names
             ):
                 rule_names_to_consider.append(rule_name)
     return rule_names_to_generate
 
-def generate_rule_lines(rules, rule_names, toplevel_rule_names, rule_names_to_inline, debug):
-    rule_names_to_generate = get_rules_to_document(rules, rule_names, toplevel_rule_names)
+def generate_rule_lines(grammar, rule_names, rule_names_to_inline, debug):
+    rule_names_to_generate = get_rules_to_document(grammar, rule_names)
 
     rule_names_to_inline = set(rule_names_to_inline)
     diagram_names = [
@@ -1053,7 +1089,7 @@ def generate_rule_lines(rules, rule_names, toplevel_rule_names, rule_names_to_in
 
     # Yield all the lines
     for name in rule_names_to_generate:
-        node = rules[name]
+        node = grammar.rules[name]
         if debug:
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
@@ -1140,55 +1176,56 @@ def generate_all_descendants(node, filter=Node):
 
 
 def node_to_diagram_element(railroad, node, rules, rules_to_inline):
-    match node:
-        case Sequence(children):
-            return railroad.Sequence(*(node_to_diagram_element(railroad, c, rules, rules_to_inline) for c in children))
-        case Choice(children):
-            return railroad.Choice(0, *(node_to_diagram_element(railroad, c, rules, rules_to_inline) for c in children))
-        case Optional(child):
-            return railroad.Optional(node_to_diagram_element(railroad, child, rules, rules_to_inline))
-        case ZeroOrMore(child):
-            return railroad.ZeroOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline))
-        case OneOrMore(child):
-            return railroad.OneOrMore(node_to_diagram_element(railroad, child, rules, rules_to_inline))
-        case Gather(sep, item):
-            return railroad.OneOrMore(
-                node_to_diagram_element(railroad, item, rules, rules_to_inline),
-                node_to_diagram_element(railroad, sep, rules, rules_to_inline),
-            )
-        case PositiveLookahead(child):
-            return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline),
-                "lookahead",
-            )
-        case NegativeLookahead(child):
-            return railroad.Group(
-                node_to_diagram_element(railroad, child, rules, rules_to_inline),
-                "negative lookahead",
-            )
-        case Nonterminal(name):
-            if name in rules_to_inline and name in rules_to_inline:
-                rules_to_inline = rules_to_inline - {name}
-                inlined_diagram = node_to_diagram_element(railroad, rules[name],
-                                                          rules, rules_to_inline)
-                return railroad.Group(inlined_diagram, name)
-            return railroad.NonTerminal(name)
-        case SymbolicToken(name):
-            return railroad.Terminal(name)
-        case LiteralToken(name):
-            return railroad.Terminal(name)
-        case _:
-            raise ValueError(node)
+    def recurse(node, rules_to_inline):
+        match node:
+            case Sequence(children):
+                return railroad.Sequence(*(recurse(c, rules_to_inline) for c in children))
+            case Choice(children):
+                return railroad.Choice(0, *(recurse(c, rules_to_inline) for c in children))
+            case Optional(child):
+                return railroad.Optional(recurse(child, rules_to_inline))
+            case ZeroOrMore(child):
+                return railroad.ZeroOrMore(recurse(child, rules_to_inline))
+            case OneOrMore(child):
+                return railroad.OneOrMore(recurse(child, rules_to_inline))
+            case Gather(sep, item):
+                return railroad.OneOrMore(
+                    recurse(item, rules_to_inline),
+                    recurse(sep, rules_to_inline),
+                )
+            case PositiveLookahead(child):
+                return railroad.Group(
+                    recurse(child, rules_to_inline),
+                    "lookahead",
+                )
+            case NegativeLookahead(child):
+                return railroad.Group(
+                    recurse(child, rules_to_inline),
+                    "negative lookahead",
+                )
+            case Nonterminal(name):
+                if name in rules_to_inline and name in rules_to_inline:
+                    rules_to_inline = rules_to_inline - {name}
+                    inlined_diagram = recurse(rules[name], rules_to_inline)
+                    return railroad.Group(inlined_diagram, name)
+                return railroad.NonTerminal(name)
+            case SymbolicToken(name):
+                return railroad.Terminal(name)
+            case LiteralToken(name):
+                return railroad.Terminal(name)
+            case _:
+                raise ValueError(node)
+    return recurse(node, rules_to_inline)
 
 
-def get_rule_names_to_inline(rules, toplevel_groups, toplevel_rule_names):
+def get_rule_names_to_inline(grammar, toplevel_groups):
     result = set()
     for group in toplevel_groups:
-        rules_to_generate = get_rules_to_document(rules, group, toplevel_rule_names)
+        rules_to_generate = get_rules_to_document(grammar, group)
 
         reference_counts = collections.Counter()
         for name in rules_to_generate:
-            node = rules[name]
+            node = grammar.rules[name]
             for descendant in generate_all_descendants(node, filter=Nonterminal):
                 nonterminal_name = descendant.value
                 if nonterminal_name in rules_to_generate and nonterminal_name != name:
@@ -1200,8 +1237,7 @@ def get_rule_names_to_inline(rules, toplevel_groups, toplevel_rule_names):
     return result
 
 
-
-def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names, rule_names_to_inline):
+def generate_diagrams(grammar, image_dir, toplevel_groups, rule_names_to_inline):
     print(toplevel_groups)
     import railroad
 
@@ -1212,17 +1248,17 @@ def generate_diagrams(rules, image_dir, toplevel_groups, toplevel_rule_names, ru
         for old_path in path.glob('*.svg'):
             old_path.unlink()
     for group in toplevel_groups:
-        rules_to_generate = get_rules_to_document(rules, group, toplevel_rule_names)
+        rules_to_generate = get_rules_to_document(grammar, group)
         rules_to_inline = set(rule_names_to_inline).intersection(rules_to_generate)
 
         for name in rules_to_generate:
-            node = rules[name]
+            node = grammar.rules[name]
             if name.startswith("invalid_"):
                 continue
             dest_path = path / f'{name}.svg'
             print(f'Generating: {dest_path}')
             d = railroad.Diagram(
-                node_to_diagram_element(railroad, node, rules, rules_to_inline),
+                node_to_diagram_element(railroad, node, grammar.rules, rules_to_inline),
                 type='simple',
             )
             with open(dest_path, 'w') as file:
