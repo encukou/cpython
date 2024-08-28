@@ -118,4 +118,3 @@ string argument to :func:`eval` must have the following form:
 
    eval: `expressions` NEWLINE* ENDMARKER
    expressions: ','.`expression`+ [',']
-

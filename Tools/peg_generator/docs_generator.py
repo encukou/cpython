@@ -169,53 +169,47 @@ def main():
         args.debug,
     )
 
-    rule_names_to_inline = grammar.get_rule_names_to_inline()
-
-    # Update the files
-
     for path in files_with_grammar:
-        with path.open(encoding='utf-8') as file:
-            original_lines = []
-            new_lines = []
-            ignoring = False
-            for line in file:
-                original_lines.append(line)
-                if ignoring:
-                    is_indented = (not line.strip()
-                                   or line.startswith((' ', '\t')))
-                    if not is_indented:
-                        ignoring = False
-                if not ignoring:
-                    new_lines.append(line)
-                if match := HEADER_RE.fullmatch(line):
-                    ignoring = True
-                    first_rule_name = match[1].split(maxsplit=1)[0]
-                    snippet = grammar.snippets[first_rule_name]
-                    for line in generate_rule_lines(
-                        snippet,
-                        rule_names_to_inline,
-                    ):
-                        if line.strip():
-                            new_lines.append(f'   {line}\n')
-                        else:
-                            new_lines.append('\n')
-                    new_lines.append('\n')
-
-        # TODO: It would be nice to trim final blank lines,
-        # but that causes the final line to be read twice by Sphinx,
-        # adding it as a blockquote. This might be an issue in the extension.
-        #while new_lines and not new_lines[-1].strip():
-        #    del new_lines[-1]
-
-        if original_lines != new_lines:
-            print(f'Updating: {path}')
-            with path.open(encoding='utf-8', mode='w') as file:
-                file.writelines(new_lines)
-        else:
-            print(f'Unchanged: {path}')
+        update_file(path, grammar)
 
     if args.image_dir:
-        generate_diagrams(grammar, args.image_dir, rule_names_to_inline)
+        generate_diagrams(grammar, args.image_dir)
+
+
+def update_file(path, grammar):
+    with path.open(encoding='utf-8') as file:
+        original_lines = []
+        new_lines = []
+        ignoring = False
+        for line in file:
+            original_lines.append(line)
+            if ignoring:
+                is_indented = (not line.strip()
+                               or line.startswith((' ', '\t')))
+                if not is_indented:
+                    ignoring = False
+            if not ignoring:
+                new_lines.append(line)
+            if match := HEADER_RE.fullmatch(line):
+                ignoring = True
+                first_rule_name = match[1].split(maxsplit=1)[0]
+                snippet = grammar.snippets[first_rule_name]
+                for line in generate_rule_lines(snippet):
+                    if line.strip():
+                        new_lines.append(f'   {line}\n')
+                    else:
+                        new_lines.append('\n')
+                new_lines.append('\n')
+
+    while new_lines and not new_lines[-1].strip():
+        del new_lines[-1]
+
+    if original_lines != new_lines:
+        print(f'Updating: {path}')
+        with path.open(encoding='utf-8', mode='w') as file:
+            file.writelines(new_lines)
+    else:
+        print(f'Unchanged: {path}')
 
 
 class Grammar:
@@ -262,6 +256,8 @@ class Grammar:
             snippet = Snippet(self, names)
             self.snippets[names[0]] = snippet
 
+        self.rule_names_to_inline = self._get_rule_names_to_inline()
+
     def simplify(self):
         for name, node in self.rules.items():
             path = PathEntry.root_path(name)
@@ -274,7 +270,7 @@ class Grammar:
             old_rules = self.rules
             self.rules = simplify_ruleset(self.rules, self.toplevel_rule_names)
 
-    def get_rule_names_to_inline(self):
+    def _get_rule_names_to_inline(self):
         result = set()
         for snippet in self.snippets.values():
             reference_counts = collections.Counter()
@@ -1097,11 +1093,11 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
     return result
 
 
-def generate_rule_lines(snippet, rule_names_to_inline):
+def generate_rule_lines(snippet):
     grammar = snippet.grammar
     rule_names_to_generate = snippet.documented_rules
 
-    rule_names_to_inline = set(rule_names_to_inline)
+    rule_names_to_inline = set(snippet.grammar.rule_names_to_inline)
     diagram_names = [
         name for name in snippet.documented_rules
         if name not in rule_names_to_inline
@@ -1245,7 +1241,7 @@ def node_to_diagram_element(railroad, node, rules, rules_to_inline):
     return recurse(node, rules_to_inline)
 
 
-def generate_diagrams(grammar, image_dir, rule_names_to_inline):
+def generate_diagrams(grammar, image_dir):
     import railroad
 
     path = Path(image_dir)
@@ -1255,7 +1251,7 @@ def generate_diagrams(grammar, image_dir, rule_names_to_inline):
         for old_path in path.glob('*.svg'):
             old_path.unlink()
     for snippet in grammar.snippets.values():
-        rules_to_inline = set(rule_names_to_inline).intersection(snippet.documented_rules)
+        rules_to_inline = set(grammar.rule_names_to_inline).intersection(snippet.documented_rules)
 
         for name, node in snippet.documented_rules.items():
             if name.startswith("invalid_"):
