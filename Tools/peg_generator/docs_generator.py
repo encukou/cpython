@@ -18,7 +18,7 @@ HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
 SCRIPT_NAME = 'Tools/peg_generator/docs_generator.py'
 
 argparser = argparse.ArgumentParser(
-    prog="docz_generator.py",
+    prog="docs_generator.py",
     description="Re-generate the grammar snippets in docs",
 )
 argparser.add_argument("grammar_filename", help="Grammar description")
@@ -1081,6 +1081,7 @@ def get_follow_set_for_path(path, rules):
        return get_rule_follow_set(path.position, rules)
 
 def get_rule_follow_set(rule_name, rules, rules_considered=None):
+    """Return a set of all terminal that might follow the given rule"""
     if rules_considered is None:
         rules_considered = set()
     rules_considered.add(rule_name)
