@@ -259,7 +259,7 @@ class Grammar:
     def simplify(self):
         for name, node in self.rules.items():
             path = PathEntry.root_path(name)
-            self.rules[name] = simplify_node(self.rules, node, path)
+            self.rules[name] = node.simplify(self.rules, path)
 
         # Simplify the rules repeatedly,
         # until simplification no longer changes them
@@ -338,6 +338,23 @@ class Node:
         return self.format()
 
     def simplify(self, rules, path):
+        """Simplify this node repeatedly until simplification no longer changes it"""
+        node = self
+        last_node = None
+        while node != last_node:
+            last_node = node
+            node = node.simplify_once(rules, path)
+            # nifty debug output:
+                # debug('simplified', last_node.format(), '->', node.format())
+                # debug('from:')
+                # for line in last_node.dump_tree():
+                #     debug(line)
+                # debug('to:')
+                # for line in node.dump_tree():
+                #     debug(line)
+        return node
+
+    def simplify_once(self, rules, path):
         return self
 
     def format_for_precedence(self, parent_precedence):
@@ -362,7 +379,7 @@ class Container(Node):
         yield from self.items
 
     def simplify_item(self, rules, item, path):
-        return simplify_node(rules, item, path)
+        return item.simplify(rules, path)
 
     def dump_tree(self, indent=0):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
@@ -387,7 +404,7 @@ class Choice(Container):
             for item in self
         )
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         self_type = type(self)
         alternatives = []
         is_optional = False
@@ -442,7 +459,7 @@ class Choice(Container):
             return wrap(Sequence(alternatives[0]))
 
         return wrap(self_type([
-            simplify_node(rules, Sequence(alt), path.child(self, None))
+            Sequence(alt).simplify(rules, path.child(self, None))
             for alt in alternatives
         ]))
 
@@ -516,7 +533,7 @@ class Choice(Container):
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         self_type = type(self)
         items = []
         for i, item in enumerate(self):
@@ -639,9 +656,9 @@ class Decorator(Node):
         yield '  : ' + '  ' * indent + type(self).__name__ + ':'
         yield from self.item.dump_tree(indent + 1)
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         self_type = type(self)
-        item = simplify_node(rules, self.item, path.child(self))
+        item = self.item.simplify(rules, path.child(self))
         match item:
             case Sequence([x]):
                 item = x
@@ -660,7 +677,7 @@ class Optional(Decorator):
     def format(self):
         return '[' + self.item.format() + ']'
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         match self.item:
             #  [x [y] | y]  ->  [x] [y]
             case Choice([Sequence([x, Optional(y1)]), y2]) if y1 == y2:
@@ -671,7 +688,7 @@ class Optional(Decorator):
                 return self.item
             case self.UNREACHABLE:
                 return EMPTY
-        return super().simplify(rules, path)
+        return super().simplify_once(rules, path)
 
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
@@ -743,7 +760,7 @@ class Lookahead(Decorator):
 class NegativeLookahead(Lookahead):
     sigil = '!'
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         # Find all the tokens the lookahead contains
         # (We don't simplify lookaheads that contain more than tokens)
         tokens_in_self = self.tokens_in_self(rules)
@@ -754,12 +771,12 @@ class NegativeLookahead(Lookahead):
                 # no tokens in the neg.lookahead can follow it,
                 # so the lookahead is redundant
                 return EMPTY
-        return super().simplify(rules, path)
+        return super().simplify_once(rules, path)
 
 class PositiveLookahead(Lookahead):
     sigil = '&'
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         # Find all the tokens the lookahead contains
         # (We don't simplify lookaheads that contain more than tokens)
         tokens_in_self = self.tokens_in_self(rules)
@@ -770,7 +787,7 @@ class PositiveLookahead(Lookahead):
                 # no other tokens than what's in the lookahead can follow it,
                 # so the lookahead is redundant
                 return EMPTY
-        return super().simplify(rules, path)
+        return super().simplify_once(rules, path)
 
 
 @dataclass(frozen=True)
@@ -784,11 +801,11 @@ class Gather(Node):
         yield self.separator
         yield self.item
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         self_type = type(self)
         return self_type(
-            simplify_node(rules, self.separator, path.child(self, 'sep')),
-            simplify_node(rules, self.item, path.child(self, 'item')),
+            self.separator.simplify(rules, path.child(self, 'sep')),
+            self.item.simplify(rules, path.child(self, 'item')),
         )
 
     def format(self):
@@ -911,7 +928,7 @@ class Nonterminal(Leaf):
         rule = rules[self.value]
         return rule.get_possible_start_tokens(rules, rules_considered | {self.value})
 
-    def simplify(self, rules, path):
+    def simplify_once(self, rules, path):
         if other_rule_name := REPLACED_SYNONYMS.get(self.value):
             self_rule = rules[self.value]
             other_rule = rules[other_rule_name]
@@ -919,7 +936,7 @@ class Nonterminal(Leaf):
                 return Nonterminal(other_rule_name)
             if self_rule == Nonterminal(other_rule_name):
                 return Nonterminal(other_rule_name)
-        return super().simplify(rules, path)
+        return super().simplify_once(rules, path)
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
@@ -1130,22 +1147,6 @@ def generate_rule_lines(snippet):
         if grammar.debug:
             yield from node.dump_tree()
 
-def simplify_node(rules, node, path):
-    """Simplifies a node repeatedly until simplification no longer changes it"""
-    last_node = None
-    while node != last_node:
-        last_node = node
-        node = node.simplify(rules, path)
-        # nifty debug output:
-            # debug('simplified', last_node.format(), '->', node.format())
-            # debug('from:')
-            # for line in last_node.dump_tree():
-            #     debug(line)
-            # debug('to:')
-            # for line in node.dump_tree():
-            #     debug(line)
-    return node
-
 
 def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
     """Simplify and inline a bunch of rules"""
@@ -1153,8 +1154,8 @@ def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
     # Generate new ruleset with simplified nodes
     new_ruleset = {}
     for rule_name, node in old_ruleset.items():
-        new_ruleset[rule_name] = simplify_node(
-            old_ruleset, node, PathEntry.root_path(rule_name),
+        new_ruleset[rule_name] = node.simplify(
+            old_ruleset, PathEntry.root_path(rule_name),
         )
 
     # A rule will be inlined if we were not explicitly asked to provide a
