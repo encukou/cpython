@@ -287,7 +287,7 @@ class Grammar:
         # Count up all the references to rules we're documenting.
         reference_counts = collections.Counter()
         for node in new_ruleset.values():
-            for descendant in generate_all_descendants(node, filter=Nonterminal):
+            for descendant in node.generate_all_descendants(filter_class=Nonterminal):
                 name = descendant.value
                 if name in new_ruleset:
                     reference_counts[name] += 1
@@ -342,7 +342,7 @@ class Snippet:
             rule_names_to_generate.append(rule_name)
 
             node = grammar.rules[rule_name]
-            for descendant in generate_all_descendants(node, filter=Nonterminal):
+            for descendant in node.generate_all_descendants(filter_class=Nonterminal):
                 rule_name = descendant.value
                 if (
                     rule_name in grammar.rules
@@ -354,7 +354,7 @@ class Snippet:
     def _get_rule_names_to_inline(self):
         reference_counts = collections.Counter()
         for name, node in self.documented_rules.items():
-            for descendant in generate_all_descendants(node, filter=Nonterminal):
+            for descendant in node.generate_all_descendants(filter_class=Nonterminal):
                 nonterminal_name = descendant.value
                 if nonterminal_name in self.documented_rules and nonterminal_name != name:
                     reference_counts[nonterminal_name] += 1
@@ -397,6 +397,12 @@ class Node:
 
     def simplify_once(self, rules, path):
         return self
+
+    def generate_all_descendants(self, filter_class=None):
+        if filter_class is None or isinstance(self, filter_class):
+            yield self
+        for value in self:
+            yield from value.generate_all_descendants(filter_class)
 
     def format_for_precedence(self, parent_precedence):
         result = self.format()
@@ -1187,13 +1193,6 @@ def generate_rule_lines(snippet):
         #     yield f'{name}: {node.format()}'
         if grammar.debug:
             yield from node.dump_tree()
-
-
-def generate_all_descendants(node, filter=Node):
-    if isinstance(node, filter):
-        yield node
-    for value in node:
-        yield from generate_all_descendants(value, filter)
 
 
 def node_to_diagram_element(railroad, node, rules, rules_to_inline):
