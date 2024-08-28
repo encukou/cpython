@@ -266,7 +266,48 @@ class Grammar:
         old_rules = None
         while self.rules != old_rules:
             old_rules = self.rules
-            self.rules = simplify_ruleset(self.rules, self.toplevel_rule_names)
+            self._simplify_ruleset()
+
+    def _simplify_ruleset(self):
+        """Simplify and inline a bunch of rules"""
+
+        # Generate new ruleset with simplified nodes
+        new_ruleset = {}
+        for rule_name, node in self.rules.items():
+            new_ruleset[rule_name] = node.simplify(
+                self.rules, PathEntry.root_path(rule_name),
+            )
+
+        # A rule will be inlined if we were not explicitly asked to provide a
+        # definition for it (i.e. it is not in `toplevel_rule_names`), and:
+        # - is only mentioned once, or
+        # - its definition is short
+        # - it expands to a single nonterminal
+
+        # Count up all the references to rules we're documenting.
+        reference_counts = collections.Counter()
+        for node in new_ruleset.values():
+            for descendant in generate_all_descendants(node, filter=Nonterminal):
+                name = descendant.value
+                if name in new_ruleset:
+                    reference_counts[name] += 1
+
+        # Inline the rules we found
+        for name, count in reference_counts.items():
+            node = new_ruleset[name]
+            if name not in self.toplevel_rule_names and (
+                count == 1
+                or len(node.format()) <= len(name) * 1.2
+                or isinstance(node, Nonterminal)
+            ):
+                replaced_name = name
+                replacement = node
+                for rule_name, rule_node in new_ruleset.items():
+                    new_node = rule_node.inlined(replaced_name, replacement)
+                    new_ruleset[rule_name] = new_node
+                del new_ruleset[name]
+
+        self.rules = new_ruleset
 
 
 class Snippet:
@@ -1147,47 +1188,6 @@ def generate_rule_lines(snippet):
         if grammar.debug:
             yield from node.dump_tree()
 
-
-def simplify_ruleset(old_ruleset: dict, toplevel_rule_names):
-    """Simplify and inline a bunch of rules"""
-
-    # Generate new ruleset with simplified nodes
-    new_ruleset = {}
-    for rule_name, node in old_ruleset.items():
-        new_ruleset[rule_name] = node.simplify(
-            old_ruleset, PathEntry.root_path(rule_name),
-        )
-
-    # A rule will be inlined if we were not explicitly asked to provide a
-    # definition for it (i.e. it is not in `toplevel_rule_names`), and:
-    # - is only mentioned once, or
-    # - its definition is short
-    # - it expands to a single nonterminal
-
-    # Count up all the references to rules we're documenting.
-    reference_counts = collections.Counter()
-    for node in new_ruleset.values():
-        for descendant in generate_all_descendants(node, filter=Nonterminal):
-            name = descendant.value
-            if name in new_ruleset:
-                reference_counts[name] += 1
-
-    # Inline the rules we found
-    for name, count in reference_counts.items():
-        node = new_ruleset[name]
-        if name not in toplevel_rule_names and (
-            count == 1
-            or len(node.format()) <= len(name) * 1.2
-            or isinstance(node, Nonterminal)
-        ):
-            replaced_name = name
-            replacement = node
-            for rule_name, rule_node in new_ruleset.items():
-                new_node = rule_node.inlined(replaced_name, replacement)
-                new_ruleset[rule_name] = new_node
-            del new_ruleset[name]
-
-    return new_ruleset
 
 def generate_all_descendants(node, filter=Node):
     if isinstance(node, filter):
