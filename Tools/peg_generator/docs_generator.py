@@ -256,8 +256,6 @@ class Grammar:
             snippet = Snippet(self, names)
             self.snippets[names[0]] = snippet
 
-        self.rule_names_to_inline = self._get_rule_names_to_inline()
-
     def simplify(self):
         for name, node in self.rules.items():
             path = PathEntry.root_path(name)
@@ -269,21 +267,6 @@ class Grammar:
         while self.rules != old_rules:
             old_rules = self.rules
             self.rules = simplify_ruleset(self.rules, self.toplevel_rule_names)
-
-    def _get_rule_names_to_inline(self):
-        result = set()
-        for snippet in self.snippets.values():
-            reference_counts = collections.Counter()
-            for name, node in snippet.documented_rules.items():
-                for descendant in generate_all_descendants(node, filter=Nonterminal):
-                    nonterminal_name = descendant.value
-                    if nonterminal_name in snippet.documented_rules and nonterminal_name != name:
-                        reference_counts[nonterminal_name] += 1
-
-            result.update(
-                name for name, count in reference_counts.items() if count == 1
-            )
-        return result
 
 
 class Snippet:
@@ -297,6 +280,8 @@ class Snippet:
             name: grammar.rules[name]
             for name in self._get_documented_rule_names()
         }
+
+        self.rule_names_to_inline = frozenset(self._get_rule_names_to_inline())
 
     def _get_documented_rule_names(self):
         """Figure out all rules to include in this grammar snippet.
@@ -324,6 +309,18 @@ class Snippet:
                 ):
                     rule_names_to_consider.append(rule_name)
         return rule_names_to_generate
+
+    def _get_rule_names_to_inline(self):
+        reference_counts = collections.Counter()
+        for name, node in self.documented_rules.items():
+            for descendant in generate_all_descendants(node, filter=Nonterminal):
+                nonterminal_name = descendant.value
+                if nonterminal_name in self.documented_rules and nonterminal_name != name:
+                    reference_counts[nonterminal_name] += 1
+
+        return frozenset(
+            name for name, count in reference_counts.items() if count == 1
+        )
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -1097,10 +1094,9 @@ def generate_rule_lines(snippet):
     grammar = snippet.grammar
     rule_names_to_generate = snippet.documented_rules
 
-    rule_names_to_inline = set(snippet.grammar.rule_names_to_inline)
     diagram_names = [
         name for name in snippet.documented_rules
-        if name not in rule_names_to_inline
+        if name not in snippet.rule_names_to_inline
     ]
 
     yield ':group: python-grammar'
@@ -1122,6 +1118,7 @@ def generate_rule_lines(snippet):
                 yield f'{name}: {line}'.rstrip()
             else:
                 yield f'  : {line}'.rstrip()
+        # TODO: fold long lines
         # rhs_line = node.format()
         # if isinstance(node, Choice) and len(rhs_line) > 40:
         #     # Present each alternative on its own line
@@ -1251,7 +1248,7 @@ def generate_diagrams(grammar, image_dir):
         for old_path in path.glob('*.svg'):
             old_path.unlink()
     for snippet in grammar.snippets.values():
-        rules_to_inline = set(grammar.rule_names_to_inline).intersection(snippet.documented_rules)
+        rules_to_inline = snippet.rule_names_to_inline.intersection(snippet.documented_rules)
 
         for name, node in snippet.documented_rules.items():
             if name.startswith("invalid_"):
