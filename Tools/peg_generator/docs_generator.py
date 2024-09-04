@@ -1180,18 +1180,22 @@ class TokenSet:
         return other.issubset(self)
 
 def get_rule_follow_set(rule_name, rules, rules_considered=None):
-    """Return a set of all terminal that might follow the given rule"""
+    """Return a set of all tokens that might follow the given rule"""
     if rules_considered is None:
         rules_considered = set()
     rules_considered.add(rule_name)
 
-    result = set()
     # Go through all the rules, and find Nonterminals with `rule_name`.
 
     def handle_node(node):
-        """Returns True if the follow set of `node` should be included in result"""
+        """Returns a pair of:
+        - True if the follow set of `node` should be included in result
+        - a set of tokens that should be included in rhe result
+        """
+
         match node:
             case Sequence(items):
+                result = set()
                 for pos, current in enumerate(items):
                     add_follow_set = False
                     match current:
@@ -1199,7 +1203,9 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                             # we found Nonterminal with the value we're searching for
                             add_follow_set = True
                         case _:
-                            if handle_node(current):
+                            include_follow, tokens_to_include = handle_node(current)
+                            result.update(tokens_to_include)
+                            if include_follow:
                                 add_follow_set = True
                     if add_follow_set:
                         for following in items[pos+1:]:
@@ -1208,49 +1214,57 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
                             if None not in start_tokens:
                                 break
                         else:
-                            return True
+                            return True, result
+                return False, result
             case Optional(item):
                 return handle_node(item)
             case ZeroOrMore(item) | OneOrMore(item):
-                if handle_node(item):
+                include_follow, tokens_to_include = handle_node(item)
+                if include_follow:
                     start_tokens = item.get_possible_start_tokens(rules, set())
-                    result.update(start_tokens - {None})
-                    return True
+                    return True, tokens_to_include | start_tokens - {None}
+                return False, tokens_to_include
             case Choice(alts):
                 include_follow = False
+                result = set()
                 for alt in alts:
-                    if handle_node(alt):
+                    include_follow_here, tokens_to_include = handle_node(alt)
+                    result.update(tokens_to_include)
+                    if include_follow_here:
                         include_follow = True
-                return include_follow
-            case Gather(sep, item):
-                match sep:
+                return include_follow, result
+            case Gather(separator, item):
+                match separator:
                     case BaseToken():
                         pass
                     case _:
                         raise NotImplementedError()
-                if handle_node(item):
-                    start_tokens = sep.get_possible_start_tokens(rules, set())
-                    result.update(start_tokens - {None})
+                include_follow, tokens_to_include = handle_node(item)
+                if include_follow:
+                    start_tokens = separator.get_possible_start_tokens(rules, set())
                     if None in start_tokens:
                         raise NotImplementedError()
-                    return True
+                    return True, tokens_to_include | start_tokens - {None}
+                return False, tokens_to_include
             case Nonterminal(value):
                 if value == rule_name:
-                    return True
+                    return True, set()
                 else:
-                    pass
+                    return False, set()
             case BaseToken() | NegativeLookahead() | PositiveLookahead():
-                pass
+                return False, set()
             case _:
                 raise NotImplementedError(repr(node))
 
+    result = set()
     for name, rule in rules.items():
-        if handle_node(rule):
+        include_follow, tokens_to_include = handle_node(rule)
+        result.update(tokens_to_include)
+        if include_follow:
             if name not in rules_considered:
                 result.update(get_rule_follow_set(
                     name, rules, rules_considered,
                 ))
-
     return result
 
 
