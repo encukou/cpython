@@ -1188,9 +1188,11 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
     # Go through all the rules, and find Nonterminals with `rule_name`.
 
     def handle_node(node):
-        """Returns a pair of:
-        - True if the follow set of `node` should be included in result
-        - a set of tokens that should be included in rhe result
+        """Return a set of tokens that should be included in rhe result.
+
+        TODO:
+        Additionally, if None is in the returned set, the the follow set of
+        `node` should be also added to the result
         """
 
         match node:
