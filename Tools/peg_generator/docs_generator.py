@@ -1190,21 +1190,28 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
     def handle_node(node):
         """Return a set of tokens that should be included in the result.
 
-        Additionally, if None is in the returned set, the the follow set of
-        `node` should be also added to the result
+        Additionally, if None is in the returned set, the tokens that could
+        immediately follow `node` should be also added to the result.
         """
         match node:
             case Sequence(items):
                 result = set()
                 for item in items:
                     if None in result:
-                        result.discard(None)
+                        # None in the result means that the start tokens
+                        # of the current item should be added to the result.
                         tokens_for_item = item.get_possible_start_tokens(rules, set())
+                        # If None is in "tokens_for_item", it means the item
+                        # could match an empty string, and so the *next*
+                        # item's start tokens should be added to the result
+                        # as well.
+                        result.discard(None)
                         result.update(tokens_for_item)
                     tokens_for_item = handle_node(item)
-                    if None not in tokens_for_item:
-                        result.discard(None)
                     result.update(tokens_for_item)
+                # If None remained in the result, we'll need to add whatever
+                # follows this sequence. Conveniently, that's signalled by
+                # having None in the result.
                 return result
             case Optional(item):
                 return handle_node(item)
