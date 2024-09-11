@@ -424,6 +424,15 @@ class Node:
         """
         raise NotImplementedError()
 
+    def get_rule_follow_set(self, rule_name, rules):
+        """Return a set of all tokens that might follow the given rule,
+        if the rule is matched by a sub-node of self (or self itself).
+
+        Additionally, if None is in the returned set, all tokens that could
+        immediately follow `self` should be added to the result.
+        """
+        raise NotImplementedError()
+
     def simplify(self, rules, path):
         """Simplify self repeatedly until simplification no longer changes it.
 
@@ -630,6 +639,12 @@ class Choice(Container):
     def get_follow_set_for_path(self, path, rules):
         return path.parent_entry.get_follow_set(rules)
 
+    def get_rule_follow_set(self, rule_name, rules):
+        result = set()
+        for alt in self.items:
+            result.update(alt.get_rule_follow_set(rule_name, rules))
+        return result
+
 @dataclass(frozen=True)
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
@@ -744,6 +759,26 @@ class Sequence(Container):
             result.update(path.parent_entry.get_follow_set(rules))
         return result
 
+    def get_rule_follow_set(self, rule_name, rules):
+        result = set()
+        for item in self.items:
+            if None in result:
+                # None in the result means that the start tokens
+                # of the current item should be added to the result.
+                tokens_for_item = item.get_possible_start_tokens(rules, set())
+                # If None is in "tokens_for_item", it means the item
+                # could match an empty string, and so the *next*
+                # item's start tokens should be added to the result
+                # as well.
+                result.discard(None)
+                result.update(tokens_for_item)
+            tokens_for_item = item.get_rule_follow_set(rule_name, rules)
+            result.update(tokens_for_item)
+        # If None remained in the result, we'll need to add whatever
+        # follows this sequence. Conveniently, that's signalled by
+        # having None in the result.
+        return result
+
 
 @dataclass(frozen=True)
 class Decorator(Node):
@@ -794,13 +829,25 @@ class Optional(Decorator):
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
 
+    def get_rule_follow_set(self, rule_name, rules):
+        return self.item.get_rule_follow_set(rule_name, rules)
 
-@dataclass(frozen=True)
-class OneOrMore(Decorator):
+class Repeat(Decorator):
     precedence = Precedence.REPEAT
 
     def format(self):
-        return self.item.format_for_precedence(Precedence.REPEAT) + '+'
+        return self.item.format_for_precedence(Precedence.REPEAT) + self.sigil
+
+    def get_rule_follow_set(self, rule_name, rules):
+        result = self.item.get_rule_follow_set(rule_name, rules)
+        if None in result:
+            result |= self.item.get_possible_start_tokens(rules, set())
+        return result
+
+
+@dataclass(frozen=True)
+class OneOrMore(Repeat):
+    sigil = '+'
 
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered)
@@ -814,11 +861,8 @@ class OneOrMore(Decorator):
         )
 
 @dataclass(frozen=True)
-class ZeroOrMore(Decorator):
-    precedence = Precedence.REPEAT
-
-    def format(self):
-        return self.item.format_for_precedence(Precedence.REPEAT) + '*'
+class ZeroOrMore(Repeat):
+    sigil = '*'
 
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered) | {None}
@@ -857,6 +901,8 @@ class Lookahead(Decorator):
             return None
         return TokenSet(tokens_in_self)
 
+    def get_rule_follow_set(self, rule_name, rules):
+        return set()
 
 class NegativeLookahead(Lookahead):
     sigil = '!'
@@ -957,6 +1003,18 @@ class Gather(Node):
             case _:
                 raise ValueError(path.position)
 
+    def get_rule_follow_set(self, rule_name, rules):
+        if not isinstance(self.separator, BaseToken):
+            raise NotImplementedError(
+                'Gather with a complicated separator is not supported yet')
+        tokens_for_item = self.item.get_rule_follow_set(rule_name, rules)
+        if None in tokens_for_item:
+            start_tokens = self.separator.get_possible_start_tokens(rules, set())
+            if None in start_tokens:
+                raise NotImplementedError()
+            return tokens_for_item | start_tokens
+        return tokens_for_item
+
 @dataclass(frozen=True)
 class Leaf(Node):
     """Node with no children"""
@@ -979,6 +1037,9 @@ class BaseToken(Leaf):
     """A token, also known as a terminal"""
     def get_possible_start_tokens(self, rules, rules_considered):
         return {self}
+
+    def get_rule_follow_set(self, rule_name, rules):
+        return set()
 
 class LiteralToken(BaseToken):
     """A token that matches an exact string, like "_" or ','or 'if'
@@ -1041,6 +1102,12 @@ class Nonterminal(Leaf):
             if self_rule == Nonterminal(other_rule_name):
                 return Nonterminal(other_rule_name)
         return super().simplify_once(rules, path)
+
+    def get_rule_follow_set(self, rule_name, rules):
+        if self.value == rule_name:
+            return {None}
+        else:
+            return set()
 
 EMPTY = Node.EMPTY = Sequence([])
 UNREACHABLE = Node.UNREACHABLE = Choice([])
@@ -1185,79 +1252,14 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
         rules_considered = set()
     rules_considered.add(rule_name)
 
-    # Go through all the rules, and find Nonterminals with `rule_name`.
-
-    def handle_node(node):
-        """Return a set of tokens that should be included in the result.
-
-        Additionally, if None is in the returned set, the tokens that could
-        immediately follow `node` should be also added to the result.
-        """
-        match node:
-            case Sequence(items):
-                result = set()
-                for item in items:
-                    if None in result:
-                        # None in the result means that the start tokens
-                        # of the current item should be added to the result.
-                        tokens_for_item = item.get_possible_start_tokens(rules, set())
-                        # If None is in "tokens_for_item", it means the item
-                        # could match an empty string, and so the *next*
-                        # item's start tokens should be added to the result
-                        # as well.
-                        result.discard(None)
-                        result.update(tokens_for_item)
-                    tokens_for_item = handle_node(item)
-                    result.update(tokens_for_item)
-                # If None remained in the result, we'll need to add whatever
-                # follows this sequence. Conveniently, that's signalled by
-                # having None in the result.
-                return result
-            case Optional(item):
-                return handle_node(item)
-            case ZeroOrMore(item) | OneOrMore(item):
-                result = handle_node(item)
-                if None in result:
-                    result |= item.get_possible_start_tokens(rules, set())
-                return result
-            case Choice(alts):
-                result = set()
-                for alt in alts:
-                    result.update(handle_node(alt))
-                return result
-            case Gather(separator, item):
-                if not isinstance(separator, BaseToken):
-                    raise NotImplementedError(
-                        'Gather with a complicated separator is not supported yet')
-                tokens_for_item = handle_node(item)
-                if None in tokens_for_item:
-                    start_tokens = separator.get_possible_start_tokens(rules, set())
-                    if None in start_tokens:
-                        raise NotImplementedError()
-                    return tokens_for_item | start_tokens
-                return tokens_for_item
-            case Nonterminal(value):
-                if value == rule_name:
-                    return {None}
-                else:
-                    return set()
-            case BaseToken() | NegativeLookahead() | PositiveLookahead():
-                return set()
-            case _:
-                include_follow, tokens_to_include = handle_node_old(node)
-                if include_follow:
-                    return tokens_to_include | {None}
-                return tokens_to_include
-
     result = set()
     for name, rule in rules.items():
-        tokens_to_include = handle_node(rule)
+        tokens_to_include = rule.get_rule_follow_set(rule_name, rules)
         result.update(tokens_to_include)
-        if None in tokens_to_include:
-            if name not in rules_considered:
-                result.update(get_rule_follow_set(
-                    name, rules, rules_considered,
-                ))
+        if None in tokens_to_include and name not in rules_considered:
+            result.update(get_rule_follow_set(
+                name, rules, rules_considered,
+            ))
     return result - {None}
 
 
