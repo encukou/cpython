@@ -645,6 +645,24 @@ class Choice(Container):
             result.update(alt.get_rule_follow_set(rule_name, rules))
         return result
 
+    def format_lines(self, columns):
+        single_line = self.format()
+        if len(single_line) <= columns:
+            yield single_line
+        else:
+            for item_index, item in enumerate(self.items):
+                for line_index, line in enumerate(item.format_lines(columns - 2)):
+                    if line_index == 0:
+                        if item_index == 0:
+                            prefix = '( '
+                        else:
+                            prefix = '| '
+                    else:
+                        prefix = '  '
+                    yield prefix + line
+            yield ')'
+
+
 @dataclass(frozen=True)
 class Sequence(Container):
     precedence = Precedence.SEQUENCE
@@ -704,27 +722,6 @@ class Sequence(Container):
             item.format_for_precedence(Precedence.SEQUENCE)
             for item in self
         )
-
-    def _format_lines(self, columns):
-        simple = self.format()
-        if len(simple) <= columns:
-            yield simple
-        else:
-            line_so_far = ''
-            for item in self:
-                simple_item = item.format()
-                if len(line_so_far) + len(simple_item) < columns:
-                    line_so_far += ' ' + simple_item
-                else:
-                    yield line_so_far
-                    line_so_far = ''
-                    if len(simple_item) > columns:
-                        for line in item.format_lines(columns):
-                            yield line
-                    else:
-                        line_so_far = simple_item
-            if line_so_far:
-                yield line_so_far
 
     def get_possible_start_tokens(self, rules, rules_considered):
         if not self.items:
@@ -1291,15 +1288,8 @@ def generate_rule_lines(snippet):
                 yield f'{name}: {line}'.rstrip()
             else:
                 yield f'  : {line}'.rstrip()
-        # TODO: fold long lines
-        # rhs_line = node.format()
-        # if isinstance(node, Choice) and len(rhs_line) > 40:
-        #     # Present each alternative on its own line
-        #     yield f'{name}:'
-        #     for alt in node:
-        #         yield f'  : | {alt.format()}'
-        # else:
-        #     yield f'{name}: {node.format()}'
+            if len(line) > available_space:
+                print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
         if grammar.debug:
             yield from node.dump_tree()
 
