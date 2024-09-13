@@ -540,6 +540,13 @@ Porting to Python 3.14
   an opaque function call to hide implementation details.
   (Contributed by Victor Stinner in :gh:`120600`.)
 
+  tp_new Porting notes: |
+
+        - if you control the metaclass:
+        - you can move initialization logic to `tp_init`. (`tp_init` can be bypassed, which checks out -- the previous behaviour of `PyType_From*` was to bypass `tp_new`.)
+        - if you want to disable instantiation from Python code, use `Py_TPFLAGS_DISALLOW_INSTANTIATION` (for static metaclasses: set `tp_new` to `NULL`). Such metaclasses will still work with `PyType_From*`.
+        - if you don't control the metaclass, then you shouldn't skip `tp_new`, as it might set up important invariants. (There are hacky ways to do it, discussed in the issues linked above. Test well if you resort to them; you'll have technical debt.)
+
 
 Deprecated
 ----------
