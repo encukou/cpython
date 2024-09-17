@@ -527,6 +527,171 @@
                 return result;
             }
 
+            if (PyUnicode_CompareWithASCIIString(name, "IntBits_Union") == 0) {
+
+                union IntBits_Union {
+                    int A :1;
+                    int B :2;
+                    int C :3;
+                    int D :4;
+                    int E :5;
+                    int F :6;
+                    int G :7;
+                    int H :8;
+                    int I :9;
+                };
+                union IntBits_Union value = {0};
+                APPEND(PyUnicode_FromString("IntBits_Union"));
+                APPEND(PyLong_FromLong(sizeof(union IntBits_Union)));
+                APPEND(PyLong_FromLong(_Alignof(union IntBits_Union)));
+                TEST_FIELD(int, value.A);
+                TEST_FIELD(int, value.B);
+                TEST_FIELD(int, value.C);
+                TEST_FIELD(int, value.D);
+                TEST_FIELD(int, value.E);
+                TEST_FIELD(int, value.F);
+                TEST_FIELD(int, value.G);
+                TEST_FIELD(int, value.H);
+                TEST_FIELD(int, value.I);
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "BitsUnion") == 0) {
+
+            #if (!defined(__xlc__))
+
+                union BitsUnion {
+                    int A :1;
+                    int B :2;
+                    int C :3;
+                    int D :4;
+                    int E :5;
+                    int F :6;
+                    int G :7;
+                    int H :8;
+                    int I :9;
+                    short M :1;
+                    short N :2;
+                    short O :3;
+                    short P :4;
+                    short Q :5;
+                    short R :6;
+                    short S :7;
+                };
+                union BitsUnion value = {0};
+                APPEND(PyUnicode_FromString("BitsUnion"));
+                APPEND(PyLong_FromLong(sizeof(union BitsUnion)));
+                APPEND(PyLong_FromLong(_Alignof(union BitsUnion)));
+                TEST_FIELD(int, value.A);
+                TEST_FIELD(int, value.B);
+                TEST_FIELD(int, value.C);
+                TEST_FIELD(int, value.D);
+                TEST_FIELD(int, value.E);
+                TEST_FIELD(int, value.F);
+                TEST_FIELD(int, value.G);
+                TEST_FIELD(int, value.H);
+                TEST_FIELD(int, value.I);
+                TEST_FIELD(short, value.M);
+                TEST_FIELD(short, value.N);
+                TEST_FIELD(short, value.O);
+                TEST_FIELD(short, value.P);
+                TEST_FIELD(short, value.Q);
+                TEST_FIELD(short, value.R);
+                TEST_FIELD(short, value.S);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "IntBits_MSVC_Union") == 0) {
+
+            #if (defined(MS_WIN32) || ((defined(__x86_64__) || defined(__i386__) || defined(__ppc64__)) && (defined(__GNUC__) || defined(__clang__))))
+
+                union GCC_ATTR(ms_struct) IntBits_MSVC_Union {
+                    int A :1;
+                    int B :2;
+                    int C :3;
+                    int D :4;
+                    int E :5;
+                    int F :6;
+                    int G :7;
+                    int H :8;
+                    int I :9;
+                };
+                union IntBits_MSVC_Union value = {0};
+                APPEND(PyUnicode_FromString("IntBits_MSVC_Union"));
+                APPEND(PyLong_FromLong(sizeof(union IntBits_MSVC_Union)));
+                APPEND(PyLong_FromLong(_Alignof(union IntBits_MSVC_Union)));
+                TEST_FIELD(int, value.A);
+                TEST_FIELD(int, value.B);
+                TEST_FIELD(int, value.C);
+                TEST_FIELD(int, value.D);
+                TEST_FIELD(int, value.E);
+                TEST_FIELD(int, value.F);
+                TEST_FIELD(int, value.G);
+                TEST_FIELD(int, value.H);
+                TEST_FIELD(int, value.I);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "Bits_MSVC_Union") == 0) {
+
+            #if (!defined(__xlc__)) && (defined(MS_WIN32) || ((defined(__x86_64__) || defined(__i386__) || defined(__ppc64__)) && (defined(__GNUC__) || defined(__clang__))))
+
+                union GCC_ATTR(ms_struct) Bits_MSVC_Union {
+                    int A :1;
+                    int B :2;
+                    int C :3;
+                    int D :4;
+                    int E :5;
+                    int F :6;
+                    int G :7;
+                    int H :8;
+                    int I :9;
+                    short M :1;
+                    short N :2;
+                    short O :3;
+                    short P :4;
+                    short Q :5;
+                    short R :6;
+                    short S :7;
+                };
+                union Bits_MSVC_Union value = {0};
+                APPEND(PyUnicode_FromString("Bits_MSVC_Union"));
+                APPEND(PyLong_FromLong(sizeof(union Bits_MSVC_Union)));
+                APPEND(PyLong_FromLong(_Alignof(union Bits_MSVC_Union)));
+                TEST_FIELD(int, value.A);
+                TEST_FIELD(int, value.B);
+                TEST_FIELD(int, value.C);
+                TEST_FIELD(int, value.D);
+                TEST_FIELD(int, value.E);
+                TEST_FIELD(int, value.F);
+                TEST_FIELD(int, value.G);
+                TEST_FIELD(int, value.H);
+                TEST_FIELD(int, value.I);
+                TEST_FIELD(short, value.M);
+                TEST_FIELD(short, value.N);
+                TEST_FIELD(short, value.O);
+                TEST_FIELD(short, value.P);
+                TEST_FIELD(short, value.Q);
+                TEST_FIELD(short, value.R);
+                TEST_FIELD(short, value.S);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
             if (PyUnicode_CompareWithASCIIString(name, "I64Bits") == 0) {
 
             #if (!defined(__xlc__))
