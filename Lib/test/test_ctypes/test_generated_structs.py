@@ -413,6 +413,17 @@ class AnonBitfields(Structure):
     _anonymous_ = ["_"]
     _fields_ = [("_", X), ('y', c_byte)]
 
+@register()
+class StructWithArrays(Structure):
+    _fields_ = [("a", c_byte * 3),
+                ("b", c_int32 * 5)]
+
+
+@register()
+class NestedStructWithArrays(Structure):
+    _fields_ = [("anon", StructWithArrays),
+                ("y", StructWithArrays * 3)]
+    _anonymous_ = ['anon']
 
 class GeneratedTest(unittest.TestCase):
     def test_generated_data(self):
@@ -448,7 +459,7 @@ class GeneratedTest(unittest.TestCase):
                 ptr = pointer(obj)
                 for field in iterfields(cls):
                     for value in -1, 1, 0:
-                        with self.subTest(field=field.full_name, value=value):
+                        with self.subTest(field=field.c_getter, value=value):
                             field.set_to(obj, value)
                             py_mem = string_at(ptr, sizeof(obj))
                             c_mem = next(expected)
@@ -466,28 +477,26 @@ def c_str_repr(string):
     """Return a string as a C literal"""
     return '"' + re.sub('([\"\'\\\\\n])', r'\\\1', string) + '"'
 
-def dump_simple_ctype(tp, variable_name='', semi=''):
+def dump_simple_ctype(tp, variable_name='', end=''):
     """Get C type name or declaration of a scalar type
 
     variable_name: if given, declare the given variable
-    semi: a semicolon, and/or bitfield specification to tack on to the end
+    end: a semicolon, array length, and/or bitfield specification
+         to tack on to the end
     """
-    length = getattr(tp, '_length_', None)
-    if length is not None:
-        return f'{dump_simple_ctype(tp._type_, variable_name)}[{length}]{semi}'
-    assert not issubclass(tp, (Structure, Union))
-    return f'{tp._c_name}{maybe_space(variable_name)}{semi}'
+    return f'{tp._c_name}{maybe_space(variable_name)}{end}'
 
 
-def dump_ctype(tp, struct_or_union_tag='', variable_name='', semi=''):
+def dump_ctype(tp, struct_or_union_tag='', variable_name='', end=''):
     """Get C type name or declaration of a ctype
 
     struct_or_union_tag: name of the struct or union
     variable_name: if given, declare the given variable
-    semi: a semicolon, and/or bitfield specification to tack on to the end
+    end: a semicolon, array length, and/or bitfield specification
+         to tack on to the end
     """
-    requires = set()
     if issubclass(tp, (Structure, Union)):
+        requires = set()
         attributes = []
         pushes = []
         pops = []
@@ -514,22 +523,26 @@ def dump_ctype(tp, struct_or_union_tag='', variable_name='', semi=''):
             if f_name in getattr(tp, '_anonymous_', ()):
                 f_name = ''
             if f_bits is None:
-                subsemi = ';'
+                subend = ';'
             else:
                 if f_tp not in (c_int, c_uint):
                     # XLC can reportedly only handle int & unsigned int
                     # bitfields (the only types required by C spec)
                     requires.add('!defined(__xlc__)')
-                subsemi = f' :{f_bits};'
+                subend = f' :{f_bits};'
             sub_lines, sub_requires = dump_ctype(
-                f_tp, variable_name=f_name, semi=subsemi)
+                f_tp, variable_name=f_name, end=subend)
             requires.update(sub_requires)
             for line in sub_lines:
                 lines.append('    ' + line)
-        lines.append(f'}}{maybe_space(variable_name)}{semi}')
+        lines.append(f'}}{maybe_space(variable_name)}{end}')
         return [*pushes, *lines, *reversed(pops)], requires
+    elif length := getattr(tp, '_length_', None):
+        f_tp = tp._type_
+        return dump_ctype(
+                f_tp, variable_name=variable_name, end=f'[{length}]{end}')
     else:
-        return [dump_simple_ctype(tp, variable_name, semi)], requires
+        return [dump_simple_ctype(tp, variable_name, end)], set()
 
 def struct_or_union(cls):
     if issubclass(cls, Structure):
@@ -547,37 +560,85 @@ def unpack_field_desc(f_name, f_tp, f_bits=None):
     """Unpack a _fields_ entry into a (name, type, bits) triple"""
     return f_name, f_tp, f_bits
 
-@dataclass
-class FieldInfo:
+class InfoBase:
+    @cached_property
+    def root(self):
+        if self.parent is None:
+            return self
+        else:
+            return self.parent
+
+    def __repr__(self):
+        qname = f'{self.root.parent_type.__name__}{self.c_getter}'
+        try:
+            desc = self.descriptor
+        except AttributeError:
+            desc = '???'
+        return f'<{type(self).__name__} for {qname}: {desc}>'
+
+@dataclass(repr=False)
+class FieldInfo(InfoBase):
     """Information about a (possibly nested) struct/union field"""
     name: str
     tp: type
     bits: int | None  # number if this is a bit field
     parent_type: type
-    parent: 'FieldInfo' #| None
+    parent: 'InfoBase | None'
 
     @cached_property
-    def attr_path(self):
-        """Attribute names to get at the value of this field"""
+    def c_getter(self):
         if self.name in getattr(self.parent_type, '_anonymous_', ()):
-            selfpath = ()
+            g = ''
         else:
-            selfpath = (self.name,)
+            g = f'.{self.name}'
         if self.parent:
-            return (*self.parent.attr_path, *selfpath)
+            return self.parent.c_getter + g
         else:
-            return selfpath
+            return g
 
-    @cached_property
-    def full_name(self):
-        """Attribute names to get at the value of this field"""
-        return '.'.join(self.attr_path)
+    def get_from(self, obj):
+        if self.parent:
+            obj = self.parent.get_from(obj)
+        return getattr(obj, self.name)
 
     def set_to(self, obj, new):
         """Set the field on a given Structure/Union instance"""
-        for attr_name in self.attr_path[:-1]:
-            obj = getattr(obj, attr_name)
-        setattr(obj, self.attr_path[-1], new)
+        if self.parent:
+            obj = self.parent.get_from(obj)
+        setattr(obj, self.name, new)
+
+    @cached_property
+    def descriptor(self):
+        return getattr(self.parent_type, self.name)
+
+@dataclass(repr=False)
+class ElementInfo(InfoBase):
+    """Information about a (possibly nested) array element"""
+    index: int
+    tp: type
+    parent_type: type
+    parent: 'InfoBase | None'
+
+    bits = None
+
+    @cached_property
+    def c_getter(self):
+        g = f'[{self.index}]'
+        if self.parent:
+            return self.parent.c_getter + g
+        else:
+            return g
+
+    def get_from(self, obj):
+        if self.parent:
+            obj = self.parent.get_from(obj)
+        return obj[self.index]
+
+    def set_to(self, obj, new):
+        """Set the field on a given Structure/Union instance"""
+        if self.parent:
+            obj = self.parent.get_from(obj)
+        obj[self.index] = new
 
     @cached_property
     def root(self):
@@ -586,29 +647,24 @@ class FieldInfo:
         else:
             return self.parent
 
-    @cached_property
-    def descriptor(self):
-        return getattr(self.parent_type, self.name)
-
-    def __repr__(self):
-        qname = f'{self.root.parent_type.__name__}.{self.full_name}'
-        try:
-            desc = self.descriptor
-        except AttributeError:
-            desc = '???'
-        return f'<{type(self).__name__} for {qname}: {desc}>'
-
 def iterfields(tp, parent=None):
     """Get *leaf* fields of a structure or union, as FieldInfo"""
-    try:
-        fields = tp._fields_
-    except AttributeError:
-        yield parent
-    else:
+    fields = getattr(tp, '_fields_', None)
+    if fields:
         for fielddesc in fields:
             f_name, f_tp, f_bits = unpack_field_desc(*fielddesc)
             sub = FieldInfo(f_name, f_tp, f_bits, tp, parent)
             yield from iterfields(f_tp, sub)
+        return
+
+    length = getattr(tp, '_length_', None)
+    if length:
+        for i in range(length):
+            sub = ElementInfo(i, tp._type_, tp, parent)
+            yield from iterfields(tp._type_, sub)
+        return
+
+    yield parent
 
 
 if __name__ == '__main__':
@@ -673,7 +729,7 @@ if __name__ == '__main__':
         output("""
             if (PyUnicode_CompareWithASCIIString(name, %s) == 0) {
             """ % c_str_repr(name))
-        lines, requires = dump_ctype(cls, struct_or_union_tag=name, semi=';')
+        lines, requires = dump_ctype(cls, struct_or_union_tag=name, end=';')
         if requires:
             output(f"""
             #if {" && ".join(f'({r})' for r in sorted(requires))}
@@ -690,7 +746,7 @@ if __name__ == '__main__':
         for field in iterfields(cls):
             f_tp = dump_simple_ctype(field.tp)
             output(f"""\
-                TEST_FIELD({f_tp}, value.{field.full_name});
+                TEST_FIELD({f_tp}, value{field.c_getter});
             """.rstrip())
         if requires:
             output(f"""

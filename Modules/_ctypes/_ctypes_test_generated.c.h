@@ -1873,6 +1873,78 @@
                 return result;
             }
 
+            if (PyUnicode_CompareWithASCIIString(name, "StructWithArrays") == 0) {
+
+                struct StructWithArrays {
+                    signed char a[3];
+                    int32_t b[5];
+                };
+                struct StructWithArrays value = {0};
+                APPEND(PyUnicode_FromString("StructWithArrays"));
+                APPEND(PyLong_FromLong(sizeof(struct StructWithArrays)));
+                APPEND(PyLong_FromLong(_Alignof(struct StructWithArrays)));
+                TEST_FIELD(signed char, value.a[0]);
+                TEST_FIELD(signed char, value.a[1]);
+                TEST_FIELD(signed char, value.a[2]);
+                TEST_FIELD(int32_t, value.b[0]);
+                TEST_FIELD(int32_t, value.b[1]);
+                TEST_FIELD(int32_t, value.b[2]);
+                TEST_FIELD(int32_t, value.b[3]);
+                TEST_FIELD(int32_t, value.b[4]);
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "NestedStructWithArrays") == 0) {
+
+                struct NestedStructWithArrays {
+                    struct {
+                        signed char a[3];
+                        int32_t b[5];
+                    };
+                    struct {
+                        signed char a[3];
+                        int32_t b[5];
+                    } y[3];
+                };
+                struct NestedStructWithArrays value = {0};
+                APPEND(PyUnicode_FromString("NestedStructWithArrays"));
+                APPEND(PyLong_FromLong(sizeof(struct NestedStructWithArrays)));
+                APPEND(PyLong_FromLong(_Alignof(struct NestedStructWithArrays)));
+                TEST_FIELD(signed char, value.a[0]);
+                TEST_FIELD(signed char, value.a[1]);
+                TEST_FIELD(signed char, value.a[2]);
+                TEST_FIELD(int32_t, value.b[0]);
+                TEST_FIELD(int32_t, value.b[1]);
+                TEST_FIELD(int32_t, value.b[2]);
+                TEST_FIELD(int32_t, value.b[3]);
+                TEST_FIELD(int32_t, value.b[4]);
+                TEST_FIELD(signed char, value.y[0].a[0]);
+                TEST_FIELD(signed char, value.y[0].a[1]);
+                TEST_FIELD(signed char, value.y[0].a[2]);
+                TEST_FIELD(int32_t, value.y[0].b[0]);
+                TEST_FIELD(int32_t, value.y[0].b[1]);
+                TEST_FIELD(int32_t, value.y[0].b[2]);
+                TEST_FIELD(int32_t, value.y[0].b[3]);
+                TEST_FIELD(int32_t, value.y[0].b[4]);
+                TEST_FIELD(signed char, value.y[1].a[0]);
+                TEST_FIELD(signed char, value.y[1].a[1]);
+                TEST_FIELD(signed char, value.y[1].a[2]);
+                TEST_FIELD(int32_t, value.y[1].b[0]);
+                TEST_FIELD(int32_t, value.y[1].b[1]);
+                TEST_FIELD(int32_t, value.y[1].b[2]);
+                TEST_FIELD(int32_t, value.y[1].b[3]);
+                TEST_FIELD(int32_t, value.y[1].b[4]);
+                TEST_FIELD(signed char, value.y[2].a[0]);
+                TEST_FIELD(signed char, value.y[2].a[1]);
+                TEST_FIELD(signed char, value.y[2].a[2]);
+                TEST_FIELD(int32_t, value.y[2].b[0]);
+                TEST_FIELD(int32_t, value.y[2].b[1]);
+                TEST_FIELD(int32_t, value.y[2].b[2]);
+                TEST_FIELD(int32_t, value.y[2].b[3]);
+                TEST_FIELD(int32_t, value.y[2].b[4]);
+                return result;
+            }
+
             Py_DECREF(result);
             PyErr_Format(PyExc_ValueError, "unknown testcase %R", name);
             return NULL;
