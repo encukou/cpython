@@ -187,6 +187,22 @@ class Bits(Structure):
                 ("S", c_short, 7)]
 
 @register()
+class BoolBits(Structure):
+    _fields_ = [(f"field{n}", c_bool, 1) for n in range(65)]
+
+@register()
+class BoolBitsMix(Structure):
+    _fields_ = [("bool_a", c_bool, 1),
+                ("int_a", c_int8, 2),
+                ("bool_b", c_bool, 1),
+                ("int_b", c_int16, 2),
+                ("bool_c", c_bool, 1),
+                ("int_c", c_int32, 2),
+                ("bool_d", c_bool, 1),
+                ("int_d", c_int64, 2),
+                ("bool_e", c_bool, 1),]
+
+@register()
 class IntBits_MSVC(Structure):
     _layout_ = "ms"
     _fields_ = [("A", c_int, 1),

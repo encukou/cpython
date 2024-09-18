@@ -441,6 +441,190 @@
                 return result;
             }
 
+            if (PyUnicode_CompareWithASCIIString(name, "BoolBits") == 0) {
+
+            #if (!defined(__xlc__))
+
+                struct BoolBits {
+                    _Bool field0 :1;
+                    _Bool field1 :1;
+                    _Bool field2 :1;
+                    _Bool field3 :1;
+                    _Bool field4 :1;
+                    _Bool field5 :1;
+                    _Bool field6 :1;
+                    _Bool field7 :1;
+                    _Bool field8 :1;
+                    _Bool field9 :1;
+                    _Bool field10 :1;
+                    _Bool field11 :1;
+                    _Bool field12 :1;
+                    _Bool field13 :1;
+                    _Bool field14 :1;
+                    _Bool field15 :1;
+                    _Bool field16 :1;
+                    _Bool field17 :1;
+                    _Bool field18 :1;
+                    _Bool field19 :1;
+                    _Bool field20 :1;
+                    _Bool field21 :1;
+                    _Bool field22 :1;
+                    _Bool field23 :1;
+                    _Bool field24 :1;
+                    _Bool field25 :1;
+                    _Bool field26 :1;
+                    _Bool field27 :1;
+                    _Bool field28 :1;
+                    _Bool field29 :1;
+                    _Bool field30 :1;
+                    _Bool field31 :1;
+                    _Bool field32 :1;
+                    _Bool field33 :1;
+                    _Bool field34 :1;
+                    _Bool field35 :1;
+                    _Bool field36 :1;
+                    _Bool field37 :1;
+                    _Bool field38 :1;
+                    _Bool field39 :1;
+                    _Bool field40 :1;
+                    _Bool field41 :1;
+                    _Bool field42 :1;
+                    _Bool field43 :1;
+                    _Bool field44 :1;
+                    _Bool field45 :1;
+                    _Bool field46 :1;
+                    _Bool field47 :1;
+                    _Bool field48 :1;
+                    _Bool field49 :1;
+                    _Bool field50 :1;
+                    _Bool field51 :1;
+                    _Bool field52 :1;
+                    _Bool field53 :1;
+                    _Bool field54 :1;
+                    _Bool field55 :1;
+                    _Bool field56 :1;
+                    _Bool field57 :1;
+                    _Bool field58 :1;
+                    _Bool field59 :1;
+                    _Bool field60 :1;
+                    _Bool field61 :1;
+                    _Bool field62 :1;
+                    _Bool field63 :1;
+                    _Bool field64 :1;
+                };
+                struct BoolBits value = {0};
+                APPEND(PyUnicode_FromString("BoolBits"));
+                APPEND(PyLong_FromLong(sizeof(struct BoolBits)));
+                APPEND(PyLong_FromLong(_Alignof(struct BoolBits)));
+                TEST_FIELD(_Bool, value.field0);
+                TEST_FIELD(_Bool, value.field1);
+                TEST_FIELD(_Bool, value.field2);
+                TEST_FIELD(_Bool, value.field3);
+                TEST_FIELD(_Bool, value.field4);
+                TEST_FIELD(_Bool, value.field5);
+                TEST_FIELD(_Bool, value.field6);
+                TEST_FIELD(_Bool, value.field7);
+                TEST_FIELD(_Bool, value.field8);
+                TEST_FIELD(_Bool, value.field9);
+                TEST_FIELD(_Bool, value.field10);
+                TEST_FIELD(_Bool, value.field11);
+                TEST_FIELD(_Bool, value.field12);
+                TEST_FIELD(_Bool, value.field13);
+                TEST_FIELD(_Bool, value.field14);
+                TEST_FIELD(_Bool, value.field15);
+                TEST_FIELD(_Bool, value.field16);
+                TEST_FIELD(_Bool, value.field17);
+                TEST_FIELD(_Bool, value.field18);
+                TEST_FIELD(_Bool, value.field19);
+                TEST_FIELD(_Bool, value.field20);
+                TEST_FIELD(_Bool, value.field21);
+                TEST_FIELD(_Bool, value.field22);
+                TEST_FIELD(_Bool, value.field23);
+                TEST_FIELD(_Bool, value.field24);
+                TEST_FIELD(_Bool, value.field25);
+                TEST_FIELD(_Bool, value.field26);
+                TEST_FIELD(_Bool, value.field27);
+                TEST_FIELD(_Bool, value.field28);
+                TEST_FIELD(_Bool, value.field29);
+                TEST_FIELD(_Bool, value.field30);
+                TEST_FIELD(_Bool, value.field31);
+                TEST_FIELD(_Bool, value.field32);
+                TEST_FIELD(_Bool, value.field33);
+                TEST_FIELD(_Bool, value.field34);
+                TEST_FIELD(_Bool, value.field35);
+                TEST_FIELD(_Bool, value.field36);
+                TEST_FIELD(_Bool, value.field37);
+                TEST_FIELD(_Bool, value.field38);
+                TEST_FIELD(_Bool, value.field39);
+                TEST_FIELD(_Bool, value.field40);
+                TEST_FIELD(_Bool, value.field41);
+                TEST_FIELD(_Bool, value.field42);
+                TEST_FIELD(_Bool, value.field43);
+                TEST_FIELD(_Bool, value.field44);
+                TEST_FIELD(_Bool, value.field45);
+                TEST_FIELD(_Bool, value.field46);
+                TEST_FIELD(_Bool, value.field47);
+                TEST_FIELD(_Bool, value.field48);
+                TEST_FIELD(_Bool, value.field49);
+                TEST_FIELD(_Bool, value.field50);
+                TEST_FIELD(_Bool, value.field51);
+                TEST_FIELD(_Bool, value.field52);
+                TEST_FIELD(_Bool, value.field53);
+                TEST_FIELD(_Bool, value.field54);
+                TEST_FIELD(_Bool, value.field55);
+                TEST_FIELD(_Bool, value.field56);
+                TEST_FIELD(_Bool, value.field57);
+                TEST_FIELD(_Bool, value.field58);
+                TEST_FIELD(_Bool, value.field59);
+                TEST_FIELD(_Bool, value.field60);
+                TEST_FIELD(_Bool, value.field61);
+                TEST_FIELD(_Bool, value.field62);
+                TEST_FIELD(_Bool, value.field63);
+                TEST_FIELD(_Bool, value.field64);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "BoolBitsMix") == 0) {
+
+            #if (!defined(__xlc__))
+
+                struct BoolBitsMix {
+                    _Bool bool_a :1;
+                    int8_t int_a :2;
+                    _Bool bool_b :1;
+                    int16_t int_b :2;
+                    _Bool bool_c :1;
+                    int32_t int_c :2;
+                    _Bool bool_d :1;
+                    int64_t int_d :2;
+                    _Bool bool_e :1;
+                };
+                struct BoolBitsMix value = {0};
+                APPEND(PyUnicode_FromString("BoolBitsMix"));
+                APPEND(PyLong_FromLong(sizeof(struct BoolBitsMix)));
+                APPEND(PyLong_FromLong(_Alignof(struct BoolBitsMix)));
+                TEST_FIELD(_Bool, value.bool_a);
+                TEST_FIELD(int8_t, value.int_a);
+                TEST_FIELD(_Bool, value.bool_b);
+                TEST_FIELD(int16_t, value.int_b);
+                TEST_FIELD(_Bool, value.bool_c);
+                TEST_FIELD(int32_t, value.int_c);
+                TEST_FIELD(_Bool, value.bool_d);
+                TEST_FIELD(int64_t, value.int_d);
+                TEST_FIELD(_Bool, value.bool_e);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
             if (PyUnicode_CompareWithASCIIString(name, "IntBits_MSVC") == 0) {
 
             #if (defined(MS_WIN32) || ((defined(__x86_64__) || defined(__i386__) || defined(__ppc64__)) && (defined(__GNUC__) || defined(__clang__))))

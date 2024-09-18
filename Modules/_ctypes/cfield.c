@@ -663,24 +663,49 @@ vBOOL_get(void *ptr, Py_ssize_t size)
     return PyBool_FromLong((long)*(short int *)ptr);
 }
 
+#if SIZEOF__BOOL == 1
+    typedef unsigned char boollike_t;
+#elif SIZEOF__BOOL == SIZEOF_SHORT
+    typedef unsigned short boollike_t;
+#elif SIZEOF__BOOL == SIZEOF_INT
+    typedef unsigned int boollike_t;
+#elif SIZEOF__BOOL == SIZEOF_LONG
+    typedef unsigned long boollike_t;
+#elif SIZEOF__BOOL == SIZEOF_LONG_LONG
+    typedef unsigned long long boollike_t;
+#else
+    #error "Could not find type with same size as bool"
+#endif /* SIZEOF__BOOL */
+
+
 static PyObject *
 bool_set(void *ptr, PyObject *value, Py_ssize_t size)
 {
-    switch (PyObject_IsTrue(value)) {
-    case -1:
+    int is_true = PyObject_IsTrue(value);
+    if (is_true < 0) {
         return NULL;
-    case 0:
-        *(_Bool *)ptr = 0;
-        _RET(value);
-    default:
-        *(_Bool *)ptr = 1;
-        _RET(value);
     }
+    if (NUM_BITS(size)) {
+        boollike_t x;
+        memcpy(&x, ptr, sizeof(x));
+        x = SET(boollike_t, x, is_true, size);
+        memcpy(ptr, &x, sizeof(x));
+    }
+    else {
+        *(_Bool *)ptr = is_true;
+    }
+    _RET(value);
 }
 
 static PyObject *
 bool_get(void *ptr, Py_ssize_t size)
 {
+    if (NUM_BITS(size)) {
+        boollike_t val;
+        memcpy(&val, ptr, sizeof(boollike_t));
+        GET_BITFIELD(val, size);
+        return val ? Py_True : Py_False;
+    }
     return PyBool_FromLong((long)*(_Bool *)ptr);
 }
 

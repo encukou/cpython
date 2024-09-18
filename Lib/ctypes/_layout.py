@@ -186,6 +186,9 @@ def get_layout(cls, input_fields, is_struct, base):
             if bit_size > type_size * 8:
                 raise ValueError(
                     f'number of bits invalid for bit field {name!r}')
+            if isinstance(ctype, ctypes.c_bool) and bit_size > 1:
+                raise ValueError(
+                    f'number of bits invalid for boolean bit field {name!r}')
         else:
             is_bitfield = False
             type_size = ctypes.sizeof(ctype)
