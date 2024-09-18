@@ -651,14 +651,14 @@ class Choice(Container):
             yield single_line
         else:
             for item_index, item in enumerate(self.items):
-                for line_index, line in enumerate(item.format_lines(columns - 2)):
+                for line_index, line in enumerate(item.format_lines(columns - 3)):
                     if line_index == 0:
                         if item_index == 0:
-                            prefix = '( '
+                            prefix = '(  '
                         else:
-                            prefix = '| '
+                            prefix = ' | '
                     else:
-                        prefix = '  '
+                        prefix = '   '
                     yield prefix + line
             yield ')'
 
@@ -775,6 +775,25 @@ class Sequence(Container):
         # follows this sequence. Conveniently, that's signalled by
         # having None in the result.
         return result
+
+    def format_lines(self, columns):
+        single_line = self.format()
+        if len(single_line) <= columns:
+            yield single_line
+        else:
+            current_line_pieces = []
+            for item in self:
+                lines = list(item.format_lines(columns))
+                if len(lines) == 1:
+                    current_line_pieces.append(lines[0])
+                else:
+                    current_line_pieces.append(lines[0])
+                    yield ' '.join(current_line_pieces)
+                    current_line_pieces = []
+                    yield from lines[1:-1]
+                    current_line_pieces.append(lines[-1])
+            yield ' '.join(current_line_pieces)
+
 
 
 @dataclass(frozen=True)
