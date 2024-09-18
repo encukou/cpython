@@ -406,6 +406,16 @@ class Example_gh_86098_pack(Structure):
                 ("c", c_uint32, 16)]
 
 @register()
+class Example_gh_59324_17(Structure):
+    _fields_ = [("a", c_int32, 17),
+                ("b", c_int16, 1)]
+
+@register()
+class Example_gh_59324_13(Structure):
+    _fields_ = [("a", c_int32, 13),
+                ("b", c_int16, 5)]
+
+@register()
 class AnonBitfields(Structure):
     class X(Structure):
         _fields_ = [("a", c_byte, 4),
