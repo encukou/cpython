@@ -1847,6 +1847,72 @@
                 return result;
             }
 
+            if (PyUnicode_CompareWithASCIIString(name, "Example_gh_59324_17") == 0) {
+
+            #if (!defined(__xlc__))
+
+                struct Example_gh_59324_17 {
+                    int32_t a :17;
+                    int16_t b :1;
+                };
+                struct Example_gh_59324_17 value = {0};
+                APPEND(PyUnicode_FromString("Example_gh_59324_17"));
+                APPEND(PyLong_FromLong(sizeof(struct Example_gh_59324_17)));
+                APPEND(PyLong_FromLong(_Alignof(struct Example_gh_59324_17)));
+                TEST_FIELD(int32_t, value.a);
+                TEST_FIELD(int16_t, value.b);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "Example_gh_59324_17_Swap") == 0) {
+
+            #if (!defined(__xlc__)) && (defined(__GNUC__) || defined(__clang__))
+
+                struct GCC_ATTR(scalar_storage_order("big-endian")) Example_gh_59324_17_Swap {
+                    int32_t a :13;
+                    int16_t b :5;
+                };
+                struct Example_gh_59324_17_Swap value = {0};
+                APPEND(PyUnicode_FromString("Example_gh_59324_17_Swap"));
+                APPEND(PyLong_FromLong(sizeof(struct Example_gh_59324_17_Swap)));
+                APPEND(PyLong_FromLong(_Alignof(struct Example_gh_59324_17_Swap)));
+                TEST_FIELD(int32_t, value.a);
+                TEST_FIELD(int16_t, value.b);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
+            if (PyUnicode_CompareWithASCIIString(name, "Example_gh_59324_13") == 0) {
+
+            #if (!defined(__xlc__))
+
+                struct Example_gh_59324_13 {
+                    int32_t a :13;
+                    int16_t b :5;
+                };
+                struct Example_gh_59324_13 value = {0};
+                APPEND(PyUnicode_FromString("Example_gh_59324_13"));
+                APPEND(PyLong_FromLong(sizeof(struct Example_gh_59324_13)));
+                APPEND(PyLong_FromLong(_Alignof(struct Example_gh_59324_13)));
+                TEST_FIELD(int32_t, value.a);
+                TEST_FIELD(int16_t, value.b);
+            #else
+                APPEND(Py_NewRef(Py_None));
+                APPEND(PyUnicode_FromString("skipped on this compiler"));
+            #endif
+
+                return result;
+            }
+
             if (PyUnicode_CompareWithASCIIString(name, "AnonBitfields") == 0) {
 
             #if (!defined(__xlc__))

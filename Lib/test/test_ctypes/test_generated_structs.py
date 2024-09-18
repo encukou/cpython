@@ -14,6 +14,7 @@ from test.support import import_helper
 import re
 from dataclasses import dataclass
 from functools import cached_property
+import sys
 
 import ctypes
 from ctypes import Structure, Union
@@ -411,6 +412,12 @@ class Example_gh_59324_17(Structure):
                 ("b", c_int16, 1)]
 
 @register()
+class Example_gh_59324_17_Swap(Structure):
+    _swappedbytes_ = True
+    _fields_ = [("a", c_int32, 13),
+                ("b", c_int16, 5)]
+
+@register()
 class Example_gh_59324_13(Structure):
     _fields_ = [("a", c_int32, 13),
                 ("b", c_int16, 5)]
@@ -523,6 +530,13 @@ def dump_ctype(tp, struct_or_union_tag='', variable_name='', end=''):
                     'defined(__GNUC__) || defined(__clang__)))'
                 )
             attributes.append('ms_struct')
+        if getattr(tp, '_swappedbytes_', False):
+            requires.add('defined(__GNUC__) || defined(__clang__)')
+            if sys.byteorder == 'big':
+                other = 'little'
+            else:
+                other = 'big'
+            attributes.append(f'scalar_storage_order("{other}-endian")')
         if attributes:
             a = f' GCC_ATTR({", ".join(attributes)})'
         else:
