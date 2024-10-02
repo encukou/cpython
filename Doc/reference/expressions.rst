@@ -157,7 +157,9 @@ Strings
    :diagrams: strings
 
    strings: ((STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+)
-   fstring_replacement_field: ('{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}')
+   fstring_replacement_field: (
+     :     ('{') (`annotated_rhs`) (['=']) (["!" NAME]) ([':' (FSTRING_MIDDLE | `fstring_replacement_field`)*]) ('}')
+     : )
 
 .. _parenthesized:
 
@@ -894,11 +896,25 @@ syntax is:
    :diagrams: primary t_primary
 
    primary: (
-     :   | (`primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']'))
+     :   | (
+     :         (`primary`) (
+     :           | ('.' NAME)
+     :           | (`genexp`)
+     :           | ('(' [`arguments`] ')')
+     :           | ('[' `slices` ']')
+     :         )
+     :     )
      :   | (`atom`)
      : )
    t_primary: (
-     :   | (`t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')'))
+     :   | (
+     :         (`t_primary`) (
+     :           | ('.' NAME)
+     :           | ('[' `slices` ']')
+     :           | (`genexp`)
+     :           | ('(' [`arguments`] ')')
+     :         )
+     :     )
      :   | (`atom`)
      : )
 
@@ -1100,11 +1116,15 @@ series of :term:`arguments <argument>`:
 
    arguments: (`args` [','])
    args: (
-     :   | (','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`])
+     :   | (
+     :         (','.('*' `expression` | `assignment_expression` | `expression`)+) ([',' `kwargs`])
+     :     )
      :   | (`kwargs`)
      : )
    kwargs: (
-     :   | (','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+])
+     :   | (
+     :         (','.((NAME '=' | '*') `expression`)+) ([',' ','.`kwarg_or_double_starred`+])
+     :     )
      :   | (','.`kwarg_or_double_starred`+)
      : )
    kwarg_or_double_starred: ((NAME '=' | '**') `expression`)
@@ -1634,7 +1654,18 @@ in mathematics:
    :diagrams: comparison
 
    comparison: (`bitwise_or` `compare_op_bitwise_or_pair`*)
-   compare_op_bitwise_or_pair: (('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not']) `bitwise_or`)
+   compare_op_bitwise_or_pair: (
+     :     (
+     :       | ('==')
+     :       | ('!=')
+     :       | ('<=')
+     :       | ('<')
+     :       | ('>=')
+     :       | ('>')
+     :       | (['not'] 'in')
+     :       | ('is' ['not'])
+     :     ) (`bitwise_or`)
+     : )
 
 .. productionlist:: python-grammar-old
    comparison: `or_expr` (`comp_operator` `or_expr`)*
@@ -2046,12 +2077,42 @@ Lambdas
    :diagrams: lambda_params lambda_star_etc lambda_kwds
 
    lambda_params: (
-     :   | ((((NAME (',' | &':'))+ '/' NAME.(',' | &':')+ | `lambda_slash_with_default` | (NAME (',' | &':'))+) (NAME `default` (',' | &':'))* | (NAME `default` (',' | &':'))+) [`lambda_star_etc`])
+     :   | (
+     :         (
+     :           | (
+     :                 (
+     :                   | (
+     :                         ((NAME (',' | &':'))+) ('/') (NAME.(',' | &':')+)
+     :                     )
+     :                   | (`lambda_slash_with_default`)
+     :                   | ((NAME (',' | &':'))+)
+     :                 ) ((NAME `default` (',' | &':'))*)
+     :             )
+     :           | ((NAME `default` (',' | &':'))+)
+     :         ) ([`lambda_star_etc`])
+     :     )
      :   | (`lambda_star_etc`)
      : )
-   lambda_slash_with_default: ((NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (',' | &':'))
+   lambda_slash_with_default: (
+     :     ((NAME (',' | &':'))*) ((NAME `default` (',' | &':'))+) ('/') (
+     :       | (',')
+     :       | (&':')
+     :     )
+     : )
    lambda_star_etc: (
-     :   | ('*' (NAME (',' | &':') (NAME [`default`] (',' | &':'))* | ',' (NAME [`default`] (',' | &':'))+) [`lambda_kwds`])
+     :   | (
+     :         ('*') (
+     :           | (
+     :                 (NAME) (
+     :                   | (',')
+     :                   | (&':')
+     :                 ) ((NAME [`default`] (',' | &':'))*)
+     :             )
+     :           | (
+     :                 (',') ((NAME [`default`] (',' | &':'))+)
+     :             )
+     :         ) ([`lambda_kwds`])
+     :     )
      :   | (`lambda_kwds`)
      : )
    lambda_kwds: ('**' NAME [','])
@@ -2087,7 +2148,9 @@ Expression lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: tuple star_named_expression
 
-   tuple: ('(' [`star_named_expression` ',' [`star_named_expressions`]] ')')
+   tuple: (
+     :     ('(') ([`star_named_expression` ',' [`star_named_expressions`]]) (')')
+     : )
    star_named_expressions: (','.`star_named_expression`+ [','])
    star_named_expression: ('*' `bitwise_or` | `named_expression`)
 

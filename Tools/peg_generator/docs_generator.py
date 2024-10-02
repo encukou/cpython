@@ -396,17 +396,21 @@ def split_lines(lines: list['OutputLine']):
 
 
 class OutputLine:
-    def __init__(self, parts, max_length, indent):
+    def __init__(self, parts, max_length, first_indent='', running_indent=None):
         self.max_length = max_length
         self.parts = parts
-        self.indent = indent
+        self.first_indent = first_indent
+        if running_indent is None:
+            self.running_indent = first_indent
+        else:
+            self.running_indent = running_indent
 
     @classmethod
-    def from_nodes(cls, nodes, max_length, indent=''):
-        return cls([OutputNodeRepr(node) for node in nodes], max_length, indent)
+    def from_nodes(cls, nodes, max_length, first_indent='', running_indent=None):
+        return cls([OutputNodeRepr(node) for node in nodes], max_length, first_indent, running_indent)
 
     def __str__(self):
-        return self.indent + self.string_representation
+        return self.first_indent + self.string_representation
 
     def __len__(self):
         return len(self.string_representation)
@@ -425,14 +429,14 @@ class OutputLine:
             return -len(part.content)
         contents_by_length.sort(key=biggest_contents)
         for i, part in contents_by_length:
-            split_part = part.node.split_into_lines(self.max_length - 2, self.indent + '  ')
+            split_part = part.node.split_into_lines(self.max_length - 2, self.running_indent + '  ')
             if not split_part:
                 continue
             opening, inner_lines, closing = split_part
             return [
-                OutputLine(self.parts[:i] + [opening], self.max_length, self.indent),
+                OutputLine(self.parts[:i] + [opening], self.max_length, self.first_indent, self.running_indent),
                 *inner_lines,
-                OutputLine([closing] + self.parts[i+1:], self.max_length, self.indent),
+                OutputLine([closing] + self.parts[i+1:], self.max_length, self.running_indent),
             ]
 
 
@@ -724,7 +728,7 @@ class Choice(Container):
     def split_into_lines(self, max_length, indent):
         return (
             OutputSymbol('('),
-            [OutputLine.from_nodes([alt], max_length=max_length-2, indent=indent+'| ') for alt in self],
+            [OutputLine.from_nodes([alt], max_length=max_length-2, first_indent=indent+'| ', running_indent=indent+'  ') for alt in self],
             OutputSymbol(')'),
         )
 
@@ -841,6 +845,13 @@ class Sequence(Container):
         # follows this sequence. Conveniently, that's signalled by
         # having None in the result.
         return result
+
+    def split_into_lines(self, max_length, indent):
+        return (
+            OutputSymbol('('),
+            [OutputLine.from_nodes(self, max_length=max_length-2, first_indent=indent+'  ')],
+            OutputSymbol(')'),
+        )
 
 
 
