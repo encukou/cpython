@@ -49,7 +49,16 @@ Summarizing:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: compound_stmt block
 
-   compound_stmt: (`function_def` | `if_stmt` | `class_def` | `with_stmt` | `for_stmt` | `try_stmt` | `while_stmt` | `match_stmt`)
+   compound_stmt: (
+     :   | (`function_def`)
+     :   | (`if_stmt`)
+     :   | (`class_def`)
+     :   | (`with_stmt`)
+     :   | (`for_stmt`)
+     :   | (`try_stmt`)
+     :   | (`while_stmt`)
+     :   | (`match_stmt`)
+     : )
    block: (NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`)
 
 .. index::
@@ -636,7 +645,10 @@ The match statement is used for pattern matching.  Syntax:
    :diagrams: match_stmt
 
    match_stmt: ("match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT)
-   subject_expr: (`star_named_expression` ',' [`star_named_expressions`] | `named_expression`)
+   subject_expr: (
+     :   | (`star_named_expression` ',' [`star_named_expressions`])
+     :   | (`named_expression`)
+     : )
    case_block: ("case" `patterns` [`guard`] ':' `block`)
 
 .. note::
@@ -811,7 +823,16 @@ The top-level syntax for ``patterns`` is:
 
    patterns: (`open_sequence_pattern` | `pattern`)
    pattern: (`as_pattern` | `or_pattern`)
-   closed_pattern: (`literal_pattern` | `pattern_capture_target` | `wildcard_pattern` | `attr` | `group_pattern` | `sequence_pattern` | `mapping_pattern` | `class_pattern`)
+   closed_pattern: (
+     :   | (`literal_pattern`)
+     :   | (`pattern_capture_target`)
+     :   | (`wildcard_pattern`)
+     :   | (`attr`)
+     :   | (`group_pattern`)
+     :   | (`sequence_pattern`)
+     :   | (`mapping_pattern`)
+     :   | (`class_pattern`)
+     : )
 
 The descriptions below will include a description "in simple terms" of what a pattern
 does for illustration purposes (credits to Raymond Hettinger for a document that
@@ -881,7 +902,14 @@ A literal pattern corresponds to most
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: literal_pattern
 
-   literal_pattern: (`signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False')
+   literal_pattern: (
+     :   | (`signed_number`)
+     :   | (`complex_number`)
+     :   | (`strings`)
+     :   | ('None')
+     :   | ('True')
+     :   | ('False')
+     : )
    signed_number: (['-'] NUMBER)
    complex_number: (['-'] NUMBER ('+' | '-') NUMBER)
 
@@ -1009,7 +1037,10 @@ The syntax is similar to the unpacking of a list or tuple.
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: sequence_pattern maybe_sequence_pattern maybe_star_pattern
 
-   sequence_pattern: ('[' [`maybe_sequence_pattern`] ']' | '(' [`open_sequence_pattern`] ')')
+   sequence_pattern: (
+     :   | ('[' [`maybe_sequence_pattern`] ']')
+     :   | ('(' [`open_sequence_pattern`] ')')
+     : )
    open_sequence_pattern: (`maybe_star_pattern` ',' [`maybe_sequence_pattern`])
    maybe_sequence_pattern: (','.`maybe_star_pattern`+ [','])
    maybe_star_pattern: (`star_pattern` | `pattern`)
@@ -1286,13 +1317,19 @@ A function definition defines a user-defined function object (see section
 
    function_def: ([`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`)
    decorators: (('@' `named_expression` NEWLINE)+)
-   parameters: (((`slash_no_default` `param_no_default`* | `slash_with_default` | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`] | `star_etc`)
+   parameters: (
+     :   | (((`slash_no_default` `param_no_default`* | `slash_with_default` | `param_no_default`+) `param_with_default`* | `param_with_default`+) [`star_etc`])
+     :   | (`star_etc`)
+     : )
    slash_no_default: (`param_no_default`+ '/' (',' | &')'))
    default: ('=' `expression`)
    param_no_default: (`param` (',' | &')'))
    slash_with_default: (`param_no_default`* `param_with_default`+ '/' (',' | &')'))
    param_with_default: (`param` `default` (',' | &')'))
-   star_etc: ('*' ((`param_no_default` | NAME ':' `star_expression` (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`] | `kwds`)
+   star_etc: (
+     :   | ('*' ((`param_no_default` | NAME ':' `star_expression` (',' | &')')) `param_maybe_default`* | ',' `param_maybe_default`+) [`kwds`])
+     :   | (`kwds`)
+     : )
    param: (NAME [':' `expression`])
    param_maybe_default: (`param` [`default`] (',' | &')'))
    kwds: ('**' `param_no_default`)
@@ -1729,7 +1766,11 @@ Type parameter lists
    :diagrams: type_params
 
    type_params: ('[' ','.`type_param`+ [','] ']')
-   type_param: (NAME [':' `expression`] ['=' `expression`] | '*' NAME ['=' `star_expression`] | '**' NAME ['=' `expression`])
+   type_param: (
+     :   | (NAME [':' `expression`] ['=' `expression`])
+     :   | ('*' NAME ['=' `star_expression`])
+     :   | ('**' NAME ['=' `expression`])
+     : )
 
 :ref:`Functions <def>` (including :ref:`coroutines <async def>`),
 :ref:`classes <class>` and :ref:`type aliases <type>` may

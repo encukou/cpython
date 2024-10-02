@@ -406,7 +406,7 @@ class OutputLine:
         return cls([OutputNodeRepr(node) for node in nodes], max_length, indent)
 
     def __str__(self):
-        return self.string_representation
+        return self.indent + self.string_representation
 
     def __len__(self):
         return len(self.string_representation)
@@ -430,9 +430,9 @@ class OutputLine:
                 continue
             opening, inner_lines, closing = split_part
             return [
-                OutputLine(self.parts[:i] + [OutputSymbol(opening)], self.max_length, self.indent),
+                OutputLine(self.parts[:i] + [opening], self.max_length, self.indent),
                 *inner_lines,
-                OutputLine([OutputSymbol(closing), self.parts[i+1:]], self.max_length), self.indent,
+                OutputLine([closing] + self.parts[i+1:], self.max_length, self.indent),
             ]
 
 
@@ -721,22 +721,12 @@ class Choice(Container):
             result.update(alt.get_rule_follow_set(rule_name, rules))
         return result
 
-    def format_lines(self, columns):
-        single_line = self.format()
-        if len(single_line) <= columns:
-            yield single_line
-        else:
-            for item_index, item in enumerate(self.items):
-                for line_index, line in enumerate(item.format_lines(columns - 3)):
-                    if line_index == 0:
-                        if item_index == 0:
-                            prefix = '(  '
-                        else:
-                            prefix = ' | '
-                    else:
-                        prefix = '   '
-                    yield prefix + line
-            yield ')'
+    def split_into_lines(self, max_length, indent):
+        return (
+            OutputSymbol('('),
+            [OutputLine.from_nodes([alt], max_length=max_length-2, indent=indent+'| ') for alt in self],
+            OutputSymbol(')'),
+        )
 
 
 @dataclass(frozen=True)
@@ -851,24 +841,6 @@ class Sequence(Container):
         # follows this sequence. Conveniently, that's signalled by
         # having None in the result.
         return result
-
-    def _format_lines(self, columns):
-        single_line = self.format()
-        if len(single_line) <= columns:
-            yield single_line
-        else:
-            current_line_pieces = []
-            for item in self:
-                lines = list(item.format_lines(columns))
-                if len(lines) == 1:
-                    current_line_pieces.append(lines[0])
-                else:
-                    current_line_pieces.append(lines[0])
-                    yield ' '.join(current_line_pieces)
-                    current_line_pieces = []
-                    yield from lines[1:-1]
-                    current_line_pieces.append(lines[-1])
-            yield ' '.join(current_line_pieces)
 
 
 
