@@ -7,6 +7,7 @@ import collections
 import typing
 import tokenize
 import token
+from functools import cached_property
 
 import pegen.grammar
 from pegen.build import build_parser
@@ -364,6 +365,77 @@ class Snippet:
         )
 
 
+@dataclass
+class OutputSymbol:
+    content: str
+
+    def __str__(self):
+        return self.content
+
+
+class OutputNodeRepr:
+    content: str
+    node: 'Node'
+    def __init__(self, node):
+        self.node = node
+        self.content = node.format_for_precedence(Precedence.MAX)
+
+    def __str__(self):
+        return self.content
+
+
+def split_lines(lines: list['OutputLine']):
+    todo_lines = list(reversed(lines))
+    while todo_lines:
+        current_line = todo_lines.pop()
+        split_result = current_line.split_once()
+        if split_result is None:
+            yield current_line
+        else:
+            todo_lines.extend(reversed(split_result))
+
+
+class OutputLine:
+    def __init__(self, parts, max_length, indent):
+        self.max_length = max_length
+        self.parts = parts
+        self.indent = indent
+
+    @classmethod
+    def from_nodes(cls, nodes, max_length, indent=''):
+        return cls([OutputNodeRepr(node) for node in nodes], max_length, indent)
+
+    def __str__(self):
+        return self.string_representation
+
+    def __len__(self):
+        return len(self.string_representation)
+
+    @cached_property
+    def string_representation(self):
+        return ' '.join(str(part) for part in self.parts)
+
+    def split_once(self):
+        if len(self) <= self.max_length:
+            return None
+        contents_by_length = [(i, part) for (i, part) in enumerate(self.parts)
+                              if isinstance(part, OutputNodeRepr)]
+        def biggest_contents(element):
+            i, part = element
+            return -len(part.content)
+        contents_by_length.sort(key=biggest_contents)
+        for i, part in contents_by_length:
+            split_part = part.node.split_into_lines(self.max_length - 2, self.indent + '  ')
+            if not split_part:
+                continue
+            opening, inner_lines, closing = split_part
+            return [
+                OutputLine(self.parts[:i] + [OutputSymbol(opening)], self.max_length, self.indent),
+                *inner_lines,
+                OutputLine([OutputSymbol(closing), self.parts[i+1:]], self.max_length), self.indent,
+            ]
+
+
 # TODO: Check parentheses are correct in complex cases.
 
 class Precedence(enum.IntEnum):
@@ -372,6 +444,7 @@ class Precedence(enum.IntEnum):
     REPEAT = enum.auto()
     LOOKAHEAD = enum.auto()
     ATOM = enum.auto()
+    MAX = enum.auto()
 
 class Node:
     def format(self) -> str:
@@ -488,6 +561,9 @@ class Node:
         ignoring whitespace.
         """
         yield self.format()
+
+    def split_into_lines(self, max_length, indent):
+        return None
 
 
 @dataclass(frozen=True)
@@ -776,7 +852,7 @@ class Sequence(Container):
         # having None in the result.
         return result
 
-    def format_lines(self, columns):
+    def _format_lines(self, columns):
         single_line = self.format()
         if len(single_line) <= columns:
             yield single_line
@@ -1302,7 +1378,9 @@ def generate_rule_lines(snippet):
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
-        for num, line in enumerate(node.format_lines(available_space)):
+        output_lines = split_lines([OutputLine.from_nodes([node], available_space)])
+
+        for num, line in enumerate(output_lines):
             if num == 0:
                 yield f'{name}: {line}'.rstrip()
             else:
