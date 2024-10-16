@@ -376,9 +376,14 @@ class OutputSymbol:
 class OutputNodeRepr:
     content: str
     node: 'Node'
-    def __init__(self, node):
+
+    def __init__(self, node, parent_node):
         self.node = node
-        self.content = node.format_for_precedence(Precedence.MAX)
+        if parent_node is None:
+            precedence = Precedence.MIN
+        else:
+            precedence = parent_node.precedence
+        self.content = node.format_for_precedence(precedence)
 
     def __str__(self):
         return self.content
@@ -406,8 +411,8 @@ class OutputLine:
             self.running_indent = running_indent
 
     @classmethod
-    def from_nodes(cls, nodes, max_length, first_indent='', running_indent=None):
-        return cls([OutputNodeRepr(node) for node in nodes], max_length, first_indent, running_indent)
+    def from_nodes(cls, nodes, max_length, first_indent='', running_indent=None, *, parent_node):
+        return cls([OutputNodeRepr(node, parent_node) for node in nodes], max_length, first_indent, running_indent)
 
     def __str__(self):
         return self.first_indent + self.string_representation
@@ -443,6 +448,7 @@ class OutputLine:
 # TODO: Check parentheses are correct in complex cases.
 
 class Precedence(enum.IntEnum):
+    MIN = enum.auto()
     CHOICE = enum.auto()
     SEQUENCE = enum.auto()
     REPEAT = enum.auto()
@@ -728,7 +734,7 @@ class Choice(Container):
     def split_into_lines(self, max_length, indent):
         return (
             OutputSymbol('('),
-            [OutputLine.from_nodes([alt], max_length=max_length-2, first_indent=indent+'| ', running_indent=indent+'  ') for alt in self],
+            [OutputLine.from_nodes([alt], max_length=max_length-2, first_indent=indent+'| ', running_indent=indent+'  ', parent_node=self) for alt in self],
             OutputSymbol(')'),
         )
 
@@ -849,7 +855,7 @@ class Sequence(Container):
     def split_into_lines(self, max_length, indent):
         return (
             OutputSymbol('('),
-            [OutputLine.from_nodes(self, max_length=max_length-2, first_indent=indent+'  ')],
+            [OutputLine.from_nodes(self, max_length=max_length-2, first_indent=indent+'  ', parent_node=self)],
             OutputSymbol(')'),
         )
 
@@ -1361,7 +1367,7 @@ def generate_rule_lines(snippet):
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
-        output_lines = split_lines([OutputLine.from_nodes([node], available_space)])
+        output_lines = split_lines([OutputLine.from_nodes([node], available_space, parent_node=None)])
 
         for num, line in enumerate(output_lines):
             if num == 0:

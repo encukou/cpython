@@ -10,8 +10,8 @@ Simple statements
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: statement
 
-   statement: (`compound_stmt` | `simple_stmts`)
-   simple_stmts: (';'.`simple_stmt`+ [';'] NEWLINE)
+   statement: `compound_stmt` | `simple_stmts`
+   simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -25,20 +25,20 @@ simple statements is:
    :diagrams: simple_stmt
 
    simple_stmt: (
-     :   | (`assignment`)
-     :   | (`type_alias`)
-     :   | (`star_expressions`)
-     :   | (`return_stmt`)
-     :   | (`import_stmt`)
-     :   | (`raise_stmt`)
-     :   | ('pass')
-     :   | (`del_stmt`)
-     :   | (`yield_stmt`)
-     :   | (`assert_stmt`)
-     :   | ('break')
-     :   | ('continue')
-     :   | (`global_stmt`)
-     :   | (`nonlocal_stmt`)
+     :   | `assignment`
+     :   | `type_alias`
+     :   | `star_expressions`
+     :   | `return_stmt`
+     :   | `import_stmt`
+     :   | `raise_stmt`
+     :   | 'pass'
+     :   | `del_stmt`
+     :   | `yield_stmt`
+     :   | `assert_stmt`
+     :   | 'break'
+     :   | 'continue'
+     :   | `global_stmt`
+     :   | `nonlocal_stmt`
      : )
 
 .. _exprstmts:
@@ -62,8 +62,8 @@ expression statement is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: star_expressions
 
-   star_expressions: (','.`star_expression`+ [','])
-   star_expression: ('*' `bitwise_or` | `expression`)
+   star_expressions: ','.`star_expression`+ [',']
+   star_expression: '*' `bitwise_or` | `expression`
 
 .. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
@@ -109,38 +109,38 @@ attributes or items of mutable objects:
    assignment: (
      :   | (
      :         (
-     :           | (NAME)
-     :           | ('(' `single_target` ')')
-     :           | (`single_subscript_attribute_target`)
-     :         ) (':') (`expression`) (['=' `annotated_rhs`])
+     :           | NAME
+     :           | '(' `single_target` ')'
+     :           | `single_subscript_attribute_target`
+     :         ) ':' `expression` ['=' `annotated_rhs`]
      :     )
      :   | (
      :         (
-     :           | ((`star_targets` '=')+)
-     :           | (`single_target` `augassign`)
+     :           | (`star_targets` '=')+
+     :           | `single_target` `augassign`
      :         ) (`yield_expr` | `star_expressions`)
      :     )
      : )
    single_target: (
-     :   | (`single_subscript_attribute_target`)
-     :   | (NAME)
-     :   | ('(' `single_target` ')')
+     :   | `single_subscript_attribute_target`
+     :   | NAME
+     :   | '(' `single_target` ')'
      : )
-   annotated_rhs: (`yield_expr` | `star_expressions`)
+   annotated_rhs: `yield_expr` | `star_expressions`
    augassign: (
-     :   | ('+=')
-     :   | ('-=')
-     :   | ('*=')
-     :   | ('@=')
-     :   | ('/=')
-     :   | ('%=')
-     :   | ('&=')
-     :   | ('|=')
-     :   | ('^=')
-     :   | ('<<=')
-     :   | ('>>=')
-     :   | ('**=')
-     :   | ('//=')
+     :   | '+='
+     :   | '-='
+     :   | '*='
+     :   | '@='
+     :   | '/='
+     :   | '%='
+     :   | '&='
+     :   | '|='
+     :   | '^='
+     :   | '<<='
+     :   | '>>='
+     :   | '**='
+     :   | '//='
      : )
 
 .. grammar-snippet:: star_targets star_target star_atom star_targets_tuple_seq
@@ -148,19 +148,19 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: star_targets star_target target_with_star_atom
 
-   star_targets: (','.`star_target`+ [','])
-   star_target: ('*' !'*' `star_target` | `target_with_star_atom`)
+   star_targets: ','.`star_target`+ [',']
+   star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: (
-     :   | (NAME)
+     :   | NAME
      :   | (
-     :         ('(') ([`target_with_star_atom` | `star_targets_tuple_seq`]) (')')
+     :         '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
      :     )
-     :   | ('[' [','.`star_target`+ [',']] ']')
+     :   | '[' [','.`star_target`+ [',']] ']'
      : )
-   star_targets_tuple_seq: (`star_target` ((',' `star_target`)+ [','] | ','))
+   star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
    target_with_star_atom: (
-     :   | (`t_primary` ('.' NAME | '[' `slices` ']'))
-     :   | (`star_atom`)
+     :   | `t_primary` ('.' NAME | '[' `slices` ']')
+     :   | `star_atom`
      : )
 
 .. grammar-snippet:: single_subscript_attribute_target
@@ -168,12 +168,7 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: single_subscript_attribute_target
 
-   single_subscript_attribute_target: (
-     :     (`t_primary`) (
-     :       | ('.' NAME)
-     :       | ('[' `slices` ']')
-     :     )
-     : )
+   single_subscript_attribute_target: `t_primary` ('.' NAME | '[' `slices` ']')
 
 .. productionlist:: python-grammar-old
    assignment_stmt: (`target_list` "=")+ (`starred_expression` | `yield_expression`)
@@ -481,7 +476,7 @@ program:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: assert_stmt
 
-   assert_stmt: ('assert' `expression` [',' `expression`])
+   assert_stmt: 'assert' `expression` [',' `expression`]
 
 The simple form, ``assert expression``, is equivalent to ::
 
@@ -547,13 +542,13 @@ The :keyword:`!del` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: del_stmt del_targets
 
-   del_stmt: ('del' `del_targets`)
-   del_targets: (','.`del_target`+ [','])
+   del_stmt: 'del' `del_targets`
+   del_targets: ','.`del_target`+ [',']
    del_target: (
-     :   | (`t_primary` ('.' NAME | '[' `slices` ']'))
-     :   | (NAME)
-     :   | ('(' [`del_target` | `del_targets`] ')')
-     :   | ('[' [`del_targets`] ']')
+     :   | `t_primary` ('.' NAME | '[' `slices` ']')
+     :   | NAME
+     :   | '(' [`del_target` | `del_targets`] ')'
+     :   | '[' [`del_targets`] ']'
      : )
 
 Deletion is recursively defined very similar to the way assignment is defined.
@@ -597,7 +592,7 @@ The :keyword:`!return` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: return_stmt
 
-   return_stmt: ('return' [`star_expressions`])
+   return_stmt: 'return' [`star_expressions`]
 
 :keyword:`return` may only occur syntactically nested in a function definition,
 not within a nested class definition.
@@ -640,7 +635,7 @@ The :keyword:`!yield` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: yield_stmt
 
-   yield_stmt: (`yield_expr`)
+   yield_stmt: `yield_expr`
 
 A :keyword:`yield` statement is semantically equivalent to a :ref:`yield
 expression <yieldexpr>`. The yield statement can be used to omit the parentheses
@@ -679,7 +674,7 @@ The :keyword:`!raise` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: raise_stmt
 
-   raise_stmt: ('raise' [`expression` ['from' `expression`]])
+   raise_stmt: 'raise' [`expression` ['from' `expression`]]
 
 If no expressions are present, :keyword:`raise` re-raises the
 exception that is currently being handled, which is also known as the *active exception*.
@@ -871,20 +866,20 @@ The :keyword:`!import` statement
    :diagrams: import_stmt dotted_name
 
    import_stmt: (
-     :   | ('import' ','.(`dotted_name` ['as' NAME])+)
+     :   | 'import' ','.(`dotted_name` ['as' NAME])+
      :   | (
-     :         ('from') (
-     :           | (('.' | '...')* `dotted_name`)
-     :           | (('.' | '...')+)
-     :         ) ('import') (`import_from_targets`)
+     :         'from' (
+     :           | ('.' | '...')* `dotted_name`
+     :           | ('.' | '...')+
+     :         ) 'import' `import_from_targets`
      :     )
      : )
    import_from_targets: (
-     :   | ('(' ','.(NAME ['as' NAME])+ [','] ')')
-     :   | (','.(NAME ['as' NAME])+)
-     :   | ('*')
+     :   | '(' ','.(NAME ['as' NAME])+ [','] ')'
+     :   | ','.(NAME ['as' NAME])+
+     :   | '*'
      : )
-   dotted_name: ([`dotted_name` '.'] NAME)
+   dotted_name: [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old
    import_stmt: "import" `module` ["as" `identifier`] ("," `module` ["as" `identifier`])*
@@ -1103,7 +1098,7 @@ The :keyword:`!global` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: global_stmt
 
-   global_stmt: ('global' ','.NAME+)
+   global_stmt: 'global' ','.NAME+
 
 The :keyword:`global` statement is a declaration which holds for the entire
 current code block.  It means that the listed identifiers are to be interpreted
@@ -1152,7 +1147,7 @@ The :keyword:`!nonlocal` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: nonlocal_stmt
 
-   nonlocal_stmt: ('nonlocal' ','.NAME+)
+   nonlocal_stmt: 'nonlocal' ','.NAME+
 
 When the definition of a function or class is nested (enclosed) within
 the definitions of other functions, its nonlocal scopes are the local
@@ -1189,7 +1184,7 @@ The :keyword:`!type` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: type_alias
 
-   type_alias: ("type" NAME [`type_params`] '=' `expression`)
+   type_alias: "type" NAME [`type_params`] '=' `expression`
 
 The :keyword:`!type` statement declares a type alias, which is an instance
 of :class:`typing.TypeAliasType`.
