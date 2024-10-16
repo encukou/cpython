@@ -444,11 +444,13 @@ class OutputLine:
             if not split_part:
                 continue
             opening, inner_lines, closing = split_part
-            return [
-                OutputLine(self.parts[:i] + opening, self.max_length, self.first_indent, self.running_indent),
-                *inner_lines,
-                OutputLine(closing + self.parts[i+1:], self.max_length, self.running_indent),
-            ]
+            results = []
+            results.append(OutputLine(self.parts[:i], self.max_length, self.first_indent, self.running_indent))
+            results.append(OutputLine(opening, self.max_length, self.running_indent))
+            results.extend(inner_lines)
+            results.append(OutputLine(closing, self.max_length, self.running_indent))
+            results.append(OutputLine(self.parts[i+1:], self.max_length, self.running_indent))
+            return results
 
 
 # TODO: Check parentheses are correct in complex cases.
@@ -1410,7 +1412,8 @@ def combine_lines(input_lines):
             if current_line.strip():
                 yield current_line
             current_line = new_line
-    yield current_line
+    if current_line.strip():
+        yield current_line
 
 
 def generate_rule_lines(snippet):
@@ -1428,7 +1431,7 @@ def generate_rule_lines(snippet):
     yield ''
 
     longest_name = max(snippet.documented_rules, key=len)
-    available_space = 80 - len(longest_name) - len(' ::=  ')
+    available_space = 80 - len(longest_name) - len(' ::= ')
 
     # Yield all the lines
     for name, node in snippet.documented_rules.items():
