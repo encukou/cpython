@@ -376,14 +376,16 @@ class OutputSymbol:
 class OutputNodeRepr:
     content: str
     node: 'Node'
+    parent_precedence: 'Precedence'
 
     def __init__(self, node, parent_node):
         self.node = node
         if parent_node is None:
-            precedence = Precedence.MIN
+            parent_precedence = Precedence.MIN
         else:
-            precedence = parent_node.precedence
-        self.content = node.format_for_precedence(precedence)
+            parent_precedence = parent_node.precedence
+        self.content = node.format_for_precedence(parent_precedence)
+        self.parent_precedence = parent_precedence
 
     def __str__(self):
         return self.content
@@ -434,14 +436,18 @@ class OutputLine:
             return -len(part.content)
         contents_by_length.sort(key=biggest_contents)
         for i, part in contents_by_length:
-            split_part = part.node.split_into_lines(self.max_length - 2, self.running_indent + '  ')
+            split_part = part.node.split_into_lines(
+                self.max_length - 2,
+                self.running_indent + '  ',
+                parent_precedence=part.parent_precedence,
+            )
             if not split_part:
                 continue
             opening, inner_lines, closing = split_part
             return [
-                OutputLine(self.parts[:i] + [opening], self.max_length, self.first_indent, self.running_indent),
+                OutputLine(self.parts[:i] + opening, self.max_length, self.first_indent, self.running_indent),
                 *inner_lines,
-                OutputLine([closing] + self.parts[i+1:], self.max_length, self.running_indent),
+                OutputLine(closing + self.parts[i+1:], self.max_length, self.running_indent),
             ]
 
 
@@ -550,13 +556,16 @@ class Node:
         for value in self:
             yield from value.generate_descendants(filter_class)
 
+    def needs_parens(self, parent_precedence):
+        return self.precedence < parent_precedence
+
     def format_for_precedence(self, parent_precedence):
         """Like format(), but add parentheses if necessary.
 
         parent_precedence is the Precedence of the enclosing Node.
         """
         result = self.format()
-        if self.precedence < parent_precedence:
+        if self.needs_parens(parent_precedence):
             result = '(' + result + ')'
         return result
 
@@ -572,7 +581,7 @@ class Node:
         """
         yield self.format()
 
-    def split_into_lines(self, max_length, indent):
+    def split_into_lines(self, max_length, indent, parent_precedence):
         return None
 
 
@@ -731,11 +740,11 @@ class Choice(Container):
             result.update(alt.get_rule_follow_set(rule_name, rules))
         return result
 
-    def split_into_lines(self, max_length, indent):
+    def split_into_lines(self, max_length, indent, parent_precedence):
         return (
-            OutputSymbol('('),
+            [OutputSymbol('(')],
             [OutputLine.from_nodes([alt], max_length=max_length-2, first_indent=indent+'| ', running_indent=indent+'  ', parent_node=self) for alt in self],
-            OutputSymbol(')'),
+            [OutputSymbol(')')],
         )
 
 
@@ -852,12 +861,33 @@ class Sequence(Container):
         # having None in the result.
         return result
 
-    def split_into_lines(self, max_length, indent):
-        return (
-            OutputSymbol('('),
-            [OutputLine.from_nodes(self, max_length=max_length-2, first_indent=indent+'  ', parent_node=self)],
-            OutputSymbol(')'),
-        )
+    def split_into_lines(self, max_length, indent, parent_precedence):
+        if self.needs_parens(parent_precedence):
+            return (
+                [OutputSymbol('(')],
+                [
+                    OutputLine.from_nodes(
+                        self,
+                        max_length=max_length-2,
+                        first_indent=indent+'  ',
+                        parent_node=self,
+                    )
+                ],
+                [OutputSymbol(')')],
+            )
+        else:
+            return (
+                [],
+                [
+                    OutputLine.from_nodes(
+                        self,
+                        max_length=max_length,
+                        first_indent=indent,
+                        parent_node=self,
+                    )
+                ],
+                [],
+            )
 
 
 

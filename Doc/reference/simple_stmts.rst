@@ -107,19 +107,19 @@ attributes or items of mutable objects:
    :diagrams: assignment single_target
 
    assignment: (
-     :   | (
-     :         (
-     :           | NAME
-     :           | '(' `single_target` ')'
-     :           | `single_subscript_attribute_target`
-     :         ) ':' `expression` ['=' `annotated_rhs`]
-     :     )
-     :   | (
-     :         (
-     :           | (`star_targets` '=')+
-     :           | `single_target` `augassign`
-     :         ) (`yield_expr` | `star_expressions`)
-     :     )
+     :   |
+     :       (
+     :         | NAME
+     :         | '(' `single_target` ')'
+     :         | `single_subscript_attribute_target`
+     :       ) ':' `expression` ['=' `annotated_rhs`]
+     :
+     :   |
+     :       (
+     :         | (`star_targets` '=')+
+     :         | `single_target` `augassign`
+     :       ) (`yield_expr` | `star_expressions`)
+     :
      : )
    single_target: (
      :   | `single_subscript_attribute_target`
@@ -152,9 +152,9 @@ attributes or items of mutable objects:
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
    star_atom: (
      :   | NAME
-     :   | (
-     :         '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
-     :     )
+     :   |
+     :       '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
+     :
      :   | '[' [','.`star_target`+ [',']] ']'
      : )
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
@@ -867,12 +867,12 @@ The :keyword:`!import` statement
 
    import_stmt: (
      :   | 'import' ','.(`dotted_name` ['as' NAME])+
-     :   | (
-     :         'from' (
-     :           | ('.' | '...')* `dotted_name`
-     :           | ('.' | '...')+
-     :         ) 'import' `import_from_targets`
-     :     )
+     :   |
+     :       'from' (
+     :         | ('.' | '...')* `dotted_name`
+     :         | ('.' | '...')+
+     :       ) 'import' `import_from_targets`
+     :
      : )
    import_from_targets: (
      :   | '(' ','.(NAME ['as' NAME])+ [','] ')'
