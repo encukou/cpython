@@ -49,8 +49,7 @@ Summarizing:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: compound_stmt block
 
-   compound_stmt: (
-     :   | `function_def`
+   compound_stmt: ( | `function_def`
      :   | `if_stmt`
      :   | `class_def`
      :   | `with_stmt`
@@ -98,8 +97,7 @@ The :keyword:`if` statement is used for conditional execution:
 
    if_stmt: 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
    else_block: 'else' ':' `block`
-   elif_stmt:
-     :   'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
+   elif_stmt:   'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
      :
 
 .. productionlist:: python-grammar-old
@@ -176,8 +174,7 @@ The :keyword:`for` statement is used to iterate over the elements of a sequence
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: for_stmt
 
-   for_stmt:
-     :   ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` [`else_block`]
+   for_stmt:   ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` [`else_block`]
      :
 
 .. productionlist:: python-grammar-old
@@ -247,15 +244,11 @@ for a group of statements:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: try_stmt finally_block
 
-   try_stmt:
-     :   'try' ':' `block` (
+   try_stmt:   'try' ':' `block` (
      :     | `finally_block`
-     :     |
-     :         (
-     :           | `except_block`+
+     :     |   ( | `except_block`+
      :           | `except_star_block`+
      :         ) [`else_block`] [`finally_block`]
-     :
      :   )
      :
    except_block: 'except' [`expression` ['as' NAME]] ':' `block`
@@ -531,8 +524,7 @@ usage patterns to be encapsulated for convenient reuse.
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: with_stmt with_item
 
-   with_stmt:
-     :   ['async'] 'with' (
+   with_stmt:   ['async'] 'with' (
      :     | '(' ','.`with_item`+ [','] ')'
      :     | ','.`with_item`+
      :   ) ':' `block`
@@ -664,8 +656,7 @@ The match statement is used for pattern matching.  Syntax:
    :diagrams: match_stmt
 
    match_stmt: "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
-   subject_expr: (
-     :   | `star_named_expression` ',' [`star_named_expressions`]
+   subject_expr: ( | `star_named_expression` ',' [`star_named_expressions`]
      :   | `named_expression`
      : )
    case_block: "case" `patterns` [`guard`] ':' `block`
@@ -842,8 +833,7 @@ The top-level syntax for ``patterns`` is:
 
    patterns: `open_sequence_pattern` | `pattern`
    pattern: `as_pattern` | `or_pattern`
-   closed_pattern: (
-     :   | `literal_pattern`
+   closed_pattern: ( | `literal_pattern`
      :   | `pattern_capture_target`
      :   | `wildcard_pattern`
      :   | `attr`
@@ -921,8 +911,7 @@ A literal pattern corresponds to most
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: literal_pattern
 
-   literal_pattern: (
-     :   | `signed_number`
+   literal_pattern: ( | `signed_number`
      :   | `complex_number`
      :   | `strings`
      :   | 'None'
@@ -1056,8 +1045,7 @@ The syntax is similar to the unpacking of a list or tuple.
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: sequence_pattern maybe_sequence_pattern maybe_star_pattern
 
-   sequence_pattern: (
-     :   | '[' [`maybe_sequence_pattern`] ']'
+   sequence_pattern: ( | '[' [`maybe_sequence_pattern`] ']'
      :   | '(' [`open_sequence_pattern`] ')'
      : )
    open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
@@ -1145,8 +1133,7 @@ Syntax:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: mapping_pattern items_pattern
 
-   mapping_pattern:
-     :   '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
+   mapping_pattern:   '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
      :
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
@@ -1206,9 +1193,7 @@ A class pattern represents a class and its positional and keyword arguments
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: class_pattern
 
-   class_pattern:
-     :   (
-     :     | `attr`
+   class_pattern:   ( | `attr`
      :     | NAME
      :   ) '(' [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']] ')'
      :
@@ -1341,47 +1326,32 @@ A function definition defines a user-defined function object (see section
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: function_def default param_no_default param_with_default star_etc param param_maybe_default kwds
 
-   function_def:
-     :   [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
+   function_def:   [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')' ['->' `expression`] ':' `block`
      :
    decorators: ('@' `named_expression` NEWLINE)+
-   parameters: (
-     :   |
-     :       (
-     :         |
-     :             (
-     :               | `slash_no_default` `param_no_default`*
+   parameters: ( |   ( |   ( | `slash_no_default` `param_no_default`*
      :               | `slash_with_default`
      :               | `param_no_default`+
      :             ) `param_with_default`*
-     :
      :         | `param_with_default`+
      :       ) [`star_etc`]
-     :
      :   | `star_etc`
      : )
    slash_no_default: `param_no_default`+ '/' (',' | &')')
    default: '=' `expression`
    param_no_default: `param` (',' | &')')
-   slash_with_default:
-     :   `param_no_default`* `param_with_default`+ '/' (
+   slash_with_default:   `param_no_default`* `param_with_default`+ '/' (
      :     | ','
      :     | &')'
      :   )
      :
    param_with_default: `param` `default` (',' | &')')
-   star_etc: (
-     :   |
-     :       '*' (
-     :         |
-     :             (
-     :               | `param_no_default`
+   star_etc: ( |   '*' (
+     :         |   ( | `param_no_default`
      :               | NAME ':' `star_expression` (',' | &')')
      :             ) `param_maybe_default`*
-     :
      :         | ',' `param_maybe_default`+
      :       ) [`kwds`]
-     :
      :   | `kwds`
      : )
    param: NAME [':' `expression`]
@@ -1578,8 +1548,7 @@ A class definition defines a class object (see section :ref:`types`):
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: class_def
 
-   class_def:
-     :   [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
+   class_def:   [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
      :
 
 .. productionlist:: python-grammar-old
@@ -1822,8 +1791,7 @@ Type parameter lists
    :diagrams: type_params
 
    type_params: '[' ','.`type_param`+ [','] ']'
-   type_param: (
-     :   | NAME [':' `expression`] ['=' `expression`]
+   type_param: ( | NAME [':' `expression`] ['=' `expression`]
      :   | '*' NAME ['=' `star_expression`]
      :   | '**' NAME ['=' `expression`]
      : )

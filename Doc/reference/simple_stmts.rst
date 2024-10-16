@@ -24,8 +24,7 @@ simple statements is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: simple_stmt
 
-   simple_stmt: (
-     :   | `assignment`
+   simple_stmt: ( | `assignment`
      :   | `type_alias`
      :   | `star_expressions`
      :   | `return_stmt`
@@ -106,29 +105,20 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: assignment single_target
 
-   assignment: (
-     :   |
-     :       (
-     :         | NAME
+   assignment: ( |   ( | NAME
      :         | '(' `single_target` ')'
      :         | `single_subscript_attribute_target`
      :       ) ':' `expression` ['=' `annotated_rhs`]
-     :
-     :   |
-     :       (
-     :         | (`star_targets` '=')+
+     :   |   ( | (`star_targets` '=')+
      :         | `single_target` `augassign`
      :       ) (`yield_expr` | `star_expressions`)
-     :
      : )
-   single_target: (
-     :   | `single_subscript_attribute_target`
+   single_target: ( | `single_subscript_attribute_target`
      :   | NAME
      :   | '(' `single_target` ')'
      : )
    annotated_rhs: `yield_expr` | `star_expressions`
-   augassign: (
-     :   | '+='
+   augassign: ( | '+='
      :   | '-='
      :   | '*='
      :   | '@='
@@ -150,16 +140,12 @@ attributes or items of mutable objects:
 
    star_targets: ','.`star_target`+ [',']
    star_target: '*' !'*' `star_target` | `target_with_star_atom`
-   star_atom: (
-     :   | NAME
-     :   |
-     :       '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
-     :
+   star_atom: ( | NAME
+     :   |   '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
      :   | '[' [','.`star_target`+ [',']] ']'
      : )
    star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   target_with_star_atom: (
-     :   | `t_primary` ('.' NAME | '[' `slices` ']')
+   target_with_star_atom: ( | `t_primary` ('.' NAME | '[' `slices` ']')
      :   | `star_atom`
      : )
 
@@ -544,8 +530,7 @@ The :keyword:`!del` statement
 
    del_stmt: 'del' `del_targets`
    del_targets: ','.`del_target`+ [',']
-   del_target: (
-     :   | `t_primary` ('.' NAME | '[' `slices` ']')
+   del_target: ( | `t_primary` ('.' NAME | '[' `slices` ']')
      :   | NAME
      :   | '(' [`del_target` | `del_targets`] ')'
      :   | '[' [`del_targets`] ']'
@@ -865,17 +850,13 @@ The :keyword:`!import` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: import_stmt dotted_name
 
-   import_stmt: (
-     :   | 'import' ','.(`dotted_name` ['as' NAME])+
-     :   |
-     :       'from' (
+   import_stmt: ( | 'import' ','.(`dotted_name` ['as' NAME])+
+     :   |   'from' (
      :         | ('.' | '...')* `dotted_name`
      :         | ('.' | '...')+
      :       ) 'import' `import_from_targets`
-     :
      : )
-   import_from_targets: (
-     :   | '(' ','.(NAME ['as' NAME])+ [','] ')'
+   import_from_targets: ( | '(' ','.(NAME ['as' NAME])+ [','] ')'
      :   | ','.(NAME ['as' NAME])+
      :   | '*'
      : )

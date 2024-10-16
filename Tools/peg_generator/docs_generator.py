@@ -1374,6 +1374,19 @@ def get_rule_follow_set(rule_name, rules, rules_considered=None):
     return result - {None}
 
 
+def combine_lines(input_lines):
+    current_line = ''
+    for new_line in input_lines:
+        new_line = str(new_line)
+        if set(new_line[:len(current_line)]) == {' '}:
+            current_line += new_line[len(current_line):]
+        else:
+            if current_line.strip():
+                yield current_line
+            current_line = new_line
+    yield current_line
+
+
 def generate_rule_lines(snippet):
     grammar = snippet.grammar
     rule_names_to_generate = snippet.documented_rules
@@ -1397,7 +1410,7 @@ def generate_rule_lines(snippet):
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
-        output_lines = split_lines([OutputLine.from_nodes([node], available_space, parent_node=None)])
+        output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space, parent_node=None)]))
 
         for num, line in enumerate(output_lines):
             if num == 0:
