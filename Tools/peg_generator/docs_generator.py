@@ -438,7 +438,7 @@ class OutputLine:
         for i, part in contents_by_length:
             split_part = part.node.split_into_lines(
                 self.max_length - 2,
-                self.running_indent + '  ',
+                self.running_indent,
                 parent_precedence=part.parent_precedence,
             )
             if not split_part:
@@ -743,7 +743,16 @@ class Choice(Container):
     def split_into_lines(self, max_length, indent, parent_precedence):
         return (
             [OutputSymbol('(')],
-            [OutputLine.from_nodes([alt], max_length=max_length-2, first_indent=indent+'| ', running_indent=indent+'  ', parent_node=self) for alt in self],
+            [
+                OutputLine.from_nodes(
+                    [alt],
+                    max_length=max_length-2,
+                    first_indent=indent + ('   ' if i == 0 else ' | '),
+                    running_indent=indent + '   ',
+                    parent_node=self,
+                )
+                for i, alt in enumerate(self)
+            ],
             [OutputSymbol(')')],
         )
 
@@ -868,8 +877,8 @@ class Sequence(Container):
                 [
                     OutputLine.from_nodes(
                         self,
-                        max_length=max_length-2,
-                        first_indent=indent+'  ',
+                        max_length=max_length - 2,
+                        first_indent=indent + '  ',
                         parent_node=self,
                     )
                 ],

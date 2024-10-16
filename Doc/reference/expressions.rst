@@ -59,22 +59,22 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: atom
 
-   atom: ( | NAME
-     :   | 'True'
-     :   | 'False'
-     :   | 'None'
-     :   | `strings`
-     :   | NUMBER
-     :   | `tuple`
-     :   | `group`
-     :   | `genexp`
-     :   | `list`
-     :   | `listcomp`
-     :   | `dict`
-     :   | `set`
-     :   | `dictcomp`
-     :   | `setcomp`
-     :   | '...'
+   atom: (  NAME
+     :  | 'True'
+     :  | 'False'
+     :  | 'None'
+     :  | `strings`
+     :  | NUMBER
+     :  | `tuple`
+     :  | `group`
+     :  | `genexp`
+     :  | `list`
+     :  | `listcomp`
+     :  | `dict`
+     :  | `set`
+     :  | `dictcomp`
+     :  | `setcomp`
+     :  | '...'
      : )
 
 .. productionlist:: python-grammar-old
@@ -156,7 +156,7 @@ Strings
    :diagrams: strings
 
    strings: (STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
-   fstring_replacement_field:   '{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
+   fstring_replacement_field: '{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
      :
 
 .. _parenthesized:
@@ -893,21 +893,21 @@ syntax is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: primary t_primary
 
-   primary: ( |   `primary` (
-     :         | '.' NAME
-     :         | `genexp`
-     :         | '(' [`arguments`] ')'
-     :         | '[' `slices` ']'
-     :       )
-     :   | `atom`
+   primary: (  `primary` (
+     :       '.' NAME
+     :     | `genexp`
+     :     | '(' [`arguments`] ')'
+     :     | '[' `slices` ']'
+     :    )
+     :  | `atom`
      : )
-   t_primary: ( |   `t_primary` (
-     :         | '.' NAME
-     :         | '[' `slices` ']'
-     :         | `genexp`
-     :         | '(' [`arguments`] ')'
-     :       )
-     :   | `atom`
+   t_primary: (  `t_primary` (
+     :       '.' NAME
+     :     | '[' `slices` ']'
+     :     | `genexp`
+     :     | '(' [`arguments`] ')'
+     :    )
+     :  | `atom`
      : )
 
 .. productionlist:: python-grammar-old
@@ -977,8 +977,8 @@ will generally select an element from the container. The subscription of a
    :diagrams: slices slice
 
    slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
-   slice: ( | [`expression`] ':' [`expression`] [':' [`expression`]]
-     :   | `named_expression`
+   slice: (  [`expression`] ':' [`expression`] [':' [`expression`]]
+     :  | `named_expression`
      : )
 
 .. productionlist:: python-grammar-old
@@ -1106,11 +1106,11 @@ series of :term:`arguments <argument>`:
    :diagrams: arguments kwargs kwarg_or_double_starred
 
    arguments: `args` [',']
-   args: ( |   ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
-     :   | `kwargs`
+   args: (  ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
+     :  | `kwargs`
      : )
-   kwargs: ( |   ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
-     :   | ','.`kwarg_or_double_starred`+
+   kwargs: (  ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
+     :  | ','.`kwarg_or_double_starred`+
      : )
    kwarg_or_double_starred: (NAME '=' | '**') `expression`
 
@@ -1639,15 +1639,15 @@ in mathematics:
    :diagrams: comparison
 
    comparison: `bitwise_or` `compare_op_bitwise_or_pair`*
-   compare_op_bitwise_or_pair:   ( | '=='
-     :     | '!='
-     :     | '<='
-     :     | '<'
-     :     | '>='
-     :     | '>'
-     :     | ['not'] 'in'
-     :     | 'is' ['not']
-     :   ) `bitwise_or`
+   compare_op_bitwise_or_pair: (  '=='
+     :  | '!='
+     :  | '<='
+     :  | '<'
+     :  | '>='
+     :  | '>'
+     :  | ['not'] 'in'
+     :  | 'is' ['not']
+     : ) `bitwise_or`
      :
 
 .. productionlist:: python-grammar-old
@@ -2016,8 +2016,8 @@ Conditional expressions
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: expression
 
-   expression: ( | `disjunction` ['if' `disjunction` 'else' `expression`]
-     :   | `lambdef`
+   expression: (  `disjunction` ['if' `disjunction` 'else' `expression`]
+     :  | `lambdef`
      : )
 
 .. productionlist:: python-grammar-old
@@ -2058,27 +2058,27 @@ Lambdas
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: lambda_params lambda_star_etc lambda_kwds
 
-   lambda_params: ( |   ( |   ( |   (NAME (',' | &':'))+ '/' NAME.(',' | &':')+
-     :               | `lambda_slash_with_default`
-     :               | (NAME (',' | &':'))+
-     :             ) (NAME `default` (',' | &':'))*
-     :         | (NAME `default` (',' | &':'))+
-     :       ) [`lambda_star_etc`]
-     :   | `lambda_star_etc`
+   lambda_params: (  (  (  (NAME (',' | &':'))+ '/' NAME.(',' | &':')+
+     :        | `lambda_slash_with_default`
+     :        | (NAME (',' | &':'))+
+     :       ) (NAME `default` (',' | &':'))*
+     :     | (NAME `default` (',' | &':'))+
+     :    ) [`lambda_star_etc`]
+     :  | `lambda_star_etc`
      : )
-   lambda_slash_with_default:   (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (
-     :     | ','
-     :     | &':'
-     :   )
+   lambda_slash_with_default: (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (
+     :    ','
+     :  | &':'
+     : )
      :
-   lambda_star_etc: ( |   '*' (
-     :         |   NAME (
-     :               | ','
-     :               | &':'
-     :             ) (NAME [`default`] (',' | &':'))*
-     :         | ',' (NAME [`default`] (',' | &':'))+
-     :       ) [`lambda_kwds`]
-     :   | `lambda_kwds`
+   lambda_star_etc: (  '*' (
+     :       NAME (
+     :          ','
+     :        | &':'
+     :       ) (NAME [`default`] (',' | &':'))*
+     :     | ',' (NAME [`default`] (',' | &':'))+
+     :    ) [`lambda_kwds`]
+     :  | `lambda_kwds`
      : )
    lambda_kwds: '**' NAME [',']
 
@@ -2113,7 +2113,7 @@ Expression lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: tuple star_named_expression
 
-   tuple:   '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
+   tuple: '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
      :
    star_named_expressions: ','.`star_named_expression`+ [',']
    star_named_expression: '*' `bitwise_or` | `named_expression`
