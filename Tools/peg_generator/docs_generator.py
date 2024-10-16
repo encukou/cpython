@@ -741,20 +741,36 @@ class Choice(Container):
         return result
 
     def split_into_lines(self, max_length, indent, parent_precedence):
-        return (
-            [OutputSymbol('(')],
-            [
-                OutputLine.from_nodes(
-                    [alt],
-                    max_length=max_length-2,
-                    first_indent=indent + ('   ' if i == 0 else ' | '),
-                    running_indent=indent + '   ',
-                    parent_node=self,
-                )
-                for i, alt in enumerate(self)
-            ],
-            [OutputSymbol(')')],
-        )
+        if self.needs_parens(parent_precedence):
+            return (
+                [OutputSymbol('(')],
+                [
+                    OutputLine.from_nodes(
+                        [alt],
+                        max_length=max_length-2,
+                        first_indent=indent + ('   ' if i == 0 else ' | '),
+                        running_indent=indent + '   ',
+                        parent_node=self,
+                    )
+                    for i, alt in enumerate(self)
+                ],
+                [OutputSymbol(')')],
+            )
+        else:
+            return (
+                [],
+                [
+                    OutputLine.from_nodes(
+                        [alt],
+                        max_length=max_length-2,
+                        first_indent=indent + ('| ' if i == 0 else '| '),
+                        running_indent=indent + '  ',
+                        parent_node=self,
+                    )
+                    for i, alt in enumerate(self)
+                ],
+                [],
+            )
 
 
 @dataclass(frozen=True)
@@ -872,6 +888,7 @@ class Sequence(Container):
 
     def split_into_lines(self, max_length, indent, parent_precedence):
         if self.needs_parens(parent_precedence):
+            # TODO: This apparently never happens; remove?
             return (
                 [OutputSymbol('(')],
                 [
@@ -1423,9 +1440,9 @@ def generate_rule_lines(snippet):
 
         for num, line in enumerate(output_lines):
             if num == 0:
-                yield f'{name}: {line}'.rstrip()
+                yield f'{name}:{line}'.rstrip()
             else:
-                yield f'  : {line}'.rstrip()
+                yield f'  :{line}'.rstrip()
             if len(line) > available_space:
                 print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
         if grammar.debug:

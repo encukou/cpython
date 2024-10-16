@@ -59,23 +59,23 @@ also categorized syntactically as atoms.  The syntax for atoms is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: atom
 
-   atom: (  NAME
-     :  | 'True'
-     :  | 'False'
-     :  | 'None'
-     :  | `strings`
-     :  | NUMBER
-     :  | `tuple`
-     :  | `group`
-     :  | `genexp`
-     :  | `list`
-     :  | `listcomp`
-     :  | `dict`
-     :  | `set`
-     :  | `dictcomp`
-     :  | `setcomp`
-     :  | '...'
-     : )
+   atom:| NAME
+     :| 'True'
+     :| 'False'
+     :| 'None'
+     :| `strings`
+     :| NUMBER
+     :| `tuple`
+     :| `group`
+     :| `genexp`
+     :| `list`
+     :| `listcomp`
+     :| `dict`
+     :| `set`
+     :| `dictcomp`
+     :| `setcomp`
+     :| '...'
+     :
 
 .. productionlist:: python-grammar-old
    atom: `identifier` | `literal` | `enclosure`
@@ -155,8 +155,8 @@ Strings
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: strings
 
-   strings: (STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
-   fstring_replacement_field: '{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
+   strings:(STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
+   fstring_replacement_field:'{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
      :
 
 .. _parenthesized:
@@ -175,8 +175,8 @@ A parenthesized form is an optional expression list enclosed in parentheses:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: group
 
-   group: '(' (`yield_expr` | `named_expression`) ')'
-   named_expression: `assignment_expression` | `expression`
+   group:'(' (`yield_expr` | `named_expression`) ')'
+   named_expression:`assignment_expression` | `expression`
 
 .. productionlist:: python-grammar-old
    parenth_form: "(" [`starred_expression`] ")"
@@ -228,7 +228,7 @@ Common syntax elements for comprehensions are:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: for_if_clauses
 
-   for_if_clauses: (['async'] 'for' `star_targets` 'in' 'if'.`disjunction`+)+
+   for_if_clauses:(['async'] 'for' `star_targets` 'in' 'if'.`disjunction`+)+
 
 .. productionlist:: python-grammar
    comprehension: `assignment_expression` `comp_for`
@@ -306,8 +306,8 @@ brackets:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: list listcomp
 
-   list: '[' [`star_named_expressions`] ']'
-   listcomp: '[' `named_expression` `for_if_clauses` ']'
+   list:'[' [`star_named_expressions`] ']'
+   listcomp:'[' `named_expression` `for_if_clauses` ']'
 
 .. productionlist:: python-grammar-old
    list_display: "[" [`starred_list` | `comprehension`] "]"
@@ -339,8 +339,8 @@ displays by the lack of colons separating keys and values:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: set setcomp
 
-   set: '{' `star_named_expressions` '}'
-   setcomp: '{' `named_expression` `for_if_clauses` '}'
+   set:'{' `star_named_expressions` '}'
+   setcomp:'{' `named_expression` `for_if_clauses` '}'
 
 .. productionlist:: python-grammar-old
    set_display: "{" (`starred_list` | `comprehension`) "}"
@@ -377,10 +377,10 @@ enclosed in curly braces:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: dict dictcomp kvpair
 
-   dict: '{' [','.`double_starred_kvpair`+ [',']] '}'
-   dictcomp: '{' `kvpair` `for_if_clauses` '}'
-   double_starred_kvpair: '**' `bitwise_or` | `kvpair`
-   kvpair: `expression` ':' `expression`
+   dict:'{' [','.`double_starred_kvpair`+ [',']] '}'
+   dictcomp:'{' `kvpair` `for_if_clauses` '}'
+   double_starred_kvpair:'**' `bitwise_or` | `kvpair`
+   kvpair:`expression` ':' `expression`
 
 .. productionlist:: python-grammar-old
    dict_display: "{" [`dict_item_list` | `dict_comprehension`] "}"
@@ -446,7 +446,7 @@ A generator expression is a compact generator notation in parentheses:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: genexp
 
-   genexp: '(' (`assignment_expression` | `expression`) `for_if_clauses` ')'
+   genexp:'(' (`assignment_expression` | `expression`) `for_if_clauses` ')'
 
 .. productionlist:: python-grammar-old
    generator_expression: "(" `expression` `comp_for` ")"
@@ -507,7 +507,7 @@ Yield expressions
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: yield_expr
 
-   yield_expr: 'yield' ['from' `expression` | `star_expressions`]
+   yield_expr:'yield' ['from' `expression` | `star_expressions`]
 
 .. productionlist:: python-grammar
    yield_atom: "(" `yield_expression` ")"
@@ -893,22 +893,22 @@ syntax is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: primary t_primary
 
-   primary: (  `primary` (
-     :       '.' NAME
-     :     | `genexp`
-     :     | '(' [`arguments`] ')'
-     :     | '[' `slices` ']'
-     :    )
-     :  | `atom`
-     : )
-   t_primary: (  `t_primary` (
-     :       '.' NAME
-     :     | '[' `slices` ']'
-     :     | `genexp`
-     :     | '(' [`arguments`] ')'
-     :    )
-     :  | `atom`
-     : )
+   primary:| `primary` (
+     :     '.' NAME
+     :   | `genexp`
+     :   | '(' [`arguments`] ')'
+     :   | '[' `slices` ']'
+     :  )
+     :| `atom`
+     :
+   t_primary:| `t_primary` (
+     :     '.' NAME
+     :   | '[' `slices` ']'
+     :   | `genexp`
+     :   | '(' [`arguments`] ')'
+     :  )
+     :| `atom`
+     :
 
 .. productionlist:: python-grammar-old
    primary: `atom` | `attributeref` | `subscription` | `slicing` | `call`
@@ -976,10 +976,10 @@ will generally select an element from the container. The subscription of a
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: slices slice
 
-   slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
-   slice: (  [`expression`] ':' [`expression`] [':' [`expression`]]
-     :  | `named_expression`
-     : )
+   slices:`slice` | ','.(`slice` | '*' `expression`)+ [',']
+   slice:| [`expression`] ':' [`expression`] [':' [`expression`]]
+     :| `named_expression`
+     :
 
 .. productionlist:: python-grammar-old
    subscription: `primary` "[" `expression_list` "]"
@@ -1105,14 +1105,14 @@ series of :term:`arguments <argument>`:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: arguments kwargs kwarg_or_double_starred
 
-   arguments: `args` [',']
-   args: (  ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
-     :  | `kwargs`
-     : )
-   kwargs: (  ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
-     :  | ','.`kwarg_or_double_starred`+
-     : )
-   kwarg_or_double_starred: (NAME '=' | '**') `expression`
+   arguments:`args` [',']
+   args:| ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
+     :| `kwargs`
+     :
+   kwargs:| ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
+     :| ','.`kwarg_or_double_starred`+
+     :
+   kwarg_or_double_starred:(NAME '=' | '**') `expression`
 
 .. productionlist:: python-grammar-old
    call: `primary` "(" [`argument_list` [","] | `comprehension`] ")"
@@ -1312,7 +1312,7 @@ Can only be used inside a :term:`coroutine function`.
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: await_primary
 
-   await_primary: ['await'] `primary`
+   await_primary:['await'] `primary`
 
 .. productionlist:: python-grammar
    await_expr: "await" `primary`
@@ -1337,7 +1337,7 @@ less tightly than unary operators on its right.  The syntax is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: power
 
-   power: `await_primary` ['**' `factor`]
+   power:`await_primary` ['**' `factor`]
 
 Thus, in an unparenthesized sequence of power and unary operators, the operators
 are evaluated from right to left (this does not constrain the evaluation order
@@ -1376,7 +1376,7 @@ All unary arithmetic and bitwise operations have the same priority:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: factor
 
-   factor: ('+' | '-' | '~') `factor` | `power`
+   factor:('+' | '-' | '~') `factor` | `power`
 
 .. index::
    single: negation
@@ -1429,8 +1429,8 @@ operators and one for additive operators:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: sum
 
-   sum: [`sum` ('+' | '-')] `term`
-   term: [`term` ('*' | '/' | '//' | '%' | '@')] `factor`
+   sum:[`sum` ('+' | '-')] `term`
+   term:[`term` ('*' | '/' | '//' | '%' | '@')] `factor`
 
 .. index::
    single: multiplication
@@ -1547,7 +1547,7 @@ The shifting operations have lower priority than the arithmetic operations:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: shift_expr
 
-   shift_expr: [`shift_expr` ('<<' | '>>')] `sum`
+   shift_expr:[`shift_expr` ('<<' | '>>')] `sum`
 
 These operators accept integers as arguments.  They shift the first argument to
 the left or right by the number of bits given by the second argument.
@@ -1577,9 +1577,9 @@ Each of the three bitwise operations has a different priority level:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: bitwise_or
 
-   bitwise_or: [`bitwise_or` '|'] `bitwise_xor`
-   bitwise_xor: [`bitwise_xor` '^'] `bitwise_and`
-   bitwise_and: [`bitwise_and` '&'] `shift_expr`
+   bitwise_or:[`bitwise_or` '|'] `bitwise_xor`
+   bitwise_xor:[`bitwise_xor` '^'] `bitwise_and`
+   bitwise_and:[`bitwise_and` '&'] `shift_expr`
 
 .. productionlist:: python-grammar
    and_expr: `shift_expr` | `and_expr` "&" `shift_expr`
@@ -1638,16 +1638,16 @@ in mathematics:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: comparison
 
-   comparison: `bitwise_or` `compare_op_bitwise_or_pair`*
-   compare_op_bitwise_or_pair: (  '=='
-     :  | '!='
-     :  | '<='
-     :  | '<'
-     :  | '>='
-     :  | '>'
-     :  | ['not'] 'in'
-     :  | 'is' ['not']
-     : ) `bitwise_or`
+   comparison:`bitwise_or` `compare_op_bitwise_or_pair`*
+   compare_op_bitwise_or_pair:(  '=='
+     : | '!='
+     : | '<='
+     : | '<'
+     : | '>='
+     : | '>'
+     : | ['not'] 'in'
+     : | 'is' ['not']
+     :) `bitwise_or`
      :
 
 .. productionlist:: python-grammar-old
@@ -1918,9 +1918,9 @@ Boolean operations
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: disjunction
 
-   disjunction: 'or'.`conjunction`+
-   conjunction: 'and'.`inversion`+
-   inversion: 'not' `inversion` | `comparison`
+   disjunction:'or'.`conjunction`+
+   conjunction:'and'.`inversion`+
+   inversion:'not' `inversion` | `comparison`
 
 In the context of Boolean operations, and also when expressions are used by
 control flow statements, the following values are interpreted as false:
@@ -1967,7 +1967,7 @@ Assignment expressions
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: assignment_expression
 
-   assignment_expression: NAME ':=' `expression`
+   assignment_expression:NAME ':=' `expression`
 
 An assignment expression (sometimes also called a "named expression" or
 "walrus") assigns an :token:`~python-grammar:expression` to an
@@ -2016,9 +2016,9 @@ Conditional expressions
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: expression
 
-   expression: (  `disjunction` ['if' `disjunction` 'else' `expression`]
-     :  | `lambdef`
-     : )
+   expression:| `disjunction` ['if' `disjunction` 'else' `expression`]
+     :| `lambdef`
+     :
 
 .. productionlist:: python-grammar-old
    conditional_expression: `or_test` ["if" `or_test` "else" `expression`]
@@ -2051,36 +2051,36 @@ Lambdas
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: lambdef
 
-   lambdef: 'lambda' [`lambda_params`] ':' `expression`
+   lambdef:'lambda' [`lambda_params`] ':' `expression`
 
 .. grammar-snippet:: lambda_params
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: lambda_params lambda_star_etc lambda_kwds
 
-   lambda_params: (  (  (  (NAME (',' | &':'))+ '/' NAME.(',' | &':')+
-     :        | `lambda_slash_with_default`
-     :        | (NAME (',' | &':'))+
-     :       ) (NAME `default` (',' | &':'))*
-     :     | (NAME `default` (',' | &':'))+
-     :    ) [`lambda_star_etc`]
-     :  | `lambda_star_etc`
-     : )
-   lambda_slash_with_default: (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (
-     :    ','
-     :  | &':'
-     : )
+   lambda_params:| (  (  (NAME (',' | &':'))+ '/' NAME.(',' | &':')+
+     :      | `lambda_slash_with_default`
+     :      | (NAME (',' | &':'))+
+     :     ) (NAME `default` (',' | &':'))*
+     :   | (NAME `default` (',' | &':'))+
+     :  ) [`lambda_star_etc`]
+     :| `lambda_star_etc`
      :
-   lambda_star_etc: (  '*' (
-     :       NAME (
-     :          ','
-     :        | &':'
-     :       ) (NAME [`default`] (',' | &':'))*
-     :     | ',' (NAME [`default`] (',' | &':'))+
-     :    ) [`lambda_kwds`]
-     :  | `lambda_kwds`
-     : )
-   lambda_kwds: '**' NAME [',']
+   lambda_slash_with_default:(NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (
+     :   ','
+     : | &':'
+     :)
+     :
+   lambda_star_etc:| '*' (
+     :     NAME (
+     :        ','
+     :      | &':'
+     :     ) (NAME [`default`] (',' | &':'))*
+     :   | ',' (NAME [`default`] (',' | &':'))+
+     :  ) [`lambda_kwds`]
+     :| `lambda_kwds`
+     :
+   lambda_kwds:'**' NAME [',']
 
 .. productionlist:: python-grammar-old
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
@@ -2113,10 +2113,10 @@ Expression lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: tuple star_named_expression
 
-   tuple: '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
+   tuple:'(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
      :
-   star_named_expressions: ','.`star_named_expression`+ [',']
-   star_named_expression: '*' `bitwise_or` | `named_expression`
+   star_named_expressions:','.`star_named_expression`+ [',']
+   star_named_expression:'*' `bitwise_or` | `named_expression`
 
 .. productionlist:: python-grammar-old
    expression_list: `expression` ("," `expression`)* [","]
