@@ -154,7 +154,12 @@ Strings
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: strings
 
-   strings:(STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
+   strings:(   STRING
+     :  | FSTRING_START
+     :    ( `fstring_replacement_field` | FSTRING_MIDDLE
+     :    )*
+     :    FSTRING_END
+     :)+
    fstring_replacement_field:'{' `annotated_rhs` ['='] ["!" NAME]
      :[ ':'
      :  (FSTRING_MIDDLE | `fstring_replacement_field`)*

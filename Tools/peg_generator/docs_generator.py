@@ -98,7 +98,11 @@ REPLACED_SYNONYMS = {
 #   elif_stmt  ::=  ('elif' named_expression ':' block)+  [else_block]
 #
 # Look at function parameters again
-#
+
+
+# Check diagram size before inlining sub-diagrams
+
+# Mention the ('.' | '...')+   ->   (".")+ simplification in prose
 
 # NEED GRAMMAR CHANGES:
 #
@@ -952,9 +956,24 @@ class Decorator(Node):
         self_type = type(self)
         return self_type(self.item.inlined(replaced_name, replacement))
 
+    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
+        return (
+            [OutputSymbol(self.parens[0])],
+            [
+                OutputLine.from_nodes(
+                    [self.item],
+                    max_length=max_length-2,
+                    first_indent=indent + '  ',
+                    parent_node=self,
+                )
+            ],
+            [OutputSymbol(self.parens[1])],
+        )
+
 @dataclass(frozen=True)
 class Optional(Decorator):
     precedence = Precedence.ATOM
+    parens = '[', ']'
 
     def format(self):
         return '[' + self.item.format() + ']'
@@ -978,20 +997,6 @@ class Optional(Decorator):
     def get_rule_follow_set(self, rule_name, rules):
         return self.item.get_rule_follow_set(rule_name, rules)
 
-    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
-        return (
-            [OutputSymbol('[')],
-            [
-                OutputLine.from_nodes(
-                    [self.item],
-                    max_length=max_length-2,
-                    first_indent=indent + '  ',
-                    parent_node=self,
-                )
-            ],
-            [OutputSymbol(']')],
-        )
-
 class Repeat(Decorator):
     precedence = Precedence.REPEAT
 
@@ -1004,10 +1009,18 @@ class Repeat(Decorator):
             result |= self.item.get_possible_start_tokens(rules, set())
         return result
 
+    def simplify_once(self, rules, path):
+        match self.item:
+            #  ('.' | '...')+   ->   (".")+
+            case Choice([LiteralToken("'.'"), LiteralToken("'...'")]):
+                return type(self)(LiteralToken('"."'))
+        return super().simplify_once(rules, path)
+
 
 @dataclass(frozen=True)
 class OneOrMore(Repeat):
     sigil = '+'
+    parens = '(', ')+'
 
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered)
@@ -1023,6 +1036,7 @@ class OneOrMore(Repeat):
 @dataclass(frozen=True)
 class ZeroOrMore(Repeat):
     sigil = '*'
+    parens = '(', ')*'
 
     def get_possible_start_tokens(self, rules, rules_considered):
         return self.item.get_possible_start_tokens(rules, rules_considered) | {None}

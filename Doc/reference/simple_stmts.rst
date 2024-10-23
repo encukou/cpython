@@ -849,7 +849,7 @@ The :keyword:`!import` statement
 
    import_stmt:| 'import' ','.(`dotted_name` ['as' NAME])+
      :| 'from'
-     :  (('.' | '...')* `dotted_name` | ('.' | '...')+)
+     :  ("."* `dotted_name` | "."+)
      :  'import' `import_from_targets`
    import_from_targets:| '(' ','.(NAME ['as' NAME])+ [','] ')'
      :| ','.(NAME ['as' NAME])+
