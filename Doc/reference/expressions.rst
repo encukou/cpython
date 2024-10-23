@@ -156,7 +156,8 @@ Strings
 
    strings:(STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
    fstring_replacement_field:'{' `annotated_rhs` ['='] ["!" NAME]
-     :[ ':' (FSTRING_MIDDLE | `fstring_replacement_field`)*
+     :[ ':'
+     :  (FSTRING_MIDDLE | `fstring_replacement_field`)*
      :]
      :'}'
 
@@ -895,18 +896,10 @@ syntax is:
    :diagrams: primary t_primary
 
    primary:| `primary`
-     :  (  '.' NAME
-     :   | `genexp`
-     :   | '(' [`arguments`] ')'
-     :   | '[' `slices` ']'
-     :  )
+     :  ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']')
      :| `atom`
    t_primary:| `t_primary`
-     :  (  '.' NAME
-     :   | '[' `slices` ']'
-     :   | `genexp`
-     :   | '(' [`arguments`] ')'
-     :  )
+     :  ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')')
      :| `atom`
 
 .. productionlist:: python-grammar-old
@@ -1105,12 +1098,10 @@ series of :term:`arguments <argument>`:
 
    arguments:`args` [',']
    args:| ','.('*' `expression` | `assignment_expression` | `expression`)+
-     :  [ ',' `kwargs`
-     :  ]
+     :  [',' `kwargs`]
      :| `kwargs`
    kwargs:| ','.((NAME '=' | '*') `expression`)+
-     :  [ ',' ','.`kwarg_or_double_starred`+
-     :  ]
+     :  [',' ','.`kwarg_or_double_starred`+]
      :| ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred:(NAME '=' | '**') `expression`
 
@@ -2057,7 +2048,8 @@ Lambdas
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: lambda_params lambda_star_etc lambda_kwds
 
-   lambda_params:| (  (  (NAME (',' | &':'))+ '/' NAME.(',' | &':')+
+   lambda_params:| (  (  (NAME (',' | &':'))+
+     :        '/' NAME.(',' | &':')+
      :      | `lambda_slash_with_default`
      :      | (NAME (',' | &':'))+
      :     )
@@ -2066,15 +2058,11 @@ Lambdas
      :  )
      :  [`lambda_star_etc`]
      :| `lambda_star_etc`
-   lambda_slash_with_default:(NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/'
-     :(  ','
-     : | &':'
-     :)
+   lambda_slash_with_default:(NAME (',' | &':'))*
+     :(NAME `default` (',' | &':'))+
+     :'/' (',' | &':')
    lambda_star_etc:| '*'
-     :  (  NAME
-     :     (  ','
-     :      | &':'
-     :     )
+     :  (  NAME (',' | &':')
      :     (NAME [`default`] (',' | &':'))*
      :   | ',' (NAME [`default`] (',' | &':'))+
      :  )
@@ -2115,8 +2103,7 @@ Expression lists
 
    tuple:'('
      :[ `star_named_expression` ','
-     :  [ `star_named_expressions`
-     :  ]
+     :  [`star_named_expressions`]
      :]
      :')'
    star_named_expressions:','.`star_named_expression`+ [',']

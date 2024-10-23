@@ -445,20 +445,23 @@ class OutputLine:
             return -len(part.content)
         contents_by_length.sort(key=biggest_contents)
         for i, part in contents_by_length:
-            split_part = part.node.split_into_lines(
-                self.max_length,
-                self.running_indent,
-                parent_precedence=part.parent_precedence,
-                parent_node=part.parent_node,
-            )
-            if not split_part:
-                continue
-            opening, inner_lines, closing = split_part
             results = []
             results.append(OutputLine(self.parts[:i], self.max_length, self.first_indent, self.running_indent))
-            results.append(OutputLine(opening, self.max_length, self.running_indent))
-            results.extend(inner_lines)
-            results.append(OutputLine(closing, self.max_length, self.running_indent))
+            if len(part.content) <= self.max_length:
+                results.append(OutputLine([part], self.max_length, self.running_indent))
+            else:
+                split_part = part.node.split_into_lines(
+                    self.max_length,
+                    self.running_indent,
+                    parent_precedence=part.parent_precedence,
+                    parent_node=part.parent_node,
+                )
+                if not split_part:
+                    continue
+                opening, inner_lines, closing = split_part
+                results.append(OutputLine(opening, self.max_length, self.running_indent))
+                results.extend(inner_lines)
+                results.append(OutputLine(closing, self.max_length, self.running_indent))
             results.append(OutputLine(self.parts[i+1:], self.max_length, self.running_indent))
             return results
 
@@ -742,37 +745,40 @@ class Choice(Container):
         return result
 
     def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
+        # There are 3 different styles of multi-line Choice
         if self.needs_parens(parent_precedence):
-            return (
-                [OutputSymbol('(')],
-                [
-                    OutputLine.from_nodes(
-                        [alt],
-                        max_length=max_length-2,
-                        first_indent=indent + ('   ' if i == 0 else ' | '),
-                        running_indent=indent + '   ',
-                        parent_node=self,
-                    )
-                    for i, alt in enumerate(self)
-                ],
-                [OutputSymbol(')')],
-            )
+            # Wrapped in parentheses. The pipe is between elements,
+            # and indented 1 extra space.
+            parens = [OutputSymbol('(')], [OutputSymbol(')')]
+            first_indents = '   ', ' | '
+            running_indent = '   '
+        elif parent_node:
+            # Not wrapped in parentheses. The pipe is between elements.
+            parens = [], []
+            first_indents = '  ', '| '
+            running_indent = '  '
         else:
-            return (
-                [],
-                [
-                    OutputLine.from_nodes(
-                        [alt],
-                        max_length=max_length-2,
-                        first_indent=indent + (('   ' if i == 0 else ' | ') if parent_node else '| '),
-                        running_indent=indent + '  ',
-                        parent_precedence=self.precedence,
-                        parent_node=self,
-                    )
-                    for i, alt in enumerate(self)
-                ],
-                [],
-            )
+            # A top-level choice. The pipe is in front of each element.
+            parens = [], []
+            first_indents = '| ', '| '
+            running_indent = '  '
+        return (
+            parens[0],
+            [
+                OutputLine.from_nodes(
+                    [alt],
+                    max_length=max_length - len(running_indent),
+                    first_indent=indent + (
+                        first_indents[0] if i == 0
+                        else first_indents[1]
+                    ),
+                    running_indent=indent + running_indent,
+                    parent_node=self,
+                )
+                for i, alt in enumerate(self)
+            ],
+            parens[1],
+        )
 
 
 @dataclass(frozen=True)
