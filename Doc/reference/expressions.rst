@@ -155,7 +155,10 @@ Strings
    :diagrams: strings
 
    strings:(STRING | FSTRING_START (`fstring_replacement_field` | FSTRING_MIDDLE)* FSTRING_END)+
-   fstring_replacement_field:'{' `annotated_rhs` ['='] ["!" NAME] [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*] '}'
+   fstring_replacement_field:'{' `annotated_rhs` ['='] ["!" NAME]
+     :[ ':' (FSTRING_MIDDLE | `fstring_replacement_field`)*
+     :]
+     :'}'
 
 .. _parenthesized:
 
@@ -1101,9 +1104,13 @@ series of :term:`arguments <argument>`:
    :diagrams: arguments kwargs kwarg_or_double_starred
 
    arguments:`args` [',']
-   args:| ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
+   args:| ','.('*' `expression` | `assignment_expression` | `expression`)+
+     :  [ ',' `kwargs`
+     :  ]
      :| `kwargs`
-   kwargs:| ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
+   kwargs:| ','.((NAME '=' | '*') `expression`)+
+     :  [ ',' ','.`kwarg_or_double_starred`+
+     :  ]
      :| ','.`kwarg_or_double_starred`+
    kwarg_or_double_starred:(NAME '=' | '**') `expression`
 
@@ -2106,7 +2113,12 @@ Expression lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: tuple star_named_expression
 
-   tuple:'(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
+   tuple:'('
+     :[ `star_named_expression` ','
+     :  [ `star_named_expressions`
+     :  ]
+     :]
+     :')'
    star_named_expressions:','.`star_named_expression`+ [',']
    star_named_expression:'*' `bitwise_or` | `named_expression`
 

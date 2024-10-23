@@ -139,7 +139,11 @@ attributes or items of mutable objects:
    star_targets:','.`star_target`+ [',']
    star_target:'*' !'*' `star_target` | `target_with_star_atom`
    star_atom:| NAME
-     :| '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
+     :| '('
+     :  [    `target_with_star_atom`
+     :     | `star_targets_tuple_seq`
+     :  ]
+     :  ')'
      :| '[' [','.`star_target`+ [',']] ']'
    star_targets_tuple_seq:`star_target` ((',' `star_target`)+ [','] | ',')
    target_with_star_atom:| `t_primary` ('.' NAME | '[' `slices` ']')

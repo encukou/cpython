@@ -364,6 +364,17 @@ class Snippet:
             name for name, count in reference_counts.items() if count == 1
         )
 
+# TODO: Check parentheses are correct in complex cases.
+
+class Precedence(enum.IntEnum):
+    MIN = enum.auto()
+    CHOICE = enum.auto()
+    SEQUENCE = enum.auto()
+    REPEAT = enum.auto()
+    LOOKAHEAD = enum.auto()
+    ATOM = enum.auto()
+    MAX = enum.auto()
+
 
 @dataclass
 class OutputSymbol:
@@ -377,15 +388,13 @@ class OutputNodeRepr:
     content: str
     node: 'Node'
     parent_precedence: 'Precedence'
+    parent_node: 'Node | None'
 
-    def __init__(self, node, parent_node):
+    def __init__(self, node, parent_precedence=Precedence.MIN, parent_node=None):
         self.node = node
-        if parent_node is None:
-            parent_precedence = Precedence.MIN
-        else:
-            parent_precedence = parent_node.precedence
         self.content = node.format_for_precedence(parent_precedence)
         self.parent_precedence = parent_precedence
+        self.parent_node = parent_node
 
     def __str__(self):
         return self.content
@@ -413,8 +422,8 @@ class OutputLine:
             self.running_indent = running_indent
 
     @classmethod
-    def from_nodes(cls, nodes, max_length, first_indent='', running_indent=None, *, parent_node):
-        return cls([OutputNodeRepr(node, parent_node) for node in nodes], max_length, first_indent, running_indent)
+    def from_nodes(cls, nodes, max_length, first_indent='', running_indent=None, parent_precedence=Precedence.MIN, parent_node=None):
+        return cls([OutputNodeRepr(node, parent_precedence, parent_node) for node in nodes], max_length, first_indent, running_indent)
 
     def __str__(self):
         return self.first_indent + self.string_representation
@@ -437,9 +446,10 @@ class OutputLine:
         contents_by_length.sort(key=biggest_contents)
         for i, part in contents_by_length:
             split_part = part.node.split_into_lines(
-                self.max_length - 2,
+                self.max_length,
                 self.running_indent,
                 parent_precedence=part.parent_precedence,
+                parent_node=part.parent_node,
             )
             if not split_part:
                 continue
@@ -452,17 +462,6 @@ class OutputLine:
             results.append(OutputLine(self.parts[i+1:], self.max_length, self.running_indent))
             return results
 
-
-# TODO: Check parentheses are correct in complex cases.
-
-class Precedence(enum.IntEnum):
-    MIN = enum.auto()
-    CHOICE = enum.auto()
-    SEQUENCE = enum.auto()
-    REPEAT = enum.auto()
-    LOOKAHEAD = enum.auto()
-    ATOM = enum.auto()
-    MAX = enum.auto()
 
 class Node:
     def format(self) -> str:
@@ -583,7 +582,7 @@ class Node:
         """
         yield self.format()
 
-    def split_into_lines(self, max_length, indent, parent_precedence):
+    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
         return None
 
 
@@ -742,7 +741,7 @@ class Choice(Container):
             result.update(alt.get_rule_follow_set(rule_name, rules))
         return result
 
-    def split_into_lines(self, max_length, indent, parent_precedence):
+    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
         if self.needs_parens(parent_precedence):
             return (
                 [OutputSymbol('(')],
@@ -765,8 +764,9 @@ class Choice(Container):
                     OutputLine.from_nodes(
                         [alt],
                         max_length=max_length-2,
-                        first_indent=indent + ('| ' if i == 0 else '| '),
+                        first_indent=indent + (('   ' if i == 0 else ' | ') if parent_node else '| '),
                         running_indent=indent + '  ',
+                        parent_precedence=self.precedence,
                         parent_node=self,
                     )
                     for i, alt in enumerate(self)
@@ -888,7 +888,7 @@ class Sequence(Container):
         # having None in the result.
         return result
 
-    def split_into_lines(self, max_length, indent, parent_precedence):
+    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
         if self.needs_parens(parent_precedence):
             # TODO: This apparently never happens; remove?
             return (
@@ -911,6 +911,7 @@ class Sequence(Container):
                         self,
                         max_length=max_length,
                         first_indent=indent,
+                        parent_precedence=self.precedence,
                         parent_node=self,
                     )
                 ],
@@ -970,6 +971,20 @@ class Optional(Decorator):
 
     def get_rule_follow_set(self, rule_name, rules):
         return self.item.get_rule_follow_set(rule_name, rules)
+
+    def split_into_lines(self, max_length, indent, parent_precedence, parent_node):
+        return (
+            [OutputSymbol('[')],
+            [
+                OutputLine.from_nodes(
+                    [self.item],
+                    max_length=max_length-2,
+                    first_indent=indent + '  ',
+                    parent_node=self,
+                )
+            ],
+            [OutputSymbol(']')],
+        )
 
 class Repeat(Decorator):
     precedence = Precedence.REPEAT
@@ -1439,7 +1454,7 @@ def generate_rule_lines(snippet):
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
-        output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space, parent_node=None)]))
+        output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space)]))
 
         for num, line in enumerate(output_lines):
             if num == 0:
