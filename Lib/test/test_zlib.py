@@ -1,3 +1,12 @@
+# Tests for the zlib module.
+#
+# Building CPython without zlib is not supported (except on WASI).
+# Anyone who wants build CPython this way should be prepared to patch it,
+# but the core team may help getting those patches to the main branch (as
+# that’s the place where multiple third parties can cooperate).
+#
+# For tests to pass without zlib, this file needs to be removed.
+
 import unittest
 from test import support
 from test.support import import_helper

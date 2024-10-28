@@ -21,6 +21,14 @@ information.
 
 For reading and writing ``.gz`` files see the :mod:`gzip` module.
 
+.. availability:: not WASI.
+
+.. versionchanged:: next
+   On all platforms except WASI, this module is considered a required part
+   of CPython.
+   It is possible to build CPython without it, but such builds are not
+   supported.
+
 The available exception and functions in this module are:
 
 

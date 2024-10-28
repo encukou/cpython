@@ -60,7 +60,9 @@
 #include "Python.h"
 #include "pycore_long.h"          // _PyLong_DigitValue
 #include "pycore_strhex.h"        // _Py_strhex_bytes_with_sep()
-#include "zlib.h"                 // crc32()
+#ifdef USE_ZLIB_CRC32
+#  include "zlib.h"                 // crc32()
+#endif
 
 typedef struct binascii_state {
     PyObject *Error;
@@ -615,6 +617,7 @@ binascii_crc_hqx_impl(PyObject *module, Py_buffer *data, unsigned int crc)
 }
 
 
+#ifdef USE_ZLIB_CRC32
 /*[clinic input]
 binascii.crc32 -> unsigned_int
 
@@ -660,6 +663,7 @@ binascii_crc32_impl(PyObject *module, Py_buffer *data, unsigned int crc)
     }
     return crc & 0xffffffff;
 }
+#endif  // USE_ZLIB_CRC32
 
 /*[clinic input]
 binascii.b2a_hex

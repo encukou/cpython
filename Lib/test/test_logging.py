@@ -70,8 +70,10 @@ try:
 except ImportError:
     win32evtlog = win32evtlogutil = pywintypes = None
 
-import zlib
-
+try:
+    import zlib
+except ImportError:
+    pass
 
 
 # gh-89363: Skip fork() test if Python is built with Address Sanitizer (ASAN)
@@ -6324,6 +6326,7 @@ class RotatingFileHandlerTest(BaseFileTest):
         self.assertFalse(os.path.exists(rh.namer(self.fn + ".1")))
         rh.close()
 
+    @support.requires_zlib()
     def test_rotator(self):
         def namer(name):
             return name + ".gz"

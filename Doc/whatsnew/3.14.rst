@@ -453,6 +453,12 @@ unittest
   (Contributed by Jacob Walls in :gh:`80958`.)
 
 
+zlib
+----
+
+The :mod:`zlib` module is available on all platforms except WASI.
+
+
 .. Add improved modules above alphabetically, not here at the end.
 
 Optimizations
@@ -687,6 +693,16 @@ Changes in the Python API
 
 Build changes
 =============
+
+``zlib`` is required
+--------------------
+
+The ``zlib`` library is now officially required to build CPython.
+It is still technically possible to build CPython without it for special needs,
+like bootstrapping or embedding.
+Such builds are not supported, but we can accept pull requests to keep them
+working.
+As an exception, zlib is not required on WASI.
 
 
 C API changes

@@ -22,8 +22,14 @@ from test.support import script_helper
 from test.support import warnings_helper
 
 # Check for our compression modules.
-import gzip
-import zlib
+try:
+    import gzip
+except ImportError:
+    gzip = None
+try:
+    import zlib
+except ImportError:
+    zlib = None
 try:
     import bz2
 except ImportError:
@@ -63,6 +69,7 @@ class TarTest:
     def mode(self):
         return self.prefix + self.suffix
 
+@support.requires_gzip()
 class GzipTest:
     tarname = gzipname
     suffix = 'gz'
@@ -796,6 +803,7 @@ class MiscReadTestBase(CommonReadTest):
                 self.assertEqual(m1.offset, m2.offset)
                 self.assertEqual(m1.get_info(), m2.get_info())
 
+    @unittest.skipIf(zlib is None, "requires zlib")
     def test_zlib_error_does_not_leak(self):
         # bpo-39039: tarfile.open allowed zlib exceptions to bubble up when
         # parsing certain types of invalid data

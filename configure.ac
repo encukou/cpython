@@ -7945,9 +7945,10 @@ PY_STDLIB_MOD([_uuid],
   [$LIBUUID_CFLAGS], [$LIBUUID_LIBS])
 
 dnl compression libs
-PY_STDLIB_MOD_SIMPLE([zlib], [$ZLIB_CFLAGS], [$ZLIB_LIBS])
-dnl binascii uses zlib for optimized crc32.
-PY_STDLIB_MOD_SIMPLE([binascii], [$ZLIB_CFLAGS], [$ZLIB_LIBS])
+PY_STDLIB_MOD([zlib], [], [test "$have_zlib" = yes],
+  [$ZLIB_CFLAGS], [$ZLIB_LIBS])
+dnl binascii can use zlib for optimized crc32.
+PY_STDLIB_MOD_SIMPLE([binascii], [$BINASCII_CFLAGS], [$BINASCII_LIBS])
 PY_STDLIB_MOD([_bz2], [], [test "$have_bzip2" = yes],
   [$BZIP2_CFLAGS], [$BZIP2_LIBS])
 PY_STDLIB_MOD([_lzma], [], [test "$have_liblzma" = yes],
@@ -8042,3 +8043,13 @@ if test "$ac_cv_header_stdatomic_h" != "yes"; then
     version of Python may require stdatomic.h.
   ]))
 fi
+
+AS_VAR_IF([have_zlib], [yes], [], [
+  AS_VAR_IF([ac_sys_system], [WASI], [], [
+    AC_MSG_NOTICE(m4_normalize([
+      Building without zlib on this platform is not supported by the
+      CPython core team.
+      See Lib/test/test_zlib.py for details.
+    ]))
+  ])
+])

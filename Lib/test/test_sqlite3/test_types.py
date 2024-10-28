@@ -24,7 +24,10 @@ import datetime
 import unittest
 import sqlite3 as sqlite
 import sys
-import zlib
+try:
+    import zlib
+except ImportError:
+    zlib = None
 
 from test import support
 
@@ -462,6 +465,7 @@ class ObjectAdaptationTests(unittest.TestCase):
         self.assertEqual(alt, sqlite.adapt(1., None, alt))
 
 
+@unittest.skipUnless(zlib, "requires zlib")
 class BinaryConverterTests(unittest.TestCase):
     def convert(s):
         return zlib.decompress(s)

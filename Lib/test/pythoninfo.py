@@ -646,7 +646,13 @@ def collect_sqlite(info_add):
 
 
 def collect_zlib(info_add):
-    import zlib
+    try:
+        import zlib
+    except ImportError:
+        info_add('zlib', 'no')
+        return
+
+    info_add('zlib', 'yes')
     attributes = ('ZLIB_VERSION', 'ZLIB_RUNTIME_VERSION')
     copy_attributes(info_add, zlib, 'zlib.%s', attributes)
 

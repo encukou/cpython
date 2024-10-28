@@ -119,8 +119,13 @@ The :mod:`binascii` module defines the following functions:
       crc = binascii.crc32(b" world", crc)
       print('crc32 = {:#010x}'.format(crc))
 
+   .. availability:: not WASI.
+
    .. versionchanged:: 3.0
       The result is always unsigned.
+
+   .. versionchanged:: next
+      Requires the :mod:`zlib` module.
 
 .. function:: b2a_hex(data[, sep[, bytes_per_sep=1]])
               hexlify(data[, sep[, bytes_per_sep=1]])

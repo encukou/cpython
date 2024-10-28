@@ -298,6 +298,8 @@ exit:
     return return_value;
 }
 
+#if defined(USE_ZLIB_CRC32)
+
 PyDoc_STRVAR(binascii_crc32__doc__,
 "crc32($module, data, crc=0, /)\n"
 "--\n"
@@ -346,6 +348,8 @@ exit:
 
     return return_value;
 }
+
+#endif /* defined(USE_ZLIB_CRC32) */
 
 PyDoc_STRVAR(binascii_b2a_hex__doc__,
 "b2a_hex($module, /, data, sep=<unrepresentable>, bytes_per_sep=1)\n"
@@ -767,4 +771,8 @@ exit:
 
     return return_value;
 }
-/*[clinic end generated code: output=968767b663ed889d input=a9049054013a1b77]*/
+
+#ifndef BINASCII_CRC32_METHODDEF
+    #define BINASCII_CRC32_METHODDEF
+#endif /* !defined(BINASCII_CRC32_METHODDEF) */
+/*[clinic end generated code: output=4887420ddef23fcc input=a9049054013a1b77]*/
