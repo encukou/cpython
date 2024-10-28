@@ -23,10 +23,7 @@ import doctest
 import inspect
 import io
 from traceback import extract_tb, extract_stack, print_tb
-try:
-    import zlib
-except ImportError:
-    zlib = None
+import zlib
 
 test_src = """\
 def get_name():
@@ -1007,7 +1004,6 @@ class UncompressedZipImportTestCase(ImportHooksBaseTestCase):
         self.doTestWithPreBuiltZip(".py", "module")
 
 
-@support.requires_zlib()
 class CompressedZipImportTestCase(UncompressedZipImportTestCase):
     compression = ZIP_DEFLATED
 

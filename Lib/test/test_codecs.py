@@ -2943,13 +2943,10 @@ transform_aliases = {
     "rot_13": ["rot13"],
 }
 
-try:
-    import zlib
-except ImportError:
-    zlib = None
-else:
-    bytes_transform_encodings.append("zlib_codec")
-    transform_aliases["zlib_codec"] = ["zip", "zlib"]
+import zlib
+bytes_transform_encodings.append("zlib_codec")
+transform_aliases["zlib_codec"] = ["zip", "zlib"]
+
 try:
     import bz2  # noqa: F401
 except ImportError:
