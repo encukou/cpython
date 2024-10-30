@@ -428,6 +428,35 @@ class GrammarSnippetDirective(SphinxDirective):
         content = self.content[:]
         content.disconnect()
 
+        token = 'annotated_assignment_stmt'
+        title = 'annotated_assignment_stmt (title)'
+        # TODO: Make this reference show up in the literal block
+        # maybe something around https://github.com/sphinx-doc/sphinx/blob/116a430caca98580c8877cf7b0ba270eae9604bf/sphinx/writers/html5.py#L566 ?
+        ref_node = addnodes.pending_xref(
+            "annotated_assignment_stmt (source of the link)",
+            reftype="token",
+            refdomain="std",
+            reftarget="python-grammar:annotated_assignment_stmt",
+        )
+        ref_node += nodes.Text('annotated_assignment_stmt')
+        literal = nodes.literal_block(
+            '', '',
+            nodes.Text("Hello world,"),
+            nodes.Text("here is a Python keyword: class"),
+            nodes.Text("\na new line follows. Link:"),
+            ref_node,
+            nodes.Text("... that was a link!"),
+            language='none',
+            force=False,
+        )
+        node = nodes.paragraph(
+            '', '',
+            literal,
+            #ref_node,
+        )
+        return [node]
+
+        """
         rule_names = []
         for index, line in enumerate(content):
             content[index] = '   ' + line
@@ -447,6 +476,7 @@ class GrammarSnippetDirective(SphinxDirective):
         node = nodes.paragraph()
         self.state.nested_parse(content, 0, node)
         return node.children
+        """
 
 
 def patch_pairindextypes(app, _env) -> None:
