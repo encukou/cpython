@@ -1,11 +1,16 @@
 # Tests for the zlib module.
-#
+
 # Building CPython without zlib is not supported (except on WASI).
 # Anyone who wants build CPython this way should be prepared to patch it,
 # but the core team may help getting those patches to the main branch (as
 # that’s the place where multiple third parties can cooperate).
 #
 # For tests to pass without zlib, this file needs to be removed.
+
+# Tests will also fail if the underlying zlib library does not provide
+# `inflateCopy` and `deflateCopy` functions (added in zlib 1.2.0, in 2003).
+# The failing tests are, for now, marked with `requires_Decompress_copy` and
+# `requires_Compress_copy` comments.
 
 import unittest
 from test import support
@@ -19,13 +24,6 @@ from test.support import bigmemtest, _1G, _4G, is_s390x
 
 
 zlib = import_helper.import_module('zlib')
-
-requires_Compress_copy = unittest.skipUnless(
-        hasattr(zlib.compressobj(), "copy"),
-        'requires Compress.copy()')
-requires_Decompress_copy = unittest.skipUnless(
-        hasattr(zlib.decompressobj(), "copy"),
-        'requires Decompress.copy()')
 
 
 def _zlib_runtime_version_tuple(zlib_version=zlib.ZLIB_RUNTIME_VERSION):
@@ -687,7 +685,7 @@ class CompressObjectTestCase(BaseCompressTestCase, unittest.TestCase):
         dco.decompress(data, 1)
         self.assertEqual(dco.flush(CustomInt()), input[1:])
 
-    @requires_Compress_copy
+    #requires_Compress_copy
     def test_compresscopy(self):
         # Test copying a compression object
         data0 = HAMLET_SCENE
@@ -711,7 +709,7 @@ class CompressObjectTestCase(BaseCompressTestCase, unittest.TestCase):
             self.assertEqual(zlib.decompress(s0),data0+data0)
             self.assertEqual(zlib.decompress(s1),data0+data1)
 
-    @requires_Compress_copy
+    #requires_Compress_copy
     def test_badcompresscopy(self):
         # Test copying a compression object in an inconsistent state
         c = zlib.compressobj()
@@ -721,7 +719,7 @@ class CompressObjectTestCase(BaseCompressTestCase, unittest.TestCase):
         self.assertRaises(ValueError, copy.copy, c)
         self.assertRaises(ValueError, copy.deepcopy, c)
 
-    @requires_Decompress_copy
+    #requires_Decompress_copy
     def test_decompresscopy(self):
         # Test copying a decompression object
         data = HAMLET_SCENE
@@ -746,7 +744,7 @@ class CompressObjectTestCase(BaseCompressTestCase, unittest.TestCase):
             self.assertEqual(s0,s1)
             self.assertEqual(s0,data)
 
-    @requires_Decompress_copy
+    #requires_Decompress_copy
     def test_baddecompresscopy(self):
         # Test copying a compression object in an inconsistent state
         data = zlib.compress(HAMLET_SCENE)

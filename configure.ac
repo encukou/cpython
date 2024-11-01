@@ -5376,6 +5376,7 @@ PY_CHECK_EMSCRIPTEN_PORT([ZLIB], [-sUSE_ZLIB])
 PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.0], [
   have_zlib=yes
   dnl zlib 1.2.0 (2003) added inflateCopy
+  have_zlib_copy=yes
   AC_DEFINE([HAVE_ZLIB_COPY], [1])
 ], [
   WITH_SAVE_ENV([
@@ -5387,7 +5388,12 @@ PKG_CHECK_MODULES([ZLIB], [zlib >= 1.2.0], [
     AS_VAR_IF([have_zlib], [yes], [
       ZLIB_CFLAGS=${ZLIB_CFLAGS-""}
       ZLIB_LIBS=${ZLIB_LIBS-"-lz"}
-      PY_CHECK_LIB([z], [inflateCopy], [AC_DEFINE([HAVE_ZLIB_COPY], [1])])
+      PY_CHECK_LIB([z], [inflateCopy], [
+        AC_DEFINE([HAVE_ZLIB_COPY], [1])
+        have_zlib_copy=yes
+      ], [
+        have_zlib_copy=no
+      ])
     ])
   ])
 ])
@@ -8044,7 +8050,15 @@ if test "$ac_cv_header_stdatomic_h" != "yes"; then
   ]))
 fi
 
-AS_VAR_IF([have_zlib], [yes], [], [
+AS_VAR_IF([have_zlib], [yes], [
+  AS_VAR_IF([have_zlib_copy], [no], [
+    AC_MSG_NOTICE(m4_normalize([
+      Building with zlib that does not provide the inflateCopy and deflateCopy
+      functions is not supported by the CPython core team.
+      Please use zlib 1.2.0 (2003) or newer.
+    ]))
+  ])
+], [
   AS_VAR_IF([ac_sys_system], [WASI], [], [
     AC_MSG_NOTICE(m4_normalize([
       Building without zlib on this platform is not supported by the
