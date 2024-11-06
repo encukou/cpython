@@ -439,8 +439,22 @@ class GrammarSnippetDirective(SphinxDirective):
             reftarget="python-grammar:annotated_assignment_stmt",
         )
         ref_node += nodes.Text('annotated_assignment_stmt')
+
+        rawsource = '''
+        # Docutils elements have a `rawsource` attribute that is supposed to be
+        # set to the original ReST source.
+        # Sphinx does the following with it:
+        # - if it's empty, set it to `self.astext()`
+        # - if it matches `self.astext()` when generating the output,
+        #   apply syntax highlighting (which is based on the plain-text content
+        #   and thus discards internal formatting, like references).
+        # To get around this, we set it to this fake (and very non-empty)
+        # string!
+        '''
+
         literal = nodes.literal_block(
-            '', '',
+            rawsource,
+            '',
             nodes.Text("Hello world,"),
             nodes.Text("here is a Python keyword: class"),
             nodes.Text("\na new line follows. Link:"),
@@ -449,10 +463,10 @@ class GrammarSnippetDirective(SphinxDirective):
             language='none',
             force=False,
         )
+        literal += nodes.Text('added text')
         node = nodes.paragraph(
             '', '',
             literal,
-            #ref_node,
         )
         return [node]
 
