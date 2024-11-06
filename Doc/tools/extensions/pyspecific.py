@@ -27,6 +27,7 @@ from sphinx.locale import _ as sphinx_gettext
 from sphinx.util.docutils import SphinxDirective
 from sphinx.writers.text import TextWriter, TextTranslator
 from sphinx.util.display import status_iterator
+from sphinx.util.nodes import make_id
 
 
 ISSUE_URI = 'https://bugs.python.org/issue?@action=redirect&bpo=%s'
@@ -467,7 +468,7 @@ class GrammarSnippetDirective(SphinxDirective):
                 (?P<rule_name>^[a-zA-Z0-9_]+)     # identifier at start of line
                 (?=:)                             # ... followed by a colon
             |
-                (?P<rule_ref>[`][a-zA-Z0-9_]+[`]) # identifier in backquotes
+                [`](?P<rule_ref>[a-zA-Z0-9_]+)[`] # identifier in backquotes
             """,
             re.VERBOSE,
         )
@@ -486,12 +487,28 @@ class GrammarSnippetDirective(SphinxDirective):
                     for name, content in match.groupdict().items()
                     if content is not None
                 }
-                print(groupdict)
                 match groupdict:
-                    case {'rule_name': rule_name}:
-                        literal += nodes.Text(rule_name + '!!')
-                    case {'rule_ref': rule_ref}:
-                        literal += nodes.Text(rule_ref + '??')
+                    case {'rule_name': name}:
+                        name_node = addnodes.literal_strong()
+                        domain = self.env.domains['std']
+                        obj_name = f"{group_name}:{name}"
+                        prefix = f'grammar-token-{group_name}'
+                        node_id = make_id(self.env, self.state.document, prefix, name)
+                        name_node['ids'].append(node_id)
+                        self.state.document.note_implicit_target(name_node, name_node)
+                        domain.note_object('token', obj_name, node_id, location=name_node)
+                        text_node = nodes.Text(name)
+                        name_node += text_node
+                        literal += name_node
+                    case {'rule_ref': name}:
+                        ref_node = addnodes.pending_xref(
+                            name,
+                            reftype="token",
+                            refdomain="std",
+                            reftarget=f"{group_name}:{name}",
+                        )
+                        ref_node += nodes.Text(name)
+                        literal += ref_node
 
 
         node = nodes.paragraph(
