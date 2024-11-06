@@ -1478,7 +1478,7 @@ def generate_rule_lines(snippet):
 
         for num, line in enumerate(output_lines):
             if num == 0:
-                yield f'{name}:{line}'.rstrip()
+                yield f'{name}: {line}'.rstrip()
             else:
                 yield f'  :{line}'.rstrip()
             if len(line) > available_space:

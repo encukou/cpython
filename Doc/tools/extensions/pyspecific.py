@@ -425,8 +425,6 @@ class GrammarSnippetDirective(SphinxDirective):
 
     def run(self):
         group_name = self.options['group']
-        content = self.content[:]
-        content.disconnect()
 
         token = 'annotated_assignment_stmt'
         title = 'annotated_assignment_stmt (title)'
@@ -455,42 +453,52 @@ class GrammarSnippetDirective(SphinxDirective):
         literal = nodes.literal_block(
             rawsource,
             '',
-            nodes.Text("Hello world,"),
-            nodes.Text("here is a Python keyword: class"),
-            nodes.Text("\na new line follows. Link:"),
-            ref_node,
-            nodes.Text("... that was a link!"),
+            #nodes.Text("Hello world,"),
+            #nodes.Text("here is a Python keyword: class"),
+            #nodes.Text("\na new line follows. Link:"),
+            #ref_node,
+            #nodes.Text("... that was a link!"),
             language='none',
             force=False,
         )
-        literal += nodes.Text('added text')
+
+        grammar_re = re.compile(
+            """
+                (?P<rule_name>^[a-zA-Z0-9_]+)     # identifier at start of line
+                (?=:)                             # ... followed by a colon
+            |
+                (?P<rule_ref>[`][a-zA-Z0-9_]+[`]) # identifier in backquotes
+            """,
+            re.VERBOSE,
+        )
+
+        for line in self.content:
+            last_pos = 0
+            for match in grammar_re.finditer(line):
+                # Handle text between matches
+                if match.start() > last_pos:
+                    literal += nodes.Text(line[last_pos:match.start()])
+                last_pos = match.end()
+
+                # Handle matches
+                groupdict = {
+                    name: content
+                    for name, content in match.groupdict().items()
+                    if content is not None
+                }
+                print(groupdict)
+                match groupdict:
+                    case {'rule_name': rule_name}:
+                        literal += nodes.Text(rule_name + '!!')
+                    case {'rule_ref': rule_ref}:
+                        literal += nodes.Text(rule_ref + '??')
+
+
         node = nodes.paragraph(
             '', '',
             literal,
         )
         return [node]
-
-        """
-        rule_names = []
-        for index, line in enumerate(content):
-            content[index] = '   ' + line
-            rule_name, sep, rule_content = line.partition(':')
-            rule_names.append(rule_name)
-
-        content.insert(
-            0, f'.. productionlist:: {group_name}', source=__file__,
-        )
-
-        for rule_name in self.options['diagrams'].split():
-            content.append('', source=__file__)
-            content.append(f'``{rule_name}``:', source=__file__)
-            content.append('', source=__file__)
-            content.append(f'.. image:: diagrams/{rule_name}.svg', source=__file__)
-
-        node = nodes.paragraph()
-        self.state.nested_parse(content, 0, node)
-        return node.children
-        """
 
 
 def patch_pairindextypes(app, _env) -> None:
