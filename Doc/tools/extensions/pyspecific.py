@@ -427,18 +427,6 @@ class GrammarSnippetDirective(SphinxDirective):
     def run(self):
         group_name = self.options['group']
 
-        token = 'annotated_assignment_stmt'
-        title = 'annotated_assignment_stmt (title)'
-        # TODO: Make this reference show up in the literal block
-        # maybe something around https://github.com/sphinx-doc/sphinx/blob/116a430caca98580c8877cf7b0ba270eae9604bf/sphinx/writers/html5.py#L566 ?
-        ref_node = addnodes.pending_xref(
-            "annotated_assignment_stmt (source of the link)",
-            reftype="token",
-            refdomain="std",
-            reftarget="python-grammar:annotated_assignment_stmt",
-        )
-        ref_node += nodes.Text('annotated_assignment_stmt')
-
         rawsource = '''
         # Docutils elements have a `rawsource` attribute that is supposed to be
         # set to the original ReST source.
@@ -454,11 +442,6 @@ class GrammarSnippetDirective(SphinxDirective):
         literal = nodes.literal_block(
             rawsource,
             '',
-            #nodes.Text("Hello world,"),
-            #nodes.Text("here is a Python keyword: class"),
-            #nodes.Text("\na new line follows. Link:"),
-            #ref_node,
-            #nodes.Text("... that was a link!"),
             language='none',
             force=False,
         )
@@ -490,6 +473,9 @@ class GrammarSnippetDirective(SphinxDirective):
                 match groupdict:
                     case {'rule_name': name}:
                         name_node = addnodes.literal_strong()
+
+                        # Cargo-culted magic to make `name_node` a link target
+                        # similar to Sphinx `production`:
                         domain = self.env.domains['std']
                         obj_name = f"{group_name}:{name}"
                         prefix = f'grammar-token-{group_name}'
@@ -497,6 +483,7 @@ class GrammarSnippetDirective(SphinxDirective):
                         name_node['ids'].append(node_id)
                         self.state.document.note_implicit_target(name_node, name_node)
                         domain.note_object('token', obj_name, node_id, location=name_node)
+
                         text_node = nodes.Text(name)
                         name_node += text_node
                         literal += name_node
