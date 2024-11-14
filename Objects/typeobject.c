@@ -87,6 +87,7 @@ class object "PyObject *" "&PyBaseObject_Type"
 typedef struct PySlot_Offset {
     short subslot_offset;
     short slot_offset;
+    short flags;
 } PySlot_Offset;
 
 static void

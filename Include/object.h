@@ -400,6 +400,7 @@ PyAPI_FUNC(Py_ssize_t) PyType_GetTypeDataSize(PyTypeObject *cls);
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030E0000
 PyAPI_FUNC(int) PyType_GetBaseByToken(PyTypeObject *, void *, PyTypeObject **);
 #define Py_TP_USE_SPEC NULL
+PyAPI_FUNC(int) PyType_ApplySlots(PyTypeObject *, PyType_Slot *, Py_ssize_t count);
 #endif
 
 /* Generic type check */

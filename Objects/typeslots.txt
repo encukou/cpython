@@ -6,86 +6,86 @@
 # The rest of this file is CSV, with number & name in the first columns,
 # and a variable number of columns containing `name=value` pairs.
 
-  1, bf_getbuffer,
-  2, bf_releasebuffer,
-  3, mp_ass_subscript,
-  4, mp_length,
-  5, mp_subscript,
-  6, nb_absolute,
-  7, nb_add,
-  8, nb_and,
-  9, nb_bool,
- 10, nb_divmod,
- 11, nb_float,
- 12, nb_floor_divide,
- 13, nb_index,
- 14, nb_inplace_add,
- 15, nb_inplace_and,
- 16, nb_inplace_floor_divide,
- 17, nb_inplace_lshift,
- 18, nb_inplace_multiply,
- 19, nb_inplace_or,
- 20, nb_inplace_power,
- 21, nb_inplace_remainder,
- 22, nb_inplace_rshift,
- 23, nb_inplace_subtract,
- 24, nb_inplace_true_divide,
- 25, nb_inplace_xor,
- 26, nb_int,
- 27, nb_invert,
- 28, nb_lshift,
- 29, nb_multiply,
- 30, nb_negative,
- 31, nb_or,
- 32, nb_positive,
- 33, nb_power,
- 34, nb_remainder,
- 35, nb_rshift,
- 36, nb_subtract,
- 37, nb_true_divide,
- 38, nb_xor,
- 39, sq_ass_item,
- 40, sq_concat,
- 41, sq_contains,
- 42, sq_inplace_concat,
- 43, sq_inplace_repeat,
- 44, sq_item,
- 45, sq_length,
- 46, sq_repeat,
- 47, tp_alloc,
+  1, bf_getbuffer, apply=replace
+  2, bf_releasebuffer, apply=replace
+  3, mp_ass_subscript, apply=replace
+  4, mp_length, apply=replace
+  5, mp_subscript, apply=replace
+  6, nb_absolute, apply=replace
+  7, nb_add, apply=replace
+  8, nb_and, apply=replace
+  9, nb_bool, apply=replace
+ 10, nb_divmod, apply=replace
+ 11, nb_float, apply=replace
+ 12, nb_floor_divide, apply=replace
+ 13, nb_index, apply=replace
+ 14, nb_inplace_add, apply=replace
+ 15, nb_inplace_and, apply=replace
+ 16, nb_inplace_floor_divide, apply=replace
+ 17, nb_inplace_lshift, apply=replace
+ 18, nb_inplace_multiply, apply=replace
+ 19, nb_inplace_or, apply=replace
+ 20, nb_inplace_power, apply=replace
+ 21, nb_inplace_remainder, apply=replace
+ 22, nb_inplace_rshift, apply=replace
+ 23, nb_inplace_subtract, apply=replace
+ 24, nb_inplace_true_divide, apply=replace
+ 25, nb_inplace_xor, apply=replace
+ 26, nb_int, apply=replace
+ 27, nb_invert, apply=replace
+ 28, nb_lshift, apply=replace
+ 29, nb_multiply, apply=replace
+ 30, nb_negative, apply=replace
+ 31, nb_or, apply=replace
+ 32, nb_positive, apply=replace
+ 33, nb_power, apply=replace
+ 34, nb_remainder, apply=replace
+ 35, nb_rshift, apply=replace
+ 36, nb_subtract, apply=replace
+ 37, nb_true_divide, apply=replace
+ 38, nb_xor, apply=replace
+ 39, sq_ass_item, apply=replace
+ 40, sq_concat, apply=replace
+ 41, sq_contains, apply=replace
+ 42, sq_inplace_concat, apply=replace
+ 43, sq_inplace_repeat, apply=replace
+ 44, sq_item, apply=replace
+ 45, sq_length, apply=replace
+ 46, sq_repeat, apply=replace
+ 47, tp_alloc, apply=replace
  48, tp_base,
  49, tp_bases,
- 50, tp_call,
- 51, tp_clear,
- 52, tp_dealloc,
- 53, tp_del,
- 54, tp_descr_get,
- 55, tp_descr_set,
+ 50, tp_call, apply=replace
+ 51, tp_clear, apply=replace
+ 52, tp_dealloc, apply=replace
+ 53, tp_del, apply=replace
+ 54, tp_descr_get, apply=replace
+ 55, tp_descr_set, apply=replace
  56, tp_doc,
- 57, tp_getattr,
- 58, tp_getattro,
- 59, tp_hash,
- 60, tp_init,
- 61, tp_is_gc,
- 62, tp_iter,
- 63, tp_iternext,
- 64, tp_methods,
- 65, tp_new,
- 66, tp_repr,
- 67, tp_richcompare,
- 68, tp_setattr,
- 69, tp_setattro,
- 70, tp_str,
- 71, tp_traverse,
+ 57, tp_getattr, apply=replace
+ 58, tp_getattro, apply=replace
+ 59, tp_hash, apply=replace
+ 60, tp_init, apply=replace
+ 61, tp_is_gc, apply=replace
+ 62, tp_iter, apply=replace
+ 63, tp_iternext, apply=replace
+ 64, tp_methods, apply=extend
+ 65, tp_new, apply=replace
+ 66, tp_repr, apply=replace
+ 67, tp_richcompare, apply=replace
+ 68, tp_setattr, apply=replace
+ 69, tp_setattro, apply=replace
+ 70, tp_str, apply=replace
+ 71, tp_traverse, apply=replace
  72, tp_members,
  73, tp_getset,
- 74, tp_free,
- 75, nb_matrix_multiply,
- 76, nb_inplace_matrix_multiply,
- 77, am_await,
- 78, am_aiter,
- 79, am_anext,
- 80, tp_finalize, added=3.5
- 81, am_send, added=3.10
- 82, tp_vectorcall, added=3.14
+ 74, tp_free, apply=replace
+ 75, nb_matrix_multiply, apply=replace
+ 76, nb_inplace_matrix_multiply, apply=replace
+ 77, am_await, apply=replace
+ 78, am_aiter, apply=replace
+ 79, am_anext, apply=replace
+ 80, tp_finalize, added=3.5, apply=replace
+ 81, am_send, added=3.10, apply=replace
+ 82, tp_vectorcall, added=3.14, apply=replace
  83, tp_token, added=3.14, member_name=ht_token

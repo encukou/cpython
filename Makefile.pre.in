@@ -2081,10 +2081,7 @@ Objects/typeobject.o: Objects/typeslots.inc
 regen-typeslots:
 	# Regenerate Objects/typeslots.inc from Include/typeslotsh
 	# using Objects/typeslots.py
-	$(PYTHON_FOR_REGEN) $(srcdir)/Objects/typeslots.py \
-		< $(srcdir)/Include/typeslots.h \
-		$(srcdir)/Objects/typeslots.inc.new
-	$(UPDATE_FILE) $(srcdir)/Objects/typeslots.inc $(srcdir)/Objects/typeslots.inc.new
+	$(PYTHON_FOR_REGEN) $(srcdir)/Objects/typeslots.py
 
 $(LIBRARY_OBJS) $(MODOBJS) Programs/python.o: $(PYTHON_HEADERS)
 

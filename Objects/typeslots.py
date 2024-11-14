@@ -76,7 +76,10 @@ class Entry:
     data: dict
 
     def __getattr__(self, name):
-        return self.data.get(name, None)
+        return self.get(name, None)
+
+    def get(self, name, default=None):
+        return self.data.get(name, default)
 
     @property
     def member_name(self):
@@ -99,7 +102,10 @@ class Entry:
         else:
             member_offset = f'offsetof({table_type}, {self.member_name})'
             table_offset = f'offsetof(PyTypeObject, {table_name})'
-        return '{%s, %s},' % (member_offset, table_offset)
+        return '{%s, %s, _PyType_APPLY_%s},' % (
+            member_offset, table_offset,
+            self.get('apply', 'REJECT').upper(),
+        )
 
 def parse_input(file):
     result = {}
