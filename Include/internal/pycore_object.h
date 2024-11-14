@@ -900,11 +900,6 @@ PyAPI_DATA(int) _Py_SwappedOp[];
 
 extern void _Py_GetConstant_Init(void);
 
-#define _PyType_APPLY_MASK 0x3
-#define _PyType_APPLY_REJECT 0x0
-#define _PyType_APPLY_REPLACE 0x1
-#define _PyType_APPLY_EXTEND 0x2
-
 #ifdef __cplusplus
 }
 #endif
