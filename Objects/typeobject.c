@@ -4699,6 +4699,24 @@ special_offset_from_member(
     return -1;
 }
 
+/* Copy the given slot directly. No checking if it's safe. */
+static void
+replace_slot(PyHeapTypeObject *res, const PyType_Slot *slot) {
+    char *res_start = (char*) res;
+    PySlot_Offset slotoffsets = pyslot_offsets[slot->slot];
+    short slot_offset = slotoffsets.slot_offset;
+    if (slotoffsets.subslot_offset == -1) {
+        /* Set a slot in the main PyTypeObject */
+        *(void**)((char*)res_start + slot_offset) = slot->pfunc;
+    }
+    else {
+        void *procs = *(void**)((char*)res_start + slot_offset);
+        short subslot_offset = slotoffsets.subslot_offset;
+        *(void**)((char*)procs + subslot_offset) = slot->pfunc;
+    }
+}
+
+
 PyObject *
 PyType_FromMetaclass(
     PyTypeObject *metaclass, PyObject *module,
@@ -4727,7 +4745,6 @@ PyType_FromMetaclass(
     const PyMemberDef *weaklistoffset_member = NULL;
     const PyMemberDef *dictoffset_member = NULL;
     const PyMemberDef *vectorcalloffset_member = NULL;
-    char *res_start;
 
     for (slot = spec->slots; slot->slot; slot++) {
         if (slot->slot < 0
@@ -4939,7 +4956,6 @@ PyType_FromMetaclass(
     if (res == NULL) {
         goto finally;
     }
-    res_start = (char*)res;
 
     type = &res->ht_type;
     /* The flags must be initialized early, before the GC traverses us */
@@ -5012,17 +5028,7 @@ PyType_FromMetaclass(
         default:
             {
                 /* Copy other slots directly */
-                PySlot_Offset slotoffsets = pyslot_offsets[slot->slot];
-                short slot_offset = slotoffsets.slot_offset;
-                if (slotoffsets.subslot_offset == -1) {
-                    /* Set a slot in the main PyTypeObject */
-                    *(void**)((char*)res_start + slot_offset) = slot->pfunc;
-                }
-                else {
-                    void *procs = *(void**)((char*)res_start + slot_offset);
-                    short subslot_offset = slotoffsets.subslot_offset;
-                    *(void**)((char*)procs + subslot_offset) = slot->pfunc;
-                }
+                replace_slot(res, slot);
             }
             break;
         }
