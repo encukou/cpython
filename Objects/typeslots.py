@@ -1,6 +1,8 @@
 #!/usr/bin/python
 """
 Generate C code & header for the list of slots
+
+The output files will be overwritten. Commit them before running this.
 """
 
 import re
@@ -127,11 +129,14 @@ def parse_args(context, argv):
                         help="The .csv file to read")
 
     args = parser.parse_args(argv[1:])
-    args.incfile = context.enter_context(update_file(args.INCFILE, '.inc'))
-    args.header = context.enter_context(update_file(args.HEADER, '.h'))
+    args.header = context.enter_context(updating_file(args.HEADER))
+    args.incfile = context.enter_context(updating_file(args.INCFILE))
     if args.input == '-':
+        print(f'input: stdin', file=sys.stderr)
         args.input = sys.stdin
     else:
+        path = Path(args.input).resolve()
+        print(f'input: {path}', file=sys.stderr)
         file = Path(args.input).open(encoding='utf-8')
         args.input = context.enter_context(file)
 
@@ -139,27 +144,22 @@ def parse_args(context, argv):
 
 
 @contextlib.contextmanager
-def update_file(path, name):
+def updating_file(path):
+    """Open a temporary file that will replace *path* on success."""
     if path == '-':
-        class FakeStdout:
-            line = ''
-            def write(self, content):
-                for line in content.splitlines(keepends=True):
-                    self.line += line
-                    if line.endswith('\n'):
-                        sys.stdout.write(f'{name}: {self.line}')
-                        self.line = ''
-        file = FakeStdout()
-        yield file
-        if file.line:
-            print(f'{name}: {file.line}')
+        raise ValueError('"-" arguments not supported')
     else:
+        path = Path(path).resolve()
         tmp_path = path.with_name(path.name + '.tmp')
         try:
             with tmp_path.open('w', encoding='utf-8') as file:
                 yield file
-            old_contents = path.read_text()
-            new_contents = tmp_path.read_text()
+            try:
+                old_contents = path.read_text()
+                new_contents = tmp_path.read_text()
+            except FileNotFoundError:
+                old_contents = None
+                new_contents = 'not none'
             if old_contents != new_contents:
                 print(f'writing: {path}', file=sys.stderr)
                 tmp_path.replace(path)
