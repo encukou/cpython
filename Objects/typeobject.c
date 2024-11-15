@@ -1201,7 +1201,6 @@ _PyType_GetVersionForCurrentState(PyTypeObject *tp)
 }
 
 
-
 #define MAX_VERSIONS_PER_CLASS 1000
 
 static int
@@ -5033,9 +5032,25 @@ PyType_FromMetaclass(
                 res->ht_token = slot->pfunc == Py_TP_USE_SPEC ? spec : slot->pfunc;
             }
             break;
+        case Py_tp_methods:
+        case Py_tp_getset:
+            {
+                // These slots are not valid for PyType_ApplySlots,
+                // but set them for PyType_Ready.
+                replace_slot(res, slot);
+            }
+            break;
         default:
             {
-                /* Copy other slots directly */
+                // Copy replaceable slots directly
+                #ifndef NDEBUG
+                if (!pyslot_infos[slot->slot].apply_replace) {
+                    PySys_FormatStderr(
+                        "PyType_FromMetaclass: bad slot %d (%s)\n",
+                        slot->slot, pyslot_infos[slot->slot].name);
+                    assert(0);
+                }
+                #endif
                 replace_slot(res, slot);
             }
             break;
@@ -5206,7 +5221,7 @@ int
 PyType_ApplySlots(PyTypeObject *type, PyType_Slot *slot, Py_ssize_t count_in)
 {
     assert(slot);
-    if (type->tp_flags && Py_TPFLAGS_IMMUTABLETYPE) {
+    if (_PyType_HasFeature(type, Py_TPFLAGS_IMMUTABLETYPE)) {
         PyErr_Format(PyExc_SystemError,
                         "PyType_ApplySlots: '%s' is immutable",
                         type->tp_name);
@@ -5221,14 +5236,15 @@ PyType_ApplySlots(PyTypeObject *type, PyType_Slot *slot, Py_ssize_t count_in)
                         count_in);
         return -1;
     }
-    bool modified = false;
     int slots_len = Py_ARRAY_LENGTH(pyslot_infos);
     size_t count = count_in;
     for (; slot->slot && (count > 0); slot++, count--) {
         if (!slot->slot) {
             if (count_in != -1) {
-                PyErr_Format(PyExc_SystemError,
-                            "PyType_ApplySlots: empty slot needs count=-1");
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "PyType_ApplySlots: bad slot: 0. Pass count=-1 to use sentinel.");
+                return -1;
             }
             break;
         }
@@ -5239,22 +5255,22 @@ PyType_ApplySlots(PyTypeObject *type, PyType_Slot *slot, Py_ssize_t count_in)
             return -1;
         }
         const PySlot_Info *slotinfo = &pyslot_infos[slot->slot];
-        if (slotinfo->apply_replace) {
-            replace_slot(heaptype, slot);
-            modified = true;
-        }
-        else {
-            if (modified) {
-                PyType_Modified(type);
-            }
+        if (!slot->pfunc) {
             PyErr_Format(PyExc_SystemError,
-                         "PyType_ApplySlots: bad slot: %d (%s)",
-                         slot->slot, slotinfo->name);
+                         "PyType_ApplySlots: NULL value in slot %s (%d)",
+                         slotinfo->name, slot->slot);
             return -1;
         }
-    }
-    if (modified) {
-        PyType_Modified(type);
+        if (slotinfo->apply_replace) {
+            replace_slot(heaptype, slot);
+            PyType_Modified(type);
+        }
+        else {
+            PyErr_Format(PyExc_SystemError,
+                         "PyType_ApplySlots: bad slot: %s (%d)",
+                         slotinfo->name, slot->slot);
+            return -1;
+        }
     }
     return 0;
 }
