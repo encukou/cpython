@@ -736,6 +736,12 @@ signature = "($self, /)"
 docstring = "Return len(self)."
 _sp = true
 
+# Heap types defining __add__/__mul__ have sq_concat/sq_repeat == NULL.
+# The logic in abstract.c always falls back to nb_add/nb_multiply in
+# this case.  Defining both the nb_* and the sq_* slots to call the
+# user-defined methods has unexpected side-effects, as shown by
+# test_descr.notimplemented()
+
 [__add__-sequence]
 slot = "sq_concat"
 wrapper = "wrap_binaryfunc"
