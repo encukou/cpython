@@ -9,6 +9,7 @@ import re
 import io
 import sys
 import csv
+import tomllib
 import argparse
 import contextlib
 import dataclasses
@@ -27,6 +28,18 @@ STRUCTS = {
     'sq_': ('PySequenceMethods', 'tp_as_sequence'),
     'bf_': ('PyBufferProcs', 'tp_as_buffer'),
 }
+
+C_CHAR_MAP = {
+    **{i: f'\\x{i:02x}' for i in range(256)},
+    **{i: chr(i) for i in range(32, 127)},
+    ord('\n'): r'\n',
+    ord('\t'): r'\t',
+    ord('"'): r'\"',
+    ord("'"): r"\'",
+}
+
+def c_str(string):
+    return '"' + string.encode().decode('latin-1').translate(C_CHAR_MAP) + '"'
 
 def generate_incfile(entries, outfile):
     output = partial(print, file=outfile)
@@ -63,6 +76,39 @@ def generate_header(entries, outfile):
         output(f'#define {entry.slot_name} {entry.number}')
     if endif:
         output(endif)
+
+
+def generate_incfile2(entries, outfile):
+    output = partial(print, file=outfile)
+    for entry in entries.values():
+        parts = []
+        parts.append(f'{c_str(entry.name)}')
+        if entry.slot.startswith('tp_'):
+            parts.append(f'offsetof(PyTypeObject, {entry.slot})')
+        else:
+            struct_member = STRUCTS[entry.slot[:3]][1][3:]
+            parts.append(f'offsetof(PyHeapTypeObject, {struct_member}.{entry.slot})')
+        parts.append(f'(void *)({entry.function})')
+        parts.append(f'{entry.wrapper}')
+        parts.append(f'PyDoc_STR({c_str(entry.full_docstring)})')
+        if sp := entry.get('_split_doc'):
+            if sp is True:
+                parts[-1] = parts[-1].replace(r'--\n\n', r'--\n\n" "', 1)
+            elif isinstance(sp, str):
+                parts[-1] = f'" "{sp}" "'.join(parts[-1].rsplit(sp, 1))
+            else:
+                parts[-1] = parts[-1].replace(r'--\n\n', r'--\n\n" "', 1)
+                a, b = sp
+                c = a.replace(b, f'{b}" "')
+                parts[-1] = parts[-1].replace(a, c)
+        if sp := entry.get('_split_sig'):
+            parts[-1] = parts[-1].replace(r'__(', r'__" "(', 1)
+        if entry.flags:
+            parts.append(entry.flags)
+        parts.append(f'.name_strobj = &_Py_ID({entry.name})')
+        output('    {', ', '.join(parts),
+               ' ' if entry.get('_sp') else '',
+               '},', sep='')
 
 
 def filter_comments(file):
@@ -125,6 +171,55 @@ def parse_input(file):
         )
     return result
 
+class Entry2:
+    def __init__(self, name, data):
+        self.name = name.partition('-')[0]
+        self.data = data
+
+    def __getitem__(self, name):
+        return self.data[name]
+
+    def get(self, name, default=None):
+        return self.data.get(name, default)
+
+    @property
+    def slot(self):
+        return self['slot']
+
+    @property
+    def function(self):
+        return self.get('function', 'NULL')
+
+    @property
+    def wrapper(self):
+        return self.get('wrapper', 'NULL')
+
+    @property
+    def signature(self):
+        return self.get('signature', None)
+
+    @property
+    def docstring(self):
+        return self.get('docstring', None)
+
+    @property
+    def full_docstring(self):
+        parts = []
+        if self.signature:
+            parts.append(self.name + self.signature)
+        if self.docstring:
+            parts.append(self.docstring)
+        return '\n--\n\n'.join(parts)
+
+    @property
+    def flags(self):
+        return self.get('flags', None)
+
+
+def parse_input2(file):
+    data = tomllib.loads(file.read())
+    return {name: Entry2(name, value) for name, value in data.items()}
+
 
 def parse_args(context, argv):
     parser = argparse.ArgumentParser(prog=argv[0], description=__doc__)
@@ -135,21 +230,30 @@ def parse_args(context, argv):
     parser.add_argument('HEADER', nargs='?',
                         default=HERE / '../Include/typeslots.h',
                         help="The .h file for generated C code")
+    parser.add_argument('INCFILE2', nargs='?',
+                        default=HERE / 'slotdefs.inc',
+                        help="The .inc file for generated C code"
+                        )
     parser.add_argument('-i', '--input',
                         default=HERE / 'typeslots.txt',
                         help="The .csv file to read")
+    parser.add_argument('-I', '--input2',
+                        default=HERE / 'slotdefs.txt',
+                        help="The other file to read")
 
     args = parser.parse_args(argv[1:])
     args.header = context.enter_context(updating_file(args.HEADER))
     args.incfile = context.enter_context(updating_file(args.INCFILE))
-    if args.input == '-':
-        print(f'input: stdin', file=sys.stderr)
-        args.input = sys.stdin
-    else:
-        path = Path(args.input).resolve()
-        print(f'input: {path}', file=sys.stderr)
-        file = Path(args.input).open(encoding='utf-8')
-        args.input = context.enter_context(file)
+    args.incfile2 = context.enter_context(updating_file(args.INCFILE2))
+    for name in 'input', 'input2':
+        if getattr(args, name) == '-':
+            print(f'{name}: stdin', file=sys.stderr)
+            setattr(args, name, sys.stdin)
+        else:
+            path = Path(getattr(args, name)).resolve()
+            print(f'input: {path}', file=sys.stderr)
+            file = path.open(encoding='utf-8')
+            setattr(args, name, context.enter_context(file))
 
     return args
 
@@ -184,7 +288,9 @@ def main():
     with contextlib.ExitStack() as context:
         args = parse_args(context, sys.argv)
         entries = parse_input(args.input)
+        entries2 = parse_input2(args.input2)
         generate_incfile(entries, args.incfile)
+        generate_incfile2(entries2, args.incfile2)
         generate_header(entries, args.header)
 
 if __name__ == "__main__":

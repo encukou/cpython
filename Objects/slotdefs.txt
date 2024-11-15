@@ -1,0 +1,804 @@
+[__getattribute__-legacy]
+slot = "tp_getattr"
+
+[__getattr__-legacy]
+slot = "tp_getattr"
+
+[__setattr__-legacy]
+slot = "tp_setattr"
+
+[__delattr__-legacy]
+slot = "tp_setattr"
+
+[__repr__]
+slot = "tp_repr"
+function = "slot_tp_repr"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return repr(self)."
+
+[__hash__]
+slot = "tp_hash"
+function = "slot_tp_hash"
+wrapper = "wrap_hashfunc"
+signature = "($self, /)"
+docstring = "Return hash(self)."
+
+[__call__]
+slot = "tp_call"
+function = "slot_tp_call"
+wrapper = "(wrapperfunc)(void(*)(void))wrap_call"
+signature = "($self, /, *args, **kwargs)"
+docstring = "Call self as a function."
+flags = "PyWrapperFlag_KEYWORDS"
+_sp = true
+
+[__str__]
+slot = "tp_str"
+function = "slot_tp_str"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return str(self)."
+
+[__getattribute__]
+slot = "tp_getattro"
+function = "_Py_slot_tp_getattr_hook"
+wrapper = "wrap_binaryfunc"
+signature = "($self, name, /)"
+docstring = "Return getattr(self, name)."
+
+[__getattr__]
+slot = "tp_getattro"
+function = "_Py_slot_tp_getattr_hook"
+signature = "($self, name, /)"
+docstring = "Implement getattr(self, name)."
+
+[__setattr__]
+slot = "tp_setattro"
+function = "slot_tp_setattro"
+wrapper = "wrap_setattr"
+signature = "($self, name, value, /)"
+docstring = "Implement setattr(self, name, value)."
+
+[__delattr__]
+slot = "tp_setattro"
+function = "slot_tp_setattro"
+wrapper = "wrap_delattr"
+signature = "($self, name, /)"
+docstring = "Implement delattr(self, name)."
+
+[__lt__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_lt"
+signature = "($self, value, /)"
+docstring = "Return self<value."
+
+[__le__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_le"
+signature = "($self, value, /)"
+docstring = "Return self<=value."
+
+[__eq__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_eq"
+signature = "($self, value, /)"
+docstring = "Return self==value."
+
+[__ne__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_ne"
+signature = "($self, value, /)"
+docstring = "Return self!=value."
+
+[__gt__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_gt"
+signature = "($self, value, /)"
+docstring = "Return self>value."
+
+[__ge__]
+slot = "tp_richcompare"
+function = "slot_tp_richcompare"
+wrapper = "richcmp_ge"
+signature = "($self, value, /)"
+docstring = "Return self>=value."
+
+[__iter__]
+slot = "tp_iter"
+function = "slot_tp_iter"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Implement iter(self)."
+
+[__next__]
+slot = "tp_iternext"
+function = "slot_tp_iternext"
+wrapper = "wrap_next"
+signature = "($self, /)"
+docstring = "Implement next(self)."
+
+[__get__]
+slot = "tp_descr_get"
+function = "slot_tp_descr_get"
+wrapper = "wrap_descr_get"
+signature = "($self, instance, owner=None, /)"
+docstring = "Return an attribute of instance, which is of type owner."
+
+[__set__]
+slot = "tp_descr_set"
+function = "slot_tp_descr_set"
+wrapper = "wrap_descr_set"
+signature = "($self, instance, value, /)"
+docstring = "Set an attribute of instance to value."
+
+[__delete__]
+slot = "tp_descr_set"
+function = "slot_tp_descr_set"
+wrapper = "wrap_descr_delete"
+signature = "($self, instance, /)"
+docstring = "Delete an attribute of instance."
+
+[__init__]
+slot = "tp_init"
+function = "slot_tp_init"
+wrapper = "(wrapperfunc)(void(*)(void))wrap_init"
+signature = "($self, /, *args, **kwargs)"
+docstring = "Initialize self.  See help(type(self)) for accurate signature."
+flags = "PyWrapperFlag_KEYWORDS"
+_split_doc = true
+_sp = true
+
+[__new__]
+slot = "tp_new"
+function = "slot_tp_new"
+signature = "(type, /, *args, **kwargs)"
+docstring = "Create and return new object.  See help(type) for accurate signature."
+_split_doc = true
+
+[__del__]
+slot = "tp_finalize"
+function = "slot_tp_finalize"
+wrapper = "(wrapperfunc)wrap_del"
+signature = "($self, /)"
+docstring = "Called when the instance is about to be destroyed."
+_split_doc = true
+
+[__buffer__]
+slot = "bf_getbuffer"
+function = "slot_bf_getbuffer"
+wrapper = "wrap_buffer"
+signature = "($self, flags, /)"
+docstring = "Return a buffer object that exposes the underlying memory of the object."
+_split_doc = true
+_sp = true
+
+[__release_buffer__]
+slot = "bf_releasebuffer"
+function = "slot_bf_releasebuffer"
+wrapper = "wrap_releasebuffer"
+signature = "($self, buffer, /)"
+docstring = "Release the buffer object that exposes the underlying memory of the object."
+_split_doc = true
+_sp = true
+
+[__await__]
+slot = "am_await"
+function = "slot_am_await"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return an iterator to be used in await expression."
+_sp = true
+
+[__aiter__]
+slot = "am_aiter"
+function = "slot_am_aiter"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return an awaitable, that resolves in asynchronous iterator."
+_sp = true
+
+[__anext__]
+slot = "am_anext"
+function = "slot_am_anext"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return a value or raise StopAsyncIteration."
+_sp = true
+
+[__add__]
+slot = "nb_add"
+function = "slot_nb_add"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self+value."
+_sp = true
+_split_doc = "+"
+_split_sig = true
+
+[__radd__]
+slot = "nb_add"
+function = "slot_nb_add"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value+self."
+_sp = true
+_split_doc = "+"
+_split_sig = true
+
+[__sub__]
+slot = "nb_subtract"
+function = "slot_nb_subtract"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self-value."
+_sp = true
+_split_doc = "-"
+_split_sig = true
+
+[__rsub__]
+slot = "nb_subtract"
+function = "slot_nb_subtract"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value-self."
+_sp = true
+_split_doc = "-"
+_split_sig = true
+
+[__mul__]
+slot = "nb_multiply"
+function = "slot_nb_multiply"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self*value."
+_sp = true
+_split_doc = "*"
+_split_sig = true
+
+[__rmul__]
+slot = "nb_multiply"
+function = "slot_nb_multiply"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value*self."
+_sp = true
+_split_doc = "*"
+_split_sig = true
+
+[__mod__]
+slot = "nb_remainder"
+function = "slot_nb_remainder"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self%value."
+_sp = true
+_split_doc = "%"
+_split_sig = true
+
+[__rmod__]
+slot = "nb_remainder"
+function = "slot_nb_remainder"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value%self."
+_sp = true
+_split_doc = "%"
+_split_sig = true
+
+[__divmod__]
+slot = "nb_divmod"
+function = "slot_nb_divmod"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return divmod(self, value)."
+_sp = true
+_split_doc = true
+_split_sig = true
+
+[__rdivmod__]
+slot = "nb_divmod"
+function = "slot_nb_divmod"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return divmod(value, self)."
+_sp = true
+_split_doc = true
+_split_sig = true
+
+[__pow__]
+slot = "nb_power"
+function = "slot_nb_power"
+wrapper = "wrap_ternaryfunc"
+signature = "($self, value, mod=None, /)"
+docstring = "Return pow(self, value, mod)."
+_sp = true
+
+[__rpow__]
+slot = "nb_power"
+function = "slot_nb_power"
+wrapper = "wrap_ternaryfunc_r"
+signature = "($self, value, mod=None, /)"
+docstring = "Return pow(value, self, mod)."
+_sp = true
+
+[__neg__]
+slot = "nb_negative"
+function = "slot_nb_negative"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "-self"
+_sp = true
+_split_sig = true
+_split_doc = true
+
+[__pos__]
+slot = "nb_positive"
+function = "slot_nb_positive"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "+self"
+_sp = true
+_split_sig = true
+_split_doc = true
+
+[__abs__]
+slot = "nb_absolute"
+function = "slot_nb_absolute"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "abs(self)"
+_sp = true
+_split_sig = true
+_split_doc = true
+
+[__bool__]
+slot = "nb_bool"
+function = "slot_nb_bool"
+wrapper = "wrap_inquirypred"
+signature = "($self, /)"
+docstring = "True if self else False"
+_sp = true
+_split_sig = true
+_split_doc = true
+
+[__invert__]
+slot = "nb_invert"
+function = "slot_nb_invert"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "~self"
+_sp = true
+_split_sig = true
+_split_doc = true
+
+[__lshift__]
+slot = "nb_lshift"
+function = "slot_nb_lshift"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self<<value."
+_sp = true
+_split_doc = "<<"
+_split_sig = true
+
+[__rlshift__]
+slot = "nb_lshift"
+function = "slot_nb_lshift"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value<<self."
+_sp = true
+_split_doc = "<<"
+_split_sig = true
+
+[__rshift__]
+slot = "nb_rshift"
+function = "slot_nb_rshift"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self>>value."
+_sp = true
+_split_doc = ">>"
+_split_sig = true
+
+[__rrshift__]
+slot = "nb_rshift"
+function = "slot_nb_rshift"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value>>self."
+_sp = true
+_split_doc = ">>"
+_split_sig = true
+
+[__and__]
+slot = "nb_and"
+function = "slot_nb_and"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self&value."
+_sp = true
+_split_doc = "&"
+_split_sig = true
+
+[__rand__]
+slot = "nb_and"
+function = "slot_nb_and"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value&self."
+_sp = true
+_split_doc = "&"
+_split_sig = true
+
+[__xor__]
+slot = "nb_xor"
+function = "slot_nb_xor"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self^value."
+_sp = true
+_split_doc = "^"
+_split_sig = true
+
+[__rxor__]
+slot = "nb_xor"
+function = "slot_nb_xor"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value^self."
+_sp = true
+_split_doc = "^"
+_split_sig = true
+
+[__or__]
+slot = "nb_or"
+function = "slot_nb_or"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self|value."
+_sp = true
+_split_doc = "|"
+_split_sig = true
+
+[__ror__]
+slot = "nb_or"
+function = "slot_nb_or"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value|self."
+_sp = true
+_split_doc = "|"
+_split_sig = true
+
+[__int__]
+slot = "nb_int"
+function = "slot_nb_int"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "int(self)"
+_sp = true
+_split_doc = true
+_split_sig = true
+
+[__float__]
+slot = "nb_float"
+function = "slot_nb_float"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "float(self)"
+_sp = true
+_split_doc = true
+_split_sig = true
+
+[__iadd__]
+slot = "nb_inplace_add"
+function = "slot_nb_inplace_add"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self+=value."
+_sp = true
+_split_doc = "+="
+_split_sig = true
+
+[__isub__]
+slot = "nb_inplace_subtract"
+function = "slot_nb_inplace_subtract"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self-=value."
+_sp = true
+_split_doc = "-="
+_split_sig = true
+
+[__imul__]
+slot = "nb_inplace_multiply"
+function = "slot_nb_inplace_multiply"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self*=value."
+_sp = true
+_split_doc = "*="
+_split_sig = true
+
+[__imod__]
+slot = "nb_inplace_remainder"
+function = "slot_nb_inplace_remainder"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self%=value."
+_sp = true
+_split_doc = "%="
+_split_sig = true
+
+[__ipow__]
+slot = "nb_inplace_power"
+function = "slot_nb_inplace_power"
+wrapper = "wrap_ternaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self**=value."
+_sp = true
+_split_doc = "**="
+_split_sig = true
+
+[__ilshift__]
+slot = "nb_inplace_lshift"
+function = "slot_nb_inplace_lshift"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self<<=value."
+_sp = true
+_split_doc = "<<="
+_split_sig = true
+
+[__irshift__]
+slot = "nb_inplace_rshift"
+function = "slot_nb_inplace_rshift"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self>>=value."
+_sp = true
+_split_doc = ">>="
+_split_sig = true
+
+[__iand__]
+slot = "nb_inplace_and"
+function = "slot_nb_inplace_and"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self&=value."
+_sp = true
+_split_doc = "&="
+_split_sig = true
+
+[__ixor__]
+slot = "nb_inplace_xor"
+function = "slot_nb_inplace_xor"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self^=value."
+_sp = true
+_split_doc = "^="
+_split_sig = true
+
+[__ior__]
+slot = "nb_inplace_or"
+function = "slot_nb_inplace_or"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self|=value."
+_sp = true
+_split_doc = "|="
+_split_sig = true
+
+[__floordiv__]
+slot = "nb_floor_divide"
+function = "slot_nb_floor_divide"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self//value."
+_sp = true
+_split_doc = "//"
+_split_sig = true
+
+[__rfloordiv__]
+slot = "nb_floor_divide"
+function = "slot_nb_floor_divide"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value//self."
+_sp = true
+_split_doc = "//"
+_split_sig = true
+
+[__truediv__]
+slot = "nb_true_divide"
+function = "slot_nb_true_divide"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self/value."
+_sp = true
+_split_doc = "/"
+_split_sig = true
+
+[__rtruediv__]
+slot = "nb_true_divide"
+function = "slot_nb_true_divide"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value/self."
+_sp = true
+_split_doc = "/"
+_split_sig = true
+
+[__ifloordiv__]
+slot = "nb_inplace_floor_divide"
+function = "slot_nb_inplace_floor_divide"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self//=value."
+_sp = true
+_split_doc = "//="
+_split_sig = true
+
+[__itruediv__]
+slot = "nb_inplace_true_divide"
+function = "slot_nb_inplace_true_divide"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self/=value."
+_sp = true
+_split_doc = "/="
+_split_sig = true
+
+[__index__]
+slot = "nb_index"
+function = "slot_nb_index"
+wrapper = "wrap_unaryfunc"
+signature = "($self, /)"
+docstring = "Return self converted to an integer, if self is suitable for use as an index into a list."
+_sp = true
+_split_doc = ['suitable for', ' ']
+
+[__matmul__]
+slot = "nb_matrix_multiply"
+function = "slot_nb_matrix_multiply"
+wrapper = "wrap_binaryfunc_l"
+signature = "($self, value, /)"
+docstring = "Return self@value."
+_sp = true
+_split_doc = "@"
+_split_sig = true
+
+[__rmatmul__]
+slot = "nb_matrix_multiply"
+function = "slot_nb_matrix_multiply"
+wrapper = "wrap_binaryfunc_r"
+signature = "($self, value, /)"
+docstring = "Return value@self."
+_sp = true
+_split_doc = "@"
+_split_sig = true
+
+[__imatmul__]
+slot = "nb_inplace_matrix_multiply"
+function = "slot_nb_inplace_matrix_multiply"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self@=value."
+_sp = true
+_split_doc = "@="
+_split_sig = true
+
+[__len__]
+slot = "mp_length"
+function = "slot_mp_length"
+wrapper = "wrap_lenfunc"
+signature = "($self, /)"
+docstring = "Return len(self)."
+_sp = true
+
+[__getitem__]
+slot = "mp_subscript"
+function = "slot_mp_subscript"
+wrapper = "wrap_binaryfunc"
+signature = "($self, key, /)"
+docstring = "Return self[key]."
+_sp = true
+
+[__setitem__]
+slot = "mp_ass_subscript"
+function = "slot_mp_ass_subscript"
+wrapper = "wrap_objobjargproc"
+signature = "($self, key, value, /)"
+docstring = "Set self[key] to value."
+_sp = true
+
+[__delitem__]
+slot = "mp_ass_subscript"
+function = "slot_mp_ass_subscript"
+wrapper = "wrap_delitem"
+signature = "($self, key, /)"
+docstring = "Delete self[key]."
+_sp = true
+
+[__len__-sequence]
+slot = "sq_length"
+function = "slot_sq_length"
+wrapper = "wrap_lenfunc"
+signature = "($self, /)"
+docstring = "Return len(self)."
+_sp = true
+
+[__add__-sequence]
+slot = "sq_concat"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Return self+value."
+_sp = true
+
+[__mul__-sequence]
+slot = "sq_repeat"
+wrapper = "wrap_indexargfunc"
+signature = "($self, value, /)"
+docstring = "Return self*value."
+_sp = true
+
+[__rmul__-sequence]
+slot = "sq_repeat"
+wrapper = "wrap_indexargfunc"
+signature = "($self, value, /)"
+docstring = "Return value*self."
+_sp = true
+
+[__getitem__-sequence]
+slot = "sq_item"
+function = "slot_sq_item"
+wrapper = "wrap_sq_item"
+signature = "($self, key, /)"
+docstring = "Return self[key]."
+_sp = true
+
+[__setitem__-sequence]
+slot = "sq_ass_item"
+function = "slot_sq_ass_item"
+wrapper = "wrap_sq_setitem"
+signature = "($self, key, value, /)"
+docstring = "Set self[key] to value."
+_sp = true
+
+[__delitem__-sequence]
+slot = "sq_ass_item"
+function = "slot_sq_ass_item"
+wrapper = "wrap_sq_delitem"
+signature = "($self, key, /)"
+docstring = "Delete self[key]."
+_sp = true
+
+[__contains__]
+slot = "sq_contains"
+function = "slot_sq_contains"
+wrapper = "wrap_objobjproc"
+signature = "($self, key, /)"
+docstring = "Return bool(key in self)."
+_sp = true
+
+[__iadd__-sequence]
+slot = "sq_inplace_concat"
+wrapper = "wrap_binaryfunc"
+signature = "($self, value, /)"
+docstring = "Implement self+=value."
+_sp = true
+
+[__imul__-sequence]
+slot = "sq_inplace_repeat"
+wrapper = "wrap_indexargfunc"
+signature = "($self, value, /)"
+docstring = "Implement self*=value."
+_sp = true
