@@ -11,6 +11,7 @@ from sphinx import addnodes
 from sphinx.domains.std import token_xrefs
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_id
+from docutils.statemachine import StringList
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -161,6 +162,8 @@ class GrammarSnippetDirective(GrammarSnippetBase):
     has_content = True
     option_spec = {
         'group': directives.unchanged_required,
+        'generated-by': directives.unchanged,
+        'diagrams': directives.unchanged,
     }
 
     # We currently ignore arguments.
@@ -169,7 +172,18 @@ class GrammarSnippetDirective(GrammarSnippetBase):
     final_argument_whitespace = True
 
     def run(self) -> list[nodes.paragraph]:
-        return self.make_grammar_snippet(self.options, self.content)
+        [node] = self.make_grammar_snippet(self.options, self.content)
+
+        content = StringList()
+        for rule_name in self.options['diagrams'].split():
+            content.append('', source=__file__)
+            content.append(f'``{rule_name}``:', source=__file__)
+            content.append('', source=__file__)
+            content.append(f'.. image:: diagrams/{rule_name}.svg', source=__file__)
+
+        self.state.nested_parse(content, 0, node)
+
+        return [node]
 
 
 class CompatProductionList(GrammarSnippetBase):
