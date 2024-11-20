@@ -19,6 +19,7 @@ from docutils import nodes
 from docutils.io import StringOutput
 from docutils.parsers.rst import directives
 from docutils.utils import new_document, unescape
+from docutils.statemachine import StringList
 from sphinx import addnodes
 from sphinx.builders import Builder
 from sphinx.domains.changeset import VersionChange, versionlabels, versionlabel_classes
@@ -514,6 +515,16 @@ class GrammarSnippetDirective(SphinxDirective):
             '', '',
             literal,
         )
+
+        content = StringList()
+        for rule_name in self.options['diagrams'].split():
+            content.append('', source=__file__)
+            content.append(f'``{rule_name}``:', source=__file__)
+            content.append('', source=__file__)
+            content.append(f'.. image:: diagrams/{rule_name}.svg', source=__file__)
+
+        self.state.nested_parse(content, 0, node)
+
         return [node]
 
 
