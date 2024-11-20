@@ -442,6 +442,9 @@ class GrammarSnippetDirective(SphinxDirective):
         literal = nodes.literal_block(
             rawsource,
             '',
+            # TODO: Use a dedicated CSS class here and for strings,
+            # and add it to the theme too
+            classes=['highlight'],
         )
 
         grammar_re = re.compile(
@@ -450,6 +453,10 @@ class GrammarSnippetDirective(SphinxDirective):
                 (?=:)                             # ... followed by a colon
             |
                 [`](?P<rule_ref>[a-zA-Z0-9_]+)[`] # identifier in backquotes
+            |
+                (?P<single_quoted>'[^']*')        # string in 'quotes'
+            |
+                (?P<double_quoted>"[^"]*")        # string in "quotes"
             """,
             re.VERBOSE,
         )
@@ -494,6 +501,12 @@ class GrammarSnippetDirective(SphinxDirective):
                         )
                         ref_node += nodes.Text(name)
                         literal += ref_node
+                    case {'single_quoted': name} | {'double_quoted': name}:
+                        string_node = nodes.inline(classes=['nb'])
+                        string_node += nodes.Text(name)
+                        literal += string_node
+                    case _:
+                        raise ValueError('unhandled match')
             literal += nodes.Text(line[last_pos:] + '\n')
 
 
