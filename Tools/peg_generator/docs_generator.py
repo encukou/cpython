@@ -1480,7 +1480,7 @@ def generate_rule_lines(snippet):
             yield f'{name} (repr): {node!r}'
 
         text = node.format()
-        if visible_len(text) < LINE_LENGTH - len(name) - 2:
+        if visible_len(text) < LINE_LENGTH - len(name) - 2 and len(snippet.documented_rules) == 1:
             yield f'{name}: {text}'
         else:
             yield f'{name}:'

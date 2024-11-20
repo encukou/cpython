@@ -211,8 +211,11 @@ A parenthesized form is an optional expression list enclosed in parentheses:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: group
 
-   group: '(' (`yield_expr` | `named_expression`) ')'
-   named_expression: `assignment_expression` | `expression`
+   group:
+       | '(' (`yield_expr` | `named_expression`) ')'
+   named_expression:
+       | `assignment_expression`
+       | `expression`
 
 .. productionlist:: python-grammar-old
    parenth_form: "(" [`starred_expression`] ")"
@@ -344,8 +347,10 @@ brackets:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: list listcomp
 
-   list: '[' [`star_named_expressions`] ']'
-   listcomp: '[' `named_expression` `for_if_clauses` ']'
+   list:
+       | '[' [`star_named_expressions`] ']'
+   listcomp:
+       | '[' `named_expression` `for_if_clauses` ']'
 
 .. productionlist:: python-grammar-old
    list_display: "[" [`flexible_expression_list` | `comprehension`] "]"
@@ -377,8 +382,10 @@ displays by the lack of colons separating keys and values:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: set setcomp
 
-   set: '{' `star_named_expressions` '}'
-   setcomp: '{' `named_expression` `for_if_clauses` '}'
+   set:
+       | '{' `star_named_expressions` '}'
+   setcomp:
+       | '{' `named_expression` `for_if_clauses` '}'
 
 .. productionlist:: python-grammar-old
    set_display: "{" (`flexible_expression_list` | `comprehension`) "}"
@@ -415,10 +422,15 @@ enclosed in curly braces:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: dict dictcomp kvpair
 
-   dict: '{' [','.`double_starred_kvpair`+ [',']] '}'
-   dictcomp: '{' `kvpair` `for_if_clauses` '}'
-   double_starred_kvpair: '**' `bitwise_or` | `kvpair`
-   kvpair: `expression` ':' `expression`
+   dict:
+       | '{' [','.`double_starred_kvpair`+ [',']] '}'
+   dictcomp:
+       | '{' `kvpair` `for_if_clauses` '}'
+   double_starred_kvpair:
+       | '**' `bitwise_or`
+       | `kvpair`
+   kvpair:
+       | `expression` ':' `expression`
 
 .. productionlist:: python-grammar-old
    dict_display: "{" [`dict_item_list` | `dict_comprehension`] "}"
@@ -1004,8 +1016,12 @@ will generally select an element from the container. The subscription of a
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: slices slice
 
-   slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
-   slice: [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
+   slices:
+       | `slice`
+       | ','.(`slice` | '*' `expression`)+ [',']
+   slice:
+       | [`expression`] ':' [`expression`] [':' [`expression`]]
+       | `named_expression`
 
 .. productionlist:: python-grammar-old
    subscription: `primary` "[" `flexible_expression_list` "]"
@@ -1135,14 +1151,16 @@ series of :term:`arguments <argument>`:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: arguments kwargs kwarg_or_double_starred
 
-   arguments: `args` [',']
+   arguments:
+       | `args` [',']
    args:
        | ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
        | `kwargs`
    kwargs:
        | ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
        | ','.`kwarg_or_double_starred`+
-   kwarg_or_double_starred: (NAME '=' | '**') `expression`
+   kwarg_or_double_starred:
+       | (NAME '=' | '**') `expression`
 
 .. productionlist:: python-grammar-old
    call: `primary` "(" [`argument_list` [","] | `comprehension`] ")"
@@ -1459,8 +1477,10 @@ operators and one for additive operators:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: sum
 
-   sum: [`sum` ('+' | '-')] `term`
-   term: [`term` ('*' | '/' | '//' | '%' | '@')] `factor`
+   sum:
+       | [`sum` ('+' | '-')] `term`
+   term:
+       | [`term` ('*' | '/' | '//' | '%' | '@')] `factor`
 
 .. index::
    single: multiplication
@@ -1607,9 +1627,12 @@ Each of the three bitwise operations has a different priority level:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: bitwise_or
 
-   bitwise_or: [`bitwise_or` '|'] `bitwise_xor`
-   bitwise_xor: [`bitwise_xor` '^'] `bitwise_and`
-   bitwise_and: [`bitwise_and` '&'] `shift_expr`
+   bitwise_or:
+       | [`bitwise_or` '|'] `bitwise_xor`
+   bitwise_xor:
+       | [`bitwise_xor` '^'] `bitwise_and`
+   bitwise_and:
+       | [`bitwise_and` '&'] `shift_expr`
 
 .. productionlist:: python-grammar
    and_expr: `shift_expr` | `and_expr` "&" `shift_expr`
@@ -1668,7 +1691,8 @@ in mathematics:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: comparison
 
-   comparison: `bitwise_or` `compare_op_bitwise_or_pair`*
+   comparison:
+       | `bitwise_or` `compare_op_bitwise_or_pair`*
    compare_op_bitwise_or_pair:
        | ('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not'])
          `bitwise_or`
@@ -1941,9 +1965,13 @@ Boolean operations
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: disjunction
 
-   disjunction: 'or'.`conjunction`+
-   conjunction: 'and'.`inversion`+
-   inversion: 'not' `inversion` | `comparison`
+   disjunction:
+       | 'or'.`conjunction`+
+   conjunction:
+       | 'and'.`inversion`+
+   inversion:
+       | 'not' `inversion`
+       | `comparison`
 
 In the context of Boolean operations, and also when expressions are used by
 control flow statements, the following values are interpreted as false:
@@ -2101,7 +2129,8 @@ Lambdas
          )
          [`lambda_kwds`]
        | `lambda_kwds`
-   lambda_kwds: '**' NAME [',']
+   lambda_kwds:
+       | '**' NAME [',']
 
 .. productionlist:: python-grammar-old
    lambda_expr: "lambda" [`parameter_list`] ":" `expression`
@@ -2134,9 +2163,13 @@ Expression lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: tuple star_named_expression
 
-   tuple: '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
-   star_named_expressions: ','.`star_named_expression`+ [',']
-   star_named_expression: '*' `bitwise_or` | `named_expression`
+   tuple:
+       | '(' [`star_named_expression` ',' [`star_named_expressions`]] ')'
+   star_named_expressions:
+       | ','.`star_named_expression`+ [',']
+   star_named_expression:
+       | '*' `bitwise_or`
+       | `named_expression`
 
 .. productionlist:: python-grammar-old
    starred_expression: ["*"] `or_expr`

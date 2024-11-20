@@ -10,8 +10,11 @@ Simple statements
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: statement
 
-   statement: `compound_stmt` | `simple_stmts`
-   simple_stmts: ';'.`simple_stmt`+ [';'] NEWLINE
+   statement:
+       | `compound_stmt`
+       | `simple_stmts`
+   simple_stmts:
+       | ';'.`simple_stmt`+ [';'] NEWLINE
 
 .. index:: pair: simple; statement
 
@@ -61,8 +64,11 @@ expression statement is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: star_expressions
 
-   star_expressions: ','.`star_expression`+ [',']
-   star_expression: '*' `bitwise_or` | `expression`
+   star_expressions:
+       | ','.`star_expression`+ [',']
+   star_expression:
+       | '*' `bitwise_or`
+       | `expression`
 
 .. productionlist:: python-grammar-old
    expression_stmt: `starred_expression`
@@ -109,8 +115,13 @@ attributes or items of mutable objects:
        | (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`)
          ':' `expression` ['=' `annotated_rhs`]
        | ((`star_targets` '=')+ | `single_target` `augassign`) `annotated_rhs`
-   single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
-   annotated_rhs: `yield_expr` | `star_expressions`
+   single_target:
+       | `single_subscript_attribute_target`
+       | NAME
+       | '(' `single_target` ')'
+   annotated_rhs:
+       | `yield_expr`
+       | `star_expressions`
    augassign:
        | '+='
        | '-='
@@ -131,14 +142,20 @@ attributes or items of mutable objects:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: star_targets star_target target_with_star_atom
 
-   star_targets: ','.`star_target`+ [',']
-   star_target: '*' !'*' `star_target` | `target_with_star_atom`
+   star_targets:
+       | ','.`star_target`+ [',']
+   star_target:
+       | '*' !'*' `star_target`
+       | `target_with_star_atom`
    star_atom:
        | NAME
        | '(' [`target_with_star_atom` | `star_targets_tuple_seq`] ')'
        | '[' [','.`star_target`+ [',']] ']'
-   star_targets_tuple_seq: `star_target` ((',' `star_target`)+ [','] | ',')
-   target_with_star_atom: `t_primary` ('.' NAME | '[' `slices` ']') | `star_atom`
+   star_targets_tuple_seq:
+       | `star_target` ((',' `star_target`)+ [','] | ',')
+   target_with_star_atom:
+       | `t_primary` ('.' NAME | '[' `slices` ']')
+       | `star_atom`
 
 .. grammar-snippet:: single_subscript_attribute_target
    :group: python-grammar
@@ -524,8 +541,10 @@ The :keyword:`!del` statement
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: del_stmt del_targets
 
-   del_stmt: 'del' `del_targets`
-   del_targets: ','.`del_target`+ [',']
+   del_stmt:
+       | 'del' `del_targets`
+   del_targets:
+       | ','.`del_target`+ [',']
    del_target:
        | `t_primary` ('.' NAME | '[' `slices` ']')
        | NAME
@@ -853,7 +872,8 @@ The :keyword:`!import` statement
        | '(' ','.(NAME ['as' NAME])+ [','] ')'
        | ','.(NAME ['as' NAME])+
        | '*'
-   dotted_name: [`dotted_name` '.'] NAME
+   dotted_name:
+       | [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old
    import_stmt: "import" `module` ["as" `identifier`] ("," `module` ["as" `identifier`])*

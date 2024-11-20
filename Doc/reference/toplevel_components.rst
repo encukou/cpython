@@ -116,5 +116,7 @@ string argument to :func:`eval` must have the following form:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: eval
 
-   eval: `expressions` NEWLINE* ENDMARKER
-   expressions: ','.`expression`+ [',']
+   eval:
+       | `expressions` NEWLINE* ENDMARKER
+   expressions:
+       | ','.`expression`+ [',']

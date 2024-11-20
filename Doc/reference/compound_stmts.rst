@@ -58,7 +58,9 @@ Summarizing:
        | `try_stmt`
        | `while_stmt`
        | `match_stmt`
-   block: NEWLINE INDENT `statement`+ DEDENT | `simple_stmts`
+   block:
+       | NEWLINE INDENT `statement`+ DEDENT
+       | `simple_stmts`
 
 .. index::
    single: NEWLINE token
@@ -95,9 +97,12 @@ The :keyword:`if` statement is used for conditional execution:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: if_stmt else_block
 
-   if_stmt: 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
-   else_block: 'else' ':' `block`
-   elif_stmt: 'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
+   if_stmt:
+       | 'if' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
+   else_block:
+       | 'else' ':' `block`
+   elif_stmt:
+       | 'elif' `named_expression` ':' `block` [`elif_stmt` | `else_block`]
 
 .. productionlist:: python-grammar-old
    if_stmt: "if" `assignment_expression` ":" `suite`
@@ -248,9 +253,12 @@ for a group of statements:
          (  `finally_block`
           | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`]
          )
-   except_block: 'except' [`expression` ['as' NAME]] ':' `block`
-   except_star_block: 'except' '*' `expression` ['as' NAME] ':' `block`
-   finally_block: 'finally' ':' `block`
+   except_block:
+       | 'except' [`expression` ['as' NAME]] ':' `block`
+   except_star_block:
+       | 'except' '*' `expression` ['as' NAME] ':' `block`
+   finally_block:
+       | 'finally' ':' `block`
 
 .. productionlist:: python-grammar-old
    try_stmt: `try1_stmt` | `try2_stmt` | `try3_stmt`
@@ -524,7 +532,8 @@ usage patterns to be encapsulated for convenient reuse.
 
    with_stmt:
        | ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
-   with_item: `expression` ['as' `star_target`]
+   with_item:
+       | `expression` ['as' `star_target`]
 
 .. productionlist:: python-grammar-old
    with_stmt: "with" ( "(" `with_stmt_contents` ","? ")" | `with_stmt_contents` ) ":" `suite`
@@ -650,11 +659,13 @@ The match statement is used for pattern matching.  Syntax:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: match_stmt
 
-   match_stmt: "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
+   match_stmt:
+       | "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
    subject_expr:
        | `star_named_expression` ',' [`star_named_expressions`]
        | `named_expression`
-   case_block: "case" `patterns` [`guard`] ':' `block`
+   case_block:
+       | "case" `patterns` [`guard`] ':' `block`
 
 .. note::
    This section uses single quotes to denote
@@ -826,8 +837,12 @@ The top-level syntax for ``patterns`` is:
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: patterns closed_pattern
 
-   patterns: `open_sequence_pattern` | `pattern`
-   pattern: `as_pattern` | `or_pattern`
+   patterns:
+       | `open_sequence_pattern`
+       | `pattern`
+   pattern:
+       | `as_pattern`
+       | `or_pattern`
    closed_pattern:
        | `literal_pattern`
        | `pattern_capture_target`
@@ -913,8 +928,10 @@ A literal pattern corresponds to most
        | 'None'
        | 'True'
        | 'False'
-   signed_number: ['-'] NUMBER
-   complex_number: ['-'] NUMBER ('+' | '-') NUMBER
+   signed_number:
+       | ['-'] NUMBER
+   complex_number:
+       | ['-'] NUMBER ('+' | '-') NUMBER
 
 The rule ``strings`` and the token ``NUMBER`` are defined in the
 :doc:`standard Python grammar <./grammar>`.  Triple-quoted strings are
@@ -1043,10 +1060,15 @@ The syntax is similar to the unpacking of a list or tuple.
    sequence_pattern:
        | '[' [`maybe_sequence_pattern`] ']'
        | '(' [`open_sequence_pattern`] ')'
-   open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
-   maybe_sequence_pattern: ','.`maybe_star_pattern`+ [',']
-   maybe_star_pattern: `star_pattern` | `pattern`
-   star_pattern: '*' (`pattern_capture_target` | `wildcard_pattern`)
+   open_sequence_pattern:
+       | `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
+   maybe_sequence_pattern:
+       | ','.`maybe_star_pattern`+ [',']
+   maybe_star_pattern:
+       | `star_pattern`
+       | `pattern`
+   star_pattern:
+       | '*' (`pattern_capture_target` | `wildcard_pattern`)
 
 There is no difference if parentheses  or square brackets
 are used for sequence patterns (i.e. ``(...)`` vs ``[...]`` ).
@@ -1130,9 +1152,12 @@ Syntax:
 
    mapping_pattern:
        | '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
-   items_pattern: ','.`key_value_pattern`+
-   double_star_pattern: '**' `pattern_capture_target`
-   key_value_pattern: (`literal_pattern` | `attr`) ':' `pattern`
+   items_pattern:
+       | ','.`key_value_pattern`+
+   double_star_pattern:
+       | '**' `pattern_capture_target`
+   key_value_pattern:
+       | (`literal_pattern` | `attr`) ':' `pattern`
 
 .. productionlist:: python-grammar-old
    mapping_pattern: "{" [`items_pattern`] "}"
@@ -1192,7 +1217,8 @@ A class pattern represents a class and its positional and keyword arguments
        | (`attr` | NAME) '('
          [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']]
          ')'
-   keyword_patterns: ','.(NAME '=' `pattern`)+
+   keyword_patterns:
+       | ','.(NAME '=' `pattern`)+
 
 The same keyword should not be repeated in class patterns.
 
@@ -1325,7 +1351,8 @@ A function definition defines a user-defined function object (see section
        | [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')'
          ['->' `expression`]
          ':' `block`
-   decorators: ('@' `named_expression` NEWLINE)+
+   decorators:
+       | ('@' `named_expression` NEWLINE)+
    parameters:
        | (  (  `slash_no_default` `param_no_default`*
              | `slash_with_default`
@@ -1336,11 +1363,16 @@ A function definition defines a user-defined function object (see section
          )
          [`star_etc`]
        | `star_etc`
-   slash_no_default: `param_no_default`+ '/' (',' | &')')
-   default: '=' `expression`
-   param_no_default: `param` (',' | &')')
-   slash_with_default: `param_no_default`* `param_with_default`+ '/' (',' | &')')
-   param_with_default: `param` `default` (',' | &')')
+   slash_no_default:
+       | `param_no_default`+ '/' (',' | &')')
+   default:
+       | '=' `expression`
+   param_no_default:
+       | `param` (',' | &')')
+   slash_with_default:
+       | `param_no_default`* `param_with_default`+ '/' (',' | &')')
+   param_with_default:
+       | `param` `default` (',' | &')')
    star_etc:
        | '*'
          (  (`param_no_default` | NAME ':' `star_expression` (',' | &')'))
@@ -1349,9 +1381,12 @@ A function definition defines a user-defined function object (see section
          )
          [`kwds`]
        | `kwds`
-   param: NAME [':' `expression`]
-   param_maybe_default: `param` [`default`] (',' | &')')
-   kwds: '**' `param_no_default`
+   param:
+       | NAME [':' `expression`]
+   param_maybe_default:
+       | `param` [`default`] (',' | &')')
+   kwds:
+       | '**' `param_no_default`
 
 .. productionlist:: python-grammar-old
    funcdef: [`decorators`] "def" `funcname` [`type_params`] "(" [`parameter_list`] ")"
@@ -1785,7 +1820,8 @@ Type parameter lists
    :generated-by: Tools/peg_generator/docs_generator.py
    :diagrams: type_params
 
-   type_params: '[' ','.`type_param`+ [','] ']'
+   type_params:
+       | '[' ','.`type_param`+ [','] ']'
    type_param:
        | NAME [':' `expression`] ['=' `expression`]
        | '*' NAME ['=' `star_expression`]
