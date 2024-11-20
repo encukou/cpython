@@ -442,8 +442,6 @@ class GrammarSnippetDirective(SphinxDirective):
         literal = nodes.literal_block(
             rawsource,
             '',
-            language='none',
-            force=False,
         )
 
         grammar_re = re.compile(
@@ -496,6 +494,7 @@ class GrammarSnippetDirective(SphinxDirective):
                         )
                         ref_node += nodes.Text(name)
                         literal += ref_node
+            literal += nodes.Text(line[last_pos:] + '\n')
 
 
         node = nodes.paragraph(
