@@ -12,6 +12,8 @@ from functools import cached_property
 import pegen.grammar
 from pegen.build import build_parser
 
+LINE_LENGTH = 80
+
 # TODO: handle indentation
 HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
 
@@ -1465,24 +1467,23 @@ def generate_rule_lines(snippet):
     yield f':diagrams: {' '.join(diagram_names)}'
     yield ''
 
-    longest_name = max(snippet.documented_rules, key=len)
-    available_space = 80 - len(longest_name) - len(' ::= ')
-
     # Yield all the lines
     for name, node in snippet.documented_rules.items():
         if grammar.debug:
             # To compare with pegen's stringification:
             yield f'{name} (repr): {node!r}'
 
-        output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space)]))
-
-        for num, line in enumerate(output_lines):
-            if num == 0:
-                yield f'{name}: {line}'.rstrip()
-            else:
-                yield f'  :{line}'.rstrip()
-            if len(line) > available_space:
-                print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
+        text = node.format()
+        if len(text) < LINE_LENGTH - len(name) - 2:
+            yield f'{name}: {text}'
+        else:
+            yield f'{name}:'
+            available_space = LINE_LENGTH - 4
+            output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space)]))
+            for line in output_lines:
+                yield f'    {line}'.rstrip()
+                if len(line) > available_space:
+                    print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
         if grammar.debug:
             yield from node.dump_tree()
 
