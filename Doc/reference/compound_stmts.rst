@@ -174,9 +174,7 @@ The :keyword:`for` statement is used to iterate over the elements of a sequence
    :diagrams: for_stmt
 
    for_stmt:
-       ['async'] 'for' `star_targets` 'in'
-       `star_expressions`
-       ':' `block` [`else_block`]
+       | ['async'] 'for' `star_targets` 'in' `star_expressions` ':' `block` [`else_block`]
 
 .. productionlist:: python-grammar-old
    for_stmt: "for" `target_list` "in" `starred_list` ":" `suite`
@@ -246,10 +244,10 @@ for a group of statements:
    :diagrams: try_stmt finally_block
 
    try_stmt:
-       'try' ':' `block`
-       (  `finally_block`
-        | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`]
-       )
+       | 'try' ':' `block`
+         (  `finally_block`
+          | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`]
+         )
    except_block: 'except' [`expression` ['as' NAME]] ':' `block`
    except_star_block: 'except' '*' `expression` ['as' NAME] ':' `block`
    finally_block: 'finally' ':' `block`
@@ -525,9 +523,7 @@ usage patterns to be encapsulated for convenient reuse.
    :diagrams: with_stmt with_item
 
    with_stmt:
-       ['async'] 'with'
-       ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+)
-       ':' `block`
+       | ['async'] 'with' ('(' ','.`with_item`+ [','] ')' | ','.`with_item`+) ':' `block`
    with_item: `expression` ['as' `star_target`]
 
 .. productionlist:: python-grammar-old
@@ -656,7 +652,8 @@ The match statement is used for pattern matching.  Syntax:
 
    match_stmt: "match" `subject_expr` ':' NEWLINE INDENT `case_block`+ DEDENT
    subject_expr:
-       `star_named_expression` ',' [`star_named_expressions`] | `named_expression`
+       | `star_named_expression` ',' [`star_named_expressions`]
+       | `named_expression`
    case_block: "case" `patterns` [`guard`] ':' `block`
 
 .. note::
@@ -910,7 +907,12 @@ A literal pattern corresponds to most
    :diagrams: literal_pattern
 
    literal_pattern:
-       `signed_number` | `complex_number` | `strings` | 'None' | 'True' | 'False'
+       | `signed_number`
+       | `complex_number`
+       | `strings`
+       | 'None'
+       | 'True'
+       | 'False'
    signed_number: ['-'] NUMBER
    complex_number: ['-'] NUMBER ('+' | '-') NUMBER
 
@@ -1039,7 +1041,8 @@ The syntax is similar to the unpacking of a list or tuple.
    :diagrams: sequence_pattern maybe_sequence_pattern maybe_star_pattern
 
    sequence_pattern:
-       '[' [`maybe_sequence_pattern`] ']' | '(' [`open_sequence_pattern`] ')'
+       | '[' [`maybe_sequence_pattern`] ']'
+       | '(' [`open_sequence_pattern`] ')'
    open_sequence_pattern: `maybe_star_pattern` ',' [`maybe_sequence_pattern`]
    maybe_sequence_pattern: ','.`maybe_star_pattern`+ [',']
    maybe_star_pattern: `star_pattern` | `pattern`
@@ -1126,9 +1129,7 @@ Syntax:
    :diagrams: mapping_pattern items_pattern
 
    mapping_pattern:
-       '{'
-       [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']]
-       '}'
+       | '{' [([`items_pattern` ','] `double_star_pattern` | `items_pattern`) [',']] '}'
    items_pattern: ','.`key_value_pattern`+
    double_star_pattern: '**' `pattern_capture_target`
    key_value_pattern: (`literal_pattern` | `attr`) ':' `pattern`
@@ -1188,9 +1189,9 @@ A class pattern represents a class and its positional and keyword arguments
    :diagrams: class_pattern
 
    class_pattern:
-       (`attr` | NAME) '('
-       [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']]
-       ')'
+       | (`attr` | NAME) '('
+         [(','.`pattern`+ | [','.`pattern`+ ','] `keyword_patterns`) [',']]
+         ')'
    keyword_patterns: ','.(NAME '=' `pattern`)+
 
 The same keyword should not be repeated in class patterns.
@@ -1321,9 +1322,9 @@ A function definition defines a user-defined function object (see section
    :diagrams: function_def default param_no_default param_with_default star_etc param param_maybe_default kwds
 
    function_def:
-       [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')'
-       ['->' `expression`]
-       ':' `block`
+       | [`decorators`] ['async'] 'def' NAME [`type_params`] '(' [`parameters`] ')'
+         ['->' `expression`]
+         ':' `block`
    decorators: ('@' `named_expression` NEWLINE)+
    parameters:
        | (  (  `slash_no_default` `param_no_default`*
@@ -1543,9 +1544,7 @@ A class definition defines a class object (see section :ref:`types`):
    :diagrams: class_def
 
    class_def:
-       [`decorators`] 'class' NAME [`type_params`]
-       ['(' [`arguments`] ')']
-       ':' `block`
+       | [`decorators`] 'class' NAME [`type_params`] ['(' [`arguments`] ')'] ':' `block`
 
 .. productionlist:: python-grammar-old
    classdef: [`decorators`] "class" `classname` [`type_params`] [`inheritance`] ":" `suite`

@@ -109,8 +109,7 @@ attributes or items of mutable objects:
        | (NAME | '(' `single_target` ')' | `single_subscript_attribute_target`)
          ':' `expression` ['=' `annotated_rhs`]
        | ((`star_targets` '=')+ | `single_target` `augassign`) `annotated_rhs`
-   single_target:
-       `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
+   single_target: `single_subscript_attribute_target` | NAME | '(' `single_target` ')'
    annotated_rhs: `yield_expr` | `star_expressions`
    augassign:
        | '+='
@@ -851,7 +850,9 @@ The :keyword:`!import` statement
        | 'import' ','.(`dotted_name` ['as' NAME])+
        | 'from' ("."* `dotted_name` | "."+) 'import' `import_from_targets`
    import_from_targets:
-       '(' ','.(NAME ['as' NAME])+ [','] ')' | ','.(NAME ['as' NAME])+ | '*'
+       | '(' ','.(NAME ['as' NAME])+ [','] ')'
+       | ','.(NAME ['as' NAME])+
+       | '*'
    dotted_name: [`dotted_name` '.'] NAME
 
 .. productionlist:: python-grammar-old

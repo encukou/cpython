@@ -185,15 +185,15 @@ Strings
    :diagrams: strings
 
    strings:
-       (   STRING
-         | FSTRING_START
-           (`fstring_replacement_field` | FSTRING_MIDDLE)*
-           FSTRING_END
-       )+
+       | (   STRING
+           | FSTRING_START
+             (`fstring_replacement_field` | FSTRING_MIDDLE)*
+             FSTRING_END
+         )+
    fstring_replacement_field:
-       '{' `annotated_rhs` ['='] ["!" NAME]
-       [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*]
-       '}'
+       | '{' `annotated_rhs` ['='] ["!" NAME]
+         [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*]
+         '}'
 
 .. _parenthesized:
 
@@ -935,8 +935,7 @@ syntax is:
        | `primary` ('.' NAME | `genexp` | '(' [`arguments`] ')' | '[' `slices` ']')
        | `atom`
    t_primary:
-       | `t_primary`
-         ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')')
+       | `t_primary` ('.' NAME | '[' `slices` ']' | `genexp` | '(' [`arguments`] ')')
        | `atom`
 
 .. productionlist:: python-grammar-old
@@ -1006,8 +1005,7 @@ will generally select an element from the container. The subscription of a
    :diagrams: slices slice
 
    slices: `slice` | ','.(`slice` | '*' `expression`)+ [',']
-   slice:
-       [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
+   slice: [`expression`] ':' [`expression`] [':' [`expression`]] | `named_expression`
 
 .. productionlist:: python-grammar-old
    subscription: `primary` "[" `flexible_expression_list` "]"
@@ -1139,8 +1137,7 @@ series of :term:`arguments <argument>`:
 
    arguments: `args` [',']
    args:
-       | ','.('*' `expression` | `assignment_expression` | `expression`)+
-         [',' `kwargs`]
+       | ','.('*' `expression` | `assignment_expression` | `expression`)+ [',' `kwargs`]
        | `kwargs`
    kwargs:
        | ','.((NAME '=' | '*') `expression`)+ [',' ','.`kwarg_or_double_starred`+]
@@ -1673,8 +1670,8 @@ in mathematics:
 
    comparison: `bitwise_or` `compare_op_bitwise_or_pair`*
    compare_op_bitwise_or_pair:
-       ('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not'])
-       `bitwise_or`
+       | ('==' | '!=' | '<=' | '<' | '>=' | '>' | ['not'] 'in' | 'is' ['not'])
+         `bitwise_or`
 
 .. productionlist:: python-grammar-old
    comparison: `or_expr` (`comp_operator` `or_expr`)*
@@ -2096,7 +2093,7 @@ Lambdas
          [`lambda_star_etc`]
        | `lambda_star_etc`
    lambda_slash_with_default:
-       (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (',' | &':')
+       | (NAME (',' | &':'))* (NAME `default` (',' | &':'))+ '/' (',' | &':')
    lambda_star_etc:
        | '*'
          (  NAME (',' | &':') (NAME [`default`] (',' | &':'))*

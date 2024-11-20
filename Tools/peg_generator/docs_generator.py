@@ -406,6 +406,12 @@ class OutputNodeRepr:
         return self.content
 
 
+def visible_len(string):
+    """Return the length of string, without markup that Sphinx will hide"""
+    # Currently, we only use backticks for markup
+    return len(string.replace('`', ''))
+
+
 def split_lines(lines: list['OutputLine']):
     todo_lines = list(reversed(lines))
     while todo_lines:
@@ -435,7 +441,7 @@ class OutputLine:
         return self.first_indent + self.string_representation
 
     def __len__(self):
-        return len(self.string_representation)
+        return visible_len(self.string_representation)
 
     @cached_property
     def string_representation(self):
@@ -453,7 +459,7 @@ class OutputLine:
         for i, part in contents_by_length:
             results = []
             results.append(OutputLine(self.parts[:i], self.max_length, self.first_indent, self.running_indent))
-            if len(part.content) <= self.max_length:
+            if visible_len(part.content) <= self.max_length:
                 results.append(OutputLine([part], self.max_length, self.running_indent))
             else:
                 split_part = part.node.split_into_lines(
@@ -1474,16 +1480,25 @@ def generate_rule_lines(snippet):
             yield f'{name} (repr): {node!r}'
 
         text = node.format()
-        if len(text) < LINE_LENGTH - len(name) - 2:
+        if visible_len(text) < LINE_LENGTH - len(name) - 2:
             yield f'{name}: {text}'
         else:
             yield f'{name}:'
-            available_space = LINE_LENGTH - 4
-            output_lines = combine_lines(split_lines([OutputLine.from_nodes([node], available_space)]))
-            for line in output_lines:
-                yield f'    {line}'.rstrip()
-                if len(line) > available_space:
-                    print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
+            available_space = LINE_LENGTH - 6
+            if isinstance(node, Choice):
+                choices = node.items
+            else:
+                choices = [node]
+            for choice in choices:
+                output_line = OutputLine.from_nodes([choice], available_space)
+                output_lines = combine_lines(split_lines([output_line]))
+                for num, line in enumerate(output_lines):
+                    if num == 0:
+                        yield f'    | {line}'.rstrip()
+                    else:
+                        yield f'      {line}'.rstrip()
+                    if visible_len(line) > available_space:
+                        print(f'Line too long in {name} ({type(node).__name__}):\n   {line}')
         if grammar.debug:
             yield from node.dump_tree()
 
