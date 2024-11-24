@@ -659,7 +659,7 @@ i_get_sw(void *ptr, Py_ssize_t size)
 #endif
 /* short BOOL - VARIANT_BOOL */
 static PyObject *
-vBOOL_set(void *ptr, PyObject *value, Py_ssize_t size)
+v_set(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(NUM_BITS(size) || (size == sizeof(short int)));
     switch (PyObject_IsTrue(value)) {
@@ -675,7 +675,7 @@ vBOOL_set(void *ptr, PyObject *value, Py_ssize_t size)
 }
 
 static PyObject *
-vBOOL_get(void *ptr, Py_ssize_t size)
+v_get(void *ptr, Py_ssize_t size)
 {
     assert(NUM_BITS(size) || (size == sizeof(short int)));
     return PyBool_FromLong((long)*(short int *)ptr);
@@ -1603,164 +1603,64 @@ P_get(void *ptr, Py_ssize_t size)
     return PyLong_FromVoidPtr(*(void **)ptr);
 }
 
-static struct fielddesc fmt_s = {'s', s_set, s_get, NULL};
-static struct fielddesc fmt_b = {'b', b_set, b_get, NULL};
-static struct fielddesc fmt_B = {'B', B_set, B_get, NULL};
-static struct fielddesc fmt_c = {'c', c_set, c_get, NULL};
-static struct fielddesc fmt_d = {'d', d_set, d_get, NULL, d_set_sw, d_get_sw};
-#if defined(Py_HAVE_C_COMPLEX) && defined(Py_FFI_SUPPORT_C_COMPLEX)
-static struct fielddesc fmt_C = {'C', C_set, C_get, NULL};
-static struct fielddesc fmt_E = {'E', E_set, E_get, NULL};
-static struct fielddesc fmt_F = {'F', F_set, F_get, NULL};
-#endif
-static struct fielddesc fmt_g = {'g', g_set, g_get, NULL};
-static struct fielddesc fmt_f = {'f', f_set, f_get, NULL, f_set_sw, f_get_sw};
-static struct fielddesc fmt_h = {'h', h_set, h_get, NULL, h_set_sw, h_get_sw};
-static struct fielddesc fmt_H = {'H', H_set, H_get, NULL, H_set_sw, H_get_sw};
-static struct fielddesc fmt_i = {'i', i_set, i_get, NULL, i_set_sw, i_get_sw};
-static struct fielddesc fmt_I = {'I', I_set, I_get, NULL, I_set_sw, I_get_sw};
-static struct fielddesc fmt_l = {'l', l_set, l_get, NULL, l_set_sw, l_get_sw};
-static struct fielddesc fmt_L = {'L', L_set, L_get, NULL, L_set_sw, L_get_sw};
-static struct fielddesc fmt_q = {'q', q_set, q_get, NULL, q_set_sw, q_get_sw};
-static struct fielddesc fmt_Q = {'Q', Q_set, Q_get, NULL, Q_set_sw, Q_get_sw};
-static struct fielddesc fmt_P = {'P', P_set, P_get, NULL};
-static struct fielddesc fmt_z = {'z', z_set, z_get, NULL};
-static struct fielddesc fmt_u = {'u', u_set, u_get, NULL};
-static struct fielddesc fmt_U = {'U', U_set, U_get, NULL};
-static struct fielddesc fmt_Z = {'Z', Z_set, Z_get, NULL};
-#ifdef MS_WIN32
-static struct fielddesc fmt_X = {'X', BSTR_set, BSTR_get, NULL};
-#endif
-static struct fielddesc fmt_v = {'v', vBOOL_set, vBOOL_get, NULL};
-#if SIZEOF__BOOL == SIZEOF_INT
-static struct fielddesc fmt_bool = {'?', bool_set, bool_get, NULL, I_set_sw, I_get_sw};
-#elif SIZEOF__BOOL == SIZEOF_LONG
-static struct fielddesc fmt_bool = {'?', bool_set, bool_get, NULL, L_set_sw, L_get_sw};
-#elif SIZEOF__BOOL == SIZEOF_LONG_LONG
-static struct fielddesc fmt_bool = {'?', bool_set, bool_get, NULL, Q_set_sw, Q_get_sw};
+/* Equivalent CFFI types */
+#if SIZEOF_LONG == 4
+    #define ctypes_ffi_type_slong ffi_type_sint32
+    #define ctypes_ffi_type_ulong ffi_type_uint32
+#elif SIZEOF_LONG == 8
+    #define ctypes_ffi_type_slong ffi_type_sint64
+    #define ctypes_ffi_type_ulong ffi_type_uint64
 #else
-static struct fielddesc fmt_bool = {'?', bool_set, bool_get, NULL};
-#endif /* SIZEOF__BOOL */
-static struct fielddesc fmt_O = {'O', O_set, O_get, NULL};
+    #error
+#endif
+
+#if SIZEOF_LONG_LONG == 8
+    #define ctypes_ffi_type_slonglong ffi_type_sint64
+    #define ctypes_ffi_type_ulonglong ffi_type_uint64
+#else
+    #error
+#endif
+
+#if SIZEOF_WCHAR_T == SIZEOF_SHORT
+    #define ctypes_ffi_type_wchar_t ffi_type_sshort
+#elif SIZEOF_WCHAR_T == SIZEOF_INT
+    #define ctypes_ffi_type_wchar_t ffi_type_sint
+#elif SIZEOF_WCHAR_T == SIZEOF_LONG
+    #define ctypes_ffi_type_wchar_t ffi_type_slong
+#else
+    #error
+#endif
+
+/* For bool we also need byte-swapped getter & setter */
+#if SIZEOF__BOOL == 1
+    #define ctypes_ffi_type_bool ffi_type_uchar
+    #define bool_set_sw NULL
+    #define bool_get_sw NULL
+#elif SIZEOF__SHORT == 1
+    #define ctypes_ffi_type_bool ffi_type_ushort
+    #define bool_set_sw NULL
+    #define bool_get_sw NULL
+#elif SIZEOF__BOOL == SIZEOF_INT
+    #define ctypes_ffi_type_bool ffi_type_uint
+    #define bool_set_sw I_set_sw
+    #define bool_get_sw I_get_sw
+#elif SIZEOF__BOOL == SIZEOF_LONG
+    #define ctypes_ffi_type_bool ffi_type_ulong
+    #define bool_set_sw L_set_sw
+    #define bool_get_sw L_get_sw
+#elif SIZEOF__BOOL == SIZEOF_LONG_LONG
+    #define ctypes_ffi_type_bool ffi_type_ulonglong
+    #define bool_set_sw Q_set_sw
+    #define bool_get_sw Q_get_sw
+#else
+    #error
+#endif
+
+#include "gen_cfield.inc"
 
 /*
   Ideas: Implement VARIANT in this table, using 'V' code.
   Use '?' as code for BOOL.
 */
-
-/* Delayed initialization. Windows cannot statically reference dynamically
-   loaded addresses from DLLs. */
-void
-_ctypes_init_fielddesc(void)
-{
-    fmt_s.pffi_type = &ffi_type_pointer;
-    fmt_b.pffi_type = &ffi_type_schar;
-    fmt_B.pffi_type = &ffi_type_uchar;
-    fmt_c.pffi_type = &ffi_type_schar;
-    fmt_d.pffi_type = &ffi_type_double;
-#if defined(Py_HAVE_C_COMPLEX) && defined(Py_FFI_SUPPORT_C_COMPLEX)
-    fmt_C.pffi_type = &ffi_type_complex_double;
-    fmt_E.pffi_type = &ffi_type_complex_float;
-    fmt_F.pffi_type = &ffi_type_complex_longdouble;
-#endif
-    fmt_g.pffi_type = &ffi_type_longdouble;
-    fmt_f.pffi_type = &ffi_type_float;
-    fmt_h.pffi_type = &ffi_type_sshort;
-    fmt_H.pffi_type = &ffi_type_ushort;
-    fmt_i.pffi_type = &ffi_type_sint;
-    fmt_I.pffi_type = &ffi_type_uint;
-    /* XXX Hm, sizeof(int) == sizeof(long) doesn't hold on every platform */
-    /* As soon as we can get rid of the type codes, this is no longer a problem */
-#if SIZEOF_LONG == 4
-    fmt_l.pffi_type = &ffi_type_sint32;
-    fmt_L.pffi_type = &ffi_type_uint32;
-#elif SIZEOF_LONG == 8
-    fmt_l.pffi_type = &ffi_type_sint64;
-    fmt_L.pffi_type = &ffi_type_uint64;
-#else
-    #error
-#endif
-#if SIZEOF_LONG_LONG == 8
-    fmt_q.pffi_type = &ffi_type_sint64;
-    fmt_Q.pffi_type = &ffi_type_uint64;
-#else
-    #error
-#endif
-    fmt_P.pffi_type = &ffi_type_pointer;
-    fmt_z.pffi_type = &ffi_type_pointer;
-    if (sizeof(wchar_t) == sizeof(short)) {
-        fmt_u.pffi_type = &ffi_type_sshort;
-    } else if (sizeof(wchar_t) == sizeof(int)) {
-        fmt_u.pffi_type = &ffi_type_sint;
-    } else if (sizeof(wchar_t) == sizeof(long)) {
-        fmt_u.pffi_type = &ffi_type_slong;
-    } else {
-        Py_UNREACHABLE();
-    }
-    fmt_U.pffi_type = &ffi_type_pointer;
-    fmt_Z.pffi_type = &ffi_type_pointer;
-#ifdef MS_WIN32
-    fmt_X.pffi_type = &ffi_type_pointer;
-#endif
-    fmt_v.pffi_type = &ffi_type_sshort;
-#if SIZEOF__BOOL == 1
-    fmt_bool.pffi_type = &ffi_type_uchar; /* Also fallback for no native _Bool support */
-#elif SIZEOF__BOOL == SIZEOF_SHORT
-    fmt_bool.pffi_type = &ffi_type_ushort;
-#elif SIZEOF__BOOL == SIZEOF_INT
-    fmt_bool.pffi_type = &ffi_type_uint;
-#elif SIZEOF__BOOL == SIZEOF_LONG
-    fmt_bool.pffi_type = &ffi_type_ulong;
-#elif SIZEOF__BOOL == SIZEOF_LONG_LONG
-    fmt_bool.pffi_type = &ffi_type_ulong;
-#endif /* SIZEOF__BOOL */
-    fmt_O.pffi_type = &ffi_type_pointer;
-}
-
-struct fielddesc *
-_ctypes_get_fielddesc(const char *fmt)
-{
-    static int initialized = 0;
-    if (!initialized) {
-        _ctypes_init_fielddesc();
-        initialized = 1;
-    }
-
-    #define CASE(SYMBOL) case #SYMBOL[0]: return fmt_##SYMBOL;
-    switch (fmt[0]) {
-        case 's': return &fmt_s;
-        case 'b': return &fmt_b;
-        case 'B': return &fmt_B;
-        case 'c': return &fmt_c;
-        case 'd': return &fmt_d;
-#if defined(Py_HAVE_C_COMPLEX) && defined(Py_FFI_SUPPORT_C_COMPLEX)
-        case 'C': return &fmt_C;
-        case 'E': return &fmt_E;
-        case 'F': return &fmt_F;
-#endif
-        case 'g': return &fmt_g;
-        case 'f': return &fmt_f;
-        case 'h': return &fmt_h;
-        case 'H': return &fmt_H;
-        case 'i': return &fmt_i;
-        case 'I': return &fmt_I;
-        case 'l': return &fmt_l;
-        case 'L': return &fmt_L;
-        case 'q': return &fmt_q;
-        case 'Q': return &fmt_Q;
-        case 'P': return &fmt_P;
-        case 'z': return &fmt_z;
-        case 'u': return &fmt_u;
-        case 'U': return &fmt_U;
-        case 'Z': return &fmt_Z;
-#ifdef MS_WIN32
-        case 'X': return &fmt_X;
-#endif
-        case 'v': return &fmt_v;
-        case '?': return &fmt_bool;
-        case 'O': return &fmt_O;
-    }
-    return NULL;
-}
 
 /*---------------- EOF ----------------*/
