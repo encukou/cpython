@@ -91,8 +91,6 @@ field_new(PyTypeObject *type, PyObject *name, PyObject *proto,
     /*  Field descriptors for 'c_char * n' are be special cased to
         return a Python string instead of an Array object instance...
     */
-    self->setfunc = NULL;
-    self->getfunc = NULL;
     if (PyCArrayTypeObject_Check(st, proto)) {
         StgInfo *ainfo;
         if (PyStgInfo_FromType(st, proto, &ainfo) < 0) {
@@ -110,14 +108,10 @@ field_new(PyTypeObject *type, PyObject *name, PyObject *proto,
                 goto error;
             }
             if (iinfo->getfunc == _ctypes_get_fielddesc("c")->getfunc) {
-                struct fielddesc *fd = _ctypes_get_fielddesc("s");
-                self->getfunc = fd->getfunc;
-                self->setfunc = fd->setfunc;
+                self->is_special_s = true;
             }
             if (iinfo->getfunc == _ctypes_get_fielddesc("u")->getfunc) {
-                struct fielddesc *fd = _ctypes_get_fielddesc("U");
-                self->getfunc = fd->getfunc;
-                self->setfunc = fd->setfunc;
+                self->is_special_U = true;
             }
         }
     }
@@ -243,8 +237,9 @@ _ctypes_CField_replace_impl(PyObject *old_object, Py_ssize_t offset,
         return NULL;
     }
     CFieldObject *new_field = (CFieldObject *)new_object;
-    new_field->getfunc = old_field->getfunc;
-    new_field->setfunc = old_field->setfunc;
+    new_field->anonymous = old_field->anonymous;
+    new_field->is_special_s = old_field->is_special_s;
+    new_field->is_special_U = old_field->is_special_U;
 
     if (PyCBitField_Check(st, old_object)) {
         assert(PyCBitField_Check(st, new_object));
@@ -269,12 +264,39 @@ cfield_type_size(CFieldObject *field)
 }
 
 static Py_ssize_t
-_get_legacy_size(CFieldObject *field) {
+_get_legacy_size(CFieldObject *field)
+{
     if (field->is_bitfield) {
         CBitFieldObject *bitfield = (CBitFieldObject *)field;
         return bitfield->bit_offset | (bitfield->bit_size << 16);
     }
     return cfield_type_size(field);
+}
+
+static SETFUNC
+_get_setfunc(CFieldObject *field)
+{
+    if (field->is_special_s) return _ctypes_get_fielddesc("s")->setfunc;
+    if (field->is_special_U) return _ctypes_get_fielddesc("U")->setfunc;
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(field));
+    StgInfo *info;
+    if (PyStgInfo_FromType(st, field->proto, &info) < 0) {
+        assert(0);
+    }
+    return NULL;
+}
+
+static GETFUNC
+_get_getfunc(CFieldObject *field)
+{
+    if (field->is_special_s) return _ctypes_get_fielddesc("s")->getfunc;
+    if (field->is_special_U) return _ctypes_get_fielddesc("U")->getfunc;
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(field));
+    StgInfo *info;
+    if (PyStgInfo_FromType(st, field->proto, &info) < 0) {
+        assert(0);
+    }
+    return NULL;
 }
 
 static int
@@ -295,7 +317,7 @@ PyCField_set(CFieldObject *self, PyObject *inst, PyObject *value)
                         "can't delete attribute");
         return -1;
     }
-    return PyCData_set(st, inst, self->proto, self->setfunc, value,
+    return PyCData_set(st, inst, self->proto, _get_setfunc(self), value,
                        self->index, _get_legacy_size(self), ptr);
 }
 
@@ -313,7 +335,7 @@ PyCField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
         return NULL;
     }
     src = (CDataObject *)inst;
-    return PyCData_get(st, self->proto, self->getfunc, inst,
+    return PyCData_get(st, self->proto, _get_getfunc(self), inst,
                      self->index, _get_legacy_size(self), src->b_ptr + self->offset);
 }
 

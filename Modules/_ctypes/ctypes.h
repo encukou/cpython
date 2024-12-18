@@ -265,10 +265,10 @@ typedef struct CFieldObject {
     Py_ssize_t index;                   /* Index into CDataObject's
                                        object array */
     PyObject *proto;                    /* underlying ctype; must have StgInfo */
-    GETFUNC getfunc;                    /* getter function if proto is NULL */
-    SETFUNC setfunc;                    /* setter function if proto is NULL */
     bool anonymous :1;
     bool is_bitfield :1;
+    bool is_special_s :1;
+    bool is_special_U :1;
 
     PyObject *name;                     /* exact PyUnicode */
 } CFieldObject;
