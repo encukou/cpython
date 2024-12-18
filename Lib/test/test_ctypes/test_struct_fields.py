@@ -90,6 +90,12 @@ class FieldsTestBase:
         class Z(Structure):
             _fields_ = [('largeField', c_char * max_field_size)]
 
+        for S in Y, Z:
+            with self.subTest(S):
+                self.assertEqual(S.largeField.size, max_field_size)
+                self.assertEqual(S.largeField.byte_size, max_field_size)
+                self.assertEqual(S.largeField.bit_size, max_field_size * 8)
+
         with self.assertRaises(OverflowError):
             class TooBig(Structure):
                 _fields_ = [('largeField', X * (max_field_size + 1))]

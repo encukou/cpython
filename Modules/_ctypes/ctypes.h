@@ -262,13 +262,13 @@ struct fielddesc {
 typedef struct CFieldObject {
     PyObject_HEAD
     Py_ssize_t offset;
-    Py_ssize_t size;
     Py_ssize_t index;                   /* Index into CDataObject's
                                        object array */
     PyObject *proto;                    /* underlying ctype; must have StgInfo */
     GETFUNC getfunc;                    /* getter function if proto is NULL */
     SETFUNC setfunc;                    /* setter function if proto is NULL */
-    int anonymous;
+    bool anonymous :1;
+    bool is_bitfield :1;
 
     PyObject *name;                     /* exact PyUnicode */
 } CFieldObject;
