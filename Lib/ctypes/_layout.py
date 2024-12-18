@@ -8,7 +8,7 @@ import sys
 import warnings
 import struct
 
-from _ctypes import CField, buffer_info
+from _ctypes import CField, CBitField, buffer_info
 import ctypes
 
 def round_down(n, multiple):
@@ -40,9 +40,13 @@ def BUILD_SIZE(bitsize, offset):
     return result
 
 def build_size(bit_size, bit_offset, big_endian, type_size):
+    adjusted = adjust_bit_offset(bit_offset, type_size, big_endian, bit_size)
+    return BUILD_SIZE(bit_size, adjusted)
+
+def adjust_bit_offset(bit_offset, type_size, big_endian, bit_size):
     if big_endian:
-        return BUILD_SIZE(bit_size, 8 * type_size - bit_offset - bit_size)
-    return BUILD_SIZE(bit_size, bit_offset)
+        return 8 * type_size - bit_offset - bit_size
+    return bit_offset
 
 _INT_MAX = (1 << (ctypes.sizeof(ctypes.c_int) * 8) - 1) - 1
 
@@ -216,6 +220,7 @@ def get_layout(cls, input_fields, is_struct, base):
             offset = round_down(next_bit_offset, type_bit_align) // 8
             if is_bitfield:
                 effective_bit_offset = next_bit_offset - 8 * offset
+                bit_offset = effective_bit_offset
                 size = build_size(bit_size, effective_bit_offset,
                                   big_endian, type_size)
                 assert effective_bit_offset <= type_bit_size
@@ -255,6 +260,7 @@ def get_layout(cls, input_fields, is_struct, base):
             offset = next_byte_offset - last_field_bit_size // 8
             if is_bitfield:
                 assert 0 <= (last_field_bit_size + next_bit_offset)
+                bit_offset = last_field_bit_size + next_bit_offset
                 size = build_size(bit_size,
                                   last_field_bit_size + next_bit_offset,
                                   big_endian, type_size)
@@ -291,14 +297,23 @@ def get_layout(cls, input_fields, is_struct, base):
                     "field {name!r}: name must be a string, not bytes")
             format_spec_parts.append(f"{fieldfmt}:{name}:")
 
-        result_fields.append(CField(
-            name=name,
-            type=ctype,
-            size=size,
-            offset=offset,
-            bit_size=bit_size if is_bitfield else None,
-            index=i,
-        ))
+        if is_bitfield:
+            result_fields.append(CBitField(
+                name=name,
+                type=ctype,
+                offset=offset,
+                bit_size=bit_size,
+                bit_offset=adjust_bit_offset(bit_offset, type_size, big_endian, bit_size),
+                index=i,
+            ))
+        else:
+            assert size == ctypes.sizeof(ctype)
+            result_fields.append(CField(
+                name=name,
+                type=ctype,
+                offset=offset,
+                index=i,
+            ))
         if is_bitfield and not gcc_layout:
             assert type_bit_size > 0
 

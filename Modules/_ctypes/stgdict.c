@@ -95,7 +95,6 @@ MakeFields(PyObject *type, CFieldObject *descr,
         return -1;
 
     ctypes_state *st = get_module_state_by_class(Py_TYPE(descr));
-    PyTypeObject *cfield_tp = st->PyCField_Type;
     for (i = 0; i < PySequence_Fast_GET_SIZE(fieldlist); ++i) {
         PyObject *pair = PySequence_Fast_GET_ITEM(fieldlist, i); /* borrowed */
         PyObject *fname, *ftype, *bits;
@@ -111,7 +110,7 @@ MakeFields(PyObject *type, CFieldObject *descr,
             Py_DECREF(fieldlist);
             return -1;
         }
-        if (!Py_IS_TYPE(fdescr, cfield_tp)) {
+        if (!PyCField_Check(st, fdescr)) {
             PyErr_SetString(PyExc_TypeError, "unexpected type");
             Py_DECREF(fdescr);
             Py_DECREF(fieldlist);
@@ -128,19 +127,22 @@ MakeFields(PyObject *type, CFieldObject *descr,
             }
             continue;
         }
-        new_descr = (CFieldObject *)cfield_tp->tp_alloc(cfield_tp, 0);
+        new_descr = (CFieldObject*)PyObject_CallMethod(
+            (PyObject*)fdescr, "replace", "nn",
+            fdescr->offset + offset,
+            fdescr->index + index);
         if (new_descr == NULL) {
             Py_DECREF(fdescr);
             Py_DECREF(fieldlist);
             return -1;
         }
-        assert(Py_IS_TYPE(new_descr, cfield_tp));
-        new_descr->size = fdescr->size;
-        new_descr->offset = fdescr->offset + offset;
-        new_descr->index = fdescr->index + index;
-        new_descr->proto = Py_XNewRef(fdescr->proto);
-        new_descr->getfunc = fdescr->getfunc;
-        new_descr->setfunc = fdescr->setfunc;
+        if (!PyCField_Check(st, new_descr)) {
+            PyErr_SetString(PyExc_TypeError, "filed.copy() must be a field");
+            Py_DECREF(fdescr);
+            Py_DECREF(fieldlist);
+            Py_DECREF(new_descr);
+            return -1;
+        }
 
         Py_DECREF(fdescr);
 
@@ -176,7 +178,6 @@ MakeAnonFields(PyObject *type)
         return -1;
 
     ctypes_state *st = get_module_state_by_def(Py_TYPE(type));
-    PyTypeObject *cfield_tp = st->PyCField_Type;
     for (i = 0; i < PySequence_Fast_GET_SIZE(anon_names); ++i) {
         PyObject *fname = PySequence_Fast_GET_ITEM(anon_names, i); /* borrowed */
         CFieldObject *descr = (CFieldObject *)PyObject_GetAttr(type, fname);
@@ -184,7 +185,7 @@ MakeAnonFields(PyObject *type)
             Py_DECREF(anon_names);
             return -1;
         }
-        if (!Py_IS_TYPE(descr, cfield_tp)) {
+        if (!PyCField_Check(st, descr)) {
             PyErr_Format(PyExc_AttributeError,
                          "'%U' is specified in _anonymous_ but not in "
                          "_fields_",

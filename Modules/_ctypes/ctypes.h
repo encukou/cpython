@@ -47,6 +47,7 @@ typedef struct {
     PyTypeObject *DictRemover_Type;
     PyTypeObject *PyCArg_Type;
     PyTypeObject *PyCField_Type;
+    PyTypeObject *PyCBitField_Type;
     PyTypeObject *PyCThunk_Type;
     PyTypeObject *StructParam_Type;
     PyTypeObject *PyCType_Type;
@@ -109,6 +110,7 @@ get_module_state_by_def(PyTypeObject *cls)
 extern PyType_Spec pyctype_type_spec;
 extern PyType_Spec carg_spec;
 extern PyType_Spec cfield_spec;
+extern PyType_Spec cbitfield_spec;
 extern PyType_Spec cthunk_spec;
 
 typedef struct tagPyCArgObject PyCArgObject;
@@ -234,6 +236,8 @@ extern PyObject *PyCData_FromBytes(ctypes_state *st, PyObject *type, char *data,
 #define PyCFuncPtrObject_Check(st,v)      PyObject_TypeCheck((v), (st)->PyCFuncPtr_Type)
 #define PyCFuncPtrTypeObject_Check(st, v) PyObject_TypeCheck((v), (st)->PyCFuncPtrType_Type)
 #define PyCStructTypeObject_Check(st, v)  PyObject_TypeCheck((v), (st)->PyCStructType_Type)
+#define PyCField_Check(st, v)             PyObject_TypeCheck((v), (st)->PyCField_Type)
+#define PyCBitField_Check(st, v)          PyObject_TypeCheck((v), (st)->PyCBitField_Type)
 
 extern PyObject *
 PyCArrayType_from_ctype(ctypes_state *st, PyObject *itemtype, Py_ssize_t length);
@@ -268,6 +272,12 @@ typedef struct CFieldObject {
 
     PyObject *name;                     /* exact PyUnicode */
 } CFieldObject;
+
+typedef struct CBitFieldObject {
+    CFieldObject base;
+    Py_ssize_t bit_size;
+    Py_ssize_t bit_offset;
+} CBitFieldObject;
 
 /****************************************************************
  StgInfo

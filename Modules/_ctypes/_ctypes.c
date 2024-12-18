@@ -36,6 +36,7 @@ PyCData_Type
   Simple_Type                   __new__(), __init__(), _as_parameter_
 
 PyCField_Type
+  PyCBitField_Type
 
 ==============================================================================
 
@@ -80,22 +81,6 @@ bytes(cdata)
 
 */
 
-/*
- * PyCStructType_Type
- * UnionType_Type
- * PyCPointerType_Type
- * PyCArrayType_Type
- * PyCSimpleType_Type
- *
- * PyCData_Type
- * Struct_Type
- * Union_Type
- * PyCArray_Type
- * Simple_Type
- * PyCPointer_Type
- * PyCField_Type
- *
- */
 #ifndef Py_BUILD_CORE_BUILTIN
 #  define Py_BUILD_CORE_MODULE 1
 #endif
@@ -5870,6 +5855,7 @@ _ctypes_add_types(PyObject *mod)
      */
 
     MOD_ADD_TYPE(st->PyCField_Type, &cfield_spec, NULL, NULL);
+    MOD_ADD_TYPE(st->PyCBitField_Type, &cbitfield_spec, NULL, st->PyCField_Type);
 
     /*************************************************
      *
@@ -5983,6 +5969,7 @@ module_traverse(PyObject *module, visitproc visit, void *arg) {
     Py_VISIT(st->DictRemover_Type);
     Py_VISIT(st->PyCArg_Type);
     Py_VISIT(st->PyCField_Type);
+    Py_VISIT(st->PyCBitField_Type);
     Py_VISIT(st->PyCThunk_Type);
     Py_VISIT(st->StructParam_Type);
     Py_VISIT(st->PyCStructType_Type);
@@ -6018,6 +6005,7 @@ module_clear(PyObject *module) {
     Py_CLEAR(st->DictRemover_Type);
     Py_CLEAR(st->PyCArg_Type);
     Py_CLEAR(st->PyCField_Type);
+    Py_CLEAR(st->PyCBitField_Type);
     Py_CLEAR(st->PyCThunk_Type);
     Py_CLEAR(st->StructParam_Type);
     Py_CLEAR(st->PyCStructType_Type);
