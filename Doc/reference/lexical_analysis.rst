@@ -317,7 +317,7 @@ That is, ``id_start`` contains:
 * ``<Lo>`` - other letters
 * ``<Nl>`` - letter numbers
 * ``"_"`` - the underscore
-* ``<Other_ID_Start>`` - explicit list of characters in `PropList.txt`_
+* ``<Other_ID_Start>`` - explicit set of characters listed in `PropList.txt`_
   to support backwards compatibility
 
 And ``id_continue`` contains:
@@ -327,7 +327,7 @@ And ``id_continue`` contains:
 * ``<Pc>`` - connector punctuations
 * ``<Mn>`` - nonspacing marks
 * ``<Mc>`` - spacing combining marks
-* ``<Other_ID_Continue>`` - another explicit list of characters in
+* ``<Other_ID_Continue>`` - another explicit set of characters listed in
   `PropList.txt`_ to support backwards compatibility
 
 A non-normative HTML file listing all valid identifier characters for Unicode
