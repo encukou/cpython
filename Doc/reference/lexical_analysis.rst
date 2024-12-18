@@ -293,36 +293,49 @@ Unicode Character Database as included in the :mod:`unicodedata` module.
 
 Identifiers are unlimited in length.  Case is significant.
 
-.. productionlist:: python-grammar
-   identifier: `xid_start` `xid_continue`*
-   id_start: <all characters in general categories Lu, Ll, Lt, Lm, Lo, Nl, the underscore, and characters with the Other_ID_Start property>
-   id_continue: <all characters in `id_start`, plus characters in the categories Mn, Mc, Nd, Pc and others with the Other_ID_Continue property>
-   xid_start: <all characters in `id_start` whose NFKC normalization is in "id_start xid_continue*">
-   xid_continue: <all characters in `id_continue` whose NFKC normalization is in "id_continue*">
+All identifiers are converted into the Unicode `normalization form`_
+NFKC while parsing; comparison of identifiers is based on NFKC.
 
-The Unicode category codes mentioned above stand for:
+.. grammar-snippet::
+   :group: python-grammar
 
-* *Lu* - uppercase letters
-* *Ll* - lowercase letters
-* *Lt* - titlecase letters
-* *Lm* - modifier letters
-* *Lo* - other letters
-* *Nl* - letter numbers
-* *Mn* - nonspacing marks
-* *Mc* - spacing combining marks
-* *Nd* - decimal numbers
-* *Pc* - connector punctuations
-* *Other_ID_Start* - explicit list of characters in `PropList.txt
-  <https://www.unicode.org/Public/16.0.0/ucd/PropList.txt>`_ to support backwards
-  compatibility
-* *Other_ID_Continue* - likewise
+   identifier:  `xid_start` `xid_continue`*
+   id_start:    <Lu> | <Ll> | <Lt> | <Lm> | <Lo> | <Nl> | "_" | <Other_ID_Start>
+   id_continue: `id_start` | <Nd> | <Mn> | <Mc> | <Pc> | <Other_ID_Continue>
+   xid_start:    <all characters in `id_start` whose NFKC normalization is
+                  in (`id_start` `xid_continue`*)>
+   xid_continue: <all characters in `id_continue` whose NFKC normalization
+                  is in (`id_continue`*)>
 
-All identifiers are converted into the normal form NFKC while parsing; comparison
-of identifiers is based on NFKC.
+The abbreviations above are Unicode category codes.
+That is, ``id_start`` contains:
+
+* ``<Lu>`` - uppercase letters (includes ``A`` to ``Z``)
+* ``<Ll>`` - lowercase letters (includes ``a`` to ``z``)
+* ``<Lt>`` - titlecase letters
+* ``<Lm>`` - modifier letters
+* ``<Lo>`` - other letters
+* ``<Nl>`` - letter numbers
+* ``"_"`` - the underscore
+* ``<Other_ID_Start>`` - explicit list of characters in `PropList.txt`_
+  to support backwards compatibility
+
+And ``id_continue`` contains:
+
+* all characters in ``id_start``
+* ``<Nd>`` - decimal numbers (includes ``0`` to ``9``)
+* ``<Pc>`` - connector punctuations
+* ``<Mn>`` - nonspacing marks
+* ``<Mc>`` - spacing combining marks
+* ``<Other_ID_Continue>`` - another explicit list of characters in
+  `PropList.txt`_ to support backwards compatibility
 
 A non-normative HTML file listing all valid identifier characters for Unicode
 16.0.0 can be found at
 https://www.unicode.org/Public/16.0.0/ucd/DerivedCoreProperties.txt
+
+.. _PropList.txt: https://www.unicode.org/Public/16.0.0/ucd/PropList.txt
+.. _normalization form: https://www.unicode.org/reports/tr15/#Norm_Forms
 
 
 .. _keywords:
@@ -446,27 +459,31 @@ String and Bytes literals
 
 String literals are described by the following lexical definitions:
 
-.. productionlist:: python-grammar
-   stringliteral: [`stringprefix`](`shortstring` | `longstring`)
-   stringprefix: "r" | "u" | "R" | "U" | "f" | "F"
-               : | "fr" | "Fr" | "fR" | "FR" | "rf" | "rF" | "Rf" | "RF"
-   shortstring: "'" `shortstringitem`* "'" | '"' `shortstringitem`* '"'
-   longstring: "'''" `longstringitem`* "'''" | '"""' `longstringitem`* '"""'
+.. grammar-snippet::
+   :group: python-grammar
+
+   stringliteral:   [`stringprefix`](`shortstring` | `longstring`)
+   stringprefix:    "r" | "u" | "R" | "U" | "f" | "F"
+                    | "fr" | "Fr" | "fR" | "FR" | "rf" | "rF" | "Rf" | "RF"
+   shortstring:     "'" `shortstringitem`* "'" | '"' `shortstringitem`* '"'
+   longstring:      "'''" `longstringitem`* "'''" | '"""' `longstringitem`* '"""'
    shortstringitem: `shortstringchar` | `stringescapeseq`
-   longstringitem: `longstringchar` | `stringescapeseq`
+   longstringitem:  `longstringchar` | `stringescapeseq`
    shortstringchar: <any source character except "\" or newline or the quote>
-   longstringchar: <any source character except "\">
+   longstringchar:  <any source character except "\">
    stringescapeseq: "\" <any source character>
 
-.. productionlist:: python-grammar
-   bytesliteral: `bytesprefix`(`shortbytes` | `longbytes`)
-   bytesprefix: "b" | "B" | "br" | "Br" | "bR" | "BR" | "rb" | "rB" | "Rb" | "RB"
-   shortbytes: "'" `shortbytesitem`* "'" | '"' `shortbytesitem`* '"'
-   longbytes: "'''" `longbytesitem`* "'''" | '"""' `longbytesitem`* '"""'
+.. grammar-snippet::
+   :group: python-grammar
+
+   bytesliteral:   `bytesprefix`(`shortbytes` | `longbytes`)
+   bytesprefix:    "b" | "B" | "br" | "Br" | "bR" | "BR" | "rb" | "rB" | "Rb" | "RB"
+   shortbytes:     "'" `shortbytesitem`* "'" | '"' `shortbytesitem`* '"'
+   longbytes:      "'''" `longbytesitem`* "'''" | '"""' `longbytesitem`* '"""'
    shortbytesitem: `shortbyteschar` | `bytesescapeseq`
-   longbytesitem: `longbyteschar` | `bytesescapeseq`
+   longbytesitem:  `longbyteschar` | `bytesescapeseq`
    shortbyteschar: <any ASCII character except "\" or newline or the quote>
-   longbyteschar: <any ASCII character except "\">
+   longbyteschar:  <any ASCII character except "\">
    bytesescapeseq: "\" <any ASCII character>
 
 One syntactic restriction not indicated by these productions is that whitespace
