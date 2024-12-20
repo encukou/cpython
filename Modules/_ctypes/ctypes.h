@@ -48,6 +48,7 @@ typedef struct {
     PyTypeObject *PyCArg_Type;
     PyTypeObject *PyCField_Type;
     PyTypeObject *PyCBitField_Type;
+    PyTypeObject *PyCStringField_Type;
     PyTypeObject *PyCThunk_Type;
     PyTypeObject *StructParam_Type;
     PyTypeObject *PyCType_Type;
@@ -111,6 +112,7 @@ extern PyType_Spec pyctype_type_spec;
 extern PyType_Spec carg_spec;
 extern PyType_Spec cfield_spec;
 extern PyType_Spec cbitfield_spec;
+extern PyType_Spec cstringfield_spec;
 extern PyType_Spec cthunk_spec;
 
 typedef struct tagPyCArgObject PyCArgObject;
@@ -267,8 +269,7 @@ typedef struct CFieldObject {
     PyObject *proto;                    /* underlying ctype; must have StgInfo */
     bool anonymous :1;
     bool is_bitfield :1;
-    bool is_special_s :1;
-    bool is_special_U :1;
+    bool wchar_str :1;                  /* used by CStringFieldObject */
 
     PyObject *name;                     /* exact PyUnicode */
 } CFieldObject;

@@ -37,6 +37,15 @@ static void pymem_destructor(PyObject *ptr)
 }
 
 
+static PyObject *c_get(void *ptr, Py_ssize_t size);
+static PyObject *c_set(void *ptr, PyObject *value, Py_ssize_t length);
+static PyObject *u_get(void *ptr, Py_ssize_t size);
+static PyObject *u_set(void *ptr, PyObject *value, Py_ssize_t length);
+static PyObject *s_get(void *ptr, Py_ssize_t size);
+static PyObject *s_set(void *ptr, PyObject *value, Py_ssize_t length);
+static PyObject *U_get(void *ptr, Py_ssize_t size);
+static PyObject *U_set(void *ptr, PyObject *value, Py_ssize_t length);
+
 /******************************************************************/
 /*
   PyCField_Type
@@ -88,34 +97,6 @@ field_new(PyTypeObject *type, PyObject *name, PyObject *proto,
 
     self->index = index;
 
-    /*  Field descriptors for 'c_char * n' are be special cased to
-        return a Python string instead of an Array object instance...
-    */
-    if (PyCArrayTypeObject_Check(st, proto)) {
-        StgInfo *ainfo;
-        if (PyStgInfo_FromType(st, proto, &ainfo) < 0) {
-            goto error;
-        }
-
-        if (ainfo && ainfo->proto) {
-            StgInfo *iinfo;
-            if (PyStgInfo_FromType(st, ainfo->proto, &iinfo) < 0) {
-                goto error;
-            }
-            if (!iinfo) {
-                PyErr_SetString(PyExc_TypeError,
-                                "has no _stginfo_");
-                goto error;
-            }
-            if (iinfo->getfunc == _ctypes_get_fielddesc("c")->getfunc) {
-                self->is_special_s = true;
-            }
-            if (iinfo->getfunc == _ctypes_get_fielddesc("u")->getfunc) {
-                self->is_special_U = true;
-            }
-        }
-    }
-
     return (PyObject *)self;
 error:
     Py_XDECREF(self);
@@ -138,7 +119,43 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                   Py_ssize_t offset, Py_ssize_t index)
 /*[clinic end generated code: output=5c68e4684e032398 input=b7784b03bcbeccba]*/
 {
-    return field_new(type, name, proto, offset, index);
+
+    /*  Field descriptors for 'c_char * n' are be special cased to
+        return a Python string instead of an Array object instance...
+    */
+    bool wchar_str = false;
+    ctypes_state *st = get_module_state_by_class(type);
+    if (type == st->PyCField_Type && PyCArrayTypeObject_Check(st, proto)) {
+        StgInfo *ainfo;
+        if (PyStgInfo_FromType(st, proto, &ainfo) < 0) {
+            goto error;
+        }
+
+        if (ainfo && ainfo->proto) {
+            StgInfo *iinfo;
+            if (PyStgInfo_FromType(st, ainfo->proto, &iinfo) < 0) {
+                goto error;
+            }
+            if (!iinfo) {
+                PyErr_SetString(PyExc_TypeError, "has no _stginfo_");
+                goto error;
+            }
+            if (iinfo->getfunc == c_get) {
+                type = st->PyCStringField_Type;
+            }
+            if (iinfo->getfunc == u_get) {
+                type = st->PyCStringField_Type;
+                wchar_str = true;
+            }
+        }
+    }
+
+    PyObject *result = field_new(type, name, proto, offset, index);
+    ((CFieldObject *)result)->wchar_str = wchar_str;
+    return result;
+
+error:
+    return NULL;
 }
 
 /*[clinic input]
@@ -182,9 +199,7 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
         case FFI_TYPE_SINT8:
         case FFI_TYPE_SINT16:
         case FFI_TYPE_SINT32:
-            if (info->getfunc != _ctypes_get_fielddesc("c")->getfunc
-                && info->getfunc != _ctypes_get_fielddesc("u")->getfunc)
-            {
+            if (info->getfunc != c_get && info->getfunc != u_get) {
                 break;
             }
             _Py_FALLTHROUGH;  /* else fall through */
@@ -238,8 +253,6 @@ _ctypes_CField_replace_impl(PyObject *old_object, Py_ssize_t offset,
     }
     CFieldObject *new_field = (CFieldObject *)new_object;
     new_field->anonymous = old_field->anonymous;
-    new_field->is_special_s = old_field->is_special_s;
-    new_field->is_special_U = old_field->is_special_U;
 
     if (PyCBitField_Check(st, old_object)) {
         assert(PyCBitField_Check(st, new_object));
@@ -273,70 +286,82 @@ _get_legacy_size(CFieldObject *field)
     return cfield_type_size(field);
 }
 
-static SETFUNC
-_get_setfunc(CFieldObject *field)
+static char *
+_get_field_ptr(ctypes_state *st, CFieldObject *self, PyObject *inst)
 {
-    if (field->is_special_s) return _ctypes_get_fielddesc("s")->setfunc;
-    if (field->is_special_U) return _ctypes_get_fielddesc("U")->setfunc;
-    ctypes_state *st = get_module_state_by_class(Py_TYPE(field));
-    StgInfo *info;
-    if (PyStgInfo_FromType(st, field->proto, &info) < 0) {
-        assert(0);
+    if (!CDataObject_Check(st, inst)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "not a ctype instance");
+        return NULL;
     }
-    return NULL;
-}
-
-static GETFUNC
-_get_getfunc(CFieldObject *field)
-{
-    if (field->is_special_s) return _ctypes_get_fielddesc("s")->getfunc;
-    if (field->is_special_U) return _ctypes_get_fielddesc("U")->getfunc;
-    ctypes_state *st = get_module_state_by_class(Py_TYPE(field));
-    StgInfo *info;
-    if (PyStgInfo_FromType(st, field->proto, &info) < 0) {
-        assert(0);
-    }
-    return NULL;
+    CDataObject *inst_obj = (CDataObject *)inst;
+    return inst_obj->b_ptr + self->offset;
 }
 
 static int
 PyCField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 {
-    CDataObject *dst;
-    char *ptr;
-    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
-    if (!CDataObject_Check(st, inst)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "not a ctype instance");
-        return -1;
-    }
-    dst = (CDataObject *)inst;
-    ptr = dst->b_ptr + self->offset;
     if (value == NULL) {
         PyErr_SetString(PyExc_TypeError,
                         "can't delete attribute");
         return -1;
     }
-    return PyCData_set(st, inst, self->proto, _get_setfunc(self), value,
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
+        return -1;
+    }
+    return PyCData_set(st, inst, self->proto, NULL, value,
                        self->index, _get_legacy_size(self), ptr);
 }
 
 static PyObject *
 PyCField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
 {
-    CDataObject *src;
     if (inst == NULL) {
         return Py_NewRef(self);
     }
     ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
-    if (!CDataObject_Check(st, inst)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "not a ctype instance");
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
         return NULL;
     }
-    src = (CDataObject *)inst;
-    return PyCData_get(st, self->proto, _get_getfunc(self), inst,
-                     self->index, _get_legacy_size(self), src->b_ptr + self->offset);
+    return PyCData_get(st, self->proto, NULL, inst,
+                     self->index, _get_legacy_size(self), ptr);
+}
+
+static int
+PyCStringField_set(CFieldObject *self, PyObject *inst, PyObject *value)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError,
+                        "can't delete attribute");
+        return -1;
+    }
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
+        return -1;
+    }
+    Py_ssize_t size = _get_legacy_size(self);
+    return PyCData_set(st, inst, self->proto, self->wchar_str ? U_set : s_set, value,
+                       self->index, size, ptr);
+}
+
+static PyObject *
+PyCStringField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
+{
+    if (inst == NULL) {
+        return Py_NewRef(self);
+    }
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
+        return NULL;
+    }
+    Py_ssize_t size = _get_legacy_size(self);
+    return PyCData_get(st, self->proto, self->wchar_str ? U_get : s_get, inst,
+                     self->index, size, ptr);
 }
 
 static PyObject *
@@ -479,7 +504,6 @@ PyCBitField_get_legacy_size(PyObject *self, void *data)
 PyType_Spec cbitfield_spec = {
     .name = "_ctypes.CBitField",
     .basicsize = sizeof(CBitFieldObject),
-    .itemsize = 1,
     .flags = (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE),
     .slots = (PyType_Slot[]) {
         {Py_tp_new, PyCBitField_new},
@@ -506,6 +530,16 @@ PyType_Spec cbitfield_spec = {
             },
             {NULL},
         }},
+        {0},
+    },
+};
+
+PyType_Spec cstringfield_spec = {
+    .name = "_ctypes.CStringField",
+    .flags = (Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE),
+    .slots = (PyType_Slot[]) {
+        {Py_tp_descr_get, PyCStringField_get},
+        {Py_tp_descr_set, PyCStringField_set},
         {0},
     },
 };
