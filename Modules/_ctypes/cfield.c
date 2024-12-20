@@ -378,6 +378,7 @@ PyCBitField_set(CFieldObject *self, PyObject *inst, PyObject *value)
     if (!ptr) {
         return -1;
     }
+
     return PyCData_set(st, inst, self->proto, NULL, value,
                        self->index, _get_legacy_size(self), ptr);
 }
@@ -699,7 +700,6 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
         assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
         CTYPE val;                                                            \
         memcpy(&val, ptr, sizeof(val));                                       \
-        GET_BITFIELD(val, size_arg);                                          \
         return PYAPI_FROMFUNC(val);                                           \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
@@ -732,7 +732,6 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
         CTYPE val;                                                            \
         memcpy(&val, ptr, sizeof(val));                                       \
         val = PY_SWAPFUNC(val);                                               \
-        GET_BITFIELD(val, size_arg);                                          \
         return PYAPI_FROMFUNC(val);                                           \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
