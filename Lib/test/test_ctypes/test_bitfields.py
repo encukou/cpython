@@ -196,17 +196,17 @@ class BitFieldTest(unittest.TestCase):
     def test_nonint_types(self):
         # bit fields are not allowed on non-integer types.
         result = self.fail_fields(("a", c_char_p, 1))
-        self.assertEqual(result, (TypeError, 'bit fields not allowed for type c_char_p'))
+        self.assertEqual(result, (TypeError, "field 'a': bit fields not allowed for type c_char_p"))
 
         result = self.fail_fields(("a", c_void_p, 1))
-        self.assertEqual(result, (TypeError, 'bit fields not allowed for type c_void_p'))
+        self.assertEqual(result, (TypeError, "field 'a': bit fields not allowed for type c_void_p"))
 
         if c_int != c_long:
             result = self.fail_fields(("a", POINTER(c_int), 1))
-            self.assertEqual(result, (TypeError, 'bit fields not allowed for type LP_c_int'))
+            self.assertEqual(result, (TypeError, "field 'a': bit fields not allowed for type LP_c_int"))
 
         result = self.fail_fields(("a", c_char, 1))
-        self.assertEqual(result, (TypeError, 'bit fields not allowed for type c_char'))
+        self.assertEqual(result, (TypeError, "field 'a': bit fields not allowed for type c_char"))
 
         class Empty(Structure):
             _fields_ = []
@@ -218,12 +218,12 @@ class BitFieldTest(unittest.TestCase):
             _fields_ = [("x", c_int)]
 
         result = self.fail_fields(("a", Dummy, 1))
-        self.assertEqual(result, (TypeError, 'bit fields not allowed for type Dummy'))
+        self.assertEqual(result, (TypeError, "field 'a': bit fields not allowed for type Dummy"))
 
     def test_c_wchar(self):
         result = self.fail_fields(("a", c_wchar, 1))
         self.assertEqual(result,
-                (TypeError, 'bit fields not allowed for type c_wchar'))
+                (TypeError, "field 'a': bit fields not allowed for type c_wchar"))
 
     def test_single_bitfield_size(self):
         for c_typ in int_types:

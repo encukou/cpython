@@ -2241,6 +2241,9 @@ PyCSimpleType_init(PyObject *self, PyObject *args, PyObject *kwds)
     if (!stginfo) {
         goto error;
     }
+    if (fmt->is_signed) {
+        stginfo->flags |= TYPEFLAG_IS_SIGNED;
+    }
 
     if (!fmt->pffi_type->elements) {
         stginfo->ffi_type_pointer = *fmt->pffi_type;

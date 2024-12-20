@@ -11,6 +11,7 @@
 #include "pycore_bitutils.h"      // _Py_bswap32()
 #include "pycore_call.h"          // _PyObject_CallNoArgs()
 #include <stdbool.h>              // bool
+#include <assert.h>               // assert
 
 #include <ffi.h>
 #include "ctypes.h"
@@ -20,6 +21,9 @@
 #endif
 
 #define CTYPES_CFIELD_CAPSULE_NAME_PYMEM "_ctypes/cfield.c pymem"
+
+/* we need intN_t */
+#define BITFIELD_MAX_BITS 64
 
 /*[clinic input]
 module _ctypes
@@ -188,6 +192,19 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
         goto error;
     }
 
+    if (bit_offset + bit_size > info->size*8) {
+        PyErr_Format(PyExc_ValueError,
+                     "bitfield %R does not fit (%zd+%zd bits)",
+                     name, bit_offset, bit_size);
+        return NULL;
+    }
+    if (info->size*8 > BITFIELD_MAX_BITS) {
+        PyErr_Format(PyExc_ValueError,
+                     "field %R: bit fields not allowed for large type %s",
+                     name, ((PyTypeObject*)proto)->tp_name);
+        return NULL;
+    }
+
     switch(info->ffi_type_pointer.type) {
         case FFI_TYPE_UINT8:
         case FFI_TYPE_UINT16:
@@ -205,8 +222,8 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
             _Py_FALLTHROUGH;  /* else fall through */
         default:
             PyErr_Format(PyExc_TypeError,
-                            "bit fields not allowed for type %s",
-                            ((PyTypeObject*)proto)->tp_name);
+                         "field %R: bit fields not allowed for type %s",
+                         name, ((PyTypeObject*)proto)->tp_name);
             goto error;
     }
 
@@ -364,6 +381,69 @@ PyCStringField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
                      self->index, size, ptr);
 }
 
+#define XX_BITFIELD_MAX_T(P, N) P ## N ## _t
+#define X_BITFIELD_MAX_T(P, N) XX_BITFIELD_MAX_T(P, N)
+#define U_BITFIELD_MAX_T X_BITFIELD_MAX_T(uint, BITFIELD_MAX_BITS)
+#define S_BITFIELD_MAX_T X_BITFIELD_MAX_T(int, BITFIELD_MAX_BITS)
+
+static int
+PyCBitField_set(CFieldObject *self, PyObject *inst, PyObject *value)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError,
+                        "can't delete attribute");
+        return -1;
+    }
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
+        return -1;
+    }
+    return PyCData_set(st, inst, self->proto, NULL, value,
+                       self->index, _get_legacy_size(self), ptr);
+}
+
+static PyObject *
+PyCBitField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
+{
+    CBitFieldObject *bitfield = (CBitFieldObject *)self;
+    if (inst == NULL) {
+        return Py_NewRef(self);
+    }
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    char *ptr = _get_field_ptr(st, self, inst);
+    if (!ptr) {
+        return NULL;
+    }
+
+    StgInfo *info;
+    if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
+        return NULL;
+    }
+
+    Py_ssize_t size = info->size;
+    U_BITFIELD_MAX_T val = 0;
+    assert(size*8 <= BITFIELD_MAX_BITS);
+    assert(sizeof(val)*8 == BITFIELD_MAX_BITS);
+    memcpy(&val, ptr, size);
+    val <<= (BITFIELD_MAX_BITS - bitfield->bit_size - bitfield->bit_offset);
+    if (info->flags & TYPEFLAG_IS_SIGNED) {
+        S_BITFIELD_MAX_T signed_val = val;
+        signed_val >>= (BITFIELD_MAX_BITS - bitfield->bit_size);
+        val = signed_val;
+    }
+    else {
+        val >>= (BITFIELD_MAX_BITS - bitfield->bit_size);
+    }
+    return PyCData_get(st, self->proto, NULL, inst,
+                       self->index, size, (char *)&val);
+}
+
+#undef XX_BITFIELD_MAX_T
+#undef X_BITFIELD_MAX_T
+#undef U_BITFIELD_MAX_T
+#undef S_BITFIELD_MAX_T
+
 static PyObject *
 PyCField_get_size(PyObject *self, void *data)
 {
@@ -508,6 +588,8 @@ PyType_Spec cbitfield_spec = {
     .slots = (PyType_Slot[]) {
         {Py_tp_new, PyCBitField_new},
         {Py_tp_repr, PyCBitField_repr},
+        {Py_tp_descr_get, PyCBitField_get},
+        {Py_tp_descr_set, PyCBitField_set},
         {Py_tp_getset, (PyGetSetDef[]) {
             {"size",
                 .get = PyCBitField_get_legacy_size,
@@ -1532,9 +1614,11 @@ _Py_COMP_DIAG_PUSH
  */
 #pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
+#define IS_SIGNED(C_TYPE) ((C_TYPE)-1 < 0)
+_Py_COMP_DIAG_POP
 
 #define FIXINT_FIELDDESC_FOR(C_TYPE) \
-    _ctypes_fixint_fielddesc(sizeof(C_TYPE), (C_TYPE)-1 < 0)
+    _ctypes_fixint_fielddesc(sizeof(C_TYPE), IS_SIGNED(C_TYPE))
 
 
 /* Delayed initialization. Windows cannot statically reference dynamically
@@ -1556,27 +1640,28 @@ for nbytes in 8, 16, 32, 64:
             f'{sgn}{nbytes}_get',
             f'{sgn}{nbytes}_set_sw',
             f'{sgn}{nbytes}_get_sw',
+            'true' if is_signed else 'false',
         ]
         print(f'    formattable.fmt_{sgn}{nbytes} = (struct fielddesc){{')
         print(f'            {', '.join(parts)} }};')
 [python start generated code]*/
     formattable.fmt_i8 = (struct fielddesc){
-            0, &ffi_type_sint8, i8_set, i8_get, i8_set_sw, i8_get_sw };
+            0, &ffi_type_sint8, i8_set, i8_get, i8_set_sw, i8_get_sw, true };
     formattable.fmt_u8 = (struct fielddesc){
-            0, &ffi_type_uint8, u8_set, u8_get, u8_set_sw, u8_get_sw };
+            0, &ffi_type_uint8, u8_set, u8_get, u8_set_sw, u8_get_sw, false };
     formattable.fmt_i16 = (struct fielddesc){
-            0, &ffi_type_sint16, i16_set, i16_get, i16_set_sw, i16_get_sw };
+            0, &ffi_type_sint16, i16_set, i16_get, i16_set_sw, i16_get_sw, true };
     formattable.fmt_u16 = (struct fielddesc){
-            0, &ffi_type_uint16, u16_set, u16_get, u16_set_sw, u16_get_sw };
+            0, &ffi_type_uint16, u16_set, u16_get, u16_set_sw, u16_get_sw, false };
     formattable.fmt_i32 = (struct fielddesc){
-            0, &ffi_type_sint32, i32_set, i32_get, i32_set_sw, i32_get_sw };
+            0, &ffi_type_sint32, i32_set, i32_get, i32_set_sw, i32_get_sw, true };
     formattable.fmt_u32 = (struct fielddesc){
-            0, &ffi_type_uint32, u32_set, u32_get, u32_set_sw, u32_get_sw };
+            0, &ffi_type_uint32, u32_set, u32_get, u32_set_sw, u32_get_sw, false };
     formattable.fmt_i64 = (struct fielddesc){
-            0, &ffi_type_sint64, i64_set, i64_get, i64_set_sw, i64_get_sw };
+            0, &ffi_type_sint64, i64_set, i64_get, i64_set_sw, i64_get_sw, true };
     formattable.fmt_u64 = (struct fielddesc){
-            0, &ffi_type_uint64, u64_set, u64_get, u64_set_sw, u64_get_sw };
-/*[python end generated code: output=16806fe0ca3a9c4c input=850b8dd6388b1b10]*/
+            0, &ffi_type_uint64, u64_set, u64_get, u64_set_sw, u64_get_sw, false };
+/*[python end generated code: output=20ea963906565c11 input=5fe4709c4a800eae]*/
 
 
     /* Native C integers.
@@ -1642,7 +1727,7 @@ for base_code, base_c_type in [
 
 #define _TABLE_ENTRY(SYMBOL, FFI_TYPE, ...)                                   \
     formattable.fmt_ ## SYMBOL =                                              \
-        (struct fielddesc){(#SYMBOL)[0], (FFI_TYPE), __VA_ARGS__};            \
+        (struct fielddesc){(#SYMBOL)[0], (FFI_TYPE), __VA_ARGS__ };            \
     ///////////////////////////////////////////////////////////////////////////
 
 #define TABLE_ENTRY(SYMBOL, FFI_TYPE)                                         \

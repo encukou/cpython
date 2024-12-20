@@ -259,6 +259,7 @@ struct fielddesc {
     GETFUNC getfunc;
     SETFUNC setfunc_swapped;
     GETFUNC getfunc_swapped;
+    bool is_signed;     /* for basic integer types only */
 };
 
 typedef struct CFieldObject {
@@ -388,6 +389,7 @@ PyObject *_ctypes_callproc(ctypes_state *st,
 
 #define TYPEFLAG_ISPOINTER 0x100
 #define TYPEFLAG_HASPOINTER 0x200
+#define TYPEFLAG_IS_SIGNED 0x400
 
 #define DICTFLAG_FINAL 0x1000
 
