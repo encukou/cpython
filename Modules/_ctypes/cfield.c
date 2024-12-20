@@ -198,33 +198,12 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                      name, bit_offset, bit_size);
         return NULL;
     }
-    if (info->size*8 > BITFIELD_MAX_BITS) {
-        PyErr_Format(PyExc_ValueError,
-                     "field %R: bit fields not allowed for large type %s",
-                     name, ((PyTypeObject*)proto)->tp_name);
-        return NULL;
-    }
-
-    switch(info->ffi_type_pointer.type) {
-        case FFI_TYPE_UINT8:
-        case FFI_TYPE_UINT16:
-        case FFI_TYPE_UINT32:
-        case FFI_TYPE_SINT64:
-        case FFI_TYPE_UINT64:
-            break;
-
-        case FFI_TYPE_SINT8:
-        case FFI_TYPE_SINT16:
-        case FFI_TYPE_SINT32:
-            if (info->getfunc != c_get && info->getfunc != u_get) {
-                break;
-            }
-            _Py_FALLTHROUGH;  /* else fall through */
-        default:
+    if (!(info->flags & TYPEFLAG_IS_INTEGER)) {
             PyErr_Format(PyExc_TypeError,
                          "field %R: bit fields not allowed for type %s",
                          name, ((PyTypeObject*)proto)->tp_name);
             goto error;
+        return NULL;
     }
 
     PyObject *result = field_new(type, name, proto, offset, index);
@@ -1640,28 +1619,39 @@ for nbytes in 8, 16, 32, 64:
             f'{sgn}{nbytes}_get',
             f'{sgn}{nbytes}_set_sw',
             f'{sgn}{nbytes}_get_sw',
-            'true' if is_signed else 'false',
         ]
+        flags = ['TYPEFLAG_IS_INTEGER']
+        if is_signed:
+            flags.append('TYPEFLAG_IS_SIGNED')
         print(f'    formattable.fmt_{sgn}{nbytes} = (struct fielddesc){{')
-        print(f'            {', '.join(parts)} }};')
+        print(f'            {', '.join(parts)},')
+        print(f'            .flags = {' | '.join(flags)} }};')
 [python start generated code]*/
     formattable.fmt_i8 = (struct fielddesc){
-            0, &ffi_type_sint8, i8_set, i8_get, i8_set_sw, i8_get_sw, true };
+            0, &ffi_type_sint8, i8_set, i8_get, i8_set_sw, i8_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u8 = (struct fielddesc){
-            0, &ffi_type_uint8, u8_set, u8_get, u8_set_sw, u8_get_sw, false };
+            0, &ffi_type_uint8, u8_set, u8_get, u8_set_sw, u8_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i16 = (struct fielddesc){
-            0, &ffi_type_sint16, i16_set, i16_get, i16_set_sw, i16_get_sw, true };
+            0, &ffi_type_sint16, i16_set, i16_get, i16_set_sw, i16_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u16 = (struct fielddesc){
-            0, &ffi_type_uint16, u16_set, u16_get, u16_set_sw, u16_get_sw, false };
+            0, &ffi_type_uint16, u16_set, u16_get, u16_set_sw, u16_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i32 = (struct fielddesc){
-            0, &ffi_type_sint32, i32_set, i32_get, i32_set_sw, i32_get_sw, true };
+            0, &ffi_type_sint32, i32_set, i32_get, i32_set_sw, i32_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u32 = (struct fielddesc){
-            0, &ffi_type_uint32, u32_set, u32_get, u32_set_sw, u32_get_sw, false };
+            0, &ffi_type_uint32, u32_set, u32_get, u32_set_sw, u32_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i64 = (struct fielddesc){
-            0, &ffi_type_sint64, i64_set, i64_get, i64_set_sw, i64_get_sw, true };
+            0, &ffi_type_sint64, i64_set, i64_get, i64_set_sw, i64_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u64 = (struct fielddesc){
-            0, &ffi_type_uint64, u64_set, u64_get, u64_set_sw, u64_get_sw, false };
-/*[python end generated code: output=20ea963906565c11 input=5fe4709c4a800eae]*/
+            0, &ffi_type_uint64, u64_set, u64_get, u64_set_sw, u64_get_sw,
+            .flags = TYPEFLAG_IS_INTEGER };
+/*[python end generated code: output=f4a64738bd0af9ee input=ca7563d4a9ebb879]*/
 
 
     /* Native C integers.
@@ -1739,6 +1729,11 @@ for base_code, base_c_type in [
         SYMBOL ## _get, SYMBOL ## _set_sw, SYMBOL ## _get_sw)                 \
     ///////////////////////////////////////////////////////////////////////////
 
+#define POINTER_ENTRY(SYMBOL, FFI_TYPE)                                       \
+    _TABLE_ENTRY(SYMBOL, FFI_TYPE, SYMBOL ## _set, SYMBOL ## _get,            \
+                 .flags = TYPEFLAG_ISPOINTER)                                 \
+    ///////////////////////////////////////////////////////////////////////////
+
     TABLE_ENTRY_SW(d, &ffi_type_double);
 #if defined(Py_HAVE_C_COMPLEX) && defined(Py_FFI_SUPPORT_C_COMPLEX)
     TABLE_ENTRY(C, &ffi_type_complex_double);
@@ -1754,15 +1749,15 @@ for base_code, base_c_type in [
     // ctypes.c_wchar is signed for FFI, even where C wchar_t is unsigned.
     TABLE_ENTRY(u, _ctypes_fixint_fielddesc(sizeof(wchar_t), true)->pffi_type);
 
-    TABLE_ENTRY(s, &ffi_type_pointer);
-    TABLE_ENTRY(P, &ffi_type_pointer);
-    TABLE_ENTRY(z, &ffi_type_pointer);
+    POINTER_ENTRY(s, &ffi_type_pointer);
+    POINTER_ENTRY(P, &ffi_type_pointer);
+    POINTER_ENTRY(z, &ffi_type_pointer);
     TABLE_ENTRY(U, &ffi_type_pointer);
-    TABLE_ENTRY(Z, &ffi_type_pointer);
+    POINTER_ENTRY(Z, &ffi_type_pointer);
 #ifdef MS_WIN32
-    TABLE_ENTRY(X, &ffi_type_pointer);
+    POINTER_ENTRY(X, &ffi_type_pointer);
 #endif
-    TABLE_ENTRY(O, &ffi_type_pointer);
+    POINTER_ENTRY(O, &ffi_type_pointer);
 
 #undef TABLE_ENTRY_SW
 #undef TABLE_ENTRY
