@@ -43,6 +43,10 @@
 #include <Unknwn.h> // for IUnknown interface
 #endif
 
+#define BITFIELD_MAX_BITS 64
+#define BITFIELD_MAX_SIGNED_T int64_t
+#define BITFIELD_MAX_UNSIGNED_T uint64_t
+
 typedef struct {
     PyTypeObject *DictRemover_Type;
     PyTypeObject *PyCArg_Type;
@@ -279,6 +283,7 @@ typedef struct CBitFieldObject {
     CFieldObject base;
     Py_ssize_t bit_size;
     Py_ssize_t bit_offset;
+    BITFIELD_MAX_UNSIGNED_T mask;
 } CBitFieldObject;
 
 /****************************************************************

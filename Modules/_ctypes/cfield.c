@@ -22,9 +22,6 @@
 
 #define CTYPES_CFIELD_CAPSULE_NAME_PYMEM "_ctypes/cfield.c pymem"
 
-/* we need intN_t */
-#define BITFIELD_MAX_BITS 64
-
 /*[clinic input]
 module _ctypes
 [clinic start generated code]*/
@@ -192,6 +189,18 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
         goto error;
     }
 
+    if (bit_size <= 0) {
+        PyErr_Format(PyExc_ValueError,
+                     "bitfield %R size must be positive, not %zd",
+                     name, bit_size);
+        return NULL;
+    }
+    if (bit_offset < 0) {
+        PyErr_Format(PyExc_ValueError,
+                     "bitfield %R offset must not be negative, got %zd",
+                     name, bit_offset);
+        return NULL;
+    }
     if (bit_offset + bit_size > info->size*8) {
         PyErr_Format(PyExc_ValueError,
                      "bitfield %R does not fit (%zd+%zd bits)",
@@ -212,6 +221,7 @@ PyCBitField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
     CBitFieldObject *bitfield = (CBitFieldObject *)result;
     bitfield->bit_size = bit_size;
     bitfield->bit_offset = bit_offset;
+    bitfield->mask = (((((BITFIELD_MAX_UNSIGNED_T)1 << (bit_size - 1)) - 1) << 1) + 1) << bit_offset;
     return result;
 
 error:
@@ -257,6 +267,7 @@ _ctypes_CField_replace_impl(PyObject *old_object, Py_ssize_t offset,
         CBitFieldObject *new_bitfield = (CBitFieldObject *)new_object;
         new_bitfield->bit_size = old_bitfield->bit_size;
         new_bitfield->bit_offset = old_bitfield->bit_offset;
+        new_bitfield->mask = old_bitfield->mask;
     }
     return new_object;
 }
@@ -360,14 +371,10 @@ PyCStringField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
                      self->index, size, ptr);
 }
 
-#define XX_BITFIELD_MAX_T(P, N) P ## N ## _t
-#define X_BITFIELD_MAX_T(P, N) XX_BITFIELD_MAX_T(P, N)
-#define U_BITFIELD_MAX_T X_BITFIELD_MAX_T(uint, BITFIELD_MAX_BITS)
-#define S_BITFIELD_MAX_T X_BITFIELD_MAX_T(int, BITFIELD_MAX_BITS)
-
 static int
 PyCBitField_set(CFieldObject *self, PyObject *inst, PyObject *value)
 {
+    CBitFieldObject *bitfield = (CBitFieldObject *)self;
     if (value == NULL) {
         PyErr_SetString(PyExc_TypeError,
                         "can't delete attribute");
@@ -379,8 +386,28 @@ PyCBitField_set(CFieldObject *self, PyObject *inst, PyObject *value)
         return -1;
     }
 
-    return PyCData_set(st, inst, self->proto, NULL, value,
-                       self->index, _get_legacy_size(self), ptr);
+    StgInfo *info;
+    if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
+        return -1;
+    }
+
+    Py_ssize_t size = info->size;
+
+    BITFIELD_MAX_UNSIGNED_T val = 0;
+
+    int result = PyCData_set(st, inst, self->proto, NULL, value,
+                                   self->index, size, (char *)&val);
+    if (result < 0) {
+        return -1;
+    }
+    val <<= bitfield->bit_offset;
+    BITFIELD_MAX_UNSIGNED_T prev;
+    memcpy(&prev, ptr, size);
+    printf("%d %d:\n %32b\n %32b\n/%32b\n", (int)bitfield->bit_offset, (int)bitfield->bit_size, (int)val, (int)prev, (int)bitfield->mask);
+    val = (prev & ~bitfield->mask) | (val & bitfield->mask);
+    printf(" %32b\n", (int)val);
+    memcpy(ptr, &val, size);
+    return result;
 }
 
 static PyObject *
@@ -402,13 +429,13 @@ PyCBitField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
     }
 
     Py_ssize_t size = info->size;
-    U_BITFIELD_MAX_T val = 0;
+    BITFIELD_MAX_UNSIGNED_T val = 0;
     assert(size*8 <= BITFIELD_MAX_BITS);
     assert(sizeof(val)*8 == BITFIELD_MAX_BITS);
     memcpy(&val, ptr, size);
     val <<= (BITFIELD_MAX_BITS - bitfield->bit_size - bitfield->bit_offset);
     if (info->flags & TYPEFLAG_IS_SIGNED) {
-        S_BITFIELD_MAX_T signed_val = val;
+        BITFIELD_MAX_SIGNED_T signed_val = val;
         signed_val >>= (BITFIELD_MAX_BITS - bitfield->bit_size);
         val = signed_val;
     }
@@ -418,11 +445,6 @@ PyCBitField_get(CFieldObject *self, PyObject *inst, PyTypeObject *type)
     return PyCData_get(st, self->proto, NULL, inst,
                        self->index, size, (char *)&val);
 }
-
-#undef XX_BITFIELD_MAX_T
-#undef X_BITFIELD_MAX_T
-#undef U_BITFIELD_MAX_T
-#undef S_BITFIELD_MAX_T
 
 static PyObject *
 PyCField_get_size(PyObject *self, void *data)
@@ -687,9 +709,6 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
                 return NULL;                                                  \
             }                                                                 \
         }                                                                     \
-        CTYPE prev;                                                           \
-        memcpy(&prev, ptr, (NBITS) / 8);                                      \
-        val = SET(CTYPE, prev, val, size_arg);                                \
         memcpy(ptr, &val, (NBITS) / 8);                                       \
         _RET(value);                                                          \
     }                                                                         \
@@ -716,12 +735,8 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
             return NULL;                                                      \
         }                                                                     \
         Py_DECREF(res);                                                       \
-        CTYPE field;                                                          \
-        memcpy(&field, ptr, sizeof(field));                                   \
-        field = PY_SWAPFUNC(field);                                           \
-        field = SET(CTYPE, field, val, size_arg);                             \
-        field = PY_SWAPFUNC(field);                                           \
-        memcpy(ptr, &field, sizeof(field));                                   \
+        val = PY_SWAPFUNC(val);                                               \
+        memcpy(ptr, &val, sizeof(val));                                       \
         _RET(value);                                                          \
     }                                                                         \
                                                                               \
