@@ -275,6 +275,7 @@ struct fielddesc {
     GETFUNC getfunc;
     SETFUNC setfunc_swapped;
     GETFUNC getfunc_swapped;
+    uint16_t flags;     /* stginfo flags (TYPEFLAG_*) */
 };
 
 // Get all single-character type codes (for use in error messages)
@@ -390,7 +391,7 @@ typedef struct {
     PyObject *restype;          /* CDataObject or NULL */
     PyObject *checker;
     PyObject *module;
-    int flags;                  /* calling convention and such */
+    uint16_t flags;             /* calling convention and such */
 
     /* pep3118 fields, pointers need PyMem_Free */
     char *format;
@@ -427,6 +428,9 @@ PyObject *_ctypes_callproc(ctypes_state *st,
 
 #define TYPEFLAG_ISPOINTER 0x100
 #define TYPEFLAG_HASPOINTER 0x200
+#define TYPEFLAG_IS_INTEGER 0x400 /* [u]intN_t & alliases & swapped variants */
+#define TYPEFLAG_IS_SIGNED 0x800 /* only meaningful for TYPEFLAG_BASIC_INT */
+#define TYPEFLAG_IS_SWAPPED 0x1000 /* non-native byte order */
 
 #define DICTFLAG_FINAL 0x1000
 
