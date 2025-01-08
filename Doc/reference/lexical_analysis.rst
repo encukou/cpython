@@ -101,9 +101,17 @@ implicit or explicit encoding of a file is UTF-8, an initial UTF-8 byte-order
 mark (b'\xef\xbb\xbf') is ignored rather than being a syntax error.
 
 If an encoding is declared, the encoding name must be recognized by Python
-(see :ref:`standard-encodings`). The
-encoding is used for all lexical analysis, including string literals, comments
-and identifiers.
+(see :ref:`standard-encodings`).
+
+All lexical analysis, including string literals, comments
+and identifiers, works on Unicode text decoded using the source encoding.
+Any Unicode code point, except the NUL control character, can appear in
+Python source.
+
+.. grammar-snippet::
+   :group: python-grammar
+
+   source_character:  <any Unicode code point, except NUL>
 
 
 .. _explicit-joining:
@@ -457,34 +465,107 @@ Literals are notations for constant values of some built-in types.
 String and Bytes literals
 -------------------------
 
-String literals are described by the following lexical definitions:
+.. index:: triple-quoted string, raw string
+   single: """; string literal
+   single: '''; string literal
+
+String literals are text enclosed in single quotes (``'``) or double
+quotes (``"``). For example:
+
+.. code-block:: plain
+
+   "spam"
+   'eggs'
+
+The quote used to start the literal also terminates it, so a string literal
+can only contain the other quote (except with escape sequences, see below).
+For example:
+
+.. code-block:: plain
+
+   'Say "Hello", please.'
+   "Don't do that!"
+
+Except for this limitation, the choice of quote character (``'`` or ``"``)
+does not affect how the literal is parsed.
+
+.. index:: triple-quoted string
+
+Strings can also be enclosed in matching groups of three single or double
+quotes.
+These are generally referred to as *triple-quoted strings*.
+
+In triple-quoted literals, unescaped newlines and quotes are allowed (and are
+retained), except that three unescaped quotes in a row terminate the literal.
+(A "quote" is the character used to open the literal, that is,
+either ``'`` or ``"``.)
+
+For example:
+
+.. code-block:: plain
+
+   """This is a triple-quoted string with "quotes" inside."""
+
+   '''Another triple-quoted string. This one continues
+   on the next line.'''
+
+The backslash (``\``) character is used to give special
+meaning to otherwise ordinary characters like ``n``, which means 'newline' when
+escaped (``\n``). It can also be used to escape characters that otherwise have a
+special meaning, such as newline, backslash itself, or the quote character.
+See :ref:`escape sequences <escape-sequences>` below for examples.
+
+String literals can have an optional prefix that influences how the literal
+is parsed, for example:
+
+.. code-block:: plain
+
+   b"data"
+   f'{result=}'
+
+* ``r``: Raw string
+* ``f``: "F-string"
+* ``b``: Byte literal
+* ``u``: No effect (allowed for backwards compatibility)
+
+Prefixes are case-insensitive (for example, ``B`` works the same as ``b``).
+The ``r`` can be combined with ``f`` or ``b``, so ``fr``, ``rf``, ``br``
+and ``rb`` are also valid prefixes.
+
+.. index:: raw string
+
+(todo)
+
+String literals (except f-strings) are described by the following
+lexical definitions:
 
 .. grammar-snippet::
    :group: python-grammar
 
    stringliteral:   [`stringprefix`](`shortstring` | `longstring`)
-   stringprefix:    "r" | "u" | "R" | "U" | "f" | "F"
-                    | "fr" | "Fr" | "fR" | "FR" | "rf" | "rF" | "Rf" | "RF"
+   stringprefix:    <("r" | "f" | "fr" | "rf" | "u"), case-insensitive>
    shortstring:     "'" `shortstringitem`* "'" | '"' `shortstringitem`* '"'
    longstring:      "'''" `longstringitem`* "'''" | '"""' `longstringitem`* '"""'
    shortstringitem: `shortstringchar` | `stringescapeseq`
    longstringitem:  `longstringchar` | `stringescapeseq`
-   shortstringchar: <any source character except "\" or newline or the quote>
-   longstringchar:  <any source character except "\">
-   stringescapeseq: "\" <any source character>
+   shortstringchar: <any `source_character` except "\", or newline or the quote>
+   longstringchar:  <any `source_character` except "\">
+   stringescapeseq: "\" <any `source_character`>
+
+Bytes literals are described by similar definitions:
 
 .. grammar-snippet::
    :group: python-grammar
 
    bytesliteral:   `bytesprefix`(`shortbytes` | `longbytes`)
-   bytesprefix:    "b" | "B" | "br" | "Br" | "bR" | "BR" | "rb" | "rB" | "Rb" | "RB"
+   bytesprefix:    <("b" | "br" | "rb" ), case-insensitive>
    shortbytes:     "'" `shortbytesitem`* "'" | '"' `shortbytesitem`* '"'
    longbytes:      "'''" `longbytesitem`* "'''" | '"""' `longbytesitem`* '"""'
    shortbytesitem: `shortbyteschar` | `bytesescapeseq`
    longbytesitem:  `longbyteschar` | `bytesescapeseq`
-   shortbyteschar: <any ASCII character except "\" or newline or the quote>
-   longbyteschar:  <any ASCII character except "\">
-   bytesescapeseq: "\" <any ASCII character>
+   shortbyteschar: <any ASCII `source_character` except "\", or newline or the quote>
+   longbyteschar:  <any ASCII `source_character` except "\">
+   bytesescapeseq: "\" <any ASCII `source_character`>
 
 One syntactic restriction not indicated by these productions is that whitespace
 is not allowed between the :token:`~python-grammar:stringprefix` or
@@ -492,18 +573,9 @@ is not allowed between the :token:`~python-grammar:stringprefix` or
 character set is defined by the encoding declaration; it is UTF-8 if no encoding
 declaration is given in the source file; see section :ref:`encodings`.
 
-.. index:: triple-quoted string, Unicode Consortium, raw string
-   single: """; string literal
-   single: '''; string literal
 
-In plain English: Both types of literals can be enclosed in matching single quotes
-(``'``) or double quotes (``"``).  They can also be enclosed in matching groups
-of three single or double quotes (these are generally referred to as
-*triple-quoted strings*). The backslash (``\``) character is used to give special
-meaning to otherwise ordinary characters like ``n``, which means 'newline' when
-escaped (``\n``). It can also be used to escape characters that otherwise have a
-special meaning, such as newline, backslash itself, or the quote character.
-See :ref:`escape sequences <escape-sequences>` below for examples.
+
+
 
 .. index::
    single: b'; bytes literal
@@ -540,10 +612,6 @@ A string literal with ``'f'`` or ``'F'`` in its prefix is a
 :dfn:`formatted string literal`; see :ref:`f-strings`.  The ``'f'`` may be
 combined with ``'r'``, but not with ``'b'`` or ``'u'``, therefore raw
 formatted strings are possible, but formatted bytes literals are not.
-
-In triple-quoted literals, unescaped newlines and quotes are allowed (and are
-retained), except that three unescaped quotes in a row terminate the literal.  (A
-"quote" is the character used to open the literal, i.e. either ``'`` or ``"``.)
 
 .. index:: physical line, escape sequence, Standard C, C
    single: \ (backslash); escape sequence
@@ -741,14 +809,16 @@ a literal is also marked as a raw string).  After decoding, the grammar
 for the contents of the string is:
 
 .. productionlist:: python-grammar
-   f_string: (`literal_char` | "{{" | "}}" | `replacement_field`)*
-   replacement_field: "{" `f_expression` ["="] ["!" `conversion`] [":" `format_spec`] "}"
-   f_expression: (`conditional_expression` | "*" `or_expr`)
-               :   ("," `conditional_expression` | "," "*" `or_expr`)* [","]
-               : | `yield_expression`
-   conversion: "s" | "r" | "a"
-   format_spec: (`literal_char` | `replacement_field`)*
-   literal_char: <any code point except "{", "}" or NULL>
+   f_string:         FSTRING_START (FSTRING_MIDDLE | replacement_field)* FSTRING_END
+   FSTRING_START:     [`fstringprefix`]("'" | '"' | "'''" | '"""')
+   fstringprefix:     <("f" | "fr" | "rf"), case-insensitive>
+   FSTRING_MIDDLE:    `fstringitem`*
+   FSTRING_END:       <the corresponding ("'" | '"' | "'''" | '"""')>
+   fstringitem:       (`literal_char` | "{{" | "}}")*
+   literal_char:      <any source character except "{", "}">
+   replacement_field: "{" `expression` ["="] ["!" `conversion`] [":" `format_spec`] "}"
+   conversion:        "s" | "r" | "a"
+   format_spec:       (`literal_char` | `replacement_field`)*
 
 The parts of the string outside curly braces are treated literally,
 except that any doubled curly braces ``'{{'`` or ``'}}'`` are replaced
