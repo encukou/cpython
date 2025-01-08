@@ -299,9 +299,9 @@ NFKC while parsing; comparison of identifiers is based on NFKC.
 .. grammar-snippet::
    :group: python-grammar
 
-   identifier:  `xid_start` `xid_continue`*
-   id_start:    <Lu> | <Ll> | <Lt> | <Lm> | <Lo> | <Nl> | "_" | <Other_ID_Start>
-   id_continue: `id_start` | <Nd> | <Mn> | <Mc> | <Pc> | <Other_ID_Continue>
+   identifier:   `xid_start` `xid_continue`*
+   id_start:     <Lu> | <Ll> | <Lt> | <Lm> | <Lo> | <Nl> | "_" | <Other_ID_Start>
+   id_continue:  `id_start` | <Nd> | <Mn> | <Mc> | <Pc> | <Other_ID_Continue>
    xid_start:    <all characters in `id_start` whose NFKC normalization is
                   in (`id_start` `xid_continue`*)>
    xid_continue: <all characters in `id_continue` whose NFKC normalization
