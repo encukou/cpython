@@ -5981,6 +5981,13 @@ _ctypes_add_types(PyObject *mod)
     CREATE_TYPE(st->PyComError_Type, &comerror_spec, NULL, PyExc_Exception);
 #endif
 
+    // The internal name `_ctypes._CField` was present for decades;
+    // keep it even though it's now exposed as `ctypes.CField`.
+    if (PyModule_AddObjectRef(
+            mod, "_CField", (PyObject*)st->PyCField_Type) < 0) {
+        return -1;
+    }
+
 #undef TYPE_READY
 #undef MOD_ADD_TYPE
 #undef CREATE_TYPE
