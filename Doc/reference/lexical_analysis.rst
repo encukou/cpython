@@ -536,14 +536,14 @@ and ``rb`` are also valid prefixes.
 
 (todo)
 
-String literals (except f-strings) are described by the following
+String literals (except :ref:`dedicated section <f-strings>`) are described by the following
 lexical definitions:
 
 .. grammar-snippet::
    :group: python-grammar
 
    stringliteral:   [`stringprefix`](`shortstring` | `longstring`)
-   stringprefix:    <("r" | "f" | "fr" | "rf" | "u"), case-insensitive>
+   stringprefix:    <("r" | "u"), case-insensitive>
    shortstring:     "'" `shortstringitem`* "'" | '"' `shortstringitem`* '"'
    longstring:      "'''" `longstringitem`* "'''" | '"""' `longstringitem`* '"""'
    shortstringitem: `shortstringchar` | `stringescapeseq`
@@ -551,6 +551,7 @@ lexical definitions:
    shortstringchar: <any `source_character` except "\", or newline or the quote>
    longstringchar:  <any `source_character` except "\">
    stringescapeseq: "\" <any `source_character`>
+
 
 Bytes literals are described by similar definitions:
 
@@ -804,119 +805,65 @@ replacement fields, which are expressions delimited by curly braces ``{}``.
 While other string literals always have a constant value, formatted strings
 are really expressions evaluated at run time.
 
-Escape sequences are decoded like in ordinary string literals (except when
-a literal is also marked as a raw string).  After decoding, the grammar
-for the contents of the string is:
+For f-strings, the distinction between lexical and syntactic analysis isn't
+as clear as for other parts of Python's grammar.
+The grammar for the contents of f-string is best documented as
+a mix of lexical and syntactic definitions. Some of the logic is implemented
+in the lexer, some in the parser:
 
-.. productionlist:: python-grammar
-   f_string:         FSTRING_START (FSTRING_MIDDLE | replacement_field)* FSTRING_END
-   FSTRING_START:     [`fstringprefix`]("'" | '"' | "'''" | '"""')
+.. grammar-snippet::
+   :group: python-grammar
+
+   fstringliteral:    [`fstringprefix`]`fstring`
    fstringprefix:     <("f" | "fr" | "rf"), case-insensitive>
-   FSTRING_MIDDLE:    `fstringitem`*
-   FSTRING_END:       <the corresponding ("'" | '"' | "'''" | '"""')>
-   fstringitem:       (`literal_char` | "{{" | "}}")*
-   literal_char:      <any source character except "{", "}">
-   replacement_field: "{" `expression` ["="] ["!" `conversion`] [":" `format_spec`] "}"
+   fstring:           "'" `f_string_content` "'" | '"' `f_string_content` '"'
+                      | "'''" `f_string_content` "'''"
+                      | '"""' `f_string_content` '"""'
+
+   f_string_content:  (`literal_char` | "{{" | "}}" | `replacement_field`)*
+   replacement_field: "{" `f_expression` ["="] ["!" `conversion`] [":" `format_spec`] "}"
+   f_expression:      ",".(`conditional_expression` | "*" `or_expr`) [","]
+                      | `yield_expression`
    conversion:        "s" | "r" | "a"
-   format_spec:       (`literal_char` | `replacement_field`)*
+   format_spec:       (`literal_char` | `stringescapeseq` | `replacement_field`)*
+   literal_char:      <any code point except "\", "{", "}" or NULL>
+
+.. note::
+
+   .. impl-detail::
+
+      The tokens that CPython's lexical analyzer produces for f-strings are:
+
+      - ``FSTRING_START``, which contains the prefix (``f`` or ``fr``) and the
+        opening quote;
+      - ``FSTRING_MIDDLE``, which contains a literal parts of the string
+        as well as format specifications;
+      - ``FSTRING_END``, which contains the ending quote.
+
+      Expressions inside f-strings are delimited by brace tokens (``{`` and ``}``),
+      and represented by ordinary tokens: identifiers, operators and so on.
+
+Escape sequences are decoded like in ordinary string literals.
+In raw f-strings (marked with the ``fr`` or ``rf`` prefix), they are decoded
+like in raw string literals.
 
 The parts of the string outside curly braces are treated literally,
 except that any doubled curly braces ``'{{'`` or ``'}}'`` are replaced
 with the corresponding single curly brace.  A single opening curly
-bracket ``'{'`` marks a replacement field, which starts with a
-Python expression. To display both the expression text and its value after
-evaluation, (useful in debugging), an equal sign ``'='`` may be added after the
-expression. A conversion field, introduced by an exclamation point ``'!'`` may
-follow.  A format specifier may also be appended, introduced by a colon ``':'``.
-A replacement field ends with a closing curly bracket ``'}'``.
+bracket ``'{'`` marks a replacement field, which continues until the matching
+closing curly bracket ``'}'``. The replacement field must contain
+a Python expression, which is evaluated and inserted into the string:
 
-Expressions in formatted string literals are treated like regular
-Python expressions surrounded by parentheses, with a few exceptions.
-An empty expression is not allowed, and both :keyword:`lambda`  and
-assignment expressions ``:=`` must be surrounded by explicit parentheses.
-Each expression is evaluated in the context where the formatted string literal
-appears, in order from left to right.  Replacement expressions can contain
-newlines in both single-quoted and triple-quoted f-strings and they can contain
-comments.  Everything that comes after a ``#`` inside a replacement field
-is a comment (even closing braces and quotes). In that case, replacement fields
-must be closed in a different line.
-
-.. code-block:: text
-
-   >>> f"abc{a # This is a comment }"
-   ... + 3}"
-   'abc5'
-
-.. versionchanged:: 3.7
-   Prior to Python 3.7, an :keyword:`await` expression and comprehensions
-   containing an :keyword:`async for` clause were illegal in the expressions
-   in formatted string literals due to a problem with the implementation.
-
-.. versionchanged:: 3.12
-   Prior to Python 3.12, comments were not allowed inside f-string replacement
-   fields.
-
-When the equal sign ``'='`` is provided, the output will have the expression
-text, the ``'='`` and the evaluated value. Spaces after the opening brace
-``'{'``, within the expression and after the ``'='`` are all retained in the
-output. By default, the ``'='`` causes the :func:`repr` of the expression to be
-provided, unless there is a format specified. When a format is specified it
-defaults to the :func:`str` of the expression unless a conversion ``'!r'`` is
-declared.
-
-.. versionadded:: 3.8
-   The equal sign ``'='``.
-
-If a conversion is specified, the result of evaluating the expression
-is converted before formatting.  Conversion ``'!s'`` calls :func:`str` on
-the result, ``'!r'`` calls :func:`repr`, and ``'!a'`` calls :func:`ascii`.
-
-The result is then formatted using the :func:`format` protocol.  The
-format specifier is passed to the :meth:`~object.__format__` method of the
-expression or conversion result.  An empty string is passed when the
-format specifier is omitted.  The formatted result is then included in
-the final value of the whole string.
-
-Top-level format specifiers may include nested replacement fields. These nested
-fields may include their own conversion fields and :ref:`format specifiers
-<formatspec>`, but may not include more deeply nested replacement fields. The
-:ref:`format specifier mini-language <formatspec>` is the same as that used by
-the :meth:`str.format` method.
-
-Formatted string literals may be concatenated, but replacement fields
-cannot be split across literals.
-
-Some examples of formatted string literals::
+.. code-block:: pycon
 
    >>> name = "Fred"
-   >>> f"He said his name is {name!r}."
-   "He said his name is 'Fred'."
-   >>> f"He said his name is {repr(name)}."  # repr() is equivalent to !r
-   "He said his name is 'Fred'."
-   >>> width = 10
-   >>> precision = 4
-   >>> value = decimal.Decimal("12.34567")
-   >>> f"result: {value:{width}.{precision}}"  # nested fields
-   'result:      12.35'
-   >>> today = datetime(year=2017, month=1, day=27)
-   >>> f"{today:%B %d, %Y}"  # using date format specifier
-   'January 27, 2017'
-   >>> f"{today=:%B %d, %Y}" # using date format specifier and debugging
-   'today=January 27, 2017'
-   >>> number = 1024
-   >>> f"{number:#0x}"  # using integer format specifier
-   '0x400'
-   >>> foo = "bar"
-   >>> f"{ foo = }" # preserves whitespace
-   " foo = 'bar'"
-   >>> line = "The mill's closed"
-   >>> f"{line = }"
-   'line = "The mill\'s closed"'
-   >>> f"{line = :20}"
-   "line = The mill's closed   "
-   >>> f"{line = !r:20}"
-   'line = "The mill\'s closed" '
+   >>> f"His name is {name}."
+   'His name is Fred.'
 
+The expression may optionally be followed by an equal sign (``'='``),
+a conversion field introduced by an exclamation point ``'!'``, and/or a
+format specifier introduced by a colon ``':'``, in that order.
+See sections below for details.
 
 Reusing the outer f-string quoting type inside a replacement field is
 permitted::
@@ -928,6 +875,12 @@ permitted::
 .. versionchanged:: 3.12
    Prior to Python 3.12, reuse of the same quoting type of the outer f-string
    inside a replacement field was not possible.
+
+Formatted string literals may be concatenated, but replacement fields
+cannot be split across literals::
+
+   >>> f"{1 + 1}" ', ' f"{2 + 2}"
+   '2, 4'
 
 Backslashes are also allowed in replacement fields and are evaluated the same
 way as in any other context::
@@ -956,6 +909,161 @@ include expressions.
 
 See also :pep:`498` for the proposal that added formatted string literals,
 and :meth:`str.format`, which uses a related format string mechanism.
+
+
+.. _fstring-expression:
+
+f-string expressions
+^^^^^^^^^^^^^^^^^^^^
+
+Expressions in formatted string literals are treated like regular
+Python expressions surrounded by parentheses, with a few exceptions.
+An empty expression is not allowed, and both :keyword:`lambda`  and
+assignment expressions ``:=`` must be surrounded by explicit parentheses.
+Each expression is evaluated in the context where the formatted string literal
+appears, in order from left to right.
+
+Replacement expressions can contain newlines in both single-quoted and
+triple-quoted f-strings.
+They can also contain comments.  Everything that comes after a ``#`` inside
+a replacement field is a comment (even closing braces and quotes).
+In that case, replacement fields must be closed in a different line:
+
+.. code-block:: text
+
+   >>> a = 2
+   >>> f"abc{a # This is a comment }"
+   ... + 3}"
+   'abc5'
+
+.. versionchanged:: 3.7
+   Prior to Python 3.7, an :keyword:`await` expression and comprehensions
+   containing an :keyword:`async for` clause were illegal in the expressions
+   in formatted string literals due to a problem with the implementation.
+
+.. versionchanged:: 3.12
+   Prior to Python 3.12, comments were not allowed inside f-string replacement
+   fields.
+
+
+.. _fstring-debug:
+
+Debug output (``=``)
+^^^^^^^^^^^^^^^^^^^^
+
+When an f-string expression is followed by an equal sign (``'='``), the output
+will include the expression text, the ``'='`` and the evaluated value.
+This is useful in debugging::
+
+   >>> name = "Fred"
+   >>> number = 1024
+   >>> print(f"{name=}, {number=}")
+   name='Fred', number=1024
+
+Whitespace after the opening brace ``'{'``, within the expression and after the
+``'='`` are all retained in the output, but comments are not::
+
+   >>> print(f"<{ name = } >")
+   < name = 'Fred' >
+
+.. code-block:: text
+
+   >>> print(f"{name  # (this is a comment)
+   ...     =}")
+   name
+       ='Fred'
+
+.. versionadded:: 3.8
+   The equal sign ``'='``.
+
+
+.. _fstring-conversion:
+
+Conversion field (``!``)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If an f-string replacement field specifies a conversion field, the result of
+evaluating the expression is converted before formatting.
+Conversion ``'!s'`` calls :func:`str` on the result, ``'!r'`` calls
+:func:`repr`, and ``'!a'`` calls :func:`ascii`.
+Only these three conversions are supported.
+
+.. code-block:: pycon
+
+   >>> name = "Łukasz"
+   >>> f"He said his name is {name!r}."
+   "He said his name is 'Łukasz'."
+   >>> f"He said his name is {repr(name)}."  # repr() is equivalent to !r
+   "He said his name is 'Łukasz'."
+   >>> f"He said his name is {name!a}."
+   "He said his name is '\\u0141ukasz'."
+
+If the conversion field is omitted:
+
+- If the :ref:`format specifier <fstring-format-specifier>` is specified,
+  no conversion is done before formatting.
+- Otherwise, for debug output (``'='``) :func:`repr` is called as if
+  the conversion field was ``!r``.
+- Otherwise, the result is converted to string using :func:`str`,
+  as with ``'!s'``.
+
+.. code-block:: pycon
+
+   >>> line = "The mill's closed"
+   >>> f"{line = }"   # Simple debug output, converted using repr()
+   'line = "The mill\'s closed"'
+
+   >>> f"{line = :20}"   # Debug with format specifier, converted using str()
+   "line = The mill's closed   "
+
+   >>> f"{line = !r:20}"   # Debug with explicit conversion, repr()
+   'line = "The mill\'s closed" '
+
+
+.. _fstring-format-specifier:
+
+Format specifier (``:``)
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+After applying conversion, the result of an f-string expression is formatted
+using the :func:`format` protocol.
+The format specifier is passed to the :meth:`~object.__format__` method of the
+expression or conversion result.  An empty string is passed when the
+format specifier is omitted.  The formatted result is then included in
+the final value of the whole string.
+
+.. code-block:: pycon
+
+   >>> value = decimal.Decimal("12.34567")
+   >>> f"result: {value:10.4}"  # specify the width (10) and precision (4)
+   'result:      12.35'
+
+Top-level format specifiers may include nested replacement fields. These nested
+fields may include their own conversion fields and :ref:`format specifiers
+<formatspec>`, but may not include more deeply nested replacement fields.
+
+.. code-block:: pycon
+
+   >>> width = 10
+   >>> precision = 4
+   >>> value = decimal.Decimal("12.34567")
+   >>> f"result: {value:{width}.{precision}}"  # nested fields
+   'result:      12.35'
+
+   >>> number = 1024
+   >>> f"{number:#0x}"  # using integer format specifier
+   '0x400'
+
+The meaning of the format specifier depends on the result of the expression.
+Most built-in types implement the :ref:`format specifier mini-language <formatspec>`,
+but other types use different mini-languages.
+A notable example is :func:`datetime <datetime.datetime.__format__>`::
+
+   >>> today = datetime(year=2017, month=1, day=27)
+   >>> f"{today:%B %d, %Y}"  # using date format specifier
+   'January 27, 2017'
+   >>> f"{today=:%B %d, %Y}" # using date format specifier and debugging
+   'today=January 27, 2017'
 
 
 .. _numbers:
