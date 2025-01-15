@@ -2884,6 +2884,7 @@ unicode_error_adjust_end(Py_ssize_t end, Py_ssize_t objlen)
  *     objlen       The 'object' length.
  *     start        The clipped 'start' attribute.
  *     end          The clipped 'end' attribute.
+ *     len          'end' - 'start', clipped to be non-negative
  *
  * An output parameter can be NULL to indicate that
  * the corresponding value does not need to be stored.
@@ -2900,7 +2901,7 @@ int
 _PyUnicodeError_GetParams(PyObject *self,
                           PyObject **obj, Py_ssize_t *objlen,
                           Py_ssize_t *start, Py_ssize_t *end,
-                          int as_bytes)
+                          Py_ssize_t *len, int as_bytes)
 {
     assert(self != NULL);
     assert(as_bytes == 0 || as_bytes == 1);
@@ -2914,15 +2915,31 @@ _PyUnicodeError_GetParams(PyObject *self,
     if (objlen != NULL) {
         *objlen = n;
     }
-    if (start != NULL) {
-        *start = unicode_error_adjust_start(exc->start, n);
-        assert(*start >= 0);
-        assert(*start <= n);
+    Py_ssize_t start_value;
+    if (start != NULL || len != NULL) {
+        start_value = unicode_error_adjust_start(exc->start, n);
+        assert(start_value >= 0);
+        assert(start_value <= n);
+        if (start != NULL) {
+            *start = start_value;
+        }
     }
-    if (end != NULL) {
-        *end = unicode_error_adjust_end(exc->end, n);
-        assert(*end >= 0);
-        assert(*end <= n);
+    Py_ssize_t end_value;
+    if (end != NULL || len != NULL) {
+        end_value = unicode_error_adjust_end(exc->end, n);
+        assert(end_value >= 0);
+        assert(end_value <= n);
+        if (end != NULL) {
+            *end = end_value;
+        }
+    }
+    if (len != NULL) {
+        if (end_value <= start_value) {
+            *len = 0;
+        }
+        else {
+            *len = end_value - start_value;
+        }
     }
     if (obj != NULL) {
         *obj = r;
@@ -2991,7 +3008,7 @@ static inline int
 unicode_error_get_start_impl(PyObject *self, Py_ssize_t *start, int as_bytes)
 {
     assert(self != NULL);
-    return _PyUnicodeError_GetParams(self, NULL, NULL, start, NULL, as_bytes);
+    return _PyUnicodeError_GetParams(self, NULL, NULL, start, NULL, NULL, as_bytes);
 }
 
 
@@ -3057,7 +3074,7 @@ static inline int
 unicode_error_get_end_impl(PyObject *self, Py_ssize_t *end, int as_bytes)
 {
     assert(self != NULL);
-    return _PyUnicodeError_GetParams(self, NULL, NULL, NULL, end, as_bytes);
+    return _PyUnicodeError_GetParams(self, NULL, NULL, NULL, end, NULL, as_bytes);
 }
 
 
