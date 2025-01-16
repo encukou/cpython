@@ -116,7 +116,8 @@ of Python objects.
    Release a :term:`strong reference` to object *o*, indicating the
    reference is no longer used.
 
-   This function has no effect on :term:`immortal` objects.
+   Do not expect this function to always modify *o* in some way.
+   In particular, it has no effect on :term:`immortal` objects.
 
    Once the last :term:`strong reference` is released
    (i.e. the object's reference count reaches 0),
@@ -128,10 +129,6 @@ of Python objects.
 
    The object must not be ``NULL``; if you aren't sure that it isn't ``NULL``,
    use :c:func:`Py_XDECREF`.
-
-   Do not expect this function to actually modify *o* in any way.
-   For at least :pep:`some objects <683>`,
-   this function has no effect.
 
    .. warning::
 
@@ -167,6 +164,21 @@ of Python objects.
 
    It is a good idea to use this macro whenever releasing a reference
    to an object that might be traversed during garbage collection.
+
+   If *o* is a variable of type `PyObject *`, the macro is equivalent to
+   the following.
+   (The actual macro is more complicated: it only evaluates *o* once, and
+   avoids undefined behavior related to strict aliasing.)
+
+   .. code-block:: c
+
+      {
+         PyObject *old_o = o;
+         if (old_o != NULL) {
+            o = NULL;
+            Py_DECREF(old_o);
+         }
+      }
 
    .. versionchanged:: 3.12
       The macro argument is now only evaluated once. If the argument has side

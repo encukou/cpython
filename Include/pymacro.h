@@ -197,6 +197,7 @@ PyAPI_FUNC(uint32_t) Py_PACK_VERSION(int x, int y);
 #define Py_PACK_FULL_VERSION _Py_PACK_FULL_VERSION
 #define Py_PACK_VERSION(X, Y) Py_PACK_FULL_VERSION(X, Y, 0, 0, 0)
 #endif // Py_LIMITED_API < 3.14
+#define _Py_PACK_VERSION(X, Y) _Py_PACK_FULL_VERSION(X, Y, 0, 0, 0)
 
 
 #endif /* Py_PYMACRO_H */
