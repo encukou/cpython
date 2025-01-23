@@ -108,18 +108,7 @@ whose size is determined when the object is allocated.
  */
 #ifndef Py_GIL_DISABLED
 struct _object {
-#if (defined(__GNUC__) || defined(__clang__)) \
-        && !(defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L)
-    // On C99 and older, anonymous union is a GCC and clang extension
-    __extension__
-#endif
-#ifdef _MSC_VER
-    // Ignore MSC warning C4201: "nonstandard extension used:
-    // nameless struct/union"
-    __pragma(warning(push))
-    __pragma(warning(disable: 4201))
-#endif
-    union {
+    _Py_ANONYMOUS union {
 #if SIZEOF_VOID_P > 4
         PY_INT64_T ob_refcnt_full; /* This field is needed for efficient initialization with Clang on ARM */
         struct {
@@ -135,9 +124,6 @@ struct _object {
         Py_ssize_t ob_refcnt;
 #endif
     };
-#ifdef _MSC_VER
-    __pragma(warning(pop))
-#endif
 
     PyTypeObject *ob_type;
 };

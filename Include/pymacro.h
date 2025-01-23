@@ -198,5 +198,13 @@ PyAPI_FUNC(uint32_t) Py_PACK_VERSION(int x, int y);
 #define Py_PACK_VERSION(X, Y) Py_PACK_FULL_VERSION(X, Y, 0, 0, 0)
 #endif // Py_LIMITED_API < 3.14
 
+// Macro for anonymous unions
+#if (defined(__GNUC__) || defined(__clang__)) \
+        && !(defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L)
+    // On C99 and older, anonymous union is a GCC and clang extension
+#   define _Py_ANONYMOUS __extension__
+#else
+#   define _Py_ANONYMOUS
+#endif
 
 #endif /* Py_PYMACRO_H */

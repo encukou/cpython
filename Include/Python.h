@@ -59,6 +59,13 @@
 #  include <intrin.h>             // __readgsqword()
 #endif
 
+#ifdef _MSC_VER
+    __pragma(warning(push))
+    // Ignore MSC warning C4201: "nonstandard extension used:
+    // nameless struct/union"
+    __pragma(warning(disable: 4201))
+#endif
+
 // Include Python header files
 #include "pyport.h"
 #include "pymacro.h"
@@ -137,5 +144,9 @@
 #include "fileutils.h"
 #include "cpython/pyfpe.h"
 #include "cpython/tracemalloc.h"
+
+#ifdef _MSC_VER
+    __pragma(warning(pop))
+#endif
 
 #endif /* !Py_PYTHON_H */
