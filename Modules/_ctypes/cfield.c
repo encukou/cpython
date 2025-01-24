@@ -566,6 +566,50 @@ fixint_set_nonbitfield(void *ptr, PyObject *value, Py_ssize_t size)
     _RET(value);
 }
 
+static PyObject *
+fixint_set_bitfield(void *ptr, PyObject *value, Py_ssize_t size, Py_ssize_t size_arg)
+{
+    assert (size <= 8);
+    int64_t space;
+    void *scratch = &space;
+    Py_ssize_t res = PyLong_AsNativeBytes(
+        value, &space, size,
+        Py_ASNATIVEBYTES_NATIVE_ENDIAN
+        | Py_ASNATIVEBYTES_ALLOW_INDEX);
+    if (res < 0) {
+        return NULL;
+    }
+    int64_t prev;
+    memcpy(&prev, ptr, size);
+    switch (size) {
+/*[python input]
+for nbytes in 1, 2, 4, 8:
+    nbits = nbytes * 8
+    print(f"""\
+        case {nbytes}:
+            *(uint{nbits}_t*)scratch = SET(uint{nbits}_t, prev, *(uint{nbits}_t*)scratch, size_arg);
+            break;
+    """.rstrip())
+[python start generated code]*/
+        case 1:
+            *(uint8_t*)scratch = SET(uint8_t, prev, *(uint8_t*)scratch, size_arg);
+            break;
+        case 2:
+            *(uint16_t*)scratch = SET(uint16_t, prev, *(uint16_t*)scratch, size_arg);
+            break;
+        case 4:
+            *(uint32_t*)scratch = SET(uint32_t, prev, *(uint32_t*)scratch, size_arg);
+            break;
+        case 8:
+            *(uint64_t*)scratch = SET(uint64_t, prev, *(uint64_t*)scratch, size_arg);
+            break;
+/*[python end generated code: output=aa504fdf1bcd10dc input=936144868f43b950]*/
+        default: Py_UNREACHABLE();
+    }
+    memcpy(ptr, &space, size);
+    _RET(value);
+}
+
 #define FIXINT_GETSET(TAG, CTYPE, NBITS, PYAPI_FROMFUNC)                      \
     static PyObject *                                                         \
     TAG ## _set(void *ptr, PyObject *value, Py_ssize_t size_arg)              \
@@ -574,27 +618,7 @@ fixint_set_nonbitfield(void *ptr, PyObject *value, Py_ssize_t size)
             assert((size_arg == (NBITS) / 8));              \
             return fixint_set_nonbitfield(ptr, value, size_arg); \
         } \
-        CTYPE val;                                                            \
-        if (PyLong_Check(value)                                               \
-            && PyUnstable_Long_IsCompact((PyLongObject *)value))              \
-        {                                                                     \
-            val = (CTYPE)PyUnstable_Long_CompactValue(                        \
-                      (PyLongObject *)value);                                 \
-        }                                                                     \
-        else {                                                                \
-            Py_ssize_t res = PyLong_AsNativeBytes(                            \
-                value, &val, (NBITS) / 8,                                     \
-                Py_ASNATIVEBYTES_NATIVE_ENDIAN                                \
-                | Py_ASNATIVEBYTES_ALLOW_INDEX);                              \
-            if (res < 0) {                                                    \
-                return NULL;                                                  \
-            }                                                                 \
-        }                                                                     \
-        CTYPE prev;                                                           \
-        memcpy(&prev, ptr, (NBITS) / 8);                                      \
-        val = SET(CTYPE, prev, val, size_arg);                                \
-        memcpy(ptr, &val, (NBITS) / 8);                                       \
-        _RET(value);                                                          \
+        return fixint_set_bitfield(ptr, value, (NBITS) / 8, size_arg); \
     }                                                                         \
                                                                               \
     static PyObject *                                                         \
