@@ -570,10 +570,14 @@ static PyObject *
 fixint_set_bitfield(void *ptr, PyObject *value, Py_ssize_t size, Py_ssize_t size_arg)
 {
     assert (size <= 8);
-    int64_t space;
+    Py_ssize_t bit_size = NUM_BITS(size_arg);
+    Py_ssize_t bit_offset = LOW_BIT(size_arg);
+    assert (bit_size);
+    uint64_t space;
+    uint64_t mask_64 = (((((uint64_t)1 << (bit_size - 1)) - 1) << 1) + 1);
     void *scratch = &space;
     Py_ssize_t res = PyLong_AsNativeBytes(
-        value, &space, size,
+        value, scratch, size,
         Py_ASNATIVEBYTES_NATIVE_ENDIAN
         | Py_ASNATIVEBYTES_ALLOW_INDEX);
     if (res < 0) {
@@ -585,28 +589,57 @@ fixint_set_bitfield(void *ptr, PyObject *value, Py_ssize_t size, Py_ssize_t size
 /*[python input]
 for nbytes in 1, 2, 4, 8:
     nbits = nbytes * 8
+    type = f"uint{nbits}_t"
+    x = "prev"
+    v = f"*(uint{nbits}_t*)scratch"
+    size = "size_arg"
     print(f"""\
-        case {nbytes}:
-            *(uint{nbits}_t*)scratch = SET(uint{nbits}_t, prev, *(uint{nbits}_t*)scratch, size_arg);
+        case {nbytes}: {{
+            {type} mask = mask_64;
+            *(uint{nbits}_t*)scratch =
+                ( ( ({type})({x}) & ~(mask << bit_offset) )
+                    | ( (({v}) & mask) << bit_offset ) )
+                ;
             break;
-    """.rstrip())
+        }}
+            """.rstrip())
 [python start generated code]*/
-        case 1:
-            *(uint8_t*)scratch = SET(uint8_t, prev, *(uint8_t*)scratch, size_arg);
+        case 1: {
+            uint8_t mask = mask_64;
+            *(uint8_t*)scratch =
+                ( ( (uint8_t)(prev) & ~(mask << bit_offset) )
+                    | ( ((*(uint8_t*)scratch) & mask) << bit_offset ) )
+                ;
             break;
-        case 2:
-            *(uint16_t*)scratch = SET(uint16_t, prev, *(uint16_t*)scratch, size_arg);
+        }
+        case 2: {
+            uint16_t mask = mask_64;
+            *(uint16_t*)scratch =
+                ( ( (uint16_t)(prev) & ~(mask << bit_offset) )
+                    | ( ((*(uint16_t*)scratch) & mask) << bit_offset ) )
+                ;
             break;
-        case 4:
-            *(uint32_t*)scratch = SET(uint32_t, prev, *(uint32_t*)scratch, size_arg);
+        }
+        case 4: {
+            uint32_t mask = mask_64;
+            *(uint32_t*)scratch =
+                ( ( (uint32_t)(prev) & ~(mask << bit_offset) )
+                    | ( ((*(uint32_t*)scratch) & mask) << bit_offset ) )
+                ;
             break;
-        case 8:
-            *(uint64_t*)scratch = SET(uint64_t, prev, *(uint64_t*)scratch, size_arg);
+        }
+        case 8: {
+            uint64_t mask = mask_64;
+            *(uint64_t*)scratch =
+                ( ( (uint64_t)(prev) & ~(mask << bit_offset) )
+                    | ( ((*(uint64_t*)scratch) & mask) << bit_offset ) )
+                ;
             break;
-/*[python end generated code: output=aa504fdf1bcd10dc input=936144868f43b950]*/
+        }
+/*[python end generated code: output=4e02ab136aee4b31 input=fa52d64151aa634e]*/
         default: Py_UNREACHABLE();
     }
-    memcpy(ptr, &space, size);
+    memcpy(ptr, scratch, size);
     _RET(value);
 }
 
