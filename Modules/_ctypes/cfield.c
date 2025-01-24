@@ -496,6 +496,38 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
     return bitsize >> 16;
 }
 
+static inline
+void inplace_byteswap(void *ptr, Py_ssize_t size)
+{
+    /*
+    switch (size) {
+        case 1:
+            return;
+        case 2: {
+            uint16_t *p = ptr;
+            *p = _Py_bswap16(*p);
+            return;
+        }
+        case 4: {
+            uint32_t *p = ptr;
+            *p = _Py_bswap32(*p);
+            return;
+        }
+        case 8: {
+            uint64_t *p = ptr;
+            *p = _Py_bswap64(*p);
+            return;
+        }
+    }
+    */
+    char *p = ptr;
+    for (char *end = p + size - 1; p < end; p++, end--) {
+        char byte = *p;
+        *p = *end;
+        *end = byte;
+    }
+}
+
 /* Doesn't work if NUM_BITS(size) == 0, but it never happens in SET() call. */
 #define BIT_MASK(type, size) (((((type)1 << (NUM_BITS(size) - 1)) - 1) << 1) + 1)
 
@@ -582,7 +614,7 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
 
 /* Another macro for byte-swapped variants (e.g. `i8_set_sw`/`i8_get_sw`) */
 
-#define FIXINT_GETSET_SW(TAG, CTYPE, NBITS, PYAPI_FROMFUNC, PY_SWAPFUNC)      \
+#define FIXINT_GETSET_SW(TAG, CTYPE, NBITS, PYAPI_FROMFUNC)                   \
     static PyObject *                                                         \
     TAG ## _set_sw(void *ptr, PyObject *value, Py_ssize_t size_arg)           \
     {                                                                         \
@@ -594,9 +626,9 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
         Py_DECREF(res);                                                       \
         CTYPE field;                                                          \
         memcpy(&field, ptr, sizeof(field));                                   \
-        field = PY_SWAPFUNC(field);                                           \
+        inplace_byteswap(&field, (NBITS) / 8);                                \
         field = SET(CTYPE, field, val, size_arg);                             \
-        field = PY_SWAPFUNC(field);                                           \
+        inplace_byteswap(&field, (NBITS) / 8);                                \
         memcpy(ptr, &field, sizeof(field));                                   \
         _RET(value);                                                          \
     }                                                                         \
@@ -607,7 +639,7 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
         assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
         CTYPE val;                                                            \
         memcpy(&val, ptr, sizeof(val));                                       \
-        val = PY_SWAPFUNC(val);                                               \
+        inplace_byteswap(&val, (NBITS) / 8);                                  \
         GET_BITFIELD(val, size_arg);                                          \
         return PYAPI_FROMFUNC(val);                                           \
     }                                                                         \
@@ -632,24 +664,23 @@ for nbits in 8, 16, 32, 64:
         ]
         print(f'FIXINT_GETSET({", ".join(parts)})')
         if nbits > 8:
-            parts.append(f'_Py_bswap{nbits}')
             print(f'FIXINT_GETSET_SW({", ".join(parts)})')
 [python start generated code]*/
 FIXINT_GETSET(i8, int8_t, 8, PyLong_FromInt32)
 FIXINT_GETSET(u8, uint8_t, 8, PyLong_FromUInt32)
 FIXINT_GETSET(i16, int16_t, 16, PyLong_FromInt32)
-FIXINT_GETSET_SW(i16, int16_t, 16, PyLong_FromInt32, _Py_bswap16)
+FIXINT_GETSET_SW(i16, int16_t, 16, PyLong_FromInt32)
 FIXINT_GETSET(u16, uint16_t, 16, PyLong_FromUInt32)
-FIXINT_GETSET_SW(u16, uint16_t, 16, PyLong_FromUInt32, _Py_bswap16)
+FIXINT_GETSET_SW(u16, uint16_t, 16, PyLong_FromUInt32)
 FIXINT_GETSET(i32, int32_t, 32, PyLong_FromInt32)
-FIXINT_GETSET_SW(i32, int32_t, 32, PyLong_FromInt32, _Py_bswap32)
+FIXINT_GETSET_SW(i32, int32_t, 32, PyLong_FromInt32)
 FIXINT_GETSET(u32, uint32_t, 32, PyLong_FromUInt32)
-FIXINT_GETSET_SW(u32, uint32_t, 32, PyLong_FromUInt32, _Py_bswap32)
+FIXINT_GETSET_SW(u32, uint32_t, 32, PyLong_FromUInt32)
 FIXINT_GETSET(i64, int64_t, 64, PyLong_FromInt64)
-FIXINT_GETSET_SW(i64, int64_t, 64, PyLong_FromInt64, _Py_bswap64)
+FIXINT_GETSET_SW(i64, int64_t, 64, PyLong_FromInt64)
 FIXINT_GETSET(u64, uint64_t, 64, PyLong_FromUInt64)
-FIXINT_GETSET_SW(u64, uint64_t, 64, PyLong_FromUInt64, _Py_bswap64)
-/*[python end generated code: output=3d60c96fa58e07d5 input=0b7e166f2ea18e70]*/
+FIXINT_GETSET_SW(u64, uint64_t, 64, PyLong_FromUInt64)
+/*[python end generated code: output=3e569224af174df1 input=46c53e701b665053]*/
 
 // For one-byte types, swapped variants are the same as native
 #define i8_set_sw i8_set
