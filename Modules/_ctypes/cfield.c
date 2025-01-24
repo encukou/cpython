@@ -553,11 +553,27 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
  * and are all alike, so they're defined using a macro.
  */
 
+static PyObject *
+fixint_set_nonbitfield(void *ptr, PyObject *value, Py_ssize_t size)
+{
+    Py_ssize_t res = PyLong_AsNativeBytes(
+        value, ptr, size,
+        Py_ASNATIVEBYTES_NATIVE_ENDIAN
+        | Py_ASNATIVEBYTES_ALLOW_INDEX);
+    if (res < 0) {
+        return NULL;
+    }
+    _RET(value);
+}
+
 #define FIXINT_GETSET(TAG, CTYPE, NBITS, PYAPI_FROMFUNC)                      \
     static PyObject *                                                         \
     TAG ## _set(void *ptr, PyObject *value, Py_ssize_t size_arg)              \
     {                                                                         \
-        assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
+        if (!NUM_BITS(size_arg)) { \
+            assert((size_arg == (NBITS) / 8));              \
+            return fixint_set_nonbitfield(ptr, value, size_arg); \
+        } \
         CTYPE val;                                                            \
         if (PyLong_Check(value)                                               \
             && PyUnstable_Long_IsCompact((PyLongObject *)value))              \
