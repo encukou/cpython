@@ -481,7 +481,6 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
 static inline
 void inplace_byteswap(void *ptr, Py_ssize_t size)
 {
-    /*
     switch (size) {
         case 1:
             return;
@@ -501,7 +500,6 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
             return;
         }
     }
-    */
     char *p = ptr;
     for (char *end = p + size - 1; p < end; p++, end--) {
         char byte = *p;
