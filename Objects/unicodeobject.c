@@ -14258,6 +14258,30 @@ unicode_getnewargs(PyObject *v, PyObject *Py_UNUSED(ignored))
     return Py_BuildValue("(N)", copy);
 }
 
+static PyObject *
+o_do_string_format(PyObject *v, PyObject *args, PyObject *kwargs)
+{
+    // quick dirty hack: ignores refcounting & error handling
+    PyObject *fmtr = _PyImport_GetModuleAttrString("string", "Formatter");
+    assert(fmtr);
+    PyObject *clr = PyObject_CallNoArgs(fmtr);
+    assert(clr);
+    PyObject *arr[] = {clr, v, args, kwargs?kwargs:PyDict_New()};
+    return PyObject_VectorcallMethod(PyUnicode_FromString("vformat"), arr, 4, NULL);
+}
+
+static PyObject *
+o_do_string_format_map(PyObject *v, PyObject *mapping)
+{
+    // quick dirty hack: ignores refcounting & error handling
+    PyObject *fmtr = _PyImport_GetModuleAttrString("string", "Formatter");
+    assert(fmtr);
+    PyObject *clr = PyObject_CallNoArgs(fmtr);
+    assert(clr);
+    PyObject *arr[] = {clr, v, PyTuple_New(0), mapping?mapping:PyDict_New()};
+    return PyObject_VectorcallMethod(PyUnicode_FromString("vformat"), arr, 4, NULL);
+}
+
 static PyMethodDef unicode_methods[] = {
     UNICODE_ENCODE_METHODDEF
     UNICODE_REPLACE_METHODDEF
@@ -14303,8 +14327,11 @@ static PyMethodDef unicode_methods[] = {
     UNICODE_ISIDENTIFIER_METHODDEF
     UNICODE_ISPRINTABLE_METHODDEF
     UNICODE_ZFILL_METHODDEF
-    {"format", _PyCFunction_CAST(do_string_format), METH_VARARGS | METH_KEYWORDS, format__doc__},
-    {"format_map", (PyCFunction) do_string_format_map, METH_O, format_map__doc__},
+    //{"format", _PyCFunction_CAST(do_string_format), METH_VARARGS | METH_KEYWORDS, format__doc__},
+    //{"format_map", (PyCFunction) do_string_format_map, METH_O, format_map__doc__},
+    {"format", _PyCFunction_CAST(o_do_string_format), METH_VARARGS | METH_KEYWORDS, format__doc__},
+    {"format_map", (PyCFunction) o_do_string_format_map, METH_O, format_map__doc__},
+
     UNICODE___FORMAT___METHODDEF
     UNICODE_MAKETRANS_METHODDEF
     UNICODE_SIZEOF_METHODDEF
