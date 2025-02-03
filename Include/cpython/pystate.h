@@ -210,6 +210,8 @@ struct _ts {
 #  define Py_C_RECURSION_LIMIT 800
 #elif defined(_WIN32) && defined(_M_ARM64)
 #  define Py_C_RECURSION_LIMIT 1000
+#elif defined(_WIN32) && defined(_Py_WITH_PGO)
+#  define Py_C_RECURSION_LIMIT 2000
 #elif defined(_WIN32)
 #  define Py_C_RECURSION_LIMIT 3000
 #elif defined(__ANDROID__)
