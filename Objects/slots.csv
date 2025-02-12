@@ -1,84 +1,124 @@
-0, "slot_end", any
-1, "bf_getbuffer", type
-2, "bf_releasebuffer", type
-3, "mp_ass_subscript", type
-4, "mp_length", type
-5, "mp_subscript", type
-6, "nb_absolute", type
-7, "nb_add", type
-8, "nb_and", type
-9, "nb_bool", type
-10, "nb_divmod", type
-11, "nb_float", type
-12, "nb_floor_divide", type
-13, "nb_index", type
-14, "nb_inplace_add", type
-15, "nb_inplace_and", type
-16, "nb_inplace_floor_divide", type
-17, "nb_inplace_lshift", type
-18, "nb_inplace_multiply", type
-19, "nb_inplace_or", type
-20, "nb_inplace_power", type
-21, "nb_inplace_remainder", type
-22, "nb_inplace_rshift", type
-23, "nb_inplace_subtract", type
-24, "nb_inplace_true_divide", type
-25, "nb_inplace_xor", type
-26, "nb_int", type
-27, "nb_invert", type
-28, "nb_lshift", type
-29, "nb_multiply", type
-30, "nb_negative", type
-31, "nb_or", type
-32, "nb_positive", type
-33, "nb_power", type
-34, "nb_remainder", type
-35, "nb_rshift", type
-36, "nb_subtract", type
-37, "nb_true_divide", type
-38, "nb_xor", type
-39, "sq_ass_item", type
-40, "sq_concat", type
-41, "sq_contains", type
-42, "sq_inplace_concat", type
-43, "sq_inplace_repeat", type
-44, "sq_item", type
-45, "sq_length", type
-46, "sq_repeat", type
-47, "tp_alloc", type
-48, "tp_base", type
-49, "tp_bases", type
-50, "tp_call", type
-51, "tp_clear", type
-52, "tp_dealloc", type
-53, "tp_del", type
-54, "tp_descr_get", type
-55, "tp_descr_set", type
-56, "tp_doc", type
-57, "tp_getattr", type
-58, "tp_getattro", type
-59, "tp_hash", type
-60, "tp_init", type
-61, "tp_is_gc", type
-62, "tp_iter", type
-63, "tp_iternext", type
-64, "tp_methods", type
-65, "tp_new", type
-66, "tp_repr", type
-67, "tp_richcompare", type
-68, "tp_setattr", type
-69, "tp_setattro", type
-70, "tp_str", type
-71, "tp_traverse", type
-72, "tp_members", type
-73, "tp_getset", type
-74, "tp_free", type
-75, "nb_matrix_multiply", type
-76, "nb_inplace_matrix_multiply", type
-77, "am_await", type
-78, "am_aiter", type
-79, "am_anext", type
-80, "tp_finalize", type
-81, "am_send", type
-82, "tp_vectorcall", type
-83, "tp_token", type
+id, name, kind, dtype, rest
+
+#, This file is a superset of CSV; intended to be parseable
+#, with standard CSV tools but also human-readable and -editable.
+#,
+#, Comment lines start with '#' and a comma; that is they have '#' in the first
+#, field. Blank lines should be ignored too.
+#, Avoid commas in comments; you can use semicolons.
+#,
+#, Each non-comment line has these mandatory columns:
+#, - id: the slot's unique number
+#, - name: the slot's name without "Py_"
+#, - dtype: basic data type (which field of the union to use)
+#,   - 'array' means array of pointers
+#, - kind:
+#,   - 'type' is for PyTypeObject slots
+#,   - 'mod' is for module slots
+#,   - 'any' works for any of the above
+#,   - 'compat' is backwards-compatible
+#,
+#, After these there can be 0 or more "named" columns whose contents start with
+#, with '<name>='; everything after that is the value. No spaces around '='.
+#, Perhaps CSV shouldn't be used this way; sue me.
+#,
+#, For all types:
+#,   - 'added': Python version that added the slot
+#, For pointers:
+#,   - 'PyObject=true': This is a Python object (or NULL)
+#, For 'compat' slots:
+#,   - 'type': number of the equivalent 'type' slot
+#,   - 'mod`: number of the equivalent 'mod' slot
+
+0, "slot_end", any, int64, added=3.14
+1, "slot_compat_getbuffer_create", compat, any, type=88, mod=84
+2, "slot_compat_releasebuffer_exec", compat, any, type=89, mod=84
+3, "slot_compat_ass_subscript_multiple_interpreters", compat, any, type=90, mod=84
+4, "slot_compat_length_gil", compat, any, type=91, mod=84
+5, "mp_subscript", type, func
+6, "nb_absolute", type, func
+7, "nb_add", type, func
+8, "nb_and", type, func
+9, "nb_bool", type, func
+10, "nb_divmod", type, func
+11, "nb_float", type, func
+12, "nb_floor_divide", type, func
+13, "nb_index", type, func
+14, "nb_inplace_add", type, func
+15, "nb_inplace_and", type, func
+16, "nb_inplace_floor_divide", type, func
+17, "nb_inplace_lshift", type, func
+18, "nb_inplace_multiply", type, func
+19, "nb_inplace_or", type, func
+20, "nb_inplace_power", type, func
+21, "nb_inplace_remainder", type, func
+22, "nb_inplace_rshift", type, func
+23, "nb_inplace_subtract", type, func
+24, "nb_inplace_true_divide", type, func
+25, "nb_inplace_xor", type, func
+26, "nb_int", type, func
+27, "nb_invert", type, func
+28, "nb_lshift", type, func
+29, "nb_multiply", type, func
+30, "nb_negative", type, func
+31, "nb_or", type, func
+32, "nb_positive", type, func
+33, "nb_power", type, func
+34, "nb_remainder", type, func
+35, "nb_rshift", type, func
+36, "nb_subtract", type, func
+37, "nb_true_divide", type, func
+38, "nb_xor", type, func
+39, "sq_ass_item", type, func
+40, "sq_concat", type, func
+41, "sq_contains", type, func
+42, "sq_inplace_concat", type, func
+43, "sq_inplace_repeat", type, func
+44, "sq_item", type, func
+45, "sq_length", type, func
+46, "sq_repeat", type, func
+47, "tp_alloc", type, func
+48, "tp_base", type, ptr, PyObject=true
+49, "tp_bases", type, ptr, PyObject=true
+50, "tp_call", type, func
+51, "tp_clear", type, func
+52, "tp_dealloc", type, func
+53, "tp_del", type, func
+54, "tp_descr_get", type, func
+55, "tp_descr_set", type, func
+56, "tp_doc", type, ptr
+57, "tp_getattr", type, func
+58, "tp_getattro", type, func
+59, "tp_hash", type, func
+60, "tp_init", type, func
+61, "tp_is_gc", type, func
+62, "tp_iter", type, func
+63, "tp_iternext", type, func
+64, "tp_methods", type, array
+65, "tp_new", type, func
+66, "tp_repr", type, func
+67, "tp_richcompare", type, func
+68, "tp_setattr", type, func
+69, "tp_setattro", type, func
+70, "tp_str", type, func
+71, "tp_traverse", type, func
+72, "tp_members", type, array
+73, "tp_getset", type, func
+74, "tp_free", type, func
+75, "nb_matrix_multiply", type, func
+76, "nb_inplace_matrix_multiply", type, func
+77, "am_await", type, func
+78, "am_aiter", type, func
+79, "am_anext", type, func
+80, "tp_finalize", type, func, added=3.5
+81, "am_send", type, func, added=3.10
+82, "tp_vectorcall", type, func, added=3.14
+83, "tp_token", type, ptr, added=3.14
+84, 'mod_create, mod, func, added=3.14
+85, 'mod_exec', mod, func, added=3.14
+86, 'mod_multiple_interpreters', int64, mod, added=3.14
+87, 'mod_gil', mod, int64, added=3.14
+88, "bf_getbuffer", type, func, added=3.14
+89, "bf_releasebuffer", type, func, added=3.14
+90, "mp__ass_subscript", type, func, added=3.14
+91, "mp_length", type, func, added=3.14
