@@ -1,40 +1,47 @@
-id, name, kind, dtype, rest
+id, name, kind, dtype
 
-#, This file is a superset of CSV; intended to be parseable
-#, with standard CSV tools but also human-readable and -editable.
+#, This file is a superset of CSV; intended to be parseable with common
+#, CSV tools but also human-readable and -editable.
+#, Dialect options for Python's csv.DictReader:
+#,  - restkey='named'
+#,  - skipinitialspace=True
 #,
 #, Comment lines start with '#' and a comma; that is they have '#' in the first
-#, field. Blank lines should be ignored too.
+#, field. Completely blank lines should be ignored too.
 #, Avoid commas in comments; you can use semicolons.
 #,
 #, Each non-comment line has these mandatory columns:
-#, - id: the slot's unique number
-#, - name: the slot's name without "Py_"
-#, - dtype: basic data type (which field of the union to use)
-#,   - 'array' means array of pointers
-#, - kind:
-#,   - 'type' is for PyTypeObject slots
-#,   - 'mod' is for module slots
-#,   - 'any' works for any of the above
-#,   - 'compat' is backwards-compatible
+#,   - id: the slot's unique number (or '#' for comments)
+#,   - name: the slot's name without "Py_"
+#,   - dtype: basic data type
+#,     - 'func'; 'ptr'; 'uint64'; 'int64': which field of the union to use
+#,     - 'array': array of pointers
+#,     - 'void': value is ignored
+#,   - kind:
+#,     - 'type' is for PyTypeObject slots
+#,     - 'mod' is for module slots
+#,     - 'any' works for any of the above
+#,     - 'compat' reserved for backwards compatibility
 #,
 #, After these there can be 0 or more "named" columns whose contents start with
 #, with '<name>='; everything after that is the value. No spaces around '='.
 #, Perhaps CSV shouldn't be used this way; sue me.
 #,
 #, For all types:
-#,   - 'added': Python version that added the slot
+#,   - 'added': Python version that added the slot *to the limited API*
+#,   - 'compat': slot number before 3.14
 #, For pointers:
 #,   - 'PyObject=true': This is a Python object (or NULL)
-#, For 'compat' slots:
-#,   - 'type': number of the equivalent 'type' slot
-#,   - 'mod`: number of the equivalent 'mod' slot
+#, For type slots:
+#,   - 'table': Slot table like 'nb' or 'tp'. If not specified: use the first
+#,     part of the name
+#,   - 'virtual': Does not directly correspond to a PyTypeObject (sub)field
 
-0, "slot_end", any, int64, added=3.14
-1, "slot_compat_getbuffer_create", compat, any, type=88, mod=84
-2, "slot_compat_releasebuffer_exec", compat, any, type=89, mod=84
-3, "slot_compat_ass_subscript_multiple_interpreters", compat, any, type=90, mod=84
-4, "slot_compat_length_gil", compat, any, type=91, mod=84
+0, "slot_end", any, void, added=3.14
+1, "bf_getbuffer/mod_create", compat, void
+2, "bf_releasebuffer/mod_exec", compat, void
+3, "mp_ass_subscript/mod_multiple_interpreters", compat, void
+4, "mp_length/mod_gil", compat, void
 5, "mp_subscript", type, func
 6, "nb_absolute", type, func
 7, "nb_add", type, func
@@ -113,12 +120,15 @@ id, name, kind, dtype, rest
 80, "tp_finalize", type, func, added=3.5
 81, "am_send", type, func, added=3.10
 82, "tp_vectorcall", type, func, added=3.14
-83, "tp_token", type, ptr, added=3.14
-84, 'mod_create, mod, func, added=3.14
-85, 'mod_exec', mod, func, added=3.14
-86, 'mod_multiple_interpreters', int64, mod, added=3.14
-87, 'mod_gil', mod, int64, added=3.14
-88, "bf_getbuffer", type, func, added=3.14
-89, "bf_releasebuffer", type, func, added=3.14
-90, "mp__ass_subscript", type, func, added=3.14
-91, "mp_length", type, func, added=3.14
+83, "tp_token", type, ptr, added=3.14, table=ht
+84, "mod_create", mod, func, compat=1
+85, "mod_exec", mod, func, compat=2
+86, "mod_multiple_interpreters", mod, uint64, compat=3, added=3.12
+87, "mod_gil", mod, uint64, compat=4, added=3.13
+88, "bf_getbuffer", type, func, compat=1
+89, "bf_releasebuffer", type, func, compat=2
+90, "mp_ass_subscript", type, func, compat=3
+91, "mp_length", type, func, compat=4
+92, "slot_subslots", any, array
+93, "tp_slots", type, array, virtual=1
+94, "mod_slots", mod, array
