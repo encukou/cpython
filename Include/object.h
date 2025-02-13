@@ -436,6 +436,9 @@ PyAPI_FUNC(Py_ssize_t) PyType_GetTypeDataSize(PyTypeObject *cls);
 PyAPI_FUNC(int) PyType_GetBaseByToken(PyTypeObject *, void *, PyTypeObject **);
 #define Py_TP_USE_SPEC NULL
 #endif
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= Py_PACK_VERSION(3, 14)
+PyAPI_FUNC(PyObject *) PyType_FromSlots(struct PySlot *, Py_ssize_t n_slots);
+#endif
 
 /* Generic type check */
 PyAPI_FUNC(int) PyType_IsSubtype(PyTypeObject *, PyTypeObject *);

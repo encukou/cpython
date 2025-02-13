@@ -35,6 +35,10 @@ PyAPI_FUNC(void*) PyModule_GetState(PyObject*);
 PyAPI_FUNC(PyObject *) PyModuleDef_Init(PyModuleDef*);
 PyAPI_DATA(PyTypeObject) PyModuleDef_Type;
 #endif
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= Py_PACK_VERSION(3, 14)
+PyAPI_FUNC(PyObject *) PyModule_FromSlots(PySlot *, Py_ssize_t n_slots);
+PyAPI_FUNC(PyObject *) PyModuleDef_FromSlots(PySlot *, Py_ssize_t n_slots);
+#endif
 
 #ifndef _Py_OPAQUE_PYOBJECT
 typedef struct PyModuleDef_Base {
@@ -72,21 +76,6 @@ struct PyModuleDef_Slot {
     int slot;
     void *value;
 };
-
-#define Py_mod_create 1
-#define Py_mod_exec 2
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030c0000
-#  define Py_mod_multiple_interpreters 3
-#endif
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
-#  define Py_mod_gil 4
-#endif
-
-
-#ifndef Py_LIMITED_API
-#define _Py_mod_LAST_SLOT 4
-#endif
-
 #endif /* New in 3.5 */
 
 /* for Py_mod_multiple_interpreters: */
