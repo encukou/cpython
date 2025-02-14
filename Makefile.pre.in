@@ -2094,8 +2094,6 @@ Python/import.o: $(srcdir)/Include/pydtrace.h
 Python/pydtrace.o: $(srcdir)/Include/pydtrace.d $(DTRACE_DEPS)
 	$(DTRACE) $(DFLAGS) -o $@ -G -s $< $(DTRACE_DEPS)
 
-Objects/typeobject.o: Objects/slots.inc
-
 .PHONY: regen-typeslots
 regen-typeslots:
 	echo 'NOTE: "regen-typeslots" was renamed to "regen-slots"'
