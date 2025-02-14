@@ -85,7 +85,7 @@ def write_header(f, slots):
     out(f'#ifndef _PY_HAVE_SLOTS_GENERATED_H')
     out(f'#define _PY_HAVE_SLOTS_GENERATED_H')
     out()
-    out(f'#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= Py_PACK_VERSION(3, 14)')
+    out(f'#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)')
     out(f'#define _Py_SLOT_COMPAT_VALUE(OLD, NEW) NEW')
     out(f'#else')
     out(f'#define _Py_SLOT_COMPAT_VALUE(OLD, NEW) OLD')
@@ -107,8 +107,13 @@ def write_c(f, slots):
     out = functools.partial(print, file=f)
     out(f'/* {GENERATED_BY} */')
     out()
+    out('#include "Python.h"')
+    out('#include "pycore_slots.h"   // _PySlot_Info')
+    out('#include <stddef.h>         // offsetof')
+    out()
+    out(f'_PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {{')
+
     assert len(slots) == max(slot.id for slot in slots) + 1
-    out(f'const _PySlot_Info _PySlot_InfoTable[] = {{')
     for slot in slots:
         out(f"    [{slot.id}] = {{")
         initializers = {
@@ -125,30 +130,33 @@ def write_c(f, slots):
                         key = f'compat_info.{newslot.kind}_id'
                         initializers[key] = newslot.id
             case 'type':
+                field = slot.get('field', slot.name)
                 if not slot.get_int('virtual'):
                     tpo = 'PyTypeObject'
-                    typeobj, subtable = {
-                        'tp': (tpo, None),
-                        'mp': (tpo, 'PyMappingMethods'),
-                        'nb': (tpo, 'PyNumberMethods'),
-                        'sq': (tpo, 'PySequenceMethods'),
-                        'am': (tpo, 'PyAsyncMethods'),
-                        'bf': (tpo, 'PyBufferProcs'),
-                        'ht': ('PyHeapTypeObject', None),
+                    typeobj, subtable, tabletype = {
+                        'tp': (tpo, None, None),
+                        'mp': (tpo, 'tp_as_mapping', 'PyMappingMethods'),
+                        'nb': (tpo, 'tp_as_number', 'PyNumberMethods'),
+                        'sq': (tpo, 'tp_as_sequence', 'PySequenceMethods'),
+                        'am': (tpo, 'tp_as_async', 'PyAsyncMethods'),
+                        'bf': (tpo, 'tp_as_buffer', 'PyBufferProcs'),
+                        'ht': ('PyHeapTypeObject', None, None),
                     }[slot.type_table]
                     if subtable:
                         initializers['type_info.subslot_offset'] = (
-                            f'offsetof({subtable}, {slot.name})')
+                            f'offsetof({tabletype}, {field})')
                         initializers['type_info.slot_offset'] = (
                             f'offsetof({typeobj}, {subtable})')
                     else:
                         initializers['type_info.subslot_offset'] = '-1'
                         initializers['type_info.slot_offset'] = (
-                            f'offsetof({typeobj}, {slot.name})')
+                            f'offsetof({typeobj}, {field})')
             case 'mod':
                 pass
             case _:
                 raise ValueError(slot.kind)
+        if slot.get_int('subslots'):
+            initializers['subslots'] = 'true'
         for name, initializer in initializers.items():
             out(f'        .{name} = {initializer},')
         out(f"    }},")

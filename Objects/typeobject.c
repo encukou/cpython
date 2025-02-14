@@ -17,6 +17,7 @@
 #include "pycore_pyatomic_ft_wrappers.h"
 #include "pycore_pyerrors.h"      // _PyErr_Occurred()
 #include "pycore_pystate.h"       // _PyThreadState_GET()
+#include "pycore_slots.h"         // _PySlotIterator_Init
 #include "pycore_symtable.h"      // _Py_Mangle()
 #include "pycore_typeobject.h"    // struct type_cache
 #include "pycore_unicodeobject.h" // _PyUnicode_Copy
@@ -5192,20 +5193,22 @@ PyType_FromMetaclass(
      * if that would cause trouble (leaks, UB, ...), raise an exception.
      */
 
-    const PyType_Slot *slot;
+    PySlot *slot;
+    _PySlot_Info *info;
     Py_ssize_t nmembers = 0;
     const PyMemberDef *weaklistoffset_member = NULL;
     const PyMemberDef *dictoffset_member = NULL;
     const PyMemberDef *vectorcalloffset_member = NULL;
     char *res_start;
 
-    for (slot = spec->slots; slot->slot; slot++) {
-        if (slot->slot < 0
-            || (size_t)slot->slot >= Py_ARRAY_LENGTH(pyslot_offsets)) {
-            PyErr_SetString(PyExc_RuntimeError, "invalid slot offset");
-            goto finally;
-        }
-        switch (slot->slot) {
+    _PySlotIterator it;
+    PySlot wrapper = PySlot_DATA(tp_slots, spec->slots);
+    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_TYPE) < 0) {
+        goto finally;
+    }
+    int result_of_next;
+    while ((result_of_next = _PySlotIterator_Next(&it, &slot, &info)) == 1) {
+        switch (slot->sl_id) {
         case Py_tp_members:
             if (nmembers != 0) {
                 PyErr_SetString(
@@ -5213,7 +5216,7 @@ PyType_FromMetaclass(
                     "Multiple Py_tp_members slots are not supported.");
                 goto finally;
             }
-            for (const PyMemberDef *memb = slot->pfunc; memb->name != NULL; memb++) {
+            for (const PyMemberDef *memb = slot->sl_ptr; memb->name != NULL; memb++) {
                 nmembers++;
                 if (memb->flags & Py_RELATIVE_OFFSET) {
                     if (spec->basicsize > 0) {
@@ -5249,21 +5252,24 @@ PyType_FromMetaclass(
                     "Multiple Py_tp_doc slots are not supported.");
                 goto finally;
             }
-            if (slot->pfunc == NULL) {
+            if (slot->sl_ptr == NULL) {
                 PyMem_Free(tp_doc);
                 tp_doc = NULL;
             }
             else {
-                size_t len = strlen(slot->pfunc)+1;
+                size_t len = strlen(slot->sl_ptr)+1;
                 tp_doc = PyMem_Malloc(len);
                 if (tp_doc == NULL) {
                     PyErr_NoMemory();
                     goto finally;
                 }
-                memcpy(tp_doc, slot->pfunc, len);
+                memcpy(tp_doc, slot->sl_ptr, len);
             }
             break;
         }
+    }
+    if (result_of_next < 0) {
+        goto finally;
     }
 
     /* Prepare the type name and qualname */
@@ -5449,8 +5455,11 @@ PyType_FromMetaclass(
 
     /* Copy all the ordinary slots */
 
-    for (slot = spec->slots; slot->slot; slot++) {
-        switch (slot->slot) {
+    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_TYPE) < 0) {
+        goto finally;
+    }
+    while ((result_of_next = _PySlotIterator_Next(&it, &slot, &info)) == 1) {
+        switch (slot->sl_id) {
         case Py_tp_base:
         case Py_tp_bases:
         case Py_tp_doc:
@@ -5460,7 +5469,7 @@ PyType_FromMetaclass(
             {
                 /* Move the slots to the heap type itself */
                 size_t len = Py_TYPE(type)->tp_itemsize * nmembers;
-                memcpy(_PyHeapType_GET_MEMBERS(res), slot->pfunc, len);
+                memcpy(_PyHeapType_GET_MEMBERS(res), slot->sl_ptr, len);
                 type->tp_members = _PyHeapType_GET_MEMBERS(res);
                 PyMemberDef *memb;
                 Py_ssize_t i;
@@ -5476,26 +5485,33 @@ PyType_FromMetaclass(
             break;
         case Py_tp_token:
             {
-                res->ht_token = slot->pfunc == Py_TP_USE_SPEC ? spec : slot->pfunc;
+                res->ht_token = slot->sl_ptr == Py_TP_USE_SPEC ? spec : slot->sl_ptr;
             }
             break;
         default:
             {
                 /* Copy other slots directly */
-                PySlot_Offset slotoffsets = pyslot_offsets[slot->slot];
-                short slot_offset = slotoffsets.slot_offset;
-                if (slotoffsets.subslot_offset == -1) {
+                short slot_offset = info->type_info.slot_offset;
+                short subslot_offset = info->type_info.subslot_offset;
+                if (subslot_offset == 0) {
+                    /* slot should have been handled specially */
+                    Py_UNREACHABLE();
+                }
+                else if (subslot_offset == -1) {
                     /* Set a slot in the main PyTypeObject */
-                    *(void**)((char*)res_start + slot_offset) = slot->pfunc;
+                    *(void**)((char*)res_start + slot_offset) = slot->sl_func;
                 }
                 else {
                     void *procs = *(void**)((char*)res_start + slot_offset);
-                    short subslot_offset = slotoffsets.subslot_offset;
-                    *(void**)((char*)procs + subslot_offset) = slot->pfunc;
+                    short subslot_offset = subslot_offset;
+                    *(void**)((char*)procs + subslot_offset) = slot->sl_func;
                 }
             }
             break;
         }
+    }
+    if (result_of_next < 0) {
+        goto finally;
     }
     if (type->tp_dealloc == NULL) {
         /* It's a heap type, so needs the heap types' dealloc.
@@ -5637,13 +5653,26 @@ void *
 PyType_GetSlot(PyTypeObject *type, int slot)
 {
     void *parent_slot;
-    int slots_len = Py_ARRAY_LENGTH(pyslot_offsets);
 
-    if (slot <= 0 || slot >= slots_len) {
+    if (slot <= 0 || slot >= _Py_slot_COUNT) {
         PyErr_BadInternalCall();
         return NULL;
     }
-    int slot_offset = pyslot_offsets[slot].slot_offset;
+    _PySlot_Info *slot_info = &_PySlot_InfoTable[slot];
+    if (slot_info->kind != _PySlot_KIND_COMPAT) {
+        slot = slot_info->compat_info.type_id;
+        slot_info = &_PySlot_InfoTable[slot];
+    }
+    if (slot_info->kind != _PySlot_KIND_TYPE) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+    if (slot_info->type_info.subslot_offset == 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+    short slot_offset = slot_info->type_info.slot_offset;
+    short subslot_offset = slot_info->type_info.subslot_offset;
 
     if (slot_offset >= (int)sizeof(PyTypeObject)) {
         if (!_PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) {
@@ -5656,10 +5685,10 @@ PyType_GetSlot(PyTypeObject *type, int slot)
         return NULL;
     }
     /* Return slot directly if we have no sub slot. */
-    if (pyslot_offsets[slot].subslot_offset == -1) {
+    if (subslot_offset == -1) {
         return parent_slot;
     }
-    return *(void**)((char*)parent_slot + pyslot_offsets[slot].subslot_offset);
+    return *(void**)((char*)parent_slot + subslot_offset);
 }
 
 PyObject *

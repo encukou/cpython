@@ -35,7 +35,7 @@ PyAPI_FUNC(void*) PyModule_GetState(PyObject*);
 PyAPI_FUNC(PyObject *) PyModuleDef_Init(PyModuleDef*);
 PyAPI_DATA(PyTypeObject) PyModuleDef_Type;
 #endif
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= Py_PACK_VERSION(3, 14)
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
 PyAPI_FUNC(PyObject *) PyModule_FromSlots(PySlot *, Py_ssize_t n_slots);
 PyAPI_FUNC(PyObject *) PyModuleDef_FromSlots(PySlot *, Py_ssize_t n_slots);
 #endif

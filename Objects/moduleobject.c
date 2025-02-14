@@ -12,6 +12,7 @@
 #include "pycore_object.h"        // _PyType_AllocNoTrack
 #include "pycore_pyerrors.h"      // _PyErr_FormatFromCause()
 #include "pycore_pystate.h"       // _PyInterpreterState_GET()
+#include "pycore_slots.h"         // _PySlotIterator_Init
 #include "pycore_unicodeobject.h" // _PyUnicode_EqualToASCIIString()
 #include "pycore_weakref.h"       // FT_CLEAR_WEAKREFS()
 
@@ -264,17 +265,18 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
     return (PyObject*)m;
 }
 
+typedef PyObject *(*createfunc_type)(PyObject *, PyModuleDef*);
+
 PyObject *
 PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_version)
 {
-    PyModuleDef_Slot* cur_slot;
-    PyObject *(*create)(PyObject *, PyModuleDef*) = NULL;
+    createfunc_type create = NULL;
     PyObject *nameobj;
     PyObject *m = NULL;
     int has_multiple_interpreters_slot = 0;
-    void *multiple_interpreters = (void *)0;
+    int multiple_interpreters = 0;
     int has_gil_slot = 0;
-    void *gil_slot = Py_MOD_GIL_USED;
+    int gil_slot = (int)(intptr_t)Py_MOD_GIL_USED;
     int has_execution_slots = 0;
     const char *name;
     int ret;
@@ -303,66 +305,61 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         goto error;
     }
 
-    for (cur_slot = def->m_slots; cur_slot && cur_slot->slot; cur_slot++) {
-        switch (cur_slot->slot) {
+    _PySlotIterator it;
+    PySlot wrapper = PySlot_DATA(mod_slots, def->m_slots);
+    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
+        goto error;
+    }
+    PySlot *cur_slot;
+    _PySlot_Info *info;
+    int result_of_next;
+    while ((result_of_next = _PySlotIterator_Next(&it, &cur_slot, &info)) == 1)
+    {
+        switch (cur_slot->sl_id) {
             case Py_mod_create:
                 if (create) {
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "module %s has multiple create slots",
-                        name);
+                    _PySlotIterator_SetDuplicateError(&it, name);
                     goto error;
                 }
-                create = cur_slot->value;
+                create = (createfunc_type)cur_slot->sl_func;
                 break;
             case Py_mod_exec:
                 has_execution_slots = 1;
                 break;
             case Py_mod_multiple_interpreters:
                 if (has_multiple_interpreters_slot) {
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "module %s has more than one 'multiple interpreters' slots",
-                        name);
+                    _PySlotIterator_SetDuplicateError(&it, name);
                     goto error;
                 }
-                multiple_interpreters = cur_slot->value;
+                multiple_interpreters = cur_slot->sl_uint64;
                 has_multiple_interpreters_slot = 1;
                 break;
             case Py_mod_gil:
                 if (has_gil_slot) {
-                    PyErr_Format(
-                       PyExc_SystemError,
-                       "module %s has more than one 'gil' slot",
-                       name);
-                    goto error;
+                    _PySlotIterator_SetDuplicateError(&it, name);
                 }
-                gil_slot = cur_slot->value;
+                gil_slot = cur_slot->sl_uint64;
                 has_gil_slot = 1;
                 break;
-            default:
-                assert(cur_slot->slot < 0 || cur_slot->slot > _Py_mod_LAST_SLOT);
-                PyErr_Format(
-                    PyExc_SystemError,
-                    "module %s uses unknown slot ID %i",
-                    name, cur_slot->slot);
-                goto error;
         }
+    }
+    if (result_of_next < 0) {
+        goto error;
     }
 
     /* By default, multi-phase init modules are expected
        to work under multiple interpreters. */
     if (!has_multiple_interpreters_slot) {
-        multiple_interpreters = Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+        multiple_interpreters = (int)(intptr_t)Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
     }
-    if (multiple_interpreters == Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED) {
+    if (multiple_interpreters == (int)(intptr_t)Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED) {
         if (!_Py_IsMainInterpreter(interp)
             && _PyImport_CheckSubinterpIncompatibleExtensionAllowed(name) < 0)
         {
             goto error;
         }
     }
-    else if (multiple_interpreters != Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+    else if (multiple_interpreters != (int)(intptr_t)Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
              && interp->ceval.own_gil
              && !_Py_IsMainInterpreter(interp)
              && _PyImport_CheckSubinterpIncompatibleExtensionAllowed(name) < 0)

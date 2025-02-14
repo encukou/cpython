@@ -31,6 +31,7 @@ id, name, kind, dtype
 #, For all types:
 #,   - 'added': Python version that added the slot *to the limited API*
 #,   - 'compat': slot number before 3.14
+#,   - 'subslots': contains an array of slots to be merged in
 #, For pointers:
 #,   - 'PyObject=true': This is a Python object (or NULL)
 #, For type slots:
@@ -121,7 +122,7 @@ id, name, kind, dtype
 80, "tp_finalize", type, func, added=3.5
 81, "am_send", type, func, added=3.10
 82, "tp_vectorcall", type, func, added=3.14
-83, "tp_token", type, ptr, added=3.14, table=ht
+83, "tp_token", type, ptr, added=3.14, table=ht, field=ht_token
 84, "mod_create", mod, func, compat=1
 85, "mod_exec", mod, func, compat=2
 86, "mod_multiple_interpreters", mod, uint64, compat=3, added=3.12
@@ -130,9 +131,9 @@ id, name, kind, dtype
 89, "bf_releasebuffer", type, func, compat=2, added=3.14
 90, "mp_ass_subscript", type, func, compat=3, added=3.14
 91, "mp_length", type, func, compat=4, added=3.14
-92, "slot_subslots", slot, array, added=3.14
-93, "tp_slots", type, array, virtual=1, added=3.14
-94, "mod_slots", mod, array, added=3.14
+92, "slot_subslots", slot, array, added=3.14, subslots=1
+93, "tp_slots", type, array, virtual=1, added=3.14, subslots=1
+94, "mod_slots", mod, array, added=3.14, subslots=1
 95, "tp_name", type, array, virtual=1, added=3.14
 96, "tp_basicsize", type, size, added=3.14
 97, "tp_extra_basicsize", type, size, virtual=1, added=3.14

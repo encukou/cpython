@@ -21,24 +21,25 @@ struct PySlot {
 #define Py_SLOT_SKIP_IF_NULL 0x04
 #define Py_SLOT_STATIC 0x08
 #define Py_SLOT_SIZED_ARRAY 0x10
+#define Py_SLOT_INTPTR 0x20
 
 #define PySlot_DATA(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_ptr=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_flags=Py_SLOT_INTPTR, .sl_ptr=(void*)(VALUE)}
 
 #define PySlot_FUNC(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_func=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_func=(VALUE)}
 
 #define PySlot_SIZE(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_size=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_size=(Py_ssize_t)(VALUE)}
 
 #define PySlot_INT64(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_int64=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_int64=(int64_t)(VALUE)}
 
 #define PySlot_UINT64(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_uint64=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_uint64=(uint64_t)(VALUE)}
 
 #define PySlot_STATIC(NAME, VALUE) \
-    {.sl_id=Py ## NAME, .sl_flags=Py_SLOT_STATIC, .sl_ptr=(VALUE)}
+    {.sl_id=Py_ ## NAME, .sl_flags=Py_SLOT_STATIC, .sl_ptr=(VALUE)}
 
 #define PySlot_END {.sl_id=0}
 
