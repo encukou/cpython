@@ -5020,7 +5020,7 @@ PyType_FromMetaclass(
                 /* Copy other slots directly */
                 short slot_offset = info->type_info.slot_offset;
                 short subslot_offset = info->type_info.subslot_offset;
-                if (subslot_offset == 0) {
+                if (slot_offset == 0 && subslot_offset == 0) {
                     /* slot should have been handled specially */
                     Py_UNREACHABLE();
                 }
