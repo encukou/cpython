@@ -5188,6 +5188,12 @@ PyType_FromMetaclass(
 
     int r;
 
+    if (spec->name == NULL) {
+        PyErr_SetString(PyExc_SystemError,
+                        "Type spec does not define the name field.");
+        goto finally;
+    }
+
     /* Prepare slots that need special handling.
      * Keep in mind that a slot can be given multiple times:
      * if that would cause trouble (leaks, UB, ...), raise an exception.
@@ -5211,9 +5217,7 @@ PyType_FromMetaclass(
         switch (slot->sl_id) {
         case Py_tp_members:
             if (nmembers != 0) {
-                PyErr_SetString(
-                    PyExc_SystemError,
-                    "Multiple Py_tp_members slots are not supported.");
+                _PySlotIterator_SetDuplicateError(&it, slot, spec->name);
                 goto finally;
             }
             for (const PyMemberDef *memb = slot->sl_ptr; memb->name != NULL; memb++) {
@@ -5247,9 +5251,7 @@ PyType_FromMetaclass(
             /* For the docstring slot, which usually points to a static string
                literal, we need to make a copy */
             if (tp_doc != NULL) {
-                PyErr_SetString(
-                    PyExc_SystemError,
-                    "Multiple Py_tp_doc slots are not supported.");
+                _PySlotIterator_SetDuplicateError(&it, slot, spec->name);
                 goto finally;
             }
             if (slot->sl_ptr == NULL) {
@@ -5273,12 +5275,6 @@ PyType_FromMetaclass(
     }
 
     /* Prepare the type name and qualname */
-
-    if (spec->name == NULL) {
-        PyErr_SetString(PyExc_SystemError,
-                        "Type spec does not define the name field.");
-        goto finally;
-    }
 
     const char *s = strrchr(spec->name, '.');
     if (s == NULL) {
@@ -5493,7 +5489,7 @@ PyType_FromMetaclass(
                 /* Copy other slots directly */
                 short slot_offset = info->type_info.slot_offset;
                 short subslot_offset = info->type_info.subslot_offset;
-                if (subslot_offset == 0) {
+                if (slot_offset == 0 && subslot_offset == 0) {
                     /* slot should have been handled specially */
                     Py_UNREACHABLE();
                 }
@@ -5503,7 +5499,6 @@ PyType_FromMetaclass(
                 }
                 else {
                     void *procs = *(void**)((char*)res_start + slot_offset);
-                    short subslot_offset = subslot_offset;
                     *(void**)((char*)procs + subslot_offset) = slot->sl_func;
                 }
             }
@@ -5659,15 +5654,18 @@ PyType_GetSlot(PyTypeObject *type, int slot)
         return NULL;
     }
     _PySlot_Info *slot_info = &_PySlot_InfoTable[slot];
-    if (slot_info->kind != _PySlot_KIND_COMPAT) {
+    if (slot_info->kind != _PySlot_KIND_TYPE) {
+        if (slot_info->kind != _PySlot_KIND_COMPAT) {
+            PyErr_BadInternalCall();
+            return NULL;
+        }
         slot = slot_info->compat_info.type_id;
         slot_info = &_PySlot_InfoTable[slot];
+        assert(slot_info->kind == _PySlot_KIND_TYPE);
     }
-    if (slot_info->kind != _PySlot_KIND_TYPE) {
-        PyErr_BadInternalCall();
-        return NULL;
-    }
-    if (slot_info->type_info.subslot_offset == 0) {
+    if ((slot_info->type_info.slot_offset == 0)
+        && (slot_info->type_info.subslot_offset == 0))
+    {
         PyErr_BadInternalCall();
         return NULL;
     }

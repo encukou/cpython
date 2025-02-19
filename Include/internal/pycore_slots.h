@@ -30,14 +30,14 @@ typedef struct {
             /* For type slots (_PySlot_KIND_TYPE):
              * Most slots corresponds to members in PyTypeObject & similar
              * structs.
-             * ach entry has two offsets, "slot_offset" and "subslot_offset".
+             * Each entry has two offsets, "slot_offset" and "subslot_offset".
              * If is subslot_offset is -1, slot_offset is an offset within the
              * PyTypeObject struct.
              * Otherwise slot_offset is an offset to a pointer to a sub-slots
              * struct (such as "tp_as_number"), and subslot_offset is the
              * offset within that struct.
              *
-             * If subslot_offset is zero, the slot needs special handling;
+             * If both are zero, the slot needs special handling; that is,
              * the offset mechanism isn't used.
              */
             short subslot_offset;
@@ -61,13 +61,13 @@ extern _PySlot_Info _PySlot_InfoTable[];
 
 typedef struct {
     union {
-        void *any_slot;
-        PySlot *slot;
-        PyType_Slot *tp_slot;
-        PyModuleDef_Slot *mod_slot;
+        // tagged by slot_struct_kind:
+        PySlot *slot;               // with _PySlot_KIND_SLOT
+        PyType_Slot *tp_slot;       // with _PySlot_KIND_TYPE
+        PyModuleDef_Slot *mod_slot; // with _PySlot_KIND_MOD
     };
     Py_ssize_t remaining;
-    uint8_t slot_struct_type; // reuses _PySlot_KIND_* constants
+    uint8_t slot_struct_kind;
     bool zero_terminated :1;
     bool ignoring_fallbacks :1;
 } _PySlotIterator_state;
@@ -75,7 +75,6 @@ typedef struct {
 typedef struct {
     _PySlotIterator_state *state;
     _PySlotIterator_state states[_PySlot_MAX_NESTING];
-    PySlot *last_slot;
     PySlot scratch;
     uint8_t kind;
     uint8_t recursion_level;
@@ -87,6 +86,7 @@ PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *, PySlot **result,
                                      _PySlot_Info **info);
 
 PyAPI_FUNC(int) _PySlotIterator_SetDuplicateError(_PySlotIterator *,
+                                                  PySlot *,
                                                   const char *name);
 
 #endif // _Py_PYCORE_SLOTS_H

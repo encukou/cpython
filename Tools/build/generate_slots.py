@@ -143,14 +143,14 @@ def write_c(f, slots):
                         'ht': ('PyHeapTypeObject', None, None),
                     }[slot.type_table]
                     if subtable:
-                        initializers['type_info.subslot_offset'] = (
-                            f'offsetof({tabletype}, {field})')
                         initializers['type_info.slot_offset'] = (
                             f'offsetof({typeobj}, {subtable})')
+                        initializers['type_info.subslot_offset'] = (
+                            f'offsetof({tabletype}, {field})')
                     else:
-                        initializers['type_info.subslot_offset'] = '-1'
                         initializers['type_info.slot_offset'] = (
                             f'offsetof({typeobj}, {field})')
+                        initializers['type_info.subslot_offset'] = '-1'
             case 'mod':
                 pass
             case _:

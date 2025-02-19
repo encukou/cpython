@@ -318,7 +318,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         switch (cur_slot->sl_id) {
             case Py_mod_create:
                 if (create) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
                     goto error;
                 }
                 create = (createfunc_type)cur_slot->sl_func;
@@ -328,7 +328,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
                 break;
             case Py_mod_multiple_interpreters:
                 if (has_multiple_interpreters_slot) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
                     goto error;
                 }
                 multiple_interpreters = cur_slot->sl_uint64;
@@ -336,7 +336,8 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
                 break;
             case Py_mod_gil:
                 if (has_gil_slot) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto error;
                 }
                 gil_slot = cur_slot->sl_uint64;
                 has_gil_slot = 1;
@@ -458,7 +459,6 @@ PyUnstable_Module_SetGIL(PyObject *module, void *gil)
 int
 PyModule_ExecDef(PyObject *module, PyModuleDef *def)
 {
-    PyModuleDef_Slot *cur_slot;
     const char *name;
     int ret;
 
@@ -485,43 +485,37 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         return 0;
     }
 
-    for (cur_slot = def->m_slots; cur_slot && cur_slot->slot; cur_slot++) {
-        switch (cur_slot->slot) {
-            case Py_mod_create:
-                /* handled in PyModule_FromDefAndSpec2 */
-                break;
-            case Py_mod_exec:
-                ret = ((int (*)(PyObject *))cur_slot->value)(module);
-                if (ret != 0) {
-                    if (!PyErr_Occurred()) {
-                        PyErr_Format(
-                            PyExc_SystemError,
-                            "execution of module %s failed without setting an exception",
-                            name);
-                    }
-                    return -1;
-                }
-                if (PyErr_Occurred()) {
-                    _PyErr_FormatFromCause(
+    _PySlotIterator it;
+    PySlot wrapper = PySlot_DATA(mod_slots, def->m_slots);
+    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
+        return -1;
+    }
+    PySlot *cur_slot;
+    _PySlot_Info *info;
+    int result_of_next;
+    while ((result_of_next = _PySlotIterator_Next(&it, &cur_slot, &info)) == 1)
+    {
+        if (cur_slot->sl_id == Py_mod_exec) {
+            ret = ((int (*)(PyObject *))cur_slot->sl_func)(module);
+            if (ret != 0) {
+                if (!PyErr_Occurred()) {
+                    PyErr_Format(
                         PyExc_SystemError,
-                        "execution of module %s raised unreported exception",
+                        "execution of module %s failed without setting an exception",
                         name);
-                    return -1;
                 }
-                break;
-            case Py_mod_multiple_interpreters:
-            case Py_mod_gil:
-                /* handled in PyModule_FromDefAndSpec2 */
-                break;
-            default:
-                PyErr_Format(
-                    PyExc_SystemError,
-                    "module %s initialized with unknown slot %i",
-                    name, cur_slot->slot);
                 return -1;
+            }
+            if (PyErr_Occurred()) {
+                _PyErr_FormatFromCause(
+                    PyExc_SystemError,
+                    "execution of module %s raised unreported exception",
+                    name);
+                return -1;
+            }
         }
     }
-    return 0;
+    return result_of_next;
 }
 
 int
