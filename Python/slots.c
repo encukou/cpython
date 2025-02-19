@@ -57,7 +57,7 @@ int _PySlotIterator_SetDuplicateError(_PySlotIterator *it, PySlot *slot,
     _PySlot_Info *info = &_PySlot_InfoTable[id];
     PyErr_Format(
         PyExc_SystemError,
-        "%s%s%s has multiple %s (%d) slots",
+        "%s%s%s has multiple Py_%s (%d) slots",
         kind_name(it->kind),
         name ? " " : "",
         name,

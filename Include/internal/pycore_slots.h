@@ -30,7 +30,7 @@ typedef struct {
             /* For type slots (_PySlot_KIND_TYPE):
              * Most slots corresponds to members in PyTypeObject & similar
              * structs.
-             * ach entry has two offsets, "slot_offset" and "subslot_offset".
+             * Each entry has two offsets, "slot_offset" and "subslot_offset".
              * If is subslot_offset is -1, slot_offset is an offset within the
              * PyTypeObject struct.
              * Otherwise slot_offset is an offset to a pointer to a sub-slots
