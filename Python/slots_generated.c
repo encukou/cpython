@@ -723,5 +723,20 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .dtype = _PySlot_TYPE_FUNC,
         .kind = _PySlot_KIND_MOD,
     },
-    [107] = {0}
+    [107] = {
+        .name = "slot_invalid",
+        .dtype = _PySlot_TYPE_VOID,
+        .kind = _PySlot_KIND_SLOT,
+    },
+    [108] = {
+        .name = "tp_metaclass",
+        .dtype = _PySlot_TYPE_PTR,
+        .kind = _PySlot_KIND_TYPE,
+    },
+    [109] = {
+        .name = "tp_module",
+        .dtype = _PySlot_TYPE_PTR,
+        .kind = _PySlot_KIND_TYPE,
+    },
+    [110] = {0}
 };

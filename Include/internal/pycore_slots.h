@@ -89,4 +89,8 @@ PyAPI_FUNC(int) _PySlotIterator_SetDuplicateError(_PySlotIterator *,
                                                   PySlot *,
                                                   const char *name);
 
+PyAPI_FUNC(int) _PySlotIterator_RejectNull(_PySlotIterator *,
+                                           PySlot *,
+                                           const char *name);
+
 #endif // _Py_PYCORE_SLOTS_H
