@@ -28,7 +28,7 @@ kind_name(int kind)
 }
 
 // Initialize a pre-allocated iterator.
-// On error, return -1 with exception set. (Currently doesn't happen.)
+// On error, return -1 with exception set.
 // Currently the iteration does not malloc and needs no cleanup.
 int
 _PySlotIterator_Init(_PySlotIterator *it, PySlot *slots, Py_ssize_t n_slots,
@@ -41,10 +41,24 @@ _PySlotIterator_Init(_PySlotIterator *it, PySlot *slots, Py_ssize_t n_slots,
     it->state->slot = slots;
     it->state->slot_struct_kind = _PySlot_KIND_SLOT;
     if (n_slots < 0) {
-        it->state->zero_terminated = true;
+        if (slots) {
+            it->state->zero_terminated = true;
+        }
+        else {
+            MSG("NULL slots, treating as n_slots=0");
+            it->state->remaining = 0;
+        }
     }
     else {
-        it->state->remaining = n_slots;
+        if (slots) {
+            it->state->remaining = n_slots;
+        }
+        else {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PySlot array with explicit size must not be NULL");
+            return -1;
+        }
     }
     it->kind = kind;
     return 0;
@@ -274,6 +288,17 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
         }
 
         if ((*info)->subslots) {
+            if (result->sl_ptr == NULL) {
+                if (flags & Py_SLOT_SIZED_ARRAY) {
+                    PyErr_SetString(
+                        PyExc_SystemError,
+                        "slot array with explicit size must not be NULL");
+                    return -1;
+                }
+                MSG("NULL subslots; skipping");
+                advance(it);
+                continue;
+            }
             it->recursion_level++;
             MSG("recursing into level %d", it->recursion_level);
             if (it->recursion_level >= _PySlot_MAX_NESTING) {
