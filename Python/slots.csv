@@ -112,7 +112,7 @@ id, name, kind, dtype
 70, "tp_str", type, func
 71, "tp_traverse", type, func
 72, "tp_members", type, array
-73, "tp_getset", type, func
+73, "tp_getset", type, array
 74, "tp_free", type, func
 75, "nb_matrix_multiply", type, func
 76, "nb_inplace_matrix_multiply", type, func
@@ -146,3 +146,6 @@ id, name, kind, dtype
 104, "mod_traverse", mod, func, added=3.14
 105, "mod_clear", mod, func, added=3.14
 106, "mod_free", mod, func, added=3.14
+107, "slot_invalid", slot, void
+108, "tp_metaclass", type, ptr, virtual=1, PyObject=true, added=3.14
+109, "tp_module", type, ptr, virtual=1, PyObject=true, added=3.14

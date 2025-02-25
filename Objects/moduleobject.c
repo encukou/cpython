@@ -306,7 +306,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     }
 
     _PySlotIterator it;
-    PySlot wrapper = PySlot_DATA(mod_slots, def->m_slots);
+    PySlot wrapper = PySlot_DATA(Py_mod_slots, def->m_slots);
     if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
         goto error;
     }
@@ -486,7 +486,7 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
     }
 
     _PySlotIterator it;
-    PySlot wrapper = PySlot_DATA(mod_slots, def->m_slots);
+    PySlot wrapper = PySlot_DATA(Py_mod_slots, def->m_slots);
     if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
         return -1;
     }

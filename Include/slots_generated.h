@@ -112,6 +112,9 @@
 #define Py_mod_traverse 104
 #define Py_mod_clear 105
 #define Py_mod_free 106
+#define Py_slot_invalid 107
+#define Py_tp_metaclass 108
+#define Py_tp_module 109
 
-#define _Py_slot_COUNT 107
+#define _Py_slot_COUNT 110
 #endif

@@ -75,9 +75,26 @@ int _PySlotIterator_SetDuplicateError(_PySlotIterator *it, PySlot *slot,
         "%s%s%s has multiple Py_%s (%d) slots",
         kind_name(it->kind),
         name ? " " : "",
-        name,
+        name ? name : "",
         info->name,
         id);
+    return -1;
+}
+
+
+int _PySlotIterator_RejectNull(_PySlotIterator *it, PySlot *slot,
+                               const char *name)
+{
+    uint16_t id = slot->sl_id;
+    _PySlot_Info *info = &_PySlot_InfoTable[id];
+    PyErr_Format(
+        PyExc_SystemError,
+        "Py_%s (%d) slot for %s%s%s must not be NULL",
+        info->name,
+        id,
+        kind_name(it->kind),
+        name ? " " : "",
+        name ? name : "");
     return -1;
 }
 
@@ -171,7 +188,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                 result = &it->scratch;
                 memset(result, 0, sizeof(it->scratch));
                 result->sl_id = it->state->tp_slot->slot;
-                result->sl_flags = Py_SLOT_INTPTR;
+                result->sl_flags = PySlot_INTPTR;
                 result->sl_ptr = (void*)it->state->tp_slot->pfunc;
             } break;
             case _PySlot_KIND_MOD: {
@@ -179,7 +196,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                 result = &it->scratch;
                 memset(result, 0, sizeof(it->scratch));
                 result->sl_id = it->state->mod_slot->slot;
-                result->sl_flags = Py_SLOT_INTPTR;
+                result->sl_flags = PySlot_INTPTR;
                 result->sl_ptr = (void*)it->state->mod_slot->value;
             } break;
             default: {
@@ -188,7 +205,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
         }
         uint16_t flags = result->sl_flags;
         MSG("slot %d flags 0x%x", (int)result->sl_id, (unsigned)flags);
-        if ((flags & Py_SLOT_SKIP_IF_NULL)
+        if ((flags & PySlot_SKIP_IF_NULL)
             && result->sl_ptr == NULL
             && result->sl_func == NULL
             && result->sl_size == 0
@@ -199,7 +216,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             continue;
         }
         if (it->state->ignoring_fallbacks) {
-            if (!(flags & Py_SLOT_HAS_FALLBACK)) {
+            if (!(flags & PySlot_HAS_FALLBACK)) {
                 MSG("stopping to ignore fallbacks");
                 it->state->ignoring_fallbacks = false;
             }
@@ -207,7 +224,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             continue;
         }
         if (result->sl_id >= _Py_slot_COUNT) {
-            if (flags & (Py_SLOT_OPTIONAL | Py_SLOT_HAS_FALLBACK)) {
+            if (flags & (PySlot_OPTIONAL | PySlot_HAS_FALLBACK)) {
                 MSG("skipped (unknown slot)");
                 continue;
             }
@@ -217,9 +234,9 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             return -1;
         }
         if (result->sl_id == 0) {
-            flags &= ~Py_SLOT_INTPTR;
+            flags &= ~PySlot_INTPTR;
             MSG("sentinel slot, flags %x", (unsigned)flags);
-            if (flags == Py_SLOT_OPTIONAL) {
+            if (flags == PySlot_OPTIONAL) {
                 MSG("skipped (optional sentinel)");
                 continue;
             }
@@ -276,12 +293,12 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                          kind_name(it->kind));
             return -1;
         }
-        if (flags & Py_SLOT_SIZED_ARRAY) {
+        if (flags & PySlot_SIZED_ARRAY) {
             if ((*info)->dtype != _PySlot_TYPE_ARRAY) {
                 MSG("error (array size for non-array)");
                 PyErr_Format(PyExc_SystemError,
                             "Py_%s (slot %d) is not compatible with "
-                             "Py_SLOT_SIZED_ARRAY",
+                             "PySlot_SIZED_ARRAY",
                             orig_info->name, orig_id);
                 return -1;
             }
@@ -289,7 +306,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
 
         if ((*info)->subslots) {
             if (result->sl_ptr == NULL) {
-                if (flags & Py_SLOT_SIZED_ARRAY) {
+                if (flags & PySlot_SIZED_ARRAY) {
                     PyErr_SetString(
                         PyExc_SystemError,
                         "slot array with explicit size must not be NULL");
@@ -312,14 +329,14 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             memset(it->state, 0, sizeof(_PySlotIterator_state));
             it->state->slot = result->sl_ptr;
             it->state->slot_struct_kind = (*info)->kind;
-            it->state->zero_terminated = !(flags & Py_SLOT_SIZED_ARRAY);
+            it->state->zero_terminated = !(flags & PySlot_SIZED_ARRAY);
             if (!it->state->zero_terminated) {
                 it->state->remaining = result->sl_array_size;
             }
             continue;
         }
 
-        if (flags & Py_SLOT_INTPTR) {
+        if (flags & PySlot_INTPTR) {
             MSG("casting from intptr");
             switch ((*info)->dtype) {
                 case _PySlot_TYPE_SIZE: {
@@ -337,7 +354,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             }
         }
 
-        if (flags & Py_SLOT_HAS_FALLBACK) {
+        if (flags & PySlot_HAS_FALLBACK) {
             MSG("starting to ignore fallbacks");
             it->state->ignoring_fallbacks = true;
         }
