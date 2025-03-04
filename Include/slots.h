@@ -4,10 +4,10 @@
 struct PySlot {
     uint16_t sl_id;
     uint16_t sl_flags;
-    union {
+    _Py_ANONYMOUS union {
         uint32_t sl_array_size;
     };
-    union {
+    _Py_ANONYMOUS union {
         void *sl_ptr;
         void (*sl_func)(void);
         Py_ssize_t sl_size;
