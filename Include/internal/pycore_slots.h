@@ -20,10 +20,15 @@
 #define _PySlot_KIND_COMPAT 0x10
 #define _PySlot_KIND_SLOT 0x20
 
+#define _PySlot_NULL_DEPRECATED 0
+#define _PySlot_NULL_REJECT 1
+#define _PySlot_NULL_ALLOW  2
+
 typedef struct {
     const char *name;
     uint8_t dtype;
     uint8_t kind;
+    uint8_t null_handling;  // for pointers (incl. functions)
     bool subslots :1;
     union {
         struct {
@@ -88,9 +93,5 @@ PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *, PySlot **result,
 PyAPI_FUNC(int) _PySlotIterator_SetDuplicateError(_PySlotIterator *,
                                                   PySlot *,
                                                   const char *name);
-
-PyAPI_FUNC(int) _PySlotIterator_RejectNull(_PySlotIterator *,
-                                           PySlot *,
-                                           const char *name);
 
 #endif // _Py_PYCORE_SLOTS_H

@@ -42,6 +42,16 @@ class SlotInfo:
         except KeyError:
             return default
 
+    def get_bool(self, name, default=None):
+        try:
+            value = self._d[name]
+        except KeyError:
+            return default
+        return {'true': True, 'false': False}[value]
+
+    def __repr__(self):
+        return f'<{type(self).__name__} {self._d}>'
+
     @functools.cached_property
     def added(self):
         added = self._d.get('added')
@@ -110,56 +120,76 @@ def write_c(f, slots):
     out('#include "Python.h"')
     out('#include "pycore_slots.h"   // _PySlot_Info')
     out('#include <stddef.h>         // offsetof')
+    out('#include <stdbool.h>        // true')
     out()
     out(f'_PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {{')
 
     assert len(slots) == max(slot.id for slot in slots) + 1
     for slot in slots:
-        out(f"    [{slot.id}] = {{")
-        initializers = {
-            "name": f'"{slot.name}"',
-            "dtype": f'_PySlot_TYPE_{slot.dtype.upper()}',
-            "kind": f'_PySlot_KIND_{slot.kind.upper()}',
-        }
-        match slot.kind:
-            case 'slot':
-                pass
-            case 'compat':
-                for newslot in slots:
-                    if newslot.get_int('compat') == slot.id:
-                        key = f'compat_info.{newslot.kind}_id'
-                        initializers[key] = newslot.id
-            case 'type':
-                field = slot.get('field', slot.name)
-                if not slot.get_int('virtual'):
-                    tpo = 'PyTypeObject'
-                    typeobj, subtable, tabletype = {
-                        'tp': (tpo, None, None),
-                        'mp': (tpo, 'tp_as_mapping', 'PyMappingMethods'),
-                        'nb': (tpo, 'tp_as_number', 'PyNumberMethods'),
-                        'sq': (tpo, 'tp_as_sequence', 'PySequenceMethods'),
-                        'am': (tpo, 'tp_as_async', 'PyAsyncMethods'),
-                        'bf': (tpo, 'tp_as_buffer', 'PyBufferProcs'),
-                        'ht': ('PyHeapTypeObject', None, None),
-                    }[slot.type_table]
-                    if subtable:
-                        initializers['type_info.slot_offset'] = (
-                            f'offsetof({typeobj}, {subtable})')
-                        initializers['type_info.subslot_offset'] = (
-                            f'offsetof({tabletype}, {field})')
+        try:
+            out(f"    [{slot.id}] = {{")
+            initializers = {
+                "name": f'"{slot.name}"',
+                "dtype": f'_PySlot_TYPE_{slot.dtype.upper()}',
+                "kind": f'_PySlot_KIND_{slot.kind.upper()}',
+            }
+            match slot.kind:
+                case 'slot':
+                    pass
+                case 'compat':
+                    for newslot in slots:
+                        if newslot.get_int('compat') == slot.id:
+                            key = f'compat_info.{newslot.kind}_id'
+                            initializers[key] = newslot.id
+                case 'type':
+                    field = slot.get('field', slot.name)
+                    if not slot.get_bool('virtual'):
+                        tpo = 'PyTypeObject'
+                        typeobj, subtable, tabletype = {
+                            'tp': (tpo, None, None),
+                            'mp': (tpo, 'tp_as_mapping', 'PyMappingMethods'),
+                            'nb': (tpo, 'tp_as_number', 'PyNumberMethods'),
+                            'sq': (tpo, 'tp_as_sequence', 'PySequenceMethods'),
+                            'am': (tpo, 'tp_as_async', 'PyAsyncMethods'),
+                            'bf': (tpo, 'tp_as_buffer', 'PyBufferProcs'),
+                            'ht': ('PyHeapTypeObject', None, None),
+                        }[slot.type_table]
+                        if subtable:
+                            initializers['type_info.slot_offset'] = (
+                                f'offsetof({typeobj}, {subtable})')
+                            initializers['type_info.subslot_offset'] = (
+                                f'offsetof({tabletype}, {field})')
+                        else:
+                            initializers['type_info.slot_offset'] = (
+                                f'offsetof({typeobj}, {field})')
+                            initializers['type_info.subslot_offset'] = '-1'
+                case 'mod':
+                    pass
+                case _:
+                    raise ValueError(slot.kind)
+            if slot.get_bool('subslots'):
+                initializers['subslots'] = 'true'
+            match slot.get('null'):
+                case 'reject':
+                    initializers['null_handling'] = '_PySlot_NULL_REJECT'
+                case 'allow':
+                    initializers['null_handling'] = '_PySlot_NULL_ALLOW'
+                case None:
+                    if slot.dtype in {'func', 'ptr'}:
+                        if slot.id > 92:
+                            raise ValueError(
+                                f'slot {slot.name} needs explicit NULL '
+                                + 'handling specification')
+                        initializers['null_handling'] = (
+                            '_PySlot_NULL_DEPRECATED')
                     else:
-                        initializers['type_info.slot_offset'] = (
-                            f'offsetof({typeobj}, {field})')
-                        initializers['type_info.subslot_offset'] = '-1'
-            case 'mod':
-                pass
-            case _:
-                raise ValueError(slot.kind)
-        if slot.get_int('subslots'):
-            initializers['subslots'] = 'true'
-        for name, initializer in initializers.items():
-            out(f'        .{name} = {initializer},')
-        out(f"    }},")
+                        initializers['null_handling'] = '_PySlot_NULL_ALLOW'
+            for name, initializer in initializers.items():
+                out(f'        .{name} = {initializer},')
+            out(f"    }},")
+        except Exception as e:
+            e.add_note(f'handling slot {slot}')
+            raise e
     out(f"    [{len(slots)}] = {{0}}")
     out(f"}};")
 

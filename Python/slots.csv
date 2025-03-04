@@ -31,13 +31,17 @@ id, name, kind, dtype
 #, For all types:
 #,   - 'added': Python version that added the slot *to the limited API*
 #,   - 'compat': slot number before 3.14
-#,   - 'subslots': contains an array of slots to be merged in
+#,   - 'subslots=true': contains an array of slots to be merged in
 #, For pointers:
 #,   - 'PyObject=true': This is a Python object (or NULL)
+#,   - 'null': Behavior for NULL values:
+#,      - 'reject': NULLs not allowed
+#,      - 'allow': NULLs allowed
+#,      - default is that NULL is deprecated
 #, For type slots:
 #,   - 'table': Slot table like 'nb' or 'tp'. If not specified: use the first
 #,     part of the name
-#,   - 'virtual': Does not directly correspond to a PyTypeObject (sub)field
+#,   - 'virtual=true': Does not directly correspond to a PyTypeObject (sub)field
 
 0, "slot_end", slot, void, added=3.14
 1, "bf_getbuffer/mod_create", compat, void
@@ -95,7 +99,7 @@ id, name, kind, dtype
 53, "tp_del", type, func
 54, "tp_descr_get", type, func
 55, "tp_descr_set", type, func
-56, "tp_doc", type, array
+56, "tp_doc", type, array, null=allow
 57, "tp_getattr", type, func
 58, "tp_getattro", type, func
 59, "tp_hash", type, func
@@ -122,7 +126,7 @@ id, name, kind, dtype
 80, "tp_finalize", type, func, added=3.5
 81, "am_send", type, func, added=3.10
 82, "tp_vectorcall", type, func, added=3.14
-83, "tp_token", type, ptr, added=3.14, table=ht, field=ht_token
+83, "tp_token", type, ptr, added=3.14, table=ht, field=ht_token, null=allow
 84, "mod_create", mod, func, compat=1
 85, "mod_exec", mod, func, compat=2
 86, "mod_multiple_interpreters", mod, uint64, compat=3, added=3.12
@@ -131,21 +135,21 @@ id, name, kind, dtype
 89, "bf_releasebuffer", type, func, compat=2, added=3.14
 90, "mp_ass_subscript", type, func, compat=3, added=3.14
 91, "mp_length", type, func, compat=4, added=3.14
-92, "slot_subslots", slot, array, added=3.14, subslots=1
-93, "tp_slots", type, array, virtual=1, added=3.14, subslots=1
-94, "mod_slots", mod, array, added=3.14, subslots=1
-95, "tp_name", type, array, virtual=1, added=3.14
+92, "slot_subslots", slot, array, added=3.14, subslots=true
+93, "tp_slots", type, array, virtual=true, added=3.14, subslots=true
+94, "mod_slots", mod, array, added=3.14, subslots=true
+95, "tp_name", type, array, virtual=true, added=3.14, null=reject
 96, "tp_basicsize", type, size, added=3.14
-97, "tp_extra_basicsize", type, size, virtual=1, added=3.14
+97, "tp_extra_basicsize", type, size, virtual=true, added=3.14
 98, "tp_itemsize", type, size, added=3.14
 99, "tp_flags", type, uint64, added=3.14
-100, "mod_name", mod, array, added=3.14
+100, "mod_name", mod, array, added=3.14, null=reject
 101, "mod_doc", mod, array, added=3.14
 102, "mod_size", mod, size, added=3.14
-103, "mod_methods", mod, array, added=3.14
-104, "mod_traverse", mod, func, added=3.14
-105, "mod_clear", mod, func, added=3.14
-106, "mod_free", mod, func, added=3.14
+103, "mod_methods", mod, array, added=3.14, null=reject
+104, "mod_traverse", mod, func, added=3.14, null=reject
+105, "mod_clear", mod, func, added=3.14, null=reject
+106, "mod_free", mod, func, added=3.14, null=reject
 107, "slot_invalid", slot, void
-108, "tp_metaclass", type, ptr, virtual=1, PyObject=true, added=3.14
-109, "tp_module", type, ptr, virtual=1, PyObject=true, added=3.14
+108, "tp_metaclass", type, ptr, virtual=true, PyObject=true, added=3.14, null=reject
+109, "tp_module", type, ptr, virtual=true, PyObject=true, added=3.14, null=reject

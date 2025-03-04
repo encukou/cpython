@@ -5174,7 +5174,7 @@ PyType_FromMetaclass(
         *slots = (PySlot)PySlot_SIZE(Py_tp_basicsize, spec->basicsize);
     }
     else if (spec->basicsize < 0) {
-        *slots = (PySlot)PySlot_SIZE(Py_tp_basicsize, -spec->basicsize);
+        *slots = (PySlot)PySlot_SIZE(Py_tp_extra_basicsize, -spec->basicsize);
     }
     else {
         slots++;
@@ -5262,7 +5262,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     while ((result_of_next = _PySlotIterator_Next(&it, &slot, &info)) == 1) {
         switch (slot->sl_id) {
         case Py_tp_name:
-            _PySlotIterator_RejectNull(&it, slot, name_in);
             if (name_in) {
                 _PySlotIterator_SetDuplicateError(&it, slot, name_in);
                 goto finally;
@@ -5308,7 +5307,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             break;
         case Py_tp_base:
         case Py_tp_bases:
-            _PySlotIterator_RejectNull(&it, slot, name_in);
             // Multiple base definitions are deprecated. For now,
             // the first one wins.
             // Later we may want to merge them.
@@ -5338,7 +5336,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             flags = slot->sl_int64;
             break;
         case Py_tp_metaclass:
-            _PySlotIterator_RejectNull(&it, slot, name_in);
             if (metaclass) {
                 _PySlotIterator_SetDuplicateError(&it, slot, name_in);
                 goto finally;
@@ -5646,6 +5643,12 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
         case Py_tp_bases:
         case Py_tp_doc:
         case Py_tp_token:
+        case Py_tp_basicsize:
+        case Py_tp_extra_basicsize:
+        case Py_tp_itemsize:
+        case Py_tp_flags:
+        case Py_tp_metaclass:
+        case Py_tp_module:
             /* Processed above */
             break;
         case Py_tp_members:
@@ -5675,8 +5678,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 short slot_offset = info->type_info.slot_offset;
                 short subslot_offset = info->type_info.subslot_offset;
                 if (slot_offset == 0 && subslot_offset == 0) {
-                    /* slot should have been handled specially */
-                    Py_UNREACHABLE();
+                    /* slot should have been processed above */
                 }
                 else if (subslot_offset == -1) {
                     /* Set a slot in the main PyTypeObject */
