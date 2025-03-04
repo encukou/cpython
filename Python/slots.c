@@ -82,22 +82,6 @@ int _PySlotIterator_SetDuplicateError(_PySlotIterator *it, PySlot *slot,
 }
 
 
-int _PySlotIterator_RejectNull(_PySlotIterator *it, PySlot *slot,
-                               const char *name)
-{
-    uint16_t id = slot->sl_id;
-    _PySlot_Info *info = &_PySlot_InfoTable[id];
-    PyErr_Format(
-        PyExc_SystemError,
-        "Py_%s (%d) slot for %s%s%s must not be NULL",
-        info->name,
-        id,
-        kind_name(it->kind),
-        name ? " " : "",
-        name ? name : "");
-    return -1;
-}
-
 static int unwind(_PySlotIterator *it);
 
 // Advance `it` to the next entry.
@@ -204,7 +188,8 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             } break;
         }
         uint16_t flags = result->sl_flags;
-        MSG("slot %d flags 0x%x", (int)result->sl_id, (unsigned)flags);
+        MSG("slot %d flags 0x%x @%p", (int)result->sl_id, (unsigned)flags,
+            it->state->slot);
         if ((flags & PySlot_SKIP_IF_NULL)
             && result->sl_ptr == NULL
             && result->sl_func == NULL
@@ -213,6 +198,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             )
         {
             MSG("skipped (NULL)");
+            advance(it);
             continue;
         }
         if (it->state->ignoring_fallbacks) {
@@ -221,11 +207,13 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                 it->state->ignoring_fallbacks = false;
             }
             MSG("skipped (ignoring fallbacks)");
+            advance(it);
             continue;
         }
         if (result->sl_id >= _Py_slot_COUNT) {
             if (flags & (PySlot_OPTIONAL | PySlot_HAS_FALLBACK)) {
                 MSG("skipped (unknown slot)");
+                advance(it);
                 continue;
             }
             MSG("error (unknown slot)");
@@ -238,6 +226,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             MSG("sentinel slot, flags %x", (unsigned)flags);
             if (flags == PySlot_OPTIONAL) {
                 MSG("skipped (optional sentinel)");
+                advance(it);
                 continue;
             }
             if (flags) {
@@ -306,7 +295,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
 
         if ((*info)->subslots) {
             if (result->sl_ptr == NULL) {
-                if (flags & PySlot_SIZED_ARRAY) {
+                if ((flags & PySlot_SIZED_ARRAY) && (result->sl_array_size)) {
                     PyErr_SetString(
                         PyExc_SystemError,
                         "slot array with explicit size must not be NULL");
@@ -351,6 +340,37 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                     to_scratch(&result, &it->scratch);
                     it->scratch.sl_uint64 = (intptr_t)it->scratch.sl_ptr;
                 } break;
+            }
+        }
+
+        if ((*info)->null_handling != _PySlot_NULL_ALLOW) {
+            bool is_null = false;
+            switch ((*info)->dtype) {
+                case _PySlot_TYPE_PTR:
+                case _PySlot_TYPE_ARRAY: {
+                    is_null = result->sl_ptr == NULL;
+                } break;
+                case _PySlot_TYPE_FUNC: {
+                    is_null = result->sl_func == NULL;
+                } break;
+            }
+            if (is_null) {
+                if ((*info)->null_handling == _PySlot_NULL_DEPRECATED) {
+                    if (PyErr_WarnFormat(
+                        PyExc_DeprecationWarning,
+                        1,
+                        "NULL value of slot Py_%s is deprecated",
+                        (*info)->name) < 0)
+                    {
+                        return -1;
+                    }
+                }
+                else {
+                    PyErr_Format(PyExc_SystemError,
+                                 "NULL not allowed for slot %s",
+                                 (*info)->name);
+                    return -1;
+                }
             }
         }
 
