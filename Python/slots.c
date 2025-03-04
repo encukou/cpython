@@ -282,25 +282,9 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                          kind_name(it->kind));
             return -1;
         }
-        if (flags & PySlot_SIZED_ARRAY) {
-            if ((*info)->dtype != _PySlot_TYPE_ARRAY) {
-                MSG("error (array size for non-array)");
-                PyErr_Format(PyExc_SystemError,
-                            "Py_%s (slot %d) is not compatible with "
-                             "PySlot_SIZED_ARRAY",
-                            orig_info->name, orig_id);
-                return -1;
-            }
-        }
 
         if ((*info)->subslots) {
             if (result->sl_ptr == NULL) {
-                if ((flags & PySlot_SIZED_ARRAY) && (result->sl_array_size)) {
-                    PyErr_SetString(
-                        PyExc_SystemError,
-                        "slot array with explicit size must not be NULL");
-                    return -1;
-                }
                 MSG("NULL subslots; skipping");
                 advance(it);
                 continue;
@@ -318,10 +302,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             memset(it->state, 0, sizeof(_PySlotIterator_state));
             it->state->slot = result->sl_ptr;
             it->state->slot_struct_kind = (*info)->kind;
-            it->state->zero_terminated = !(flags & PySlot_SIZED_ARRAY);
-            if (!it->state->zero_terminated) {
-                it->state->remaining = result->sl_array_size;
-            }
+            it->state->zero_terminated = true;
             continue;
         }
 
@@ -346,8 +327,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
         if ((*info)->null_handling != _PySlot_NULL_ALLOW) {
             bool is_null = false;
             switch ((*info)->dtype) {
-                case _PySlot_TYPE_PTR:
-                case _PySlot_TYPE_ARRAY: {
+                case _PySlot_TYPE_PTR: {
                     is_null = result->sl_ptr == NULL;
                 } break;
                 case _PySlot_TYPE_FUNC: {

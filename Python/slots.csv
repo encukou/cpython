@@ -17,7 +17,6 @@ id, name, kind, dtype
 #,   - name: the slot's name without "Py_"
 #,   - dtype: basic data type
 #,     - 'func'; 'ptr'; 'size'; 'uint64'; 'int64': the field of the union
-#,     - 'array': array of pointers
 #,     - 'void': value is ignored
 #,   - kind:
 #,     - 'type' is for PyTypeObject slots
@@ -99,7 +98,7 @@ id, name, kind, dtype
 53, "tp_del", type, func
 54, "tp_descr_get", type, func
 55, "tp_descr_set", type, func
-56, "tp_doc", type, array, null=allow
+56, "tp_doc", type, ptr, null=allow
 57, "tp_getattr", type, func
 58, "tp_getattro", type, func
 59, "tp_hash", type, func
@@ -107,7 +106,7 @@ id, name, kind, dtype
 61, "tp_is_gc", type, func
 62, "tp_iter", type, func
 63, "tp_iternext", type, func
-64, "tp_methods", type, array
+64, "tp_methods", type, ptr
 65, "tp_new", type, func
 66, "tp_repr", type, func
 67, "tp_richcompare", type, func
@@ -115,8 +114,8 @@ id, name, kind, dtype
 69, "tp_setattro", type, func
 70, "tp_str", type, func
 71, "tp_traverse", type, func
-72, "tp_members", type, array
-73, "tp_getset", type, array
+72, "tp_members", type, ptr
+73, "tp_getset", type, ptr
 74, "tp_free", type, func
 75, "nb_matrix_multiply", type, func
 76, "nb_inplace_matrix_multiply", type, func
@@ -135,18 +134,18 @@ id, name, kind, dtype
 89, "bf_releasebuffer", type, func, compat=2, added=3.14
 90, "mp_ass_subscript", type, func, compat=3, added=3.14
 91, "mp_length", type, func, compat=4, added=3.14
-92, "slot_subslots", slot, array, added=3.14, subslots=true
-93, "tp_slots", type, array, virtual=true, added=3.14, subslots=true
-94, "mod_slots", mod, array, added=3.14, subslots=true
-95, "tp_name", type, array, virtual=true, added=3.14, null=reject
+92, "slot_subslots", slot, ptr, added=3.14, subslots=true, null=allow
+93, "tp_slots", type, ptr, virtual=true, added=3.14, subslots=true, null=allow
+94, "mod_slots", mod, ptr, added=3.14, subslots=true, null=allow
+95, "tp_name", type, ptr, virtual=true, added=3.14, null=reject
 96, "tp_basicsize", type, size, added=3.14
 97, "tp_extra_basicsize", type, size, virtual=true, added=3.14
 98, "tp_itemsize", type, size, added=3.14
 99, "tp_flags", type, uint64, added=3.14
-100, "mod_name", mod, array, added=3.14, null=reject
-101, "mod_doc", mod, array, added=3.14
+100, "mod_name", mod, ptr, added=3.14, null=reject
+101, "mod_doc", mod, ptr, added=3.14, null=allow
 102, "mod_size", mod, size, added=3.14
-103, "mod_methods", mod, array, added=3.14, null=reject
+103, "mod_methods", mod, ptr, added=3.14, null=reject
 104, "mod_traverse", mod, func, added=3.14, null=reject
 105, "mod_clear", mod, func, added=3.14, null=reject
 106, "mod_free", mod, func, added=3.14, null=reject

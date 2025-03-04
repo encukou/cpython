@@ -13,7 +13,6 @@
 #define _PySlot_TYPE_SIZE 4
 #define _PySlot_TYPE_INT64 5
 #define _PySlot_TYPE_UINT64 6
-#define _PySlot_TYPE_ARRAY 7
 
 #define _PySlot_KIND_TYPE 1
 #define _PySlot_KIND_MOD 2
