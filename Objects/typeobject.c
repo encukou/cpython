@@ -5162,6 +5162,7 @@ PyType_FromMetaclass(
     PySlot slots_array[] = {
         PySlot_INVALID,  // space for tp_basicsize
         PySlot_DATA(Py_tp_name, spec->name),
+        {Py_tp_metaclass, PySlot_SKIP_IF_NULL, .sl_ptr=metaclass},
         {Py_tp_itemsize, PySlot_SKIP_IF_NULL, .sl_size=spec->itemsize},
         {Py_tp_module, PySlot_SKIP_IF_NULL, .sl_ptr=module},
         {Py_tp_bases, PySlot_SKIP_IF_NULL, .sl_ptr=bases_in},

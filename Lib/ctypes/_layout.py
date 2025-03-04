@@ -180,6 +180,8 @@ def get_layout(cls, input_fields, is_struct, base):
                     f'number of bits invalid for bit field {name!r}')
         else:
             is_bitfield = False
+            if not isinstance(ctype, type):
+                raise TypeError(ctype)
             type_size = ctypes.sizeof(ctype)
             bit_size = type_size * 8
 
