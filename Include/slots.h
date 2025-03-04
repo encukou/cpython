@@ -5,7 +5,7 @@ struct PySlot {
     uint16_t sl_id;
     uint16_t sl_flags;
     _Py_ANONYMOUS union {
-        uint32_t sl_array_size;
+        uint32_t sl_reserved;
     };
     _Py_ANONYMOUS union {
         void *sl_ptr;
@@ -20,8 +20,7 @@ struct PySlot {
 #define PySlot_HAS_FALLBACK 0x02
 #define PySlot_SKIP_IF_NULL 0x04
 #define PySlot_STATIC 0x08
-#define PySlot_SIZED_ARRAY 0x10
-#define PySlot_INTPTR 0x20
+#define PySlot_INTPTR 0x10
 
 #define PySlot_DATA(NAME, VALUE) \
     {.sl_id=NAME, .sl_flags=PySlot_INTPTR, .sl_ptr=(void*)(VALUE)}
@@ -52,4 +51,3 @@ struct PySlot {
     {NAME, PySlot_INTPTR | PySlot_STATIC, {0}, {(void*)VALUE}}
 
 #endif  // _Py_HAVE_SLOTS_H
-

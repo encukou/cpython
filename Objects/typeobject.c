@@ -5355,13 +5355,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 _PySlotIterator_SetDuplicateError(&it, slot, name_in);
                 goto finally;
             }
-            if (slot->sl_flags & PySlot_SIZED_ARRAY) {
-                // TODO
-                PyErr_Format(
-                    PyExc_SystemError,
-                    "PySlot_SIZED_ARRAY for tp_members is not yet supported");
-                goto finally;
-            }
             for (const PyMemberDef *memb = slot->sl_ptr; memb->name != NULL; memb++) {
                 nmembers++;
                 if (basicsize_op) {
@@ -5408,13 +5401,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 goto finally;
             }
             methods_seen = true;
-            if (slot->sl_flags & PySlot_SIZED_ARRAY) {
-                // TODO
-                PyErr_Format(
-                    PyExc_SystemError,
-                    "PySlot_SIZED_ARRAY for tp_methods is not yet supported");
-                goto finally;
-            }
             break;
         case Py_tp_getset:
             if (getset_seen) {
@@ -5422,13 +5408,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 goto finally;
             }
             getset_seen = true;
-            if (slot->sl_flags & PySlot_SIZED_ARRAY) {
-                // TODO
-                PyErr_Format(
-                    PyExc_SystemError,
-                    "PySlot_SIZED_ARRAY for tp_getset is not yet supported");
-                goto finally;
-            }
             break;
         case Py_tp_token:
             if (token_set) {
