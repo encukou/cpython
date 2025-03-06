@@ -36,6 +36,31 @@ PyTypeObject PyModuleDef_Type = {
     0,                                          /* tp_itemsize */
 };
 
+typedef PyObject *(*createfunc_type)(PyObject *, PyModuleDef*);
+typedef int (*execfunc_type)(PyObject *);
+
+/* "PyModuleDef2" is an internal subclass of PyModuleDef
+ * that contains all info directly in the struct. It should have NULL m_slots.
+ */
+
+struct PyModuleDef2 {
+    PyModuleDef m_base;
+    uint8_t m_multiple_interpreters;
+    uint8_t m_gil;
+    createfunc_type *m_create_func;
+    execfunc_type *m_exec_funcs;
+    Py_ssize_t n_exec_funcs;
+    PyObject *m_name_object;
+    PyObject *m_doc_object;
+};
+
+static PyTypeObject PyModuledef2_Type = {
+    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    .tp_name = "moduledef2",
+    .tp_basicsize = sizeof(moduledef2),
+    .tp_itemsize = 1,
+    .tp_base = &PyModuleDef_Type;
+};
 
 int
 _PyModule_IsExtension(PyObject *obj)
@@ -264,8 +289,6 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
 #endif
     return (PyObject*)m;
 }
-
-typedef PyObject *(*createfunc_type)(PyObject *, PyModuleDef*);
 
 PyObject *
 PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_version)
