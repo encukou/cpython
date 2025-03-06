@@ -105,6 +105,8 @@ struct PyModuleDef {
   freefunc m_free;
 };
 
+PyAPI_FUNC(PyObject *) PyModuleDef_FromSlots(PySlot *, Py_ssize_t);
+
 #ifdef __cplusplus
 }
 #endif
