@@ -110,6 +110,8 @@ struct PyModuleDef {
 };
 #endif  // _Py_OPAQUE_PYOBJECT
 
+PyAPI_FUNC(PyObject *) PyModuleDef_FromSlots(PySlot *, Py_ssize_t);
+
 #ifdef __cplusplus
 }
 #endif

@@ -18,6 +18,8 @@
 
 #include "osdefs.h"               // MAXPATHLEN
 
+#include <stdbool.h>              // bool
+
 
 #define _PyModule_CAST(op) \
     (assert(PyModule_Check(op)), _Py_CAST(PyModuleObject*, (op)))
@@ -43,7 +45,7 @@ typedef int (*execfunc_type)(PyObject *);
  * that contains all info directly in the struct. It should have NULL m_slots.
  */
 
-struct PyModuleDef2 {
+typedef struct {
     PyModuleDef m_base;
     uint8_t m_multiple_interpreters;
     uint8_t m_gil;
@@ -52,14 +54,15 @@ struct PyModuleDef2 {
     Py_ssize_t n_exec_funcs;
     PyObject *m_name_object;
     PyObject *m_doc_object;
-};
+} _PyModuleDef2;
 
-static PyTypeObject PyModuledef2_Type = {
+static PyTypeObject _PyModuledef2_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     .tp_name = "moduledef2",
-    .tp_basicsize = sizeof(moduledef2),
+    .tp_basicsize = sizeof(_PyModuleDef2),
     .tp_itemsize = 1,
-    .tp_base = &PyModuleDef_Type;
+    .tp_base = &PyModuleDef_Type,
+    // XXX .tp_dealloc
 };
 
 int
@@ -289,6 +292,80 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
 #endif
     return (PyObject*)m;
 }
+
+PyObject *
+PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
+{
+    PyObject *result = NULL;
+    PyObject *name_object = NULL;
+    PyObject *doc_object = NULL;
+    _PyModuleDef2 *new_def = NULL;
+
+    _PySlotIterator it;
+    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
+        goto finally;
+    }
+
+    // Count how much storage we need
+    Py_ssize_t n_execs = 0;
+    Py_ssize_t n_methoddefs = 0;
+    bool static_methoddefs = true;
+    Py_ssize_t n_methoddef_blocks = 0;
+    Py_ssize_t string_size = 0;
+
+    PySlot *cur_slot;
+    _PySlot_Info *info;
+    int result_of_next;
+    while ((result_of_next = _PySlotIterator_Next(&it, &cur_slot, &info)) == 1)
+    {
+        switch (cur_slot->sl_id) {
+            case Py_mod_exec: {
+                n_execs++;
+            }
+            break;
+            case Py_mod_methods: {
+                n_methoddef_blocks++;
+                if (!(cur_slot->sl_flags & PySlot_STATIC)) {
+                    static_methoddefs = false;
+                }
+                for (PyMethodDef *md=cur_slot->sl_ptr; md->ml_name; md++) {
+                    n_methoddefs++;
+                    if (!(cur_slot->sl_flags & PySlot_STATIC)) {
+                        string_size += strlen(md->ml_name) + 1;
+                        if (md->ml_doc) {
+                            string_size += strlen(md->ml_doc) + 1;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+    if (result_of_next < 0) {
+        goto finally;
+    }
+
+    Py_ssize_t data_size = n_execs * sizeof(execfunc_type*) + string_size;
+    if ((n_methoddef_blocks > 1) || !static_methoddefs) {
+        data_size += n_methoddefs * sizeof(PyMethodDef);
+    }
+
+    new_def = PyObject_NewVar(_PyModuleDef2, &_PyModuledef2_Type, data_size);
+
+    new_def->m_base.m_base.m_init = NULL;
+    new_def->m_base.m_base.m_index = 0;
+    new_def->m_base.m_name = PyUnicode_AsUTF8(name_object);
+    new_def->m_base.m_doc = doc_object ? PyUnicode_AsUTF8(doc_object) : NULL;
+
+    result = (PyObject*)new_def;
+    new_def = NULL;
+finally:
+    Py_XDECREF(name_object);
+    Py_XDECREF(doc_object);
+    Py_XDECREF(new_def);
+    return result;
+}
+
 
 PyObject *
 PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_version)
