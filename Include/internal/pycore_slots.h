@@ -29,6 +29,8 @@ typedef struct {
     uint8_t kind;
     uint8_t null_handling;  // for pointers (incl. functions)
     bool subslots :1;
+    bool reject_duplicates :1;
+    bool deprecate_duplicates :1;
     union {
         struct {
             /* For type slots (_PySlot_KIND_TYPE):
@@ -81,10 +83,12 @@ typedef struct {
     _PySlotIterator_state states[_PySlot_MAX_NESTING];
     uint8_t kind;
     uint8_t recursion_level;
+    unsigned int seen[_Py_slot_COUNT / sizeof(unsigned int) + 1];
 
     // Output information:
     const _PySlot_Info *info;
     PySlot current;
+    char *name;
 } _PySlotIterator;
 
 PyAPI_FUNC(int) _PySlotIterator_InitWithKind(
@@ -94,9 +98,10 @@ PyAPI_FUNC(int) _PySlotIterator_InitWithKind(
     _PySlotIterator_InitWithKind(I, S, N, K, _PySlot_KIND_SLOT)
 PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *);
 
-PyAPI_FUNC(int) _PySlotIterator_SetDuplicateError(_PySlotIterator *,
-                                                  const char *name);
+/* Raise (and return -1) if given slot is duplicate but shouldn't. */
+PyAPI_FUNC(int) _PySlotIterator_RejectDuplicate(_PySlotIterator *);
 
-PyAPI_FUNC(int) _PySlotIterator_CopyCurrentSlot(_PySlotIterator *, PySlot *dest);
+/* Return 1 if given slot was "seen" by a RejectDuplicate call. */
+PyAPI_FUNC(bool) _PySlotIterator_SawSlot(_PySlotIterator *, int);
 
 #endif // _Py_PYCORE_SLOTS_H

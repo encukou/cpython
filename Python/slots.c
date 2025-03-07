@@ -65,21 +65,51 @@ _PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
     return 0;
 }
 
-
-int _PySlotIterator_SetDuplicateError(_PySlotIterator *it,
-                                      const char *name)
+bool
+_PySlotIterator_SawSlot(_PySlotIterator *it, int id)
 {
-    uint16_t id = it->current.sl_id;
+    assert (id > 0);
+    assert (id < _Py_slot_COUNT);
+    Py_ssize_t idx = id / sizeof(unsigned int);
+    unsigned int mask = ((unsigned int)1) << (id % sizeof(unsigned int));
+    return it->seen[idx] |= mask;
+}
+
+int _PySlotIterator_RejectDuplicate(_PySlotIterator *it)
+{
     const _PySlot_Info *info = it->info;
-    PyErr_Format(
-        PyExc_SystemError,
-        "%s%s%s has multiple Py_%s (%d) slots",
-        kind_name(it->kind),
-        name ? " " : "",
-        name ? name : "",
-        info->name,
-        id);
-    return -1;
+    if (!info->reject_duplicates && !info->deprecate_duplicates) {
+        return 0;
+    }
+    uint16_t id = it->current.sl_id;
+    Py_ssize_t idx = id / sizeof(unsigned int);
+    unsigned int mask = ((unsigned int)1) << (id % sizeof(unsigned int));
+    if (it->seen[idx] & mask) {
+        if (info->reject_duplicates) {
+            PyErr_Format(
+                PyExc_SystemError,
+                "%s%s%s has multiple Py_%s (%d) slots",
+                kind_name(it->kind),
+                it->name ? " " : "",
+                it->name ? it->name : "",
+                info->name,
+                (int)it->current.sl_id);
+            return -1;
+        }
+        if (PyErr_WarnFormat(
+                PyExc_DeprecationWarning,
+                0,
+                "%s%s%s has multiple Py_%s (%d) slots. This is deprecated",
+                kind_name(it->kind),
+                it->name ? " " : "",
+                it->name ? it->name : "",
+                info->name,
+                (int)it->current.sl_id) < 0) {
+            return -1;
+        }
+    }
+    it->seen[idx] |= mask;
+    return 0;
 }
 
 
@@ -315,6 +345,8 @@ _PySlotIterator_Next(_PySlotIterator *it)
                 case _PySlot_TYPE_FUNC: {
                     is_null = result->sl_func == NULL;
                 } break;
+                default:
+                    Py_UNREACHABLE();
             }
             if (is_null) {
                 if (it->info->null_handling == _PySlot_NULL_DEPRECATED) {
