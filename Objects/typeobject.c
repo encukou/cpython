@@ -5241,16 +5241,11 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     Py_ssize_t basicsize_in = 0;
     char basicsize_op = 0;  // '+': extend; '=': set
     Py_ssize_t itemsize = 0;
-    bool itemsize_set = false;
     Py_ssize_t flags = 0;
-    bool flags_set = false;
     PyTypeObject *metaclass = NULL;
     PyObject *module = NULL;
-    bool methods_seen = false;
-    bool getset_seen = false;
     PyObject *bases_in = NULL;
     void *token = NULL;
-    bool token_set = false;
     char *res_start;
 
     _PySlotIterator it;
@@ -5259,12 +5254,11 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     }
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) > 0) {
+        if (_PySlotIterator_RejectDuplicate(&it) < 0) {
+            goto finally;
+        }
         switch (sl_id) {
         case Py_tp_name:
-            if (name_in) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
             name_in = it.current.sl_ptr;
             break;
         case Py_tp_basicsize:
@@ -5297,11 +5291,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             basicsize_in = it.current.sl_size;
             break;
         case Py_tp_itemsize:
-            if (itemsize_set) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
-            itemsize_set = true;
             itemsize = it.current.sl_size;
             break;
         case Py_tp_base:
@@ -5327,32 +5316,15 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             }
             break;
         case Py_tp_flags:
-            if (flags_set) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
-            flags_set = true;
             flags = it.current.sl_int64;
             break;
         case Py_tp_metaclass:
-            if (metaclass) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
             metaclass = it.current.sl_ptr;
             break;
         case Py_tp_module:
-            if (module) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
             module = it.current.sl_ptr;
             break;
         case Py_tp_members:
-            if (nmembers != 0) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
             for (const PyMemberDef *memb = it.current.sl_ptr; memb->name != NULL; memb++) {
                 nmembers++;
                 if (basicsize_op) {
@@ -5375,10 +5347,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             /* For the docstring slot, which usually points to a static string
                literal, we need to make a copy */
             // TODO: handle PySlot_STATIC
-            if (tp_doc != NULL) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
             if (it.current.sl_ptr == NULL) {
                 PyMem_Free(tp_doc);
                 tp_doc = NULL;
@@ -5393,26 +5361,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 memcpy(tp_doc, it.current.sl_ptr, len);
             }
             break;
-        case Py_tp_methods:
-            if (methods_seen) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
-            methods_seen = true;
-            break;
-        case Py_tp_getset:
-            if (getset_seen) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
-            getset_seen = true;
-            break;
         case Py_tp_token:
-            if (token_set) {
-                _PySlotIterator_SetDuplicateError(&it, name_in);
-                goto finally;
-            }
-            token_set = true;
             if (it.current.sl_ptr != Py_TP_USE_SPEC) {
                 token = it.current.sl_ptr;
             }

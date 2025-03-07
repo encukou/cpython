@@ -67,6 +67,15 @@ class SlotInfo:
         except KeyError:
             return self.name.partition('_')[0]
 
+    @functools.cached_property
+    def initializers_for_duplicates(self):
+        match self.get('duplicates'):
+            case 'no':
+                return {'reject_duplicates': 'true'}
+            case 'yes':
+                return {}
+        return {'deprecate_duplicates': 'true'}
+
 
 def parse_slots(lines):
     result = []
@@ -184,6 +193,7 @@ def write_c(f, slots):
                             '_PySlot_NULL_DEPRECATED')
                     else:
                         initializers['null_handling'] = '_PySlot_NULL_ALLOW'
+            initializers.update(slot.initializers_for_duplicates)
             for name, initializer in initializers.items():
                 out(f'        .{name} = {initializer},')
             out(f"    }},")

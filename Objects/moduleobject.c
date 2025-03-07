@@ -377,8 +377,6 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
 
     PySlot *current_dest_slot = new_def->m_pyslots;
 
-    bool have_size;
-
     if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
         goto finally;
     }
@@ -399,43 +397,22 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
             }
             break;
             case Py_mod_size: {
-                if (have_size) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto finally;
-                }
-                have_size = true;
                 new_def->m_base.m_size = it.current.sl_size;
             }
             break;
             case Py_mod_methods: {
-                if (new_def->m_base.m_free) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto finally;
-                }
                 new_def->m_base.m_free = (freefunc)it.current.sl_func;
             }
             break;
             case Py_mod_traverse: {
-                if (new_def->m_base.m_traverse) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto finally;
-                }
                 new_def->m_base.m_traverse = (traverseproc)it.current.sl_func;
             }
             break;
             case Py_mod_clear: {
-                if (new_def->m_base.m_clear) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto finally;
-                }
                 new_def->m_base.m_clear = (inquiry)it.current.sl_func;
             }
             break;
             case Py_mod_free: {
-                if (new_def->m_base.m_free) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto finally;
-                }
                 new_def->m_base.m_free = (freefunc)it.current.sl_func;
             }
             break;
@@ -482,9 +459,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     createfunc_p create = NULL;
     PyObject *nameobj;
     PyObject *m = NULL;
-    int has_multiple_interpreters_slot = 0;
     int multiple_interpreters = 0;
-    int has_gil_slot = 0;
     int gil_slot = (int)(intptr_t)Py_MOD_GIL_USED;
     int has_execution_slots = 0;
     const char *name;
@@ -537,32 +512,21 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) == 1)
     {
+        if (_PySlotIterator_RejectDuplicate(&it) < 0) {
+            goto error;
+        }
         switch (sl_id) {
             case Py_mod_create:
-                if (create) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto error;
-                }
                 create = (createfunc_p)it.current.sl_func;
                 break;
             case Py_mod_exec:
                 has_execution_slots = 1;
                 break;
             case Py_mod_multiple_interpreters:
-                if (has_multiple_interpreters_slot) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto error;
-                }
                 multiple_interpreters = it.current.sl_uint64;
-                has_multiple_interpreters_slot = 1;
                 break;
             case Py_mod_gil:
-                if (has_gil_slot) {
-                    _PySlotIterator_SetDuplicateError(&it, name);
-                    goto error;
-                }
                 gil_slot = it.current.sl_uint64;
-                has_gil_slot = 1;
                 break;
         }
     }
@@ -572,7 +536,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
 
     /* By default, multi-phase init modules are expected
        to work under multiple interpreters. */
-    if (!has_multiple_interpreters_slot) {
+    if (!_PySlotIterator_SawSlot(&it, Py_mod_multiple_interpreters)) {
         multiple_interpreters = (int)(intptr_t)Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
     }
     if (multiple_interpreters == (int)(intptr_t)Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED) {
