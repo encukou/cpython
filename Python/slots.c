@@ -89,32 +89,78 @@ int
 _PySlotIterator_ValidateCurrentSlot(_PySlotIterator *it)
 {
     const _PySlot_Info *info = it->info;
-    if (!info->reject_duplicates && !info->deprecate_duplicates) {
-        return 0;
-    }
     int id = it->current.sl_id;
-    if (_PySlotIterator_SawSlot(it, id)) {
-        if (info->reject_duplicates) {
-            PyErr_Format(
-                PyExc_SystemError,
-                "%s%s%s has multiple Py_%s (%d) slots",
-                kind_name(it->kind),
-                it->name ? " " : "",
-                it->name ? it->name : "",
-                info->name,
-                (int)it->current.sl_id);
-            return -1;
+
+    if (it->info->kind != it->kind) {
+        MSG("error (bad slot kind)");
+        PyErr_Format(PyExc_SystemError,
+                        "Py_%s (slot %d) is not compatible with %ss",
+                        info->name,
+                        id,
+                        kind_name(it->kind));
+        return -1;
+    }
+
+    if (it->info->null_handling != _PySlot_NULL_ALLOW) {
+        bool is_null = false;
+        switch (it->info->dtype) {
+            case _PySlot_TYPE_PTR: {
+                is_null = it->current.sl_ptr == NULL;
+            } break;
+            case _PySlot_TYPE_FUNC: {
+                is_null = it->current.sl_func == NULL;
+            } break;
+            default: {
+                Py_UNREACHABLE();
+            } break;
         }
-        if (PyErr_WarnFormat(
-                PyExc_DeprecationWarning,
-                0,
-                "%s%s%s has multiple Py_%s (%d) slots. This is deprecated.",
-                kind_name(it->kind),
-                it->name ? " " : "",
-                it->name ? it->name : "",
-                info->name,
-                (int)it->current.sl_id) < 0) {
-            return -1;
+        if (is_null) {
+            if (it->info->null_handling == _PySlot_NULL_DEPRECATED) {
+                if (PyErr_WarnFormat(
+                    PyExc_DeprecationWarning,
+                    1,
+                    "NULL value in slot Py_%s is deprecated",
+                    it->info->name) < 0)
+                {
+                    return -1;
+                }
+            }
+            else {
+                PyErr_Format(PyExc_SystemError,
+                             "NULL not allowed for slot %s",
+                             it->info->name);
+                return -1;
+            }
+        }
+    }
+
+    if (info->reject_duplicates || info->deprecate_duplicates) {
+        if (_PySlotIterator_SawSlot(it, id)) {
+            MSG("slot was seen before");
+            if (info->reject_duplicates) {
+                MSG("error (duplicate rejected)");
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "%s%s%s has multiple Py_%s (%d) slots",
+                    kind_name(it->kind),
+                    it->name ? " " : "",
+                    it->name ? it->name : "",
+                    info->name,
+                    (int)it->current.sl_id);
+                return -1;
+            }
+            MSG("deprecated duplicate");
+            if (PyErr_WarnFormat(
+                    PyExc_DeprecationWarning,
+                    0,
+                    "%s%s%s has multiple Py_%s (%d) slots. This is deprecated.",
+                    kind_name(it->kind),
+                    it->name ? " " : "",
+                    it->name ? it->name : "",
+                    info->name,
+                    (int)it->current.sl_id) < 0) {
+                return -1;
+            }
         }
     }
     it->seen[seen_index(id)] |= seen_mask(id);
@@ -302,16 +348,6 @@ _PySlotIterator_Next(_PySlotIterator *it)
             MSG("slot %d: %s", (int)result->sl_id, it->info->name);
         }
 
-        if ((it->info->kind != it->kind) && (result->sl_id != Py_slot_subslots)) {
-            MSG("error (bad slot kind)");
-            PyErr_Format(PyExc_SystemError,
-                         "Py_%s (slot %d) is not compatible with %ss",
-                         orig_info->name,
-                         orig_id,
-                         kind_name(it->kind));
-            return -1;
-        }
-
         if (it->info->subslots) {
             if (result->sl_ptr == NULL) {
                 MSG("NULL subslots; skipping");
@@ -347,38 +383,11 @@ _PySlotIterator_Next(_PySlotIterator *it)
                 case _PySlot_TYPE_UINT64: {
                     result->sl_uint64 = (uint64_t)(intptr_t)result->sl_ptr;
                 } break;
-            }
-        }
-
-        if (it->info->null_handling != _PySlot_NULL_ALLOW) {
-            bool is_null = false;
-            switch (it->info->dtype) {
-                case _PySlot_TYPE_PTR: {
-                    is_null = result->sl_ptr == NULL;
-                } break;
-                case _PySlot_TYPE_FUNC: {
-                    is_null = result->sl_func == NULL;
-                } break;
+                case _PySlot_TYPE_PTR:
+                case _PySlot_TYPE_FUNC:
+                    break;
                 default:
                     Py_UNREACHABLE();
-            }
-            if (is_null) {
-                if (it->info->null_handling == _PySlot_NULL_DEPRECATED) {
-                    if (PyErr_WarnFormat(
-                        PyExc_DeprecationWarning,
-                        1,
-                        "NULL value of slot Py_%s is deprecated",
-                        it->info->name) < 0)
-                    {
-                        return -1;
-                    }
-                }
-                else {
-                    PyErr_Format(PyExc_SystemError,
-                                 "NULL not allowed for slot %s",
-                                 it->info->name);
-                    return -1;
-                }
             }
         }
 
