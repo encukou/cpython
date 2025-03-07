@@ -79,18 +79,24 @@ typedef struct {
 typedef struct {
     _PySlotIterator_state *state;
     _PySlotIterator_state states[_PySlot_MAX_NESTING];
-    PySlot scratch;
     uint8_t kind;
     uint8_t recursion_level;
+
+    // Output information:
+    const _PySlot_Info *info;
+    PySlot current;
 } _PySlotIterator;
 
-PyAPI_FUNC(int) _PySlotIterator_Init(
-    _PySlotIterator *, PySlot*, Py_ssize_t n_slots, int kind);
-PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *, PySlot **result,
-                                     _PySlot_Info **info);
+PyAPI_FUNC(int) _PySlotIterator_InitWithKind(
+    _PySlotIterator *, PySlot*, Py_ssize_t n_slots,
+    int result_kind, int slot_struct_kind);
+#define _PySlotIterator_Init(I, S, N, K) \
+    _PySlotIterator_InitWithKind(I, S, N, K, _PySlot_KIND_SLOT)
+PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *);
 
 PyAPI_FUNC(int) _PySlotIterator_SetDuplicateError(_PySlotIterator *,
-                                                  PySlot *,
                                                   const char *name);
+
+PyAPI_FUNC(int) _PySlotIterator_CopyCurrentSlot(_PySlotIterator *, PySlot *dest);
 
 #endif // _Py_PYCORE_SLOTS_H

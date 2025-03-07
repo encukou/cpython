@@ -5233,8 +5233,6 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
      * if that would cause trouble (leaks, UB, ...), raise an exception.
      */
 
-    PySlot *slot;
-    _PySlot_Info *info;
     Py_ssize_t nmembers = 0;
     const PyMemberDef *weaklistoffset_member = NULL;
     const PyMemberDef *dictoffset_member = NULL;
@@ -5259,18 +5257,18 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_TYPE) < 0) {
         goto finally;
     }
-    int result_of_next;
-    while ((result_of_next = _PySlotIterator_Next(&it, &slot, &info)) == 1) {
-        switch (slot->sl_id) {
+    int sl_id;
+    while ((sl_id = _PySlotIterator_Next(&it)) > 0) {
+        switch (sl_id) {
         case Py_tp_name:
             if (name_in) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
-            name_in = slot->sl_ptr;
+            name_in = it.current.sl_ptr;
             break;
         case Py_tp_basicsize:
-            if (slot->sl_size <= 0) {
+            if (it.current.sl_size <= 0) {
                 PyErr_Format(
                     PyExc_SystemError,
                     "type%s%s: Py_tp_basicsize must be positive",
@@ -5279,7 +5277,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             }
             _Py_FALLTHROUGH;
         case Py_tp_extra_basicsize:
-            if (slot->sl_size < 0) {
+            if (it.current.sl_size < 0) {
                 PyErr_Format(
                     PyExc_SystemError,
                     "type%s%s: Py_tp_extra_basicsize must not be negative",
@@ -5295,16 +5293,16 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                     name_in ? name_in : "");
                 goto finally;
             }
-            basicsize_op = (slot->sl_id == Py_tp_basicsize) ? '=' : '+';
-            basicsize_in = slot->sl_size;
+            basicsize_op = (sl_id == Py_tp_basicsize) ? '=' : '+';
+            basicsize_in = it.current.sl_size;
             break;
         case Py_tp_itemsize:
             if (itemsize_set) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
             itemsize_set = true;
-            itemsize = slot->sl_size;
+            itemsize = it.current.sl_size;
             break;
         case Py_tp_base:
         case Py_tp_bases:
@@ -5325,37 +5323,37 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                 }
             }
             else {
-                bases_in = slot->sl_ptr;
+                bases_in = it.current.sl_ptr;
             }
             break;
         case Py_tp_flags:
             if (flags_set) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
             flags_set = true;
-            flags = slot->sl_int64;
+            flags = it.current.sl_int64;
             break;
         case Py_tp_metaclass:
             if (metaclass) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
-            metaclass = slot->sl_ptr;
+            metaclass = it.current.sl_ptr;
             break;
         case Py_tp_module:
             if (module) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
-            module = slot->sl_ptr;
+            module = it.current.sl_ptr;
             break;
         case Py_tp_members:
             if (nmembers != 0) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
-            for (const PyMemberDef *memb = slot->sl_ptr; memb->name != NULL; memb++) {
+            for (const PyMemberDef *memb = it.current.sl_ptr; memb->name != NULL; memb++) {
                 nmembers++;
                 if (basicsize_op) {
                     if (check_member(memb, basicsize_op, basicsize_in) < 0) {
@@ -5378,45 +5376,45 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
                literal, we need to make a copy */
             // TODO: handle PySlot_STATIC
             if (tp_doc != NULL) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
-            if (slot->sl_ptr == NULL) {
+            if (it.current.sl_ptr == NULL) {
                 PyMem_Free(tp_doc);
                 tp_doc = NULL;
             }
             else {
-                size_t len = strlen(slot->sl_ptr)+1;
+                size_t len = strlen(it.current.sl_ptr)+1;
                 tp_doc = PyMem_Malloc(len);
                 if (tp_doc == NULL) {
                     PyErr_NoMemory();
                     goto finally;
                 }
-                memcpy(tp_doc, slot->sl_ptr, len);
+                memcpy(tp_doc, it.current.sl_ptr, len);
             }
             break;
         case Py_tp_methods:
             if (methods_seen) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
             methods_seen = true;
             break;
         case Py_tp_getset:
             if (getset_seen) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
             getset_seen = true;
             break;
         case Py_tp_token:
             if (token_set) {
-                _PySlotIterator_SetDuplicateError(&it, slot, name_in);
+                _PySlotIterator_SetDuplicateError(&it, name_in);
                 goto finally;
             }
             token_set = true;
-            if (slot->sl_ptr != Py_TP_USE_SPEC) {
-                token = slot->sl_ptr;
+            if (it.current.sl_ptr != Py_TP_USE_SPEC) {
+                token = it.current.sl_ptr;
             }
             else if (!spec_for_token) {
                 PyErr_Format(
@@ -5430,7 +5428,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             break;
         }
     }
-    if (result_of_next < 0) {
+    if (sl_id < 0) {
         goto finally;
     }
 
@@ -5617,8 +5615,8 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_TYPE) < 0) {
         goto finally;
     }
-    while ((result_of_next = _PySlotIterator_Next(&it, &slot, &info)) == 1) {
-        switch (slot->sl_id) {
+    while ((sl_id = _PySlotIterator_Next(&it)) > 0) {
+        switch (it.current.sl_id) {
         case Py_tp_base:
         case Py_tp_bases:
         case Py_tp_doc:
@@ -5635,7 +5633,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
             {
                 /* Move the slots to the heap type itself */
                 size_t len = Py_TYPE(type)->tp_itemsize * nmembers;
-                memcpy(_PyHeapType_GET_MEMBERS(res), slot->sl_ptr, len);
+                memcpy(_PyHeapType_GET_MEMBERS(res), it.current.sl_ptr, len);
                 type->tp_members = _PyHeapType_GET_MEMBERS(res);
                 PyMemberDef *memb;
                 Py_ssize_t i;
@@ -5655,24 +5653,24 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
         default:
             {
                 /* Copy other slots directly */
-                short slot_offset = info->type_info.slot_offset;
-                short subslot_offset = info->type_info.subslot_offset;
+                short slot_offset = it.info->type_info.slot_offset;
+                short subslot_offset = it.info->type_info.subslot_offset;
                 if (slot_offset == 0 && subslot_offset == 0) {
                     /* slot should have been processed above */
                 }
                 else if (subslot_offset == -1) {
                     /* Set a slot in the main PyTypeObject */
-                    *(void**)((char*)res_start + slot_offset) = slot->sl_func;
+                    *(void**)((char*)res_start + slot_offset) = it.current.sl_func;
                 }
                 else {
                     void *procs = *(void**)((char*)res_start + slot_offset);
-                    *(void**)((char*)procs + subslot_offset) = slot->sl_func;
+                    *(void**)((char*)procs + subslot_offset) = it.current.sl_func;
                 }
             }
             break;
         }
     }
-    if (result_of_next < 0) {
+    if (sl_id < 0) {
         goto finally;
     }
     if (type->tp_dealloc == NULL) {

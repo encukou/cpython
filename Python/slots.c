@@ -31,15 +31,16 @@ kind_name(int kind)
 // On error, return -1 with exception set.
 // Currently the iteration does not malloc and needs no cleanup.
 int
-_PySlotIterator_Init(_PySlotIterator *it, PySlot *slots, Py_ssize_t n_slots,
-                     int kind)
+_PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
+                             Py_ssize_t n_slots,
+                             int result_kind, int slot_struct_kind)
 {
     MSG("");
     MSG("init (%s slot iterator, size %d)", kind_name(kind), (int)n_slots);
     memset(it, 0, sizeof(_PySlotIterator));
     it->state = it->states;
     it->state->slot = slots;
-    it->state->slot_struct_kind = _PySlot_KIND_SLOT;
+    it->state->slot_struct_kind = slot_struct_kind;
     if (n_slots < 0) {
         if (slots) {
             it->state->zero_terminated = true;
@@ -60,16 +61,16 @@ _PySlotIterator_Init(_PySlotIterator *it, PySlot *slots, Py_ssize_t n_slots,
             return -1;
         }
     }
-    it->kind = kind;
+    it->kind = result_kind;
     return 0;
 }
 
 
-int _PySlotIterator_SetDuplicateError(_PySlotIterator *it, PySlot *slot,
+int _PySlotIterator_SetDuplicateError(_PySlotIterator *it,
                                       const char *name)
 {
-    uint16_t id = slot->sl_id;
-    _PySlot_Info *info = &_PySlot_InfoTable[id];
+    uint16_t id = it->current.sl_id;
+    const _PySlot_Info *info = it->info;
     PyErr_Format(
         PyExc_SystemError,
         "%s%s%s has multiple Py_%s (%d) slots",
@@ -124,31 +125,17 @@ unwind(_PySlotIterator *it)
     return advance(it);
 }
 
-// Copy a slot to scratch space. Call this before modifying the slot.
-static void
-to_scratch(PySlot **result, PySlot *scratch)
-{
-    if (*result != scratch) {
-    MSG("to_scratch");
-        memcpy(scratch, *result, sizeof(PySlot));
-        *result = scratch;
-    }
-}
-
-// Get the next slot in the iteartor, and its slot info.
-// Return 0 if there are no more entries, 1 if there are.
+// Get the next slot in the iterator, and set to the info.
+// Return 0 if there are no more entries, the slot ID if there are.
 // On error, return -1 with exception set.
 int
-_PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info)
+_PySlotIterator_Next(_PySlotIterator *it)
 {
     MSG("next");
     assert(it);
-    assert(p_result);
-    assert(info);
 
-    *p_result = NULL;
+    it->current.sl_id = -1;
 
-    PySlot *result = NULL;
     while (true) {
         if (!it->state->zero_terminated) {
             MSG("slots remaining: %d", (int)it->state->remaining);
@@ -165,28 +152,27 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
         switch (it->state->slot_struct_kind) {
             case _PySlot_KIND_SLOT: {
                 MSG("PySlot structure");
-                result = it->state->slot;
+                it->current = *it->state->slot;  /* struct copy */
             } break;
             case _PySlot_KIND_TYPE: {
                 MSG("type slot structure");
-                result = &it->scratch;
-                memset(result, 0, sizeof(it->scratch));
-                result->sl_id = it->state->tp_slot->slot;
-                result->sl_flags = PySlot_INTPTR;
-                result->sl_ptr = (void*)it->state->tp_slot->pfunc;
+                memset(&it->current, 0, sizeof(it->current));
+                it->current.sl_id = it->state->tp_slot->slot;
+                it->current.sl_flags = PySlot_INTPTR;
+                it->current.sl_ptr = (void*)it->state->tp_slot->pfunc;
             } break;
             case _PySlot_KIND_MOD: {
                 MSG("module slot structure");
-                result = &it->scratch;
-                memset(result, 0, sizeof(it->scratch));
-                result->sl_id = it->state->mod_slot->slot;
-                result->sl_flags = PySlot_INTPTR;
-                result->sl_ptr = (void*)it->state->mod_slot->value;
+                memset(&it->current, 0, sizeof(it->current));
+                it->current.sl_id = it->state->mod_slot->slot;
+                it->current.sl_flags = PySlot_INTPTR;
+                it->current.sl_ptr = (void*)it->state->mod_slot->value;
             } break;
             default: {
                 Py_UNREACHABLE();
             } break;
         }
+        PySlot *const result = &it->current;
         uint16_t flags = result->sl_flags;
         MSG("slot %d flags 0x%x @%p", (int)result->sl_id, (unsigned)flags,
             it->state->slot);
@@ -248,32 +234,31 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             }
             continue;
         }
-        *info = &_PySlot_InfoTable[result->sl_id];
-        MSG("slot %d: %s", (int)result->sl_id, (*info)->name);
+        it->info = &_PySlot_InfoTable[result->sl_id];
+        MSG("slot %d: %s", (int)result->sl_id, it->info->name);
 
         // Resolve a legacy ambiguous slot number
         // Save the original slot definition for error messages.
         uint16_t orig_id = result->sl_id;
         _PySlot_Info *orig_info = &_PySlot_InfoTable[result->sl_id];
-        if ((*info)->kind == _PySlot_KIND_COMPAT) {
+        if (it->info->kind == _PySlot_KIND_COMPAT) {
             MSG("resolving compat slot");
-            to_scratch(&result, &it->scratch);
             switch (it->kind) {
                 case _PySlot_KIND_TYPE: {
-                    result->sl_id = (*info)->compat_info.type_id;
+                    result->sl_id = it->info->compat_info.type_id;
                 } break;
                 case _PySlot_KIND_MOD: {
-                    result->sl_id = (*info)->compat_info.mod_id;
+                    result->sl_id = it->info->compat_info.mod_id;
                 } break;
                 default: {
                     Py_UNREACHABLE();
                 } break;
             }
-            (*info) = &_PySlot_InfoTable[result->sl_id];
-            MSG("slot %d: %s", (int)result->sl_id, (*info)->name);
+            it->info = &_PySlot_InfoTable[result->sl_id];
+            MSG("slot %d: %s", (int)result->sl_id, it->info->name);
         }
 
-        if (((*info)->kind != it->kind) && (result->sl_id != Py_slot_subslots)) {
+        if ((it->info->kind != it->kind) && (result->sl_id != Py_slot_subslots)) {
             MSG("error (bad slot kind)");
             PyErr_Format(PyExc_SystemError,
                          "Py_%s (slot %d) is not compatible with %ss",
@@ -283,7 +268,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             return -1;
         }
 
-        if ((*info)->subslots) {
+        if (it->info->subslots) {
             if (result->sl_ptr == NULL) {
                 MSG("NULL subslots; skipping");
                 advance(it);
@@ -301,32 +286,29 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             it->state = &it->states[it->recursion_level];
             memset(it->state, 0, sizeof(_PySlotIterator_state));
             it->state->slot = result->sl_ptr;
-            it->state->slot_struct_kind = (*info)->kind;
+            it->state->slot_struct_kind = it->info->kind;
             it->state->zero_terminated = true;
             continue;
         }
 
         if (flags & PySlot_INTPTR) {
             MSG("casting from intptr");
-            switch ((*info)->dtype) {
+            switch (it->info->dtype) {
                 case _PySlot_TYPE_SIZE: {
-                    to_scratch(&result, &it->scratch);
-                    it->scratch.sl_size = (intptr_t)it->scratch.sl_ptr;
+                    result->sl_size = (Py_ssize_t)(intptr_t)result->sl_ptr;
                 } break;
                 case _PySlot_TYPE_INT64: {
-                    to_scratch(&result, &it->scratch);
-                    it->scratch.sl_int64 = (intptr_t)it->scratch.sl_ptr;
+                    result->sl_int64 = (int64_t)(intptr_t)result->sl_ptr;
                 } break;
                 case _PySlot_TYPE_UINT64: {
-                    to_scratch(&result, &it->scratch);
-                    it->scratch.sl_uint64 = (intptr_t)it->scratch.sl_ptr;
+                    result->sl_uint64 = (uint64_t)(intptr_t)result->sl_ptr;
                 } break;
             }
         }
 
-        if ((*info)->null_handling != _PySlot_NULL_ALLOW) {
+        if (it->info->null_handling != _PySlot_NULL_ALLOW) {
             bool is_null = false;
-            switch ((*info)->dtype) {
+            switch (it->info->dtype) {
                 case _PySlot_TYPE_PTR: {
                     is_null = result->sl_ptr == NULL;
                 } break;
@@ -335,12 +317,12 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                 } break;
             }
             if (is_null) {
-                if ((*info)->null_handling == _PySlot_NULL_DEPRECATED) {
+                if (it->info->null_handling == _PySlot_NULL_DEPRECATED) {
                     if (PyErr_WarnFormat(
                         PyExc_DeprecationWarning,
                         1,
                         "NULL value of slot Py_%s is deprecated",
-                        (*info)->name) < 0)
+                        it->info->name) < 0)
                     {
                         return -1;
                     }
@@ -348,7 +330,7 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
                 else {
                     PyErr_Format(PyExc_SystemError,
                                  "NULL not allowed for slot %s",
-                                 (*info)->name);
+                                 it->info->name);
                     return -1;
                 }
             }
@@ -359,10 +341,11 @@ _PySlotIterator_Next(_PySlotIterator *it, PySlot **p_result, _PySlot_Info **info
             it->state->ignoring_fallbacks = true;
         }
 
-        *p_result = result;
         advance(it);
-        MSG("result: %d (%s)", (int)result->sl_id, (*info)->name);
-        return 1;
+        MSG("result: %d (%s)", (int)result->sl_id, it->info->name);
+        assert (result->sl_id > 0);
+        assert (result->sl_id <= INT_MAX);
+        return (int)result->sl_id;
     }
     Py_UNREACHABLE ();
 }
