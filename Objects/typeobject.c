@@ -5254,7 +5254,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     }
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) > 0) {
-        if (_PySlotIterator_RejectDuplicate(&it) < 0) {
+        if (_PySlotIterator_ValidateCurrentSlot(&it) < 0) {
             goto finally;
         }
         switch (sl_id) {

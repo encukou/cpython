@@ -310,6 +310,9 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) > 0)
     {
+        if (_PySlotIterator_ValidateCurrentSlot(&it) < 0) {
+            goto finally;
+        }
         if (sl_id == Py_mod_name) {
             name_object = PyUnicode_FromString(it.current.sl_ptr);
             if (!name_object) {
@@ -512,7 +515,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) == 1)
     {
-        if (_PySlotIterator_RejectDuplicate(&it) < 0) {
+        if (_PySlotIterator_ValidateCurrentSlot(&it) < 0) {
             goto error;
         }
         switch (sl_id) {

@@ -31,6 +31,7 @@ typedef struct {
     bool subslots :1;
     bool reject_duplicates :1;
     bool deprecate_duplicates :1;
+    bool is_name :1;
     union {
         struct {
             /* For type slots (_PySlot_KIND_TYPE):
@@ -99,7 +100,7 @@ PyAPI_FUNC(int) _PySlotIterator_InitWithKind(
 PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *);
 
 /* Raise (and return -1) if given slot is duplicate but shouldn't. */
-PyAPI_FUNC(int) _PySlotIterator_RejectDuplicate(_PySlotIterator *);
+PyAPI_FUNC(int) _PySlotIterator_ValidateCurrentSlot(_PySlotIterator *);
 
 /* Return 1 if given slot was "seen" by a RejectDuplicate call. */
 PyAPI_FUNC(bool) _PySlotIterator_SawSlot(_PySlotIterator *, int);
