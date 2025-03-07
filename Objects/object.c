@@ -2540,6 +2540,7 @@ static PyTypeObject* static_types[] = {
     &_PyManagedBuffer_Type,
     &_PyMemoryIter_Type,
     &_PyMethodWrapper_Type,
+    &_PyModuleDef2_Type,
     &_PyNamespace_Type,
     &_PyNone_Type,
     &_PyNotImplemented_Type,

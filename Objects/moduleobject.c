@@ -38,29 +38,27 @@ PyTypeObject PyModuleDef_Type = {
     0,                                          /* tp_itemsize */
 };
 
-typedef PyObject *(*createfunc_type)(PyObject *, PyModuleDef*);
-typedef int (*execfunc_type)(PyObject *);
+typedef PyObject *(*createfunc_p)(PyObject *, PyModuleDef*);
+typedef int (*execfunc_p)(PyObject *);
 
 /* "PyModuleDef2" is an internal subclass of PyModuleDef
- * that contains all info directly in the struct. It should have NULL m_slots.
+ * that has a copy of all info (i.e. it might not be static).
+ * It should have NULL m_slots.
  */
 
 typedef struct {
     PyModuleDef m_base;
-    uint8_t m_multiple_interpreters;
-    uint8_t m_gil;
-    createfunc_type *m_create_func;
-    execfunc_type *m_exec_funcs;
-    Py_ssize_t n_exec_funcs;
     PyObject *m_name_object;
     PyObject *m_doc_object;
+    Py_ssize_t n_pyslots;
+    PySlot m_pyslots[];
 } _PyModuleDef2;
 
-static PyTypeObject _PyModuledef2_Type = {
+PyTypeObject _PyModuleDef2_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     .tp_name = "moduledef2",
     .tp_basicsize = sizeof(_PyModuleDef2),
-    .tp_itemsize = 1,
+    .tp_itemsize = sizeof(PySlot),
     .tp_base = &PyModuleDef_Type,
     // XXX .tp_dealloc
 };
@@ -307,36 +305,44 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
     }
 
     // Count how much storage we need
-    Py_ssize_t n_execs = 0;
-    Py_ssize_t n_methoddefs = 0;
-    bool static_methoddefs = true;
-    Py_ssize_t n_methoddef_blocks = 0;
-    Py_ssize_t string_size = 0;
+    Py_ssize_t needed_slots = 0;
 
     PySlot *cur_slot;
     _PySlot_Info *info;
     int result_of_next;
     while ((result_of_next = _PySlotIterator_Next(&it, &cur_slot, &info)) == 1)
     {
+        if (cur_slot->sl_id == Py_mod_name) {
+            name_object = PyUnicode_FromString(cur_slot->sl_ptr);
+            if (!name_object) {
+                goto finally;
+            }
+            continue;
+        }
+        if (!(cur_slot->sl_flags & PySlot_STATIC)) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyModuleDef_FromSlots: slots must be static");
+            goto finally;
+        }
         switch (cur_slot->sl_id) {
-            case Py_mod_exec: {
-                n_execs++;
+            case Py_mod_name: {
+                name_object = PyUnicode_FromString(cur_slot->sl_ptr);
+                if (!name_object) {
+                    goto finally;
+                }
             }
             break;
-            case Py_mod_methods: {
-                n_methoddef_blocks++;
-                if (!(cur_slot->sl_flags & PySlot_STATIC)) {
-                    static_methoddefs = false;
-                }
-                for (PyMethodDef *md=cur_slot->sl_ptr; md->ml_name; md++) {
-                    n_methoddefs++;
-                    if (!(cur_slot->sl_flags & PySlot_STATIC)) {
-                        string_size += strlen(md->ml_name) + 1;
-                        if (md->ml_doc) {
-                            string_size += strlen(md->ml_doc) + 1;
-                        }
-                    }
-                }
+            case Py_mod_doc:
+            case Py_mod_size:
+            case Py_mod_methods:
+            case Py_mod_traverse:
+            case Py_mod_clear:
+            case Py_mod_free:
+                /* do nothing */
+                break;
+            default: {
+                n_slots++;
             }
             break;
         }
@@ -345,17 +351,122 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
         goto finally;
     }
 
-    Py_ssize_t data_size = n_execs * sizeof(execfunc_type*) + string_size;
-    if ((n_methoddef_blocks > 1) || !static_methoddefs) {
-        data_size += n_methoddefs * sizeof(PyMethodDef);
+    if (!name_object) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyModuleDef_FromSlots: no Py_mod_name slot found");
+        goto finally;
+    }
+    const char *name = PyUnicode_AsUTF8(name_object);
+    if (!name) {
+        goto finally;
     }
 
-    new_def = PyObject_NewVar(_PyModuleDef2, &_PyModuledef2_Type, data_size);
+    Py_ssize_t data_size = needed_slots * sizeof(PySlot);
+
+    new_def = PyObject_NewVar(_PyModuleDef2, &_PyModuleDef2_Type, data_size);
+    if (!new_def) {
+        goto finally;
+    }
+    memset(((char*)new_def) + sizeof(PyObject),
+           0,
+           sizeof(_PyModuleDef2) + data_size - sizeof(PyObject));
 
     new_def->m_base.m_base.m_init = NULL;
-    new_def->m_base.m_base.m_index = 0;
-    new_def->m_base.m_name = PyUnicode_AsUTF8(name_object);
-    new_def->m_base.m_doc = doc_object ? PyUnicode_AsUTF8(doc_object) : NULL;
+    new_def->m_base.m_base.m_index = _PyImport_GetNextModuleIndex();
+    new_def->m_base.m_name = name;
+    new_def->m_name_object = Py_NewRef(name_object);
+
+    PySlot *current_dest_slot = new_def->m_pyslots;
+
+    bool have_size;
+
+    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
+        goto finally;
+    }
+    while ((result_of_next = _PySlotIterator_Next(&it, &cur_slot, &info)) == 1)
+    {
+        switch (cur_slot->sl_id) {
+            case Py_mod_name:
+                break;
+            case Py_mod_doc: {
+                new_def->m_doc_object = PyUnicode_FromString(cur_slot->sl_ptr);
+                if (!new_def->m_doc_object) {
+                    goto finally;
+                }
+                new_def->m_base.m_doc = PyUnicode_AsUTF8(new_def->m_doc_object);
+                if (!new_def->m_base.m_doc) {
+                    goto finally;
+                }
+            }
+            break;
+            case Py_mod_size: {
+                if (have_size) {
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto finally;
+                }
+                have_size = true;
+                new_def->m_base.m_size = cur_slot->sl_size;
+            }
+            break;
+            case Py_mod_methods: {
+                if (new_def->m_base.m_free) {
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto finally;
+                }
+                new_def->m_base.m_free = (freefunc)cur_slot->sl_func;
+            }
+            break;
+            case Py_mod_traverse: {
+                if (new_def->m_base.m_traverse) {
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto finally;
+                }
+                new_def->m_base.m_traverse = (traverseproc)cur_slot->sl_func;
+            }
+            break;
+            case Py_mod_clear: {
+                if (new_def->m_base.m_clear) {
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto finally;
+                }
+                new_def->m_base.m_clear = (inquiry)cur_slot->sl_func;
+            }
+            break;
+            case Py_mod_free: {
+                if (new_def->m_base.m_free) {
+                    _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
+                    goto finally;
+                }
+                new_def->m_base.m_free = (freefunc)cur_slot->sl_func;
+            }
+            break;
+            default: {
+                if (!(cur_slot->sl_flags & PySlot_STATIC)) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "PyModuleDef_FromSlots: slot %s must be static",
+                        info->name);
+                    goto finally;
+                }
+                new_def->n_pyslots++;
+                if (new_def->n_pyslots > needed_slots) {
+                    /* We're storing more slots than we have space for.
+                     * Either the slots have changed since we counted,
+                     * or the two `switch`es don't have the same `case`s.
+                     */
+                    PyErr_SetString(
+                        PyExc_SystemError,
+                        "PyModuleDef_FromSlots: number of slots changed");
+                    goto finally;
+                }
+                *(current_dest_slot++) = *cur_slot; /* struct copy */
+            }
+        }
+    }
+    if (result_of_next < 0) {
+        goto finally;
+    }
 
     result = (PyObject*)new_def;
     new_def = NULL;
@@ -370,7 +481,7 @@ finally:
 PyObject *
 PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_version)
 {
-    createfunc_type create = NULL;
+    createfunc_p create = NULL;
     PyObject *nameobj;
     PyObject *m = NULL;
     int has_multiple_interpreters_slot = 0;
@@ -405,9 +516,24 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         goto error;
     }
 
+    PySlot _wrapper;
+    PySlot *slots;
+    Py_ssize_t n_slots;
+    _PyModuleDef2 *def2 = NULL;
+    if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
+        assert (def->m_slots == NULL);
+        def2 = (_PyModuleDef2*)def;
+        slots = def2->m_pyslots;
+        n_slots = def2->n_pyslots;
+    }
+    else {
+        _wrapper = (PySlot)PySlot_DATA(Py_mod_slots, def->m_slots);
+        slots = &_wrapper;
+        n_slots = 1;
+    }
+
     _PySlotIterator it;
-    PySlot wrapper = PySlot_DATA(Py_mod_slots, def->m_slots);
-    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
+    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
         goto error;
     }
     PySlot *cur_slot;
@@ -421,7 +547,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
                     _PySlotIterator_SetDuplicateError(&it, cur_slot, name);
                     goto error;
                 }
-                create = (createfunc_type)cur_slot->sl_func;
+                create = (createfunc_p)cur_slot->sl_func;
                 break;
             case Py_mod_exec:
                 has_execution_slots = 1;
@@ -527,10 +653,19 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         }
     }
 
-    if (def->m_doc != NULL) {
-        ret = PyModule_SetDocString(m, def->m_doc);
-        if (ret != 0) {
-            goto error;
+    if (def2) {
+        if (def2->m_doc_object != NULL) {
+            if (PyObject_SetAttr(m, &_Py_ID(__doc__), def2->m_doc_object) < 0) {
+                goto error;
+            }
+        }
+    }
+    else {
+        if (def->m_doc != NULL) {
+            ret = PyModule_SetDocString(m, def->m_doc);
+            if (ret != 0) {
+                goto error;
+            }
         }
     }
 
@@ -585,9 +720,25 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         return 0;
     }
 
+    /* XXX this is duplicated */
+    PySlot _wrapper;
+    PySlot *slots;
+    Py_ssize_t n_slots;
+    _PyModuleDef2 *def2 = NULL;
+    if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
+        assert (def->m_slots == NULL);
+        def2 = (_PyModuleDef2*)def;
+        slots = def2->m_pyslots;
+        n_slots = def2->n_pyslots;
+    }
+    else {
+        _wrapper = (PySlot)PySlot_DATA(Py_mod_slots, def->m_slots);
+        slots = &_wrapper;
+        n_slots = 1;
+    }
+
     _PySlotIterator it;
-    PySlot wrapper = PySlot_DATA(Py_mod_slots, def->m_slots);
-    if (_PySlotIterator_Init(&it, &wrapper, 1, _PySlot_KIND_MOD) < 0) {
+    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
         return -1;
     }
     PySlot *cur_slot;
