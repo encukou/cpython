@@ -65,26 +65,35 @@ _PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
     return 0;
 }
 
+static Py_ssize_t
+seen_index(uint16_t id)
+{
+    return id / sizeof(unsigned int);
+}
+
+static unsigned int
+seen_mask(uint16_t id)
+{
+    return ((unsigned int)1) << (id % sizeof(unsigned int));
+}
+
 bool
 _PySlotIterator_SawSlot(_PySlotIterator *it, int id)
 {
     assert (id > 0);
     assert (id < _Py_slot_COUNT);
-    Py_ssize_t idx = id / sizeof(unsigned int);
-    unsigned int mask = ((unsigned int)1) << (id % sizeof(unsigned int));
-    return it->seen[idx] |= mask;
+    return it->seen[seen_index(id)] & seen_mask(id);
 }
 
-int _PySlotIterator_RejectDuplicate(_PySlotIterator *it)
+int
+_PySlotIterator_ValidateCurrentSlot(_PySlotIterator *it)
 {
     const _PySlot_Info *info = it->info;
     if (!info->reject_duplicates && !info->deprecate_duplicates) {
         return 0;
     }
-    uint16_t id = it->current.sl_id;
-    Py_ssize_t idx = id / sizeof(unsigned int);
-    unsigned int mask = ((unsigned int)1) << (id % sizeof(unsigned int));
-    if (it->seen[idx] & mask) {
+    int id = it->current.sl_id;
+    if (_PySlotIterator_SawSlot(it, id)) {
         if (info->reject_duplicates) {
             PyErr_Format(
                 PyExc_SystemError,
@@ -99,7 +108,7 @@ int _PySlotIterator_RejectDuplicate(_PySlotIterator *it)
         if (PyErr_WarnFormat(
                 PyExc_DeprecationWarning,
                 0,
-                "%s%s%s has multiple Py_%s (%d) slots. This is deprecated",
+                "%s%s%s has multiple Py_%s (%d) slots. This is deprecated.",
                 kind_name(it->kind),
                 it->name ? " " : "",
                 it->name ? it->name : "",
@@ -108,7 +117,7 @@ int _PySlotIterator_RejectDuplicate(_PySlotIterator *it)
             return -1;
         }
     }
-    it->seen[idx] |= mask;
+    it->seen[seen_index(id)] |= seen_mask(id);
     return 0;
 }
 
@@ -266,6 +275,11 @@ _PySlotIterator_Next(_PySlotIterator *it)
         }
         it->info = &_PySlot_InfoTable[result->sl_id];
         MSG("slot %d: %s", (int)result->sl_id, it->info->name);
+
+        if (it->info->is_name) {
+            assert(it->info->dtype == _PySlot_TYPE_PTR);
+            it->name = result->sl_ptr;
+        }
 
         // Resolve a legacy ambiguous slot number
         // Save the original slot definition for error messages.

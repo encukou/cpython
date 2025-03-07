@@ -137,12 +137,12 @@ id, name, kind, dtype
 92, "slot_subslots", slot, ptr, added=3.14, subslots=true, null=allow
 93, "tp_slots", type, ptr, virtual=true, added=3.14, subslots=true, null=allow
 94, "mod_slots", mod, ptr, added=3.14, subslots=true, null=allow
-95, "tp_name", type, ptr, virtual=true, added=3.14, null=reject, duplicates=no
+95, "tp_name", type, ptr, virtual=true, added=3.14, null=reject, duplicates=no, is_name=true
 96, "tp_basicsize", type, size, added=3.14, duplicates=no
 97, "tp_extra_basicsize", type, size, virtual=true, added=3.14, duplicates=no
 98, "tp_itemsize", type, size, added=3.14, duplicates=no
 99, "tp_flags", type, uint64, added=3.14, duplicates=no
-100, "mod_name", mod, ptr, added=3.14, null=reject, duplicates=no
+100, "mod_name", mod, ptr, added=3.14, null=reject, duplicates=no, is_name=true
 101, "mod_doc", mod, ptr, added=3.14, null=allow, duplicates=no
 102, "mod_size", mod, size, added=3.14, duplicates=no
 103, "mod_methods", mod, ptr, added=3.14, null=reject, duplicates=no

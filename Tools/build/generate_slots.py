@@ -194,6 +194,8 @@ def write_c(f, slots):
                     else:
                         initializers['null_handling'] = '_PySlot_NULL_ALLOW'
             initializers.update(slot.initializers_for_duplicates)
+            if slot.get_bool('is_name'):
+                initializers['is_name'] = 'true'
             for name, initializer in initializers.items():
                 out(f'        .{name} = {initializer},')
             out(f"    }},")

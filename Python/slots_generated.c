@@ -853,6 +853,7 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .kind = _PySlot_KIND_TYPE,
         .null_handling = _PySlot_NULL_REJECT,
         .reject_duplicates = true,
+        .is_name = true,
     },
     [96] = {
         .name = "tp_basicsize",
@@ -894,6 +895,7 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .kind = _PySlot_KIND_MOD,
         .null_handling = _PySlot_NULL_REJECT,
         .reject_duplicates = true,
+        .is_name = true,
     },
     [101] = {
         .name = "mod_doc",
