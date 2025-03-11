@@ -177,7 +177,7 @@ def write_c(f, slots):
                 case _:
                     raise ValueError(slot.kind)
             if slot.get_bool('subslots'):
-                initializers['subslots'] = 'true'
+                initializers['is_subslots'] = 'true'
             match slot.get('null'):
                 case 'reject':
                     initializers['null_handling'] = '_PySlot_NULL_REJECT'
