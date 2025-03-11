@@ -99,10 +99,15 @@ typedef struct {
 } _PySlotIterator;
 
 PyAPI_FUNC(int) _PySlotIterator_InitWithKind(
-    _PySlotIterator *, PySlot*,
+    _PySlotIterator *, void*,
     int result_kind, int slot_struct_kind);
-#define _PySlotIterator_Init(I, S, K) \
-    _PySlotIterator_InitWithKind(I, S, K, _PySlot_KIND_SLOT)
+
+static inline int
+_PySlotIterator_Init(_PySlotIterator *it, PySlot *slots, int result_kind)
+{
+    return _PySlotIterator_InitWithKind(it, slots, result_kind,
+                                        _PySlot_KIND_SLOT);
+}
 
 /* Iteration function */
 PyAPI_FUNC(int) _PySlotIterator_Next(_PySlotIterator *);
@@ -113,5 +118,16 @@ PyAPI_FUNC(int) _PySlotIterator_ValidateCurrentSlot(_PySlotIterator *);
 
 /* Return 1 if given slot was "seen" by an earlier ValidateCurrentSlot call. */
 PyAPI_FUNC(bool) _PySlotIterator_SawSlot(_PySlotIterator *, int);
+
+static inline bool
+_PySlot_IsStatic(PySlot *slot, const _PySlot_Info *info)
+{
+    return (slot->sl_flags & PySlot_STATIC)
+        || (info->dtype == _PySlot_TYPE_VOID)
+        || (info->dtype == _PySlot_TYPE_FUNC)
+        || (info->dtype == _PySlot_TYPE_SIZE)
+        || (info->dtype == _PySlot_TYPE_INT64)
+        || (info->dtype == _PySlot_TYPE_UINT64);
+}
 
 #endif // _Py_PYCORE_SLOTS_H
