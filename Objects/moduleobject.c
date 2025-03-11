@@ -42,7 +42,8 @@ typedef PyObject *(*createfunc_p)(PyObject *, PyModuleDef*);
 typedef int (*execfunc_p)(PyObject *);
 
 /* "PyModuleDef2" is an internal subclass of PyModuleDef
- * that has a copy of all info (i.e. it might not be static).
+ * that has a copy of all data (so the user is allowed to deallocate the
+ * data).
  * It should have NULL m_slots.
  */
 
@@ -50,7 +51,6 @@ typedef struct {
     PyModuleDef m_base;
     PyObject *m_name_object;
     PyObject *m_doc_object;
-    Py_ssize_t n_pyslots;
     PySlot m_pyslots[];
 } _PyModuleDef2;
 
@@ -295,8 +295,6 @@ PyObject *
 PyModuleDef_FromSlots(PySlot *slots)
 {
     PyObject *result = NULL;
-    PyObject *name_object = NULL;
-    PyObject *doc_object = NULL;
     _PyModuleDef2 *new_def = NULL;
 
     // Count how much storage we need
@@ -312,28 +310,19 @@ PyModuleDef_FromSlots(PySlot *slots)
         if (_PySlotIterator_ValidateCurrentSlot(&it) < 0) {
             goto finally;
         }
-        if (sl_id == Py_mod_name) {
-            name_object = PyUnicode_FromString(it.current.sl_ptr);
-            if (!name_object) {
-                goto finally;
-            }
-            continue;
+        switch (sl_id) {
+            case Py_mod_name:
+            case Py_mod_doc:
+                continue;
         }
-        if (!(it.current.sl_flags & PySlot_STATIC)) {
+        /* Other slots must be static */
+        if (!_PySlot_IsStatic(&it.current, it.info)) {
             PyErr_SetString(
                 PyExc_SystemError,
-                "PyModuleDef_FromSlots: slots must be static");
+                "PyModuleDef_FromSlots: slots must currently be static");
             goto finally;
         }
         switch (sl_id) {
-            case Py_mod_name: {
-                name_object = PyUnicode_FromString(it.current.sl_ptr);
-                if (!name_object) {
-                    goto finally;
-                }
-            }
-            break;
-            case Py_mod_doc:
             case Py_mod_size:
             case Py_mod_methods:
             case Py_mod_traverse:
@@ -351,14 +340,10 @@ PyModuleDef_FromSlots(PySlot *slots)
         goto finally;
     }
 
-    if (!name_object) {
+    if (!it.name) {
         PyErr_SetString(
             PyExc_SystemError,
             "PyModuleDef_FromSlots: no Py_mod_name slot found");
-        goto finally;
-    }
-    const char *name = PyUnicode_AsUTF8(name_object);
-    if (!name) {
         goto finally;
     }
 
@@ -374,10 +359,17 @@ PyModuleDef_FromSlots(PySlot *slots)
 
     new_def->m_base.m_base.m_init = NULL;
     new_def->m_base.m_base.m_index = _PyImport_GetNextModuleIndex();
-    new_def->m_base.m_name = name;
-    new_def->m_name_object = Py_NewRef(name_object);
+    new_def->m_name_object = PyUnicode_FromString(it.name);
+    if (!new_def->m_name_object) {
+        goto finally;
+    }
+    new_def->m_base.m_name = PyUnicode_AsUTF8(new_def->m_name_object);
+    if (!new_def->m_base.m_name) {
+        goto finally;
+    }
 
     PySlot *current_dest_slot = new_def->m_pyslots;
+    Py_ssize_t n_copied_slots = 0;
 
     if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
         goto finally;
@@ -426,8 +418,8 @@ PyModuleDef_FromSlots(PySlot *slots)
                         it.info->name);
                     goto finally;
                 }
-                new_def->n_pyslots++;
-                if (new_def->n_pyslots > needed_slots) {
+                n_copied_slots++;
+                if (n_copied_slots > needed_slots) {
                     /* We're storing more slots than we have space for.
                      * Either the slots have changed since we counted,
                      * or the two `switch`es don't have the same `case`s.
@@ -448,8 +440,6 @@ PyModuleDef_FromSlots(PySlot *slots)
     result = (PyObject*)new_def;
     new_def = NULL;
 finally:
-    Py_XDECREF(name_object);
-    Py_XDECREF(doc_object);
     Py_XDECREF(new_def);
     return result;
 }
@@ -491,23 +481,18 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         goto error;
     }
 
-    PySlot _wrapper[] = {
-        PySlot_DATA(Py_mod_slots, def->m_slots),
-        PySlot_END,
-    };
-    PySlot *slots;
+    _PySlotIterator it;
     _PyModuleDef2 *def2 = NULL;
     if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
         assert (def->m_slots == NULL);
         def2 = (_PyModuleDef2*)def;
-        slots = def2->m_pyslots;
+        ret = _PySlotIterator_Init(&it, def2->m_pyslots, _PySlot_KIND_MOD);
     }
     else {
-        slots = _wrapper;
+        ret = _PySlotIterator_InitWithKind(&it, def->m_slots,
+                                           _PySlot_KIND_MOD, _PySlot_KIND_MOD);
     }
-
-    _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
+    if (!ret) {
         goto error;
     }
     int sl_id;
@@ -681,31 +666,26 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         return 0;
     }
 
+    _PySlotIterator it;
     /* XXX this is duplicated */
-    PySlot _wrapper[] = {
-        PySlot_DATA(Py_mod_slots, def->m_slots),
-        PySlot_END,
-    };
-    PySlot *slots;
-    _PyModuleDef2 *def2 = NULL;
     if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
         assert (def->m_slots == NULL);
-        def2 = (_PyModuleDef2*)def;
-        slots = def2->m_pyslots;
+        _PyModuleDef2 *def2 = (_PyModuleDef2*)def;
+        ret = _PySlotIterator_Init(&it, def2->m_pyslots, _PySlot_KIND_MOD);
     }
     else {
-        slots = _wrapper;
+        ret = _PySlotIterator_InitWithKind(&it, def->m_slots,
+                                           _PySlot_KIND_MOD, _PySlot_KIND_MOD);
     }
-
-    _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
+    if (!ret) {
         return -1;
     }
+
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) > 0)
     {
         if (sl_id == Py_mod_exec) {
-            ret = ((int (*)(PyObject *))it.current.sl_func)(module);
+            ret = ((execfunc_p)(it.current.sl_func))(module);
             if (ret != 0) {
                 if (!PyErr_Occurred()) {
                     PyErr_Format(

@@ -5589,6 +5589,7 @@ type_from_slots(PySlot *slots, PyType_Spec *spec_for_token)
                 for (memb = _PyHeapType_GET_MEMBERS(res), i = nmembers;
                      i > 0; ++memb, --i)
                 {
+                    // TODO: check this before allocation
                     if (check_member(memb, basicsize_op, basicsize_in) < 0) {
                         goto finally;
                     }

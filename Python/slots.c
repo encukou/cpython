@@ -32,7 +32,7 @@ kind_name(int kind)
 // On error, return -1 with exception set.
 // Currently the iteration does not malloc and needs no cleanup.
 int
-_PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
+_PySlotIterator_InitWithKind(_PySlotIterator *it, void *slots,
                              int result_kind, int slot_struct_kind)
 {
     MSG("");
