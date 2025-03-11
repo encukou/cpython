@@ -808,6 +808,7 @@ Objects/memoryobject.c:_PyManagedBuffer_Type                     PyTypeObject _P
 Objects/methodobject.c:PyCFunction_Type                          PyTypeObject PyCFunction_Type
 Objects/moduleobject.c:PyModuleDef_Type                          PyTypeObject PyModuleDef_Type
 Objects/moduleobject.c:PyModule_Type                             PyTypeObject PyModule_Type
+Objects/moduleobject.c:_PyModuleDef2_Type                        PyTypeObject _PyModuleDef2_Type
 Objects/namespaceobject.c:_PyNamespace_Type                      PyTypeObject _PyNamespace_Type
 Objects/object.c:_PyNone_Type                                    PyTypeObject _PyNone_Type
 Objects/object.c:_PyNotImplemented_Type                          PyTypeObject _PyNotImplemented_Type
