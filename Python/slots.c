@@ -9,6 +9,7 @@
 
 // Iterating through a recursive structure doesn't look great in a debugger.
 // Define this to get a trace on stderr.
+// (The messages can also serve as code comments.)
 #if 0
 #define MSG(...) { \
     fprintf(stderr, "slotiter: " __VA_ARGS__); fprintf(stderr, "\n");}
@@ -32,7 +33,6 @@ kind_name(int kind)
 // Currently the iteration does not malloc and needs no cleanup.
 int
 _PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
-                             Py_ssize_t n_slots,
                              int result_kind, int slot_struct_kind)
 {
     MSG("");
@@ -41,26 +41,6 @@ _PySlotIterator_InitWithKind(_PySlotIterator *it, PySlot *slots,
     it->state = it->states;
     it->state->slot = slots;
     it->state->slot_struct_kind = slot_struct_kind;
-    if (n_slots < 0) {
-        if (slots) {
-            it->state->zero_terminated = true;
-        }
-        else {
-            MSG("NULL slots, treating as n_slots=0");
-            it->state->remaining = 0;
-        }
-    }
-    else {
-        if (slots) {
-            it->state->remaining = n_slots;
-        }
-        else {
-            PyErr_SetString(
-                PyExc_SystemError,
-                "PySlot array with explicit size must not be NULL");
-            return -1;
-        }
-    }
     it->kind = result_kind;
     return 0;
 }
@@ -167,25 +147,11 @@ _PySlotIterator_ValidateCurrentSlot(_PySlotIterator *it)
     return 0;
 }
 
-
-static int unwind(_PySlotIterator *it);
-
-// Advance `it` to the next entry.
-// Return 0 if there are no more entries, 1 if there are. Currently can't fail.
-static int
+// Advance `it` to the next entry. Currently cannot fail.
+static void
 advance(_PySlotIterator *it)
 {
     MSG("advance lv=%d", (int)it->recursion_level);
-    if (!it->state->zero_terminated) {
-        it->state->remaining--;
-        MSG("sized array; remaining=%d", (int)it->state->remaining);
-        if (it->state->remaining == 0) {
-            if (unwind(it) == 0) {
-                return 0;
-            }
-            return advance(it);
-        }
-    }
     switch (it->state->slot_struct_kind) {
         case _PySlot_KIND_SLOT: it->state->slot++; break;
         case _PySlot_KIND_TYPE: it->state->tp_slot++; break;
@@ -193,21 +159,6 @@ advance(_PySlotIterator *it)
         default:
             Py_UNREACHABLE();
     }
-    return 1;
-}
-
-// Return from one level of nested slots.
-// Return 0 if there are no more entries, 1 if there are. Currently can't fail.
-static int
-unwind(_PySlotIterator *it)
-{
-    MSG("unwind from level %d", (int)it->recursion_level);
-    if (it->recursion_level == 0) {
-        return 0;
-    }
-    it->recursion_level--;
-    it->state = &it->states[it->recursion_level];
-    return advance(it);
 }
 
 // Get the next slot in the iterator, and set to the info.
@@ -222,32 +173,32 @@ _PySlotIterator_Next(_PySlotIterator *it)
     it->current.sl_id = -1;
 
     while (true) {
-        if (!it->state->zero_terminated) {
-            MSG("slots remaining: %d", (int)it->state->remaining);
-            if (!it->state->remaining) {
-                MSG("at end of sized array");
-                if (unwind(it) == 0) {
-                    MSG("end (last level unwound)");
-                    return 0;
-                }
-                continue;
+        if (it->state->slot == NULL) {
+            if (it->recursion_level == 0) {
+                MSG("end (initial nesting level done)");
+                return 0;
             }
+            MSG("pop nesting level %d", (int)it->recursion_level);
+            it->recursion_level--;
+            it->state = &it->states[it->recursion_level];
+            advance(it);
+            continue;
         }
 
         switch (it->state->slot_struct_kind) {
             case _PySlot_KIND_SLOT: {
-                MSG("PySlot structure");
+                MSG("copying PySlot structure");
                 it->current = *it->state->slot;  /* struct copy */
             } break;
             case _PySlot_KIND_TYPE: {
-                MSG("type slot structure");
+                MSG("converting PyType_Slot structure");
                 memset(&it->current, 0, sizeof(it->current));
                 it->current.sl_id = it->state->tp_slot->slot;
                 it->current.sl_flags = PySlot_INTPTR;
                 it->current.sl_ptr = (void*)it->state->tp_slot->pfunc;
             } break;
             case _PySlot_KIND_MOD: {
-                MSG("module slot structure");
+                MSG("converting PyModuleDef_Slot structure");
                 memset(&it->current, 0, sizeof(it->current));
                 it->current.sl_id = it->state->mod_slot->slot;
                 it->current.sl_flags = PySlot_INTPTR;
@@ -257,10 +208,14 @@ _PySlotIterator_Next(_PySlotIterator *it)
                 Py_UNREACHABLE();
             } break;
         }
+
+        /* shorter local names */
         PySlot *const result = &it->current;
         uint16_t flags = result->sl_flags;
-        MSG("slot %d flags 0x%x @%p", (int)result->sl_id, (unsigned)flags,
-            it->state->slot);
+
+        MSG("slot %d, flags 0x%x, from %p",
+            (int)result->sl_id, (unsigned)flags, it->state->slot);
+
         if ((flags & PySlot_SKIP_IF_NULL)
             && result->sl_ptr == NULL
             && result->sl_func == NULL
@@ -292,7 +247,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
                          "unknown slot ID %u", (unsigned int)result->sl_id);
             return -1;
         }
-        if (result->sl_id == 0) {
+        if (result->sl_id == Py_slot_end) {
             flags &= ~PySlot_INTPTR;
             MSG("sentinel slot, flags %x", (unsigned)flags);
             if (flags == PySlot_OPTIONAL) {
@@ -300,35 +255,29 @@ _PySlotIterator_Next(_PySlotIterator *it)
                 advance(it);
                 continue;
             }
-            if (flags) {
+            const uint16_t bad_flags = (
+                PySlot_HAS_FALLBACK | PySlot_SKIP_IF_NULL | PySlot_STATIC);
+            if (flags & bad_flags) {
                 MSG("error (bad flags on sentinel)");
                 PyErr_Format(PyExc_SystemError,
                             "invalid flags for Py_slot_end: 0x%x",
                              (unsigned int)flags);
                 return -1;
             }
-            if (!it->state->zero_terminated) {
-                MSG("error (sentinel in sized array)");
-                PyErr_Format(PyExc_SystemError,
-                            "Py_slot_end in slot array of explicit size");
-                return -1;
-            }
-            if (unwind(it) == 0) {
-                MSG("end (last level unwound)");
-                return 0;
-            }
+            it->state->slot = NULL;
             continue;
         }
         it->info = &_PySlot_InfoTable[result->sl_id];
         MSG("slot %d: %s", (int)result->sl_id, it->info->name);
 
         if (it->info->is_name) {
+            MSG("setting name for error messages");
             assert(it->info->dtype == _PySlot_TYPE_PTR);
             it->name = result->sl_ptr;
         }
 
-        // Resolve a legacy ambiguous slot number
-        // Save the original slot definition for error messages.
+        // Resolve a legacy ambiguous slot number.
+        // Save the original slot info for error messages.
         uint16_t orig_id = result->sl_id;
         _PySlot_Info *orig_info = &_PySlot_InfoTable[result->sl_id];
         if (it->info->kind == _PySlot_KIND_COMPAT) {
@@ -348,7 +297,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
             MSG("slot %d: %s", (int)result->sl_id, it->info->name);
         }
 
-        if (it->info->subslots) {
+        if (it->info->is_subslots) {
             if (result->sl_ptr == NULL) {
                 MSG("NULL subslots; skipping");
                 advance(it);
@@ -357,7 +306,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
             it->recursion_level++;
             MSG("recursing into level %d", it->recursion_level);
             if (it->recursion_level >= _PySlot_MAX_NESTING) {
-                MSG("error (too much recursion)");
+                MSG("error (too much nesting)");
                 PyErr_Format(PyExc_SystemError,
                             "Py_%s (slot %d): too many levels of nested slots",
                             orig_info->name, orig_id);
@@ -367,7 +316,6 @@ _PySlotIterator_Next(_PySlotIterator *it)
             memset(it->state, 0, sizeof(_PySlotIterator_state));
             it->state->slot = result->sl_ptr;
             it->state->slot_struct_kind = it->info->kind;
-            it->state->zero_terminated = true;
             continue;
         }
 

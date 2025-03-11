@@ -292,21 +292,20 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
 }
 
 PyObject *
-PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
+PyModuleDef_FromSlots(PySlot *slots)
 {
     PyObject *result = NULL;
     PyObject *name_object = NULL;
     PyObject *doc_object = NULL;
     _PyModuleDef2 *new_def = NULL;
 
-    _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
-        goto finally;
-    }
-
     // Count how much storage we need
     Py_ssize_t needed_slots = 0;
 
+    _PySlotIterator it;
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
+        goto finally;
+    }
     int sl_id;
     while ((sl_id = _PySlotIterator_Next(&it)) > 0)
     {
@@ -343,7 +342,7 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
                 /* do nothing */
                 break;
             default: {
-                n_slots++;
+                needed_slots++;
             }
             break;
         }
@@ -380,7 +379,7 @@ PyModuleDef_FromSlots(PySlot *slots, Py_ssize_t n_slots)
 
     PySlot *current_dest_slot = new_def->m_pyslots;
 
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
         goto finally;
     }
     while ((sl_id = _PySlotIterator_Next(&it)) > 0)
@@ -492,24 +491,23 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         goto error;
     }
 
-    PySlot _wrapper;
+    PySlot _wrapper[] = {
+        PySlot_DATA(Py_mod_slots, def->m_slots),
+        PySlot_END,
+    };
     PySlot *slots;
-    Py_ssize_t n_slots;
     _PyModuleDef2 *def2 = NULL;
     if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
         assert (def->m_slots == NULL);
         def2 = (_PyModuleDef2*)def;
         slots = def2->m_pyslots;
-        n_slots = def2->n_pyslots;
     }
     else {
-        _wrapper = (PySlot)PySlot_DATA(Py_mod_slots, def->m_slots);
-        slots = &_wrapper;
-        n_slots = 1;
+        slots = _wrapper;
     }
 
     _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
         goto error;
     }
     int sl_id;
@@ -684,24 +682,23 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
     }
 
     /* XXX this is duplicated */
-    PySlot _wrapper;
+    PySlot _wrapper[] = {
+        PySlot_DATA(Py_mod_slots, def->m_slots),
+        PySlot_END,
+    };
     PySlot *slots;
-    Py_ssize_t n_slots;
     _PyModuleDef2 *def2 = NULL;
     if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
         assert (def->m_slots == NULL);
         def2 = (_PyModuleDef2*)def;
         slots = def2->m_pyslots;
-        n_slots = def2->n_pyslots;
     }
     else {
-        _wrapper = (PySlot)PySlot_DATA(Py_mod_slots, def->m_slots);
-        slots = &_wrapper;
-        n_slots = 1;
+        slots = _wrapper;
     }
 
     _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_MOD) < 0) {
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
         return -1;
     }
     int sl_id;

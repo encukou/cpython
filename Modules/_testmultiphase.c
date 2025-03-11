@@ -1001,5 +1001,5 @@ PyInit__test_from_slots(void)
         (PySlot[]) {
             PySlot_STATIC_DATA(Py_mod_name, "_test_from_slots"),
             PySlot_END,
-        }, -1);
+        });
 }

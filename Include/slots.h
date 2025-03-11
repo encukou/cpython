@@ -41,7 +41,6 @@ struct PySlot {
     {.sl_id=NAME, .sl_flags=PySlot_STATIC, .sl_ptr=(VALUE)}
 
 #define PySlot_END {.sl_id=0}
-#define PySlot_INVALID {.sl_id=Py_slot_invalid}
 
 
 #define PySlot_PTR(NAME, VALUE) \

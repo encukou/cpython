@@ -5150,7 +5150,7 @@ special_offset_from_member(
 }
 
 static PyObject *
-type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *);
+type_from_slots(PySlot *slots, PyType_Spec *);
 
 PyObject *
 PyType_FromMetaclass(
@@ -5160,7 +5160,7 @@ PyType_FromMetaclass(
     if (spec->basicsize < 0) {
     }
     PySlot slots_array[] = {
-        PySlot_INVALID,  // space for tp_basicsize
+        {Py_slot_invalid},  // space for tp_basicsize
         PySlot_DATA(Py_tp_name, spec->name),
         {Py_tp_metaclass, PySlot_SKIP_IF_NULL, .sl_ptr=metaclass},
         {Py_tp_itemsize, PySlot_SKIP_IF_NULL, .sl_size=spec->itemsize},
@@ -5180,7 +5180,7 @@ PyType_FromMetaclass(
     else {
         slots++;
     }
-    return type_from_slots(slots, -1, spec);
+    return type_from_slots(slots, spec);
 }
 
 
@@ -5206,13 +5206,13 @@ check_member(const PyMemberDef *memb, char basicsize_op,
 }
 
 PyObject *
-PyType_FromSlots(PySlot *slots, Py_ssize_t n_slots)
+PyType_FromSlots(PySlot *slots)
 {
-    return type_from_slots(slots, n_slots, NULL);
+    return type_from_slots(slots, NULL);
 }
 
 PyObject *
-type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
+type_from_slots(PySlot *slots, PyType_Spec *spec_for_token)
 {
     /* Invariant: A non-NULL value in one of these means this function holds
      * a strong reference or owns allocated memory.
@@ -5249,7 +5249,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
     char *res_start;
 
     _PySlotIterator it;
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_TYPE) < 0) {
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_TYPE) < 0) {
         goto finally;
     }
     int sl_id;
@@ -5561,7 +5561,7 @@ type_from_slots(PySlot *slots, Py_ssize_t n_slots, PyType_Spec *spec_for_token)
 
     /* Copy all the ordinary slots */
 
-    if (_PySlotIterator_Init(&it, slots, n_slots, _PySlot_KIND_TYPE) < 0) {
+    if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_TYPE) < 0) {
         goto finally;
     }
     while ((sl_id = _PySlotIterator_Next(&it)) > 0) {
