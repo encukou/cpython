@@ -492,11 +492,11 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         ret = _PySlotIterator_InitWithKind(&it, def->m_slots,
                                            _PySlot_KIND_MOD, _PySlot_KIND_MOD);
     }
-    if (!ret) {
+    if (ret < 0) {
         goto error;
     }
     int sl_id;
-    while ((sl_id = _PySlotIterator_Next(&it)) == 1)
+    while ((sl_id = _PySlotIterator_Next(&it)) > 0)
     {
         if (_PySlotIterator_ValidateCurrentSlot(&it) < 0) {
             goto error;
@@ -568,7 +568,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
 
     if (PyModule_Check(m)) {
         ((PyModuleObject*)m)->md_state = NULL;
-        ((PyModuleObject*)m)->md_def = def;
+        ((PyModuleObject*)m)->md_def = (PyModuleDef *)Py_NewRef(def);
 #ifdef Py_GIL_DISABLED
         ((PyModuleObject*)m)->md_gil = gil_slot;
 #else
@@ -662,10 +662,6 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         }
     }
 
-    if (def->m_slots == NULL) {
-        return 0;
-    }
-
     _PySlotIterator it;
     /* XXX this is duplicated */
     if (PyObject_TypeCheck(def, &_PyModuleDef2_Type)) {
@@ -677,7 +673,7 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         ret = _PySlotIterator_InitWithKind(&it, def->m_slots,
                                            _PySlot_KIND_MOD, _PySlot_KIND_MOD);
     }
-    if (!ret) {
+    if (ret < 0) {
         return -1;
     }
 
