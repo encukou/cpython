@@ -27,6 +27,20 @@ static PyMemberDef module_members[] = {
     {0}
 };
 
+static void
+_PyXXX_AssertDefIsMissingOrRedundant(PyModuleObject *m) {
+    if (m->md_def_XXX) {
+#define DO_ASSERT(F) assert (m->md_def_XXX->m_ ## F == m->md_ ## F);
+        DO_ASSERT(size);
+        DO_ASSERT(traverse);
+        DO_ASSERT(clear);
+        DO_ASSERT(free);
+        DO_ASSERT(size);
+        DO_ASSERT(size);
+#undef DO_ASSERT
+    }
+}
+
 
 PyTypeObject PyModuleDef_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
@@ -44,7 +58,10 @@ _PyModule_IsExtension(PyObject *obj)
     }
     PyModuleObject *module = (PyModuleObject*)obj;
 
-    PyModuleDef *def = module->md_def;
+    if (module->md_slots) {
+        return 1;
+    }
+    PyModuleDef *def = module->md_def_XXX;
     return (def != NULL && def->m_methods != NULL);
 }
 
@@ -93,10 +110,15 @@ new_module_notrack(PyTypeObject *mt)
     m = (PyModuleObject *)_PyType_AllocNoTrack(mt, 0);
     if (m == NULL)
         return NULL;
-    m->md_def = NULL;
+    m->md_def_XXX = NULL;
+    m->md_slots = NULL;
     m->md_state = NULL;
     m->md_weaklist = NULL;
     m->md_name = NULL;
+    m->md_size = 0;
+    m->md_traverse = NULL;
+    m->md_clear = NULL;
+    m->md_free = NULL;
     m->md_dict = PyDict_New();
     if (m->md_dict == NULL) {
         Py_DECREF(m);
@@ -211,6 +233,17 @@ PyModule_Create2(PyModuleDef* module, int module_api_version)
     return _PyModule_CreateInitialized(module, module_api_version);
 }
 
+static void
+module_set_def(PyModuleObject *md, PyModuleDef *def)
+{
+    md->md_def_XXX = def;
+    md->md_size = def->m_size;
+    md->md_traverse = def->m_traverse;
+    md->md_clear = def->m_clear;
+    md->md_free = def->m_free;
+    md->md_size = def->m_size;
+}
+
 PyObject *
 _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
 {
@@ -257,7 +290,7 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
             return NULL;
         }
     }
-    m->md_def = module;
+    module_set_def(m, module);
 #ifdef Py_GIL_DISABLED
     m->md_gil = Py_MOD_GIL_USED;
 #endif
@@ -397,10 +430,11 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     }
 
     if (PyModule_Check(m)) {
-        ((PyModuleObject*)m)->md_state = NULL;
-        ((PyModuleObject*)m)->md_def = def;
+        PyModuleObject *md = ((PyModuleObject*)m);
+        md->md_state = NULL;
+        module_set_def(md, def);
 #ifdef Py_GIL_DISABLED
-        ((PyModuleObject*)m)->md_gil = gil_slot;
+        md->md_gil = gil_slot;
 #else
         (void)gil_slot;
 #endif
@@ -461,6 +495,15 @@ PyUnstable_Module_SetGIL(PyObject *module, void *gil)
 int
 PyModule_ExecDef(PyObject *module, PyModuleDef *def)
 {
+    if (def->m_slots) {
+        return PyModule_RunExecSlots(module, def->m_slots);
+    }
+    return 0;
+}
+
+int
+PyModule_RunExecSlots(PyObject *module, PyModuleDef_Slot *slots)
+{
     PyModuleDef_Slot *cur_slot;
     const char *name;
     int ret;
@@ -470,25 +513,27 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
         return -1;
     }
 
-    if (def->m_size >= 0) {
-        PyModuleObject *md = (PyModuleObject*)module;
+    assert(PyModule_Check(module));
+    PyModuleObject *md = (PyModuleObject*)module;
+
+    if (md->md_size >= 0) {
         if (md->md_state == NULL) {
             /* Always set a state pointer; this serves as a marker to skip
              * multiple initialization (importlib.reload() is no-op) */
-            md->md_state = PyMem_Malloc(def->m_size);
+            md->md_state = PyMem_Malloc(md->md_size);
             if (!md->md_state) {
                 PyErr_NoMemory();
                 return -1;
             }
-            memset(md->md_state, 0, def->m_size);
+            memset(md->md_state, 0, md->md_size);
         }
     }
 
-    if (def->m_slots == NULL) {
+    if (slots == NULL) {
         return 0;
     }
 
-    for (cur_slot = def->m_slots; cur_slot && cur_slot->slot; cur_slot++) {
+    for (cur_slot = slots; cur_slot && cur_slot->slot; cur_slot++) {
         switch (cur_slot->slot) {
             case Py_mod_create:
                 /* handled in PyModule_FromDefAndSpec2 */
@@ -699,13 +744,13 @@ _PyModule_GetFilenameUTF8(PyObject *mod, char *buffer, Py_ssize_t maxlen)
 }
 
 PyModuleDef*
-PyModule_GetDef(PyObject* m)
+PyModule_GetDef_XXX(PyObject* m)
 {
     if (!PyModule_Check(m)) {
         PyErr_BadArgument();
         return NULL;
     }
-    return _PyModule_GetDef(m);
+    return _PyModule_GetDef_XXX(m);
 }
 
 void*
@@ -831,16 +876,17 @@ module_dealloc(PyObject *self)
         PyObject_ClearWeakRefs((PyObject *) m);
 
     /* bpo-39824: Don't call m_free() if m_size > 0 and md_state=NULL */
-    if (m->md_def && m->md_def->m_free
-        && (m->md_def->m_size <= 0 || m->md_state != NULL))
+    _PyXXX_AssertDefIsMissingOrRedundant(m);
+    if (m->md_free && (m->md_size <= 0 || m->md_state != NULL))
     {
-        m->md_def->m_free(m);
+        m->md_free(m);
     }
 
     Py_XDECREF(m->md_dict);
     Py_XDECREF(m->md_name);
-    if (m->md_state != NULL)
+    if (m->md_state != NULL) {
         PyMem_Free(m->md_state);
+    }
     Py_TYPE(m)->tp_free((PyObject *)m);
 }
 
@@ -1149,10 +1195,10 @@ module_traverse(PyObject *self, visitproc visit, void *arg)
     PyModuleObject *m = _PyModule_CAST(self);
 
     /* bpo-39824: Don't call m_traverse() if m_size > 0 and md_state=NULL */
-    if (m->md_def && m->md_def->m_traverse
-        && (m->md_def->m_size <= 0 || m->md_state != NULL))
+    _PyXXX_AssertDefIsMissingOrRedundant(m);
+    if (m->md_traverse && (m->md_size <= 0 || m->md_state != NULL))
     {
-        int res = m->md_def->m_traverse((PyObject*)m, visit, arg);
+        int res = m->md_traverse((PyObject*)m, visit, arg);
         if (res)
             return res;
     }
@@ -1167,17 +1213,18 @@ module_clear(PyObject *self)
     PyModuleObject *m = _PyModule_CAST(self);
 
     /* bpo-39824: Don't call m_clear() if m_size > 0 and md_state=NULL */
-    if (m->md_def && m->md_def->m_clear
-        && (m->md_def->m_size <= 0 || m->md_state != NULL))
+    _PyXXX_AssertDefIsMissingOrRedundant(m);
+    if (m->md_clear && (m->md_size <= 0 || m->md_state != NULL))
     {
-        int res = m->md_def->m_clear((PyObject*)m);
+        int res = m->md_clear((PyObject*)m);
         if (PyErr_Occurred()) {
             PyErr_FormatUnraisable("Exception ignored in m_clear of module%s%V",
                                    m->md_name ? " " : "",
                                    m->md_name, "");
         }
-        if (res)
+        if (res) {
             return res;
+        }
     }
     Py_CLEAR(m->md_dict);
     return 0;

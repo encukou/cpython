@@ -243,7 +243,9 @@ clear_global_state(void)
 static inline module_state *
 get_module_state(PyObject *module)
 {
-    PyModuleDef *def = PyModule_GetDef(module);
+    PyModuleDef *def = PyModule_GetDef_XXX(module);
+    assert(def);
+
     if (def->m_size == -1) {
         return &global_state.module;
     }
@@ -374,7 +376,8 @@ Return the module associated with this module's def.m_base.m_index.");
 static PyObject *
 common_look_up_self(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
-    PyModuleDef *def = PyModule_GetDef(self);
+    assert(PyModule_GetDef_XXX(self));
+    PyModuleDef *def = PyModule_GetDef_XXX(self);
     if (def == NULL) {
         return NULL;
     }
@@ -416,7 +419,8 @@ Return how many times the module has been initialized.");
 static PyObject *
 basic_initialized_count(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
-    assert(PyModule_GetDef(self)->m_size == -1);
+    assert(PyModule_GetDef_XXX(self));
+    assert(PyModule_GetDef_XXX(self)->m_size == -1);
     return PyLong_FromLong(global_state.initialized_count);
 }
 
@@ -433,7 +437,8 @@ Free all global state and set it to uninitialized.");
 static PyObject *
 basic__clear_globals(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
-    assert(PyModule_GetDef(self)->m_size == -1);
+    assert(PyModule_GetDef_XXX(self));
+    assert(PyModule_GetDef_XXX(self)->m_size == -1);
     clear_global_state();
     Py_RETURN_NONE;
 }

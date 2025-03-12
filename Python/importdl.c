@@ -474,7 +474,7 @@ _PyImport_RunModInitFunc(PyModInitFunction p0,
     if (PyObject_TypeCheck(m, &PyModuleDef_Type)) {
         /* multi-phase init */
         res.kind = _Py_ext_module_kind_MULTIPHASE;
-        res.def = (PyModuleDef *)m;
+        res.def_XXX = (PyModuleDef *)m;
         /* Run PyModule_FromDefAndSpec() to finish loading the module. */
     }
     else if (info->hook_prefix == nonascii_prefix) {
@@ -496,8 +496,8 @@ _PyImport_RunModInitFunc(PyModInitFunction p0,
             goto error;
         }
 
-        res.def = _PyModule_GetDef(m);
-        if (res.def == NULL) {
+        res.def_XXX = _PyModule_GetDef_XXX(m);
+        if (res.def_XXX == NULL) {
             PyErr_Clear();
             _Py_ext_module_loader_result_set_error(
                     &res, _Py_ext_module_loader_result_ERR_MISSING_DEF);
@@ -514,7 +514,8 @@ error:
     assert(!PyErr_Occurred());
     assert(res.err != NULL);
     Py_CLEAR(res.module);
-    res.def = NULL;
+    res.def_XXX = NULL;
+    res.slots = NULL;
     *p_res = res;
     p_res->err = &p_res->_err;
     return -1;

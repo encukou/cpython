@@ -328,7 +328,7 @@ static PyObject *
 call_state_registration_func(PyObject *mod, PyObject *args)
 {
     int i, ret;
-    PyModuleDef *def = PyModule_GetDef(mod);
+    PyModuleDef *def = PyModule_GetDef_XXX(mod);
     if (def == NULL) {
         return NULL;
     }

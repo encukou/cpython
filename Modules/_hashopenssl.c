@@ -2277,7 +2277,7 @@ hashlib_init_constructors(PyObject *module)
     PyObject *func, *name_obj;
     _hashlibstate *state = get_hashlib_state(module);
 
-    mdef = PyModule_GetDef(module);
+    mdef = PyModule_GetDef_XXX(module);
     if (mdef == NULL) {
         return -1;
     }

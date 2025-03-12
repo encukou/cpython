@@ -622,7 +622,7 @@ _PyImport_ClearModulesByIndex(PyInterpreterState *interp)
         PyObject *m = PyList_GET_ITEM(MODULES_BY_INDEX(interp), i);
         if (PyModule_Check(m)) {
             /* cleanup the saved copy of module dicts */
-            PyModuleDef *md = PyModule_GetDef(m);
+            PyModuleDef *md = PyModule_GetDef_XXX(m);
             if (md) {
                 // XXX Do this more carefully.  The dict might be owned
                 // by another interpreter.
@@ -846,18 +846,25 @@ exec_builtin_or_dynamic(PyObject *mod) {
         return 0;
     }
 
-    def = PyModule_GetDef(mod);
-    if (def == NULL) {
-        return 0;
-    }
-
     state = PyModule_GetState(mod);
     if (state) {
         /* Already initialized; skip reload */
         return 0;
     }
 
-    return PyModule_ExecDef(mod, def);
+    assert (Py_TYPE(mod) == &PyModule_Type);
+    PyModuleObject *m = (PyModuleObject *)mod;
+    PyModuleDef_Slot *slots = m->md_slots;;
+    if (slots) {
+        return PyModule_RunExecSlots(mod, slots);
+    }
+
+    def = PyModule_GetDef_XXX(mod);
+    if (def) {
+        return PyModule_ExecDef(mod, def);
+    }
+
+    return 0;
 }
 
 
@@ -1801,7 +1808,7 @@ finish_singlephase_extension(PyThreadState *tstate, PyObject *mod,
                              PyObject *name, PyObject *modules)
 {
     assert(mod != NULL && PyModule_Check(mod));
-    assert(cached->def == _PyModule_GetDef(mod));
+    assert(cached->def == _PyModule_GetDef_XXX(mod));
 
     Py_ssize_t index = _get_cached_module_index(cached);
     if (_modules_by_index_set(tstate->interp, index, mod) < 0) {
@@ -1879,8 +1886,8 @@ reload_singlephase_extension(PyThreadState *tstate,
          * due to violating interpreter isolation.
          * See the note in set_cached_m_dict().
          * Until that is solved, we leave md_def set to NULL. */
-        assert(_PyModule_GetDef(mod) == NULL
-               || _PyModule_GetDef(mod) == def);
+        assert(_PyModule_GetDef_XXX(mod) == NULL
+               || _PyModule_GetDef_XXX(mod) == def);
     }
     else {
         assert(cached->m_dict == NULL);
@@ -1903,7 +1910,7 @@ reload_singlephase_extension(PyThreadState *tstate,
         /* Tchnically, the init function could return a different module def.
          * Then we would probably need to update the global cache.
          * However, we don't expect anyone to change the def. */
-        assert(res.def == def);
+        assert(res.def_XXX == def);
         _Py_ext_module_loader_result_clear(&res);
 
         /* Remember the filename as the __file__ attribute */
@@ -2051,12 +2058,13 @@ import_run_extension(PyThreadState *tstate, PyModInitFunction p0,
 
         mod = res.module;
         res.module = NULL;
-        def = res.def;
-        assert(def != NULL);
+        def = res.def_XXX;
+        assert(def != NULL || res.slots != NULL);
 
         /* Do anything else that should be done
          * while still using the main interpreter. */
         if (res.kind == _Py_ext_module_kind_SINGLEPHASE) {
+            assert(def != NULL);
             /* Remember the filename as the __file__ attribute */
             if (info->filename != NULL) {
                 PyObject *filename = NULL;
@@ -2136,13 +2144,18 @@ main_finally:
     }
 
     if (res.kind == _Py_ext_module_kind_MULTIPHASE) {
-        assert_multiphase_def(def);
-        assert(mod == NULL);
-        /* Note that we cheat a little by not repeating the calls
-         * to _PyImport_GetModInitFunc() and _PyImport_RunModInitFunc(). */
-        mod = PyModule_FromDefAndSpec(def, spec);
-        if (mod == NULL) {
-            goto error;
+        if (!def) {
+            // XXX slots
+        }
+        else {
+            assert_multiphase_def(def);
+            assert(mod == NULL);
+            /* Note that we cheat a little by not repeating the calls
+            * to _PyImport_GetModInitFunc() and _PyImport_RunModInitFunc(). */
+            mod = PyModule_FromDefAndSpec(def, spec);
+            if (mod == NULL) {
+                goto error;
+            }
         }
     }
     else {
@@ -2253,7 +2266,7 @@ _PyImport_FixupBuiltin(PyThreadState *tstate, PyObject *mod, const char *name,
         return -1;
     }
 
-    PyModuleDef *def = PyModule_GetDef(mod);
+    PyModuleDef *def = PyModule_GetDef_XXX(mod);
     if (def == NULL) {
         PyErr_BadInternalCall();
         goto finally;
@@ -2336,8 +2349,8 @@ create_builtin(PyThreadState *tstate, PyObject *name, PyObject *spec)
         assert(!_PyErr_Occurred(tstate));
         assert(cached != NULL);
         /* The module might not have md_def set in certain reload cases. */
-        assert(_PyModule_GetDef(mod) == NULL
-                || cached->def == _PyModule_GetDef(mod));
+        assert(_PyModule_GetDef_XXX(mod) == NULL
+                || cached->def == _PyModule_GetDef_XXX(mod));
         assert_singlephase(cached);
         goto finally;
     }
@@ -4687,8 +4700,8 @@ _imp_create_dynamic_impl(PyObject *module, PyObject *spec, PyObject *file)
         assert(!_PyErr_Occurred(tstate));
         assert(cached != NULL);
         /* The module might not have md_def set in certain reload cases. */
-        assert(_PyModule_GetDef(mod) == NULL
-                || cached->def == _PyModule_GetDef(mod));
+        assert(_PyModule_GetDef_XXX(mod) == NULL
+                || cached->def == _PyModule_GetDef_XXX(mod));
         assert_singlephase(cached);
         goto finally;
     }

@@ -28,6 +28,8 @@
 #  error "_testcapi must test the public Python C API, not the internal C API"
 #endif
 
+#define PyModule_GetDef PyModule_GetDef_XXX
+
 int _PyTestCapi_Init_Vectorcall(PyObject *module);
 int _PyTestCapi_Init_Heaptype(PyObject *module);
 int _PyTestCapi_Init_Abstract(PyObject *module);

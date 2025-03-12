@@ -20,6 +20,7 @@ typedef struct {
     PyObject_HEAD
     PyObject *md_dict;
     PyModuleDef *md_def_XXX;
+    PyModuleDef_Slot *md_slots;
     void *md_state;
     PyObject *md_weaklist;
     // for logging purposes after md_dict is cleared
@@ -27,11 +28,24 @@ typedef struct {
 #ifdef Py_GIL_DISABLED
     void *md_gil;
 #endif
+  Py_ssize_t md_size;
+  traverseproc md_traverse;
+  inquiry md_clear;
+  freefunc md_free;
 } PyModuleObject;
 
-static inline PyModuleDef* _PyModule_GetDef(PyObject *mod) {
+static inline PyModuleDef* _PyModule_GetDef_XXX(PyObject *mod) {
     assert(PyModule_Check(mod));
-    return ((PyModuleObject *)mod)->md_def;
+    return ((PyModuleObject *)mod)->md_def_XXX;
+}
+
+static inline PyModuleDef* _PyModule_GetDefOrSlots(PyObject *self) {
+    assert(PyModule_Check(self));
+    PyModuleObject *mod = (PyModuleObject *)self;
+    if (mod->md_def_XXX) {
+        return mod->md_def_XXX;
+    }
+    return (PyModuleDef*)mod->md_slots;
 }
 
 static inline void* _PyModule_GetState(PyObject* mod) {

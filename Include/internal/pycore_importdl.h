@@ -65,6 +65,7 @@ extern int _Py_ext_module_loader_info_init_from_spec(
 /* The result from running an extension module's init function. */
 struct _Py_ext_module_loader_result {
     PyModuleDef *def_XXX;
+    PyModuleDef_Slot *slots;
     PyObject *module;
     _Py_ext_module_kind kind;
     struct _Py_ext_module_loader_result_error *err;
