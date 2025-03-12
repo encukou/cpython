@@ -298,7 +298,7 @@ PyModuleDef_FromSlots(PySlot *slots)
     _PyModuleDef2 *new_def = NULL;
 
     // Count how much storage we need
-    Py_ssize_t needed_slots = 0;
+    Py_ssize_t needed_slots = 1;
 
     _PySlotIterator it;
     if (_PySlotIterator_Init(&it, slots, _PySlot_KIND_MOD) < 0) {
@@ -419,7 +419,7 @@ PyModuleDef_FromSlots(PySlot *slots)
                     goto finally;
                 }
                 n_copied_slots++;
-                if (n_copied_slots > needed_slots) {
+                if (n_copied_slots >= needed_slots) {
                     /* We're storing more slots than we have space for.
                      * Either the slots have changed since we counted,
                      * or the two `switch`es don't have the same `case`s.
@@ -436,6 +436,7 @@ PyModuleDef_FromSlots(PySlot *slots)
     if (sl_id < 0) {
         goto finally;
     }
+    memset(current_dest_slot, 0, sizeof(*current_dest_slot));
 
     result = (PyObject*)new_def;
     new_def = NULL;
