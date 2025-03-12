@@ -19,7 +19,7 @@ extern int _PyModule_IsExtension(PyObject *obj);
 typedef struct {
     PyObject_HEAD
     PyObject *md_dict;
-    PyModuleDef *md_def;
+    PyModuleDef *md_def_XXX;
     void *md_state;
     PyObject *md_weaklist;
     // for logging purposes after md_dict is cleared
