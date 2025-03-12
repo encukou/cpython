@@ -1975,6 +1975,33 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
+import_run_slot_export(PyThreadState *tstate, PyModSlotFunction s0,
+                      struct _Py_ext_module_loader_info *info,
+                      PyObject *spec)
+{
+    /* This is like import_run_extension, but avoids interpreter switching
+     * and code for for single-phase modules.
+     */
+    PyModuleDef_Slot *slots = s0(spec);
+    if (!slots) {
+        if (!PyErr_Occurred()) {
+            PyErr_Format(
+                PyExc_SystemError,
+                "slot export function for module %s failed without setting an exception",
+                info->name);
+        }
+        return NULL;
+    }
+    if (PyErr_Occurred()) {
+        PyErr_Format(
+            PyExc_SystemError,
+            "slot export function for module %s raised unreported exception",
+            info->name);
+    }
+    return PyModule_FromSlotsAndSpec(slots, spec);
+}
+
+static PyObject *
 import_run_extension(PyThreadState *tstate, PyModInitFunction p0,
                      struct _Py_ext_module_loader_info *info,
                      PyObject *spec, PyObject *modules)
@@ -2144,18 +2171,13 @@ main_finally:
     }
 
     if (res.kind == _Py_ext_module_kind_MULTIPHASE) {
-        if (!def) {
-            // XXX slots
-        }
-        else {
-            assert_multiphase_def(def);
-            assert(mod == NULL);
-            /* Note that we cheat a little by not repeating the calls
-            * to _PyImport_GetModInitFunc() and _PyImport_RunModInitFunc(). */
-            mod = PyModule_FromDefAndSpec(def, spec);
-            if (mod == NULL) {
-                goto error;
-            }
+        assert_multiphase_def(def);
+        assert(mod == NULL);
+        /* Note that we cheat a little by not repeating the calls
+         * to _PyImport_GetModInitFunc2() and _PyImport_RunModInitFunc(). */
+        mod = PyModule_FromDefAndSpec(def, spec);
+        if (mod == NULL) {
+            goto error;
         }
     }
     else {
@@ -4739,7 +4761,13 @@ _imp_create_dynamic_impl(PyObject *module, PyObject *spec, PyObject *file)
         fp = NULL;
     }
 
-    PyModInitFunction p0 = _PyImport_GetModInitFunc(&info, fp);
+    PyModInitFunction p0;
+    PyModSlotFunction s0;
+    _PyImport_GetModInitFunc2(&info, fp, &p0, &s0);
+    if (s0) {
+        mod = import_run_slot_export(tstate, s0, &info, spec);
+        goto cleanup;
+    }
     if (p0 == NULL) {
         goto finally;
     }
@@ -4761,6 +4789,7 @@ _imp_create_dynamic_impl(PyObject *module, PyObject *spec, PyObject *file)
     }
 #endif
 
+cleanup:
     // XXX Shouldn't this happen in the error cases too (i.e. in "finally")?
     if (fp) {
         fclose(fp);
