@@ -58,7 +58,7 @@ _PyModule_IsExtension(PyObject *obj)
     }
     PyModuleObject *module = (PyModuleObject*)obj;
 
-    if (module->md_slots) {
+    if (module->md_state) {
         return 1;
     }
     PyModuleDef *def = module->md_def_XXX;
@@ -111,7 +111,6 @@ new_module_notrack(PyTypeObject *mt)
     if (m == NULL)
         return NULL;
     m->md_def_XXX = NULL;
-    m->md_slots = NULL;
     m->md_state = NULL;
     m->md_weaklist = NULL;
     m->md_name = NULL;
@@ -119,6 +118,8 @@ new_module_notrack(PyTypeObject *mt)
     m->md_traverse = NULL;
     m->md_clear = NULL;
     m->md_free = NULL;
+    m->md_exec = NULL;
+    m->md_token = NULL;
     m->md_dict = PyDict_New();
     if (m->md_dict == NULL) {
         Py_DECREF(m);
@@ -297,8 +298,64 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
     return (PyObject*)m;
 }
 
+static PyObject *
+module_FromSlotsAndSpec(PyModuleDef_Slot *slots, PyObject *spec,
+                        PyModuleDef *optional_def);
+
 PyObject *
 PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_version)
+{
+    if (!check_api_version(def->m_name, module_api_version)) {
+        return NULL;
+    }
+
+    PyModuleDef_Init(def);
+    if (def->m_size > 0 && def->m_size > INTPTR_MAX) {
+        PyErr_Format(
+            PyExc_SystemError,
+            "requested size of module %s is too large",
+            def->m_name);
+        return NULL;
+    }
+
+    PyModuleObject *mod = (PyModuleObject *)module_FromSlotsAndSpec(
+        (PyModuleDef_Slot[]) {
+            //{Py_mod_name, (void*)def->m_name},
+            {Py_mod_doc, (void*)def->m_doc},
+            {Py_mod_size, (void*)def->m_size},
+            {Py_mod_methods, def->m_methods},
+            {Py_mod_traverse, def->m_traverse},
+            {Py_mod_clear, def->m_clear},
+            {Py_mod_free, def->m_free},
+            {_Py_slot_goto, def->m_slots},
+            {0}, // extra sentinel; should not be needed
+        },
+        spec, def);
+    if (!mod) {
+        return NULL;
+    }
+    assert(PyModule_Check(mod));
+    if (!mod->md_token) {
+        mod->md_token = def;
+    }
+    return (PyObject *)mod;
+}
+
+PyObject *
+PyModule_FromSlotsAndSpec(PyModuleDef_Slot *slots, PyObject *spec)
+{
+    PyModuleObject *mod = (PyModuleObject *)module_FromSlotsAndSpec(
+        slots, spec, NULL);
+    if (!mod) {
+        return NULL;
+    }
+    assert(PyModule_Check(mod));
+    return (PyObject *)mod;
+}
+
+static PyObject *
+module_FromSlotsAndSpec(PyModuleDef_Slot *slots, PyObject *spec,
+                        PyModuleDef *optional_def)
 {
     PyModuleDef_Slot* cur_slot;
     PyObject *(*create)(PyObject *, PyModuleDef*) = NULL;
@@ -308,12 +365,9 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     void *multiple_interpreters = (void *)0;
     int has_gil_slot = 0;
     void *gil_slot = Py_MOD_GIL_USED;
-    int has_execution_slots = 0;
     const char *name;
     int ret;
     PyInterpreterState *interp = _PyInterpreterState_GET();
-
-    PyModuleDef_Init(def);
 
     nameobj = PyObject_GetAttrString(spec, "name");
     if (nameobj == NULL) {
@@ -324,20 +378,23 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         goto error;
     }
 
-    if (!check_api_version(name, module_api_version)) {
-        goto error;
-    }
-
-    if (def->m_size < 0) {
-        PyErr_Format(
-            PyExc_SystemError,
-            "module %s: m_size may not be negative for multi-phase initialization",
-            name);
-        goto error;
-    }
-
-    for (cur_slot = def->m_slots; cur_slot && cur_slot->slot; cur_slot++) {
+    for (cur_slot = slots; cur_slot && cur_slot->slot; cur_slot++) {
+        if (cur_slot->slot == _Py_slot_goto) {
+            cur_slot = (PyModuleDef_Slot*)cur_slot->value;
+            if (!cur_slot->slot) {
+                break;
+            }
+        }
         switch (cur_slot->slot) {
+            case Py_mod_name:
+            case Py_mod_doc:
+            case Py_mod_methods:
+            case Py_mod_traverse:
+            case Py_mod_clear:
+            case Py_mod_free:
+            case Py_mod_size:
+            case Py_mod_exec:
+                break;
             case Py_mod_create:
                 if (create) {
                     PyErr_Format(
@@ -347,9 +404,6 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
                     goto error;
                 }
                 create = cur_slot->value;
-                break;
-            case Py_mod_exec:
-                has_execution_slots = 1;
                 break;
             case Py_mod_multiple_interpreters:
                 if (has_multiple_interpreters_slot) {
@@ -404,7 +458,7 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
     }
 
     if (create) {
-        m = create(spec, def);
+        m = create(spec, optional_def);
         if (m == NULL) {
             if (!PyErr_Occurred()) {
                 PyErr_Format(
@@ -429,44 +483,177 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         }
     }
 
-    if (PyModule_Check(m)) {
-        PyModuleObject *md = ((PyModuleObject*)m);
+    bool is_module_object = PyModule_Check(m);
+    PyModuleObject *md = ((PyModuleObject*)m);
+    if (is_module_object) {
         md->md_state = NULL;
-        module_set_def(md, def);
+        if (optional_def) {
+            md->md_def_XXX = optional_def;
+        }
 #ifdef Py_GIL_DISABLED
         md->md_gil = gil_slot;
 #else
         (void)gil_slot;
 #endif
-    } else {
-        if (def->m_size > 0 || def->m_traverse || def->m_clear || def->m_free) {
-            PyErr_Format(
-                PyExc_SystemError,
-                "module %s is not a module object, but requests module state",
-                name);
-            goto error;
-        }
-        if (has_execution_slots) {
-            PyErr_Format(
-                PyExc_SystemError,
-                "module %s specifies execution slots, but did not create "
-                    "a ModuleType instance",
-                name);
-            goto error;
-        }
     }
 
-    if (def->m_methods != NULL) {
-        ret = _add_methods_to_object(m, nameobj, def->m_methods);
-        if (ret != 0) {
-            goto error;
+    bool have_size = false;
+    for (cur_slot = slots; cur_slot && cur_slot->slot; cur_slot++) {
+        if (cur_slot->slot == _Py_slot_goto) {
+            cur_slot = (PyModuleDef_Slot*)cur_slot->value;
+            if (!cur_slot->slot) {
+                break;
+            }
         }
-    }
-
-    if (def->m_doc != NULL) {
-        ret = PyModule_SetDocString(m, def->m_doc);
-        if (ret != 0) {
-            goto error;
+        switch (cur_slot->slot) {
+            case Py_mod_multiple_interpreters:
+            case Py_mod_gil:
+            case Py_mod_create:
+                /* Handled above */
+                break;
+            case Py_mod_exec:
+                if (is_module_object) {
+                    if (!optional_def) {
+                        if (md->md_exec) {
+                            PyErr_Format(
+                                PyExc_SystemError,
+                                "module %s specifies multiple execution slots",
+                                name);
+                            goto error;
+                        }
+                        md->md_exec = cur_slot->value;
+                    }
+                }
+                else {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s specifies execution slots, but did not "
+                            "create a ModuleType instance",
+                        name);
+                    goto error;
+                }
+                break;
+                break;
+            case Py_mod_name:
+                break;
+            case Py_mod_size:
+                Py_ssize_t size = (Py_ssize_t)cur_slot->value;
+                if (size < 0) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s: m_size may not be negative for multi-phase initialization",
+                        name);
+                    goto error;
+                }
+                if (size > 0) {
+                    if (!is_module_object) {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "module %s is not a module object, but requests "
+                             "module state",
+                            name);
+                        goto error;
+                    }
+                    if (have_size) {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "module %s has multiple Py_mod_size slots",
+                            name);
+                        goto error;
+                    }
+                    md->md_size = size;
+                    have_size = true;
+                }
+                break;
+            case Py_mod_traverse:
+                if (!cur_slot->value) {
+                    break;
+                }
+                if (!is_module_object) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s is not a module object, but requests "
+                            "module state",
+                        name);
+                    goto error;
+                }
+                if (md->md_traverse) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s has multiple Py_mod_traverse slots",
+                        name);
+                    goto error;
+                }
+                md->md_traverse = cur_slot->value;
+                break;
+            case Py_mod_clear:
+                if (!cur_slot->value) {
+                    break;
+                }
+                if (!is_module_object) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s is not a module object, but requests "
+                            "module state",
+                        name);
+                    goto error;
+                }
+                if (md->md_clear) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s has multiple Py_mod_clear slots",
+                        name);
+                    goto error;
+                }
+                md->md_clear = cur_slot->value;
+                break;
+            case Py_mod_free:
+                if (!cur_slot->value) {
+                    break;
+                }
+                if (!is_module_object) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s is not a module object, but requests "
+                            "module state",
+                        name);
+                    goto error;
+                }
+                if (md->md_free) {
+                    PyErr_Format(
+                        PyExc_SystemError,
+                        "module %s has multiple Py_mod_free slots",
+                        name);
+                    goto error;
+                }
+                md->md_free = cur_slot->value;
+                break;
+            case Py_mod_methods:
+                if (!cur_slot->value) {
+                    break;
+                }
+                ret = _add_methods_to_object(m, nameobj,
+                                             (PyMethodDef*)cur_slot->value);
+                if (ret != 0) {
+                    goto error;
+                }
+                break;
+            case Py_mod_doc:
+                if (!cur_slot->value) {
+                    break;
+                }
+                ret = PyModule_SetDocString(m, (char *)cur_slot->value);
+                if (ret != 0) {
+                    goto error;
+                }
+                break;
+            default:
+                assert(cur_slot->slot < 0 || cur_slot->slot > _Py_mod_LAST_SLOT);
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "module %s uses unknown slot ID %i",
+                    name, cur_slot->slot);
+                goto error;
         }
     }
 
@@ -493,26 +680,31 @@ PyUnstable_Module_SetGIL(PyObject *module, void *gil)
 #endif
 
 int
-PyModule_ExecDef(PyObject *module, PyModuleDef *def)
+run_exec_func(PyObject *module, int (*exec)(PyObject *))
 {
-    if (def->m_slots) {
-        return PyModule_RunExecSlots(module, def->m_slots);
+    int ret = exec(module);
+    if (ret != 0) {
+        if (!PyErr_Occurred()) {
+            PyErr_Format(
+                PyExc_SystemError,
+                "execution of %S failed without setting an exception",
+                module);
+        }
+        return -1;
+    }
+    if (PyErr_Occurred()) {
+        _PyErr_FormatFromCause(
+            PyExc_SystemError,
+            "execution of module %S raised unreported exception",
+            module);
+        return -1;
     }
     return 0;
 }
 
 int
-PyModule_RunExecSlots(PyObject *module, PyModuleDef_Slot *slots)
+alloc_state(PyObject *module)
 {
-    PyModuleDef_Slot *cur_slot;
-    const char *name;
-    int ret;
-
-    name = PyModule_GetName(module);
-    if (name == NULL) {
-        return -1;
-    }
-
     assert(PyModule_Check(module));
     PyModuleObject *md = (PyModuleObject*)module;
 
@@ -528,32 +720,58 @@ PyModule_RunExecSlots(PyObject *module, PyModuleDef_Slot *slots)
             memset(md->md_state, 0, md->md_size);
         }
     }
+    return 0;
+}
 
-    if (slots == NULL) {
+int
+PyModule_Exec(PyObject *module)
+{
+    assert(PyModule_Check(module));
+    if (alloc_state(module) < 0) {
+        return -1;
+    }
+    PyModuleObject *md = (PyModuleObject*)module;
+    if (md->md_exec) {
+        assert(!md->md_def_XXX);
+        return run_exec_func(module, md->md_exec);
+    }
+
+    if (md->md_def_XXX) {
+        return PyModule_ExecDef(module, md->md_def_XXX);
+    }
+    return 0;
+}
+
+int
+PyModule_ExecDef(PyObject *module, PyModuleDef *def)
+{
+    PyModuleDef_Slot *cur_slot;
+    const char *name;
+    int ret;
+
+    name = PyModule_GetName(module);
+    if (name == NULL) {
+        return -1;
+    }
+
+    if (alloc_state(module) < 0) {
+        return -1;
+    }
+
+    assert(PyModule_Check(module));
+
+    if (def->m_slots == NULL) {
         return 0;
     }
 
-    for (cur_slot = slots; cur_slot && cur_slot->slot; cur_slot++) {
+    for (cur_slot = def->m_slots; cur_slot && cur_slot->slot; cur_slot++) {
         switch (cur_slot->slot) {
             case Py_mod_create:
                 /* handled in PyModule_FromDefAndSpec2 */
                 break;
             case Py_mod_exec:
-                ret = ((int (*)(PyObject *))cur_slot->value)(module);
-                if (ret != 0) {
-                    if (!PyErr_Occurred()) {
-                        PyErr_Format(
-                            PyExc_SystemError,
-                            "execution of module %s failed without setting an exception",
-                            name);
-                    }
-                    return -1;
-                }
-                if (PyErr_Occurred()) {
-                    _PyErr_FormatFromCause(
-                        PyExc_SystemError,
-                        "execution of module %s raised unreported exception",
-                        name);
+                ret = run_exec_func(module, (int (*)(PyObject *))cur_slot->value);
+                if (ret < 0) {
                     return -1;
                 }
                 break;

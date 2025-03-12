@@ -995,10 +995,11 @@ PyInit__test_no_multiple_interpreter_slot(void)
 }
 
 PyMODSLOTS_FUNC
-PyModuleSlots__test_from_slots(struct PyInitInfo *info)
+PyModuleSlots__test_from_slots(PyObject *spec)
 {
-    return (PyModuleDef_Slot[]) {
-            {Py_mod_name, "_test_from_slots"},
-            {0},
-        };
+    static PyModuleDef_Slot slots[] = {
+        {Py_mod_name, "_test_from_slots"},
+        {0},
+    };
+    return slots;
 }

@@ -386,11 +386,11 @@ findfuncptr(const char *prefix, const char *name_buf,
 {
 #ifdef MS_WINDOWS
     return _PyImport_FindSharedFuncptrWindows(
-            info->hook_prefixes->def_prefix, name_buf, info->filename, fp);
+            prefix, name_buf, info->filename, fp);
 #else
     const char *path_buf = PyBytes_AS_STRING(info->filename_encoded);
     return _PyImport_FindSharedFuncptr(
-            info->hook_prefixes->def_prefix, name_buf, path_buf, fp);
+            prefix, name_buf, path_buf, fp);
 #endif
 }
 

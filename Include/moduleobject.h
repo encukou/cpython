@@ -79,11 +79,23 @@ struct PyModuleDef_Slot {
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
 #  define Py_mod_gil 4
 #endif
-#define Py_mod_name 0x101 // XXX
+
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
+#define Py_mod_name 5
+#define Py_mod_doc 6
+#define Py_mod_size 7
+#define Py_mod_methods 8
+#define Py_mod_traverse 9
+#define Py_mod_clear 10
+#define Py_mod_free 11
+#endif
 
 
 #ifndef Py_LIMITED_API
-#define _Py_mod_LAST_SLOT 4
+#define _Py_mod_LAST_SLOT 12
+
+/* Internal use only. Must not point to another goto. */
+#define _Py_slot_goto 0x100
 #endif
 
 #endif /* New in 3.5 */
@@ -104,6 +116,12 @@ struct PyModuleDef_Slot {
 #if !defined(Py_LIMITED_API) && defined(Py_GIL_DISABLED)
 PyAPI_FUNC(int) PyUnstable_Module_SetGIL(PyObject *module, void *gil);
 #endif
+
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
+PyAPI_FUNC(PyObject *) PyModule_FromSlotsAndSpec(PyModuleDef_Slot *,
+                                                 PyObject *spec);
+#endif
+
 
 struct PyModuleDef {
   PyModuleDef_Base m_base;

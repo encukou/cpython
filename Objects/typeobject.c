@@ -5404,7 +5404,7 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
     else {
         PyHeapTypeObject *ht = (PyHeapTypeObject*)type;
         PyObject *module = ht->ht_module;
-        if (module && _PyModule_GetDefOrSlots(module) == def) {
+        if (module && _PyModule_GetDef_XXX(module) == def) {
             return module;
         }
     }
@@ -5432,7 +5432,7 @@ PyType_GetModuleByDef(PyTypeObject *type, PyModuleDef *def)
 
         PyHeapTypeObject *ht = (PyHeapTypeObject*)super;
         PyObject *module = ht->ht_module;
-        if (module && _PyModule_GetDefOrSlots(module) == def) {
+        if (module && _PyModule_GetDef_XXX(module) == def) {
             res = module;
             break;
         }

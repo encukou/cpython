@@ -839,7 +839,6 @@ _PyImport_SetDLOpenFlags(PyInterpreterState *interp, int new_val)
 /* Common implementation for _imp.exec_dynamic and _imp.exec_builtin */
 static int
 exec_builtin_or_dynamic(PyObject *mod) {
-    PyModuleDef *def;
     void *state;
 
     if (!PyModule_Check(mod)) {
@@ -852,19 +851,7 @@ exec_builtin_or_dynamic(PyObject *mod) {
         return 0;
     }
 
-    assert (Py_TYPE(mod) == &PyModule_Type);
-    PyModuleObject *m = (PyModuleObject *)mod;
-    PyModuleDef_Slot *slots = m->md_slots;;
-    if (slots) {
-        return PyModule_RunExecSlots(mod, slots);
-    }
-
-    def = PyModule_GetDef_XXX(mod);
-    if (def) {
-        return PyModule_ExecDef(mod, def);
-    }
-
-    return 0;
+    return PyModule_Exec(mod);
 }
 
 
@@ -1998,7 +1985,16 @@ import_run_slot_export(PyThreadState *tstate, PyModSlotFunction s0,
             "slot export function for module %s raised unreported exception",
             info->name);
     }
-    return PyModule_FromSlotsAndSpec(slots, spec);
+    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
+    if (!result) {
+        return NULL;
+    }
+    assert(PyModule_Check(result));
+    PyModuleObject *mod = (PyModuleObject *)result;
+    if (mod && !mod->md_token) {
+        mod->md_token = slots;
+    }
+    return result;
 }
 
 static PyObject *
@@ -4761,8 +4757,8 @@ _imp_create_dynamic_impl(PyObject *module, PyObject *spec, PyObject *file)
         fp = NULL;
     }
 
-    PyModInitFunction p0;
-    PyModSlotFunction s0;
+    PyModInitFunction p0 = NULL;
+    PyModSlotFunction s0 = NULL;
     _PyImport_GetModInitFunc2(&info, fp, &p0, &s0);
     if (s0) {
         mod = import_run_slot_export(tstate, s0, &info, spec);
