@@ -1,5 +1,6 @@
 import unittest
 import importlib
+import sys
 from importlib.machinery import ExtensionFileLoader
 
 try:

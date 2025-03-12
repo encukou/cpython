@@ -242,6 +242,11 @@ _Py_ext_module_loader_result_clear(struct _Py_ext_module_loader_result *res)
     /* Instead, the caller should have called
      * _Py_ext_module_loader_result_apply_error(). */
     assert(res->err == NULL);
+    if (res->def && (Py_TYPE(res->def) == &_PyModuleDef2_Type)) {
+        // Classic PyModuleDef is assumed to be statically allocated;
+        // _PyModuleDef2 has proper refcounting
+        Py_CLEAR(res->def);
+    }
     *res = (struct _Py_ext_module_loader_result){0};
 }
 

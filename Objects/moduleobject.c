@@ -47,6 +47,9 @@ typedef int (*execfunc_p)(PyObject *);
  * It should have NULL m_slots.
  */
 
+static void PyModuleDef2_dealloc(PyObject *self);
+
+
 typedef struct {
     PyModuleDef m_base;
     PyObject *m_name_object;
@@ -60,8 +63,17 @@ PyTypeObject _PyModuleDef2_Type = {
     .tp_basicsize = sizeof(_PyModuleDef2),
     .tp_itemsize = sizeof(PySlot),
     .tp_base = &PyModuleDef_Type,
-    // XXX .tp_dealloc
+    .tp_dealloc = PyModuleDef2_dealloc,
 };
+
+static void
+PyModuleDef2_dealloc(PyObject *self)
+{
+    _PyModuleDef2 *def2 = (_PyModuleDef2 *)self;
+    Py_CLEAR(def2->m_name_object);
+    Py_CLEAR(def2->m_doc_object);
+    PyModuleDef_Type.tp_dealloc(self);
+}
 
 int
 _PyModule_IsExtension(PyObject *obj)
@@ -1010,10 +1022,13 @@ module_dealloc(PyObject *self)
     FT_CLEAR_WEAKREFS(self, m->md_weaklist);
 
     /* bpo-39824: Don't call m_free() if m_size > 0 and md_state=NULL */
-    if (m->md_def && m->md_def->m_free
-        && (m->md_def->m_size <= 0 || m->md_state != NULL))
-    {
-        m->md_def->m_free(m);
+    if (m->md_def) {
+        if (m->md_def->m_free
+            && (m->md_def->m_size <= 0 || m->md_state != NULL))
+        {
+            m->md_def->m_free(m);
+        }
+        Py_CLEAR(m->md_def);
     }
 
     Py_XDECREF(m->md_dict);
