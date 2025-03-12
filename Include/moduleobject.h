@@ -79,6 +79,7 @@ struct PyModuleDef_Slot {
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
 #  define Py_mod_gil 4
 #endif
+#define Py_mod_name 0x101 // XXX
 
 
 #ifndef Py_LIMITED_API

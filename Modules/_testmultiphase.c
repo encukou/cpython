@@ -993,3 +993,12 @@ PyInit__test_no_multiple_interpreter_slot(void)
 {
     return PyModuleDef_Init(&no_multiple_interpreter_slot_def);
 }
+
+PyMODSLOTS_FUNC
+PyModuleSlots__test_from_slots(struct PyInitInfo *info)
+{
+    return (PyModuleDef_Slot[]) {
+            {Py_mod_name, "_test_from_slots"},
+            {0},
+        };
+}
