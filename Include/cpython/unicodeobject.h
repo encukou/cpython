@@ -144,11 +144,13 @@ typedef struct {
         unsigned short ascii:1;
         /* The object is statically allocated. */
         unsigned short statically_allocated:1;
+        /* The object was allocated with PyUnicode_New */
+        unsigned short _from_new:1;
         /* Padding to ensure that PyUnicode_DATA() is always aligned to
            4 bytes (see issue #19537 on m68k) and we use unsigned short to avoid
            the extra four bytes on 32-bit Windows. This is restricted features
            for specific compilers including GCC, MSVC, Clang and IBM's XL compiler. */
-        unsigned short :10;
+        unsigned short :9;
     } state;
 } PyASCIIObject;
 
@@ -395,6 +397,13 @@ static inline Py_UCS4 PyUnicode_MAX_CHAR_VALUE(PyObject *op)
 PyAPI_FUNC(PyObject*) PyUnicode_New(
     Py_ssize_t size,            /* Number of code points in the new string */
     Py_UCS4 maxchar             /* maximum code point value in the string */
+    );
+
+/* Like PyUnicode_New, but can create a subtype */
+PyAPI_FUNC(PyObject*) PyUnicode_NewSubtype(
+    PyTypeObject *type,
+    Py_ssize_t size,
+    Py_UCS4 maxchar
     );
 
 /* For backward compatibility. Soft-deprecated. */

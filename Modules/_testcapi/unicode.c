@@ -540,6 +540,152 @@ static PyType_Spec Writer_spec = {
 };
 
 
+/* UnicodeSubType: Unicode subclass that holds some extra data */
+struct UnicodeSubType_Data {
+    int number;
+    char flag;
+    PyObject *obj;
+};
+
+static PyType_Spec UnicodeSubType_Spec;
+
+static PyObject *
+usubtype_new_filled(PyObject *type, PyObject *args)
+{
+    Py_ssize_t size;
+    long chr;
+    if (PyArg_ParseTuple(args, "nl", &size, &chr) < 0) {
+        return NULL;
+    }
+    PyObject *self = PyUnicode_NewSubtype((PyTypeObject *)type,
+                                          size, (Py_UCS4)chr);
+    if (!self) {
+        return NULL;
+    }
+    if (PyUnicode_Fill(self, 0, size, (Py_UCS4)chr) < 0) {
+        return NULL;
+    }
+    return self;
+}
+
+static PyObject *
+usubtype_get_data(PyObject *self,
+                PyTypeObject *defining_class,
+                PyObject *const *args,
+                Py_ssize_t nargs,
+                PyObject *kwnames)
+{
+    if (nargs || (kwnames && PyTuple_GET_SIZE(kwnames))) {
+        PyErr_SetString(PyExc_TypeError, "get_data() takes no arguments");
+        return NULL;
+    }
+    struct UnicodeSubType_Data *data = PyObject_GetTypeData(self, defining_class);
+    if (!data) {
+        return NULL;
+    }
+    return Py_BuildValue("nlO", data->number,
+                         data->flag, data->obj ? data->obj : Py_None);
+}
+
+/* Get the extra data pointer from `self` */
+static struct UnicodeSubType_Data *
+usubtype_get_struct(PyObject *self) {
+
+    /* The hard way, assuming nothing: */
+    PyTypeObject *tp;
+    PyType_GetBaseByToken(Py_TYPE(self), &UnicodeSubType_Spec, &tp);
+    if (!tp) {
+        assert(PyErr_Occurred());
+        return NULL;
+    }
+    struct UnicodeSubType_Data *result = PyObject_GetTypeData(self, tp);
+    Py_DECREF(tp);
+
+    /* Or, using knowledge of current CPython layout details: */
+    struct UnicodeSubType_Data *result2 = (void*)(
+        (char*)self + PyUnicode_Type.tp_basicsize);
+
+    assert(result == result2);
+
+    return result;
+}
+
+static int
+usubtype_traverse(PyObject *self, visitproc visit, void *arg)
+{
+    struct UnicodeSubType_Data *s = usubtype_get_struct(self);
+    Py_VISIT(s->obj);
+
+    PyTypeObject *base = &PyUnicode_Type;
+    /* pretend we know nothing more about our superclass */
+    if (base->tp_traverse) {
+        return base->tp_traverse(self, visit, arg);
+    }
+    return 0;
+}
+
+static int
+usubtype_clear(PyObject *self)
+{
+    struct UnicodeSubType_Data *s = usubtype_get_struct(self);
+    Py_CLEAR(s->obj);
+
+    PyTypeObject *base = &PyUnicode_Type;
+    /* pretend we know nothing more about our superclass */
+    if (base->tp_clear) {
+        return base->tp_clear(self);
+    }
+    return 0;
+}
+
+static void
+usubtype_dealloc(PyObject *self)
+{
+    PyTypeObject *base = &PyUnicode_Type;
+    /* pretend we know nothing more about our superclass */
+    if (!(base->tp_flags & Py_TPFLAGS_HAVE_GC)) {
+        PyObject_GC_UnTrack(self);
+    }
+    (void)usubtype_clear(self);
+    PyTypeObject *tp = Py_TYPE(self);
+    if (base->tp_dealloc) {
+        base->tp_dealloc(self);
+    }
+    if (!(base->tp_flags & Py_TPFLAGS_HEAPTYPE)) {
+        Py_DECREF(tp);
+    }
+}
+
+static PyType_Spec UnicodeSubType_Spec = {
+    .name = "_testcapi.UnicodeSubType",
+    .basicsize = (int)-sizeof(struct UnicodeSubType_Data),
+    .flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+    .slots = (PyType_Slot[]) {
+        {Py_tp_members, (PyMemberDef[]) {
+            {"number", Py_T_INT, offsetof(struct UnicodeSubType_Data, number),
+                Py_RELATIVE_OFFSET},
+            {"flag", Py_T_BOOL, offsetof(struct UnicodeSubType_Data, flag),
+                Py_RELATIVE_OFFSET},
+            {"obj", Py_T_OBJECT_EX, offsetof(struct UnicodeSubType_Data, obj),
+                Py_RELATIVE_OFFSET},
+            {0}  /* sentinel */
+        }},
+        {Py_tp_methods, (PyMethodDef[]){
+            {"new_filled", usubtype_new_filled, METH_VARARGS | METH_CLASS,
+                "new_filled(N, C) -> instance with N copies of chr(C)"},
+            {"get_data", (PyCFunction)(void(*)(void))usubtype_get_data,
+                METH_METHOD | METH_FASTCALL | METH_KEYWORDS,
+                "get the extra data"},
+            {0}  /* sentinel */
+        }},
+        {Py_tp_token, Py_TP_USE_SPEC},
+        {Py_tp_traverse, usubtype_traverse},
+        {Py_tp_clear, usubtype_clear},
+        {Py_tp_dealloc, usubtype_dealloc},
+        {0}  /* sentinel */
+    }
+};
+
 static PyMethodDef TestMethods[] = {
     {"unicode_new",              unicode_new,                    METH_VARARGS},
     {"unicode_fill",             unicode_fill,                   METH_VARARGS},
@@ -566,6 +712,17 @@ _PyTestCapi_Init_Unicode(PyObject *m) {
         return -1;
     }
     Py_DECREF(writer_type);
+
+    PyTypeObject *usubtype_type = (PyTypeObject *)PyType_FromSpecWithBases(
+        &UnicodeSubType_Spec, (PyObject *)&PyUnicode_Type);
+    if (usubtype_type == NULL) {
+        return -1;
+    }
+    if (PyModule_AddType(m, usubtype_type) < 0) {
+        Py_DECREF(usubtype_type);
+        return -1;
+    }
+    Py_DECREF(usubtype_type);
 
     return 0;
 }

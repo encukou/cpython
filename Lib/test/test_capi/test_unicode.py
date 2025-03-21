@@ -1739,6 +1739,48 @@ class CAPITest(unittest.TestCase):
                 # Check that the second call returns the same result
                 self.assertEqual(getargs_s_hash(s), chr(k).encode() * (i + 1))
 
+    def test_substr(self):
+        from _testcapi import UnicodeSubType
+        def check_common(obj):
+            """Verify that UnicodeSubType's extra state works"""
+            self.assertIsInstance(obj, UnicodeSubType)
+            self.assertEqual(obj.number, 0)
+            self.assertIs(obj.flag, False)
+            self.assertFalse(hasattr(obj, 'obj'))
+            self.assertEqual(obj.get_data(), (0, False, None))
+            some_object = [...]
+            obj.number = 123
+            obj.flag = True
+            obj.obj = some_object
+            self.assertEqual(obj.number, 123)
+            self.assertIs(obj.flag, True)
+            self.assertIs(obj.obj, some_object)
+            self.assertEqual(obj.get_data(), (123, True, some_object))
+
+        empty = UnicodeSubType()
+        check_common(empty)
+        self.assertEqual(empty, '')
+        self.assertEqual(len(empty), 0)
+        self.assertTrue(empty.isascii())
+
+        fromnum = UnicodeSubType(456)
+        check_common(fromnum)
+        self.assertEqual(fromnum, '456')
+        self.assertEqual(len(fromnum), 3)
+        self.assertTrue(fromnum.isascii())
+
+        dots = UnicodeSubType.new_filled(30, ord('.'))
+        check_common(dots)
+        self.assertEqual(dots, '.' * 30)
+        self.assertEqual(len(dots), 30)
+        self.assertTrue(dots.isascii())
+
+        snakes = UnicodeSubType.new_filled(9, ord('\N{SNAKE}'))
+        check_common(snakes)
+        self.assertEqual(snakes, '\N{SNAKE}' * 9)
+        self.assertEqual(len(snakes), 9)
+        self.assertFalse(snakes.isascii())
+
 
 class PyUnicodeWriterTest(unittest.TestCase):
     def create_writer(self, size):

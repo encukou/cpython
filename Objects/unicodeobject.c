@@ -1352,28 +1352,38 @@ _PyUnicode_Dump(PyObject *op)
 
 
 PyObject *
-PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
+PyUnicode_NewSubtype(PyTypeObject *type, Py_ssize_t size, Py_UCS4 maxchar)
 {
-    /* Optimization for empty strings */
-    if (size == 0) {
-        return unicode_get_empty();
+    if (!PyType_IsSubtype(type, &PyUnicode_Type)) {
+        PyErr_Format(PyExc_TypeError,
+                     "Expected str subclass, got %S", type);
+        return NULL;
     }
 
-    PyObject *obj;
-    PyCompactUnicodeObject *unicode;
-    void *data;
-    int kind;
-    int is_ascii;
-    Py_ssize_t char_size;
-    Py_ssize_t struct_size;
+    bool compact = false;
+    if (type->tp_basicsize == PyUnicode_Type.tp_basicsize) {
+        /* Optimization for empty strings */
+        if ((size == 0) && (type == &PyUnicode_Type)) {
+            return unicode_get_empty();
+        }
+        compact = true;
+    }
 
-    is_ascii = 0;
-    struct_size = sizeof(PyCompactUnicodeObject);
+    int kind;
+    Py_ssize_t char_size;
+
+    int is_ascii = 0;
+    Py_ssize_t struct_size = sizeof(PyCompactUnicodeObject);
+    if (!compact) {
+        struct_size = type->tp_basicsize;
+    }
     if (maxchar < 128) {
         kind = PyUnicode_1BYTE_KIND;
         char_size = 1;
         is_ascii = 1;
-        struct_size = sizeof(PyASCIIObject);
+        if (compact) {
+            struct_size = sizeof(PyASCIIObject);
+        }
     }
     else if (maxchar < 256) {
         kind = PyUnicode_1BYTE_KIND;
@@ -1399,33 +1409,62 @@ PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
                         "Negative size passed to PyUnicode_New");
         return NULL;
     }
-    if (size > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1))
-        return PyErr_NoMemory();
-
-    /* Duplicated allocation code from _PyObject_New() instead of a call to
-     * PyObject_New() so we are able to allocate space for the object and
-     * it's data buffer.
-     */
-    obj = (PyObject *) PyObject_Malloc(struct_size + (size + 1) * char_size);
-    if (obj == NULL) {
+    if (size > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1)) {
         return PyErr_NoMemory();
     }
-    _PyObject_Init(obj, &PyUnicode_Type);
 
-    unicode = (PyCompactUnicodeObject *)obj;
-    if (is_ascii)
-        data = ((PyASCIIObject*)obj) + 1;
-    else
-        data = unicode + 1;
+    PyObject *obj;
+    PyCompactUnicodeObject *unicode;
+    void *data;
+    if (compact) {
+        /* Duplicated allocation code from _PyObject_New() instead of a call to
+        * PyObject_New() so we are able to allocate space for the object and
+        * it's data buffer.
+        */
+        obj = (PyObject *) PyObject_Malloc(struct_size + (size + 1) * char_size);
+        if (obj == NULL) {
+            return PyErr_NoMemory();
+        }
+        _PyObject_Init(obj, &PyUnicode_Type);
+        unicode = (PyCompactUnicodeObject *)obj;
+        if (is_ascii) {
+            data = ((PyASCIIObject*)obj) + 1;
+        }
+        else {
+            data = unicode + 1;
+        }
+    }
+    else {
+        /* Allocate the data in a separate block */
+        obj = type->tp_alloc(type, 0);
+        if (!obj) {
+            return NULL;
+        }
+        unicode = (PyCompactUnicodeObject *)obj;
+        data = PyMem_Malloc((size + 1) * char_size);
+        if (!data) {
+            return PyErr_NoMemory();
+        }
+        ((PyUnicodeObject*)obj)->data.any = data;
+    }
+
     _PyUnicode_LENGTH(unicode) = size;
     _PyUnicode_HASH(unicode) = -1;
     _PyUnicode_STATE(unicode).interned = 0;
     _PyUnicode_STATE(unicode).kind = kind;
-    _PyUnicode_STATE(unicode).compact = 1;
+    _PyUnicode_STATE(unicode).compact = compact;
     _PyUnicode_STATE(unicode).ascii = is_ascii;
     _PyUnicode_STATE(unicode).statically_allocated = 0;
+    _PyUnicode_STATE(unicode)._from_new = 1;
     if (is_ascii) {
-        ((char*)data)[size] = 0;
+        if (compact) {
+            ((char*)data)[size] = 0;
+        }
+        else {
+            ((char*)data)[size] = 0;
+            unicode->utf8 = data;
+            unicode->utf8_length = size;
+        }
     }
     else if (kind == PyUnicode_1BYTE_KIND) {
         ((char*)data)[size] = 0;
@@ -1445,6 +1484,12 @@ PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
 #endif
     assert(_PyUnicode_CheckConsistency((PyObject*)unicode, 0));
     return obj;
+}
+
+PyObject *
+PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
+{
+    return PyUnicode_NewSubtype(&PyUnicode_Type, size, maxchar);
 }
 
 static int
@@ -1822,7 +1867,7 @@ unicode_modifiable(PyObject *unicode)
         return 0;
     if (PyUnicode_CHECK_INTERNED(unicode))
         return 0;
-    if (!PyUnicode_CheckExact(unicode))
+    if (!_PyUnicode_STATE(unicode)._from_new)
         return 0;
 #ifdef Py_DEBUG
     /* singleton refcount is greater than 1 */
@@ -14250,7 +14295,7 @@ unicode_sizeof_impl(PyObject *self)
     else {
         /* If it is a two-block object, account for base object, and
            for character block if present. */
-        size = sizeof(PyUnicodeObject);
+        size = Py_TYPE(self)->tp_basicsize;
         if (_PyUnicode_DATA_ANY(self))
             size += (PyUnicode_GET_LENGTH(self) + 1) *
                 PyUnicode_KIND(self);

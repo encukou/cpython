@@ -344,6 +344,15 @@ APIs:
 
    .. versionadded:: 3.3
 
+.. c:function:: PyObject* PyUnicode_NewSubtype(PyTypeObject *type, \
+                                               Py_ssize_t size, \
+                                               Py_UCS4 maxchar)
+
+   Like :c:func:`PyUnicode_New`, but creates an instance of *type*, which
+   must be a subtype of :c:var:`PyUnicode_Type`.
+
+   .. versionadded:: next
+
 
 .. c:function:: PyObject* PyUnicode_FromKindAndData(int kind, const void *buffer, \
                                                     Py_ssize_t size)
