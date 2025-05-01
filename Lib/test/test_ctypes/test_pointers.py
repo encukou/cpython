@@ -347,8 +347,11 @@ class PointersTestCase(unittest.TestCase):
             self.assertIs(c_int.__pointer_type__, t1)
             self.assertIs(c_float.__pointer_type__, t2)
             self.assertIs(C.__pointer_type__, t1)
+            self.assertIs(t1._type_, c_int)
         finally:
-            POINTER(c_int).set_type(c_int)
+            # POINTER(c_int).set_type(c_int)
+            # POINTER(c_float).set_type(c_float)
+            pass
 
         self.assertIs(c_int.__pointer_type__, int_ptr)
         self.assertIs(c_float.__pointer_type__, float_ptr)
@@ -357,6 +360,11 @@ class PointersTestCase(unittest.TestCase):
         self.assertIs(POINTER(c_float), float_ptr)
         self.assertIs(POINTER(c_int)._type_, c_int)
         self.assertIs(POINTER(c_float)._type_, c_float)
+
+        self.assertIs(c_int.__pointer_type__, int_ptr)
+        self.assertIs(t1._type_, c_int)
+        # next will fail with error AssertionError: <C object at 0x000002B4D19793D0> != 1
+        # self.assertEqual(t1(c_int(1))[0], 1)
 
     def test_pointer_not_ctypes_type(self):
         with self.assertRaisesRegex(TypeError, "must have storage info"):
