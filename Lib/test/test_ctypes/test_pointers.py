@@ -296,28 +296,67 @@ class PointersTestCase(unittest.TestCase):
 
     def test_pointer_set_wrong_type(self):
         int_ptr = POINTER(c_int)
-        float_ptr = POINTER(float_ptr)
+        float_ptr = POINTER(c_float)
+        self.assertIsNot(int_ptr, float_ptr)
+        self.assertIsNot(c_int, c_float)
         try:
             class C(c_int):
                 pass
 
+            self.assertIs(c_int._type_, 'l')
+            self.assertIs(c_int.__pointer_type__, int_ptr)
+
             t1 = POINTER(c_int)
             t2 = POINTER(c_float)
-            t1.set_type(c_float)
-            self.assertEqual(t1(c_float(1.5))[0], 1.5)
-            self.assertIs(c_int._type_, c_float)
+            self.assertIs(c_int.__pointer_type__, int_ptr)
             self.assertIs(c_int.__pointer_type__, t1)
+            self.assertIs(t1, int_ptr)
+            self.assertIs(t1._type_, int_ptr._type_)
+            self.assertIs(t1._type_, c_int)
+
             self.assertIs(c_float.__pointer_type__, float_ptr)
+            self.assertIs(c_float.__pointer_type__, t2)
+            self.assertIs(t2, float_ptr)
+            self.assertIs(t2._type_, float_ptr._type_)
+            self.assertIs(t2._type_, c_float)
+
+            t1.set_type(c_float)
+
+            self.assertIs(c_int.__pointer_type__, int_ptr)
+            self.assertIs(c_int.__pointer_type__, t1)
+            self.assertIs(t1, int_ptr)
+            self.assertIs(t1._type_, int_ptr._type_)
+            self.assertIs(t1._type_, c_int)
+
+            self.assertIs(c_float.__pointer_type__, float_ptr)
+            self.assertIs(c_float.__pointer_type__, t2)
+            self.assertIs(t2, float_ptr)
+            self.assertIs(t2._type_, float_ptr._type_)
+            self.assertIs(t2._type_, c_float)
+
+            self.assertIs(POINTER(c_int), t1)
+            self.assertIs(POINTER(c_float), t2)
+
+            self.assertEqual(t1(c_float(1.5))[0], 1.5)
+            self.assertIs(c_int._type_, 'l')
+            self.assertIs(c_int.__pointer_type__, t1)
+            self.assertIs(c_float.__pointer_type__, t2)
 
             t1.set_type(C)
             self.assertEqual(t1(C(123))[0].value, 123)
             self.assertIs(c_int.__pointer_type__, t1)
-            self.assertIs(c_float.__pointer_type__, float_ptr)
+            self.assertIs(c_float.__pointer_type__, t2)
+            self.assertIs(C.__pointer_type__, t1)
         finally:
             POINTER(c_int).set_type(c_int)
-        self.assertIs(POINTER(c_int), int_ptr)
-        self.assertIs(POINTER(c_int)._type_, c_int)
+
         self.assertIs(c_int.__pointer_type__, int_ptr)
+        self.assertIs(c_float.__pointer_type__, float_ptr)
+
+        self.assertIs(POINTER(c_int), int_ptr)
+        self.assertIs(POINTER(c_float), float_ptr)
+        self.assertIs(POINTER(c_int)._type_, c_int)
+        self.assertIs(POINTER(c_float)._type_, c_float)
 
     def test_pointer_not_ctypes_type(self):
         with self.assertRaisesRegex(TypeError, "must have storage info"):
