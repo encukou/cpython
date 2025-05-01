@@ -290,9 +290,9 @@ class PointersTestCase(unittest.TestCase):
         self.assertIs(c_int.__pointer_type__, t1)
         self.assertIs(t1._type_, c_int)
 
-        t1.set_type(c_int)
+        t1.set_type(c_float)
         self.assertIs(c_int.__pointer_type__, t1)
-        self.assertIs(t1._type_, c_int)
+        self.assertIs(t1._type_, c_float)
 
     def test_pointer_set_wrong_type(self):
         int_ptr = POINTER(c_int)
