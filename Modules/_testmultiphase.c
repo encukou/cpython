@@ -994,12 +994,12 @@ PyInit__test_no_multiple_interpreter_slot(void)
     return PyModuleDef_Init(&no_multiple_interpreter_slot_def);
 }
 
-PyMODSLOTS_FUNC
-PyModuleSlots__test_from_slots(PyObject *spec)
+PyMODEXPORT_FUNC
+PyModExport__test_from_modexport(PyObject *spec)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_slots"},
+    static PyModuleDef_Slot from_modexport_slots[] = {
+        {Py_mod_name, "_test_from_modexport"},
         {0},
     };
-    return slots;
+    return from_modexport_slots;
 }

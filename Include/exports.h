@@ -9,7 +9,7 @@
                     inside the Python core, they are private to the core.
                     If in an extension module, it may be declared with
                     external linkage depending on the platform.
-  PyMODSLOTS_FUNC:  Like PyMODINIT_FUNC, but for slots
+  PyMODEXPORT_FUNC: Like PyMODINIT_FUNC, but for a slots array
 
   As a number of platforms support/require "__declspec(dllimport/dllexport)",
   we support a HAVE_DECLSPEC_DLL macro to save duplication.
@@ -103,6 +103,6 @@
 #endif
 
 #define PyMODINIT_FUNC _PyINIT_FUNC_DECLSPEC PyObject*
-#define PyMODSLOTS_FUNC _PyINIT_FUNC_DECLSPEC PyModuleDef_Slot*
+#define PyMODEXPORT_FUNC _PyINIT_FUNC_DECLSPEC PyModuleDef_Slot*
 
 #endif /* Py_EXPORTS_H */

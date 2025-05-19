@@ -53,8 +53,8 @@ PyAPI_FUNC(int) PyModule_SetDocString(PyObject *, const char *);
 PyAPI_FUNC(int) PyModule_AddFunctions(PyObject *, PyMethodDef *);
 PyAPI_FUNC(int) PyModule_ExecDef(PyObject *module, PyModuleDef *def);
 #endif
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
-PyAPI_FUNC(int) PyModule_Exec(PyObject *);
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
+PyAPI_FUNC(int) PyModule_ExecSlots(PyObject *, PyModuleDef_Slot*);
 #endif
 
 #define Py_CLEANUP_SUPPORTED 0x20000

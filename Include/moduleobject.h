@@ -80,7 +80,7 @@ struct PyModuleDef_Slot {
 #  define Py_mod_gil 4
 #endif
 
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
 #define Py_mod_name 5
 #define Py_mod_doc 6
 #define Py_mod_size 7
@@ -117,7 +117,7 @@ struct PyModuleDef_Slot {
 PyAPI_FUNC(int) PyUnstable_Module_SetGIL(PyObject *module, void *gil);
 #endif
 
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 14)
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
 PyAPI_FUNC(PyObject *) PyModule_FromSlotsAndSpec(PyModuleDef_Slot *,
                                                  PyObject *spec);
 #endif

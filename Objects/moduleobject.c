@@ -28,7 +28,7 @@ static PyMemberDef module_members[] = {
 };
 
 static void
-_PyXXX_AssertDefIsMissingOrRedundant(PyModuleObject *m) {
+assert_def_missing_or_redundant(PyModuleObject *m) {
     if (m->md_def_XXX) {
 #define DO_ASSERT(F) assert (m->md_def_XXX->m_ ## F == m->md_ ## F);
         DO_ASSERT(size);
@@ -318,9 +318,13 @@ PyModule_FromDefAndSpec2(PyModuleDef* def, PyObject *spec, int module_api_versio
         return NULL;
     }
 
+    /* Convert def to slots.
+     * This is slower than it could be, but it doesn't duplicate code.
+     */
+
     PyModuleObject *mod = (PyModuleObject *)module_FromSlotsAndSpec(
         (PyModuleDef_Slot[]) {
-            //{Py_mod_name, (void*)def->m_name},
+            {Py_mod_name, (void*)def->m_name},
             {Py_mod_doc, (void*)def->m_doc},
             {Py_mod_size, (void*)def->m_size},
             {Py_mod_methods, def->m_methods},
@@ -1093,8 +1097,8 @@ module_dealloc(PyObject *self)
     if (m->md_weaklist != NULL)
         PyObject_ClearWeakRefs((PyObject *) m);
 
+    assert_def_missing_or_redundant(m);
     /* bpo-39824: Don't call m_free() if m_size > 0 and md_state=NULL */
-    _PyXXX_AssertDefIsMissingOrRedundant(m);
     if (m->md_free && (m->md_size <= 0 || m->md_state != NULL))
     {
         m->md_free(m);
@@ -1412,8 +1416,8 @@ module_traverse(PyObject *self, visitproc visit, void *arg)
 {
     PyModuleObject *m = _PyModule_CAST(self);
 
+    assert_def_missing_or_redundant(m);
     /* bpo-39824: Don't call m_traverse() if m_size > 0 and md_state=NULL */
-    _PyXXX_AssertDefIsMissingOrRedundant(m);
     if (m->md_traverse && (m->md_size <= 0 || m->md_state != NULL))
     {
         int res = m->md_traverse((PyObject*)m, visit, arg);
@@ -1430,8 +1434,8 @@ module_clear(PyObject *self)
 {
     PyModuleObject *m = _PyModule_CAST(self);
 
+    assert_def_missing_or_redundant(m);
     /* bpo-39824: Don't call m_clear() if m_size > 0 and md_state=NULL */
-    _PyXXX_AssertDefIsMissingOrRedundant(m);
     if (m->md_clear && (m->md_size <= 0 || m->md_state != NULL))
     {
         int res = m->md_clear((PyObject*)m);

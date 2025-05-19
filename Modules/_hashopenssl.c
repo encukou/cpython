@@ -2272,22 +2272,16 @@ hashlib_init_constructors(PyObject *module)
     /* Create dict from builtin openssl_hash functions to name
      * {_hashlib.openssl_sha256: "sha256", ...}
      */
-    PyModuleDef *mdef;
     PyMethodDef *fdef;
     PyObject *func, *name_obj;
     _hashlibstate *state = get_hashlib_state(module);
-
-    mdef = PyModule_GetDef_XXX(module);
-    if (mdef == NULL) {
-        return -1;
-    }
 
     state->constructs = PyDict_New();
     if (state->constructs == NULL) {
         return -1;
     }
 
-    for (fdef = mdef->m_methods; fdef->ml_name != NULL; fdef++) {
+    for (fdef = EVP_functions; fdef->ml_name != NULL; fdef++) {
         if (strncmp(fdef->ml_name, "openssl_", 8)) {
             continue;
         }
