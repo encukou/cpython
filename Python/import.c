@@ -1962,14 +1962,14 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
-import_run_slot_export(PyThreadState *tstate, PyModSlotFunction s0,
-                      struct _Py_ext_module_loader_info *info,
-                      PyObject *spec)
+import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
+                     struct _Py_ext_module_loader_info *info,
+                     PyObject *spec)
 {
     /* This is like import_run_extension, but avoids interpreter switching
      * and code for for single-phase modules.
      */
-    PyModuleDef_Slot *slots = s0(spec);
+    PyModuleDef_Slot *slots = ex0(spec);
     if (!slots) {
         if (!PyErr_Occurred()) {
             PyErr_Format(
@@ -2082,7 +2082,7 @@ import_run_extension(PyThreadState *tstate, PyModInitFunction p0,
         mod = res.module;
         res.module = NULL;
         def = res.def_XXX;
-        assert(def != NULL || res.slots != NULL);
+        assert(def != NULL || res.export_slots != NULL);
 
         /* Do anything else that should be done
          * while still using the main interpreter. */
@@ -4758,10 +4758,10 @@ _imp_create_dynamic_impl(PyObject *module, PyObject *spec, PyObject *file)
     }
 
     PyModInitFunction p0 = NULL;
-    PyModSlotFunction s0 = NULL;
-    _PyImport_GetModInitFunc2(&info, fp, &p0, &s0);
-    if (s0) {
-        mod = import_run_slot_export(tstate, s0, &info, spec);
+    PyModExportFunction ex0 = NULL;
+    _PyImport_GetModInitFunc2(&info, fp, &p0, &ex0);
+    if (ex0) {
+        mod = import_run_modexport(tstate, ex0, &info, spec);
         goto cleanup;
     }
     if (p0 == NULL) {

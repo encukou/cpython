@@ -88,6 +88,7 @@ struct PyModuleDef_Slot {
 #define Py_mod_traverse 9
 #define Py_mod_clear 10
 #define Py_mod_free 11
+#define Py_mod_token 12
 #endif
 
 
@@ -120,6 +121,7 @@ PyAPI_FUNC(int) PyUnstable_Module_SetGIL(PyObject *module, void *gil);
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
 PyAPI_FUNC(PyObject *) PyModule_FromSlotsAndSpec(PyModuleDef_Slot *,
                                                  PyObject *spec);
+PyAPI_FUNC(int) PyModule_Exec(PyObject *mod);
 #endif
 
 

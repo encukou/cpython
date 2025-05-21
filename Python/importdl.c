@@ -398,24 +398,24 @@ int
 _PyImport_GetModInitFunc2(struct _Py_ext_module_loader_info *info,
                           FILE *fp,
                           PyModInitFunction *modinit,
-                          PyModSlotFunction *slotinit)
+                          PyModExportFunction *modexport)
 {
     *modinit = NULL;
-    *slotinit = NULL;
+    *modexport = NULL;
 
     const char *name_buf = PyBytes_AS_STRING(info->name_encoded);
     dl_funcptr exportfunc;
 
     exportfunc = findfuncptr(
-        info->hook_prefixes->slot_prefix,
+        info->hook_prefixes->export_prefix,
         name_buf, info, fp);
     if (exportfunc) {
-        *slotinit = (PyModSlotFunction)exportfunc;
+        *modexport = (PyModExportFunction)exportfunc;
         return 2;
     }
 
     exportfunc = findfuncptr(
-        info->hook_prefixes->def_prefix,
+        info->hook_prefixes->init_prefix,
         name_buf, info, fp);
     if (exportfunc) {
         *modinit = (PyModInitFunction)exportfunc;
@@ -427,8 +427,8 @@ _PyImport_GetModInitFunc2(struct _Py_ext_module_loader_info *info,
         msg = PyUnicode_FromFormat(
             "dynamic module does not define "
             "module export function (%s_%s or %s_%s)",
-            info->hook_prefixes->def_prefix, name_buf,
-            info->hook_prefixes->slot_prefix, name_buf);
+            info->hook_prefixes->export_prefix, name_buf,
+            info->hook_prefixes->init_prefix, name_buf);
         if (msg != NULL) {
             PyErr_SetImportError(msg, info->name, info->filename);
             Py_DECREF(msg);
@@ -540,7 +540,7 @@ error:
     assert(res.err != NULL);
     Py_CLEAR(res.module);
     res.def_XXX = NULL;
-    res.slots = NULL;
+    res.export_slots = NULL;
     *p_res = res;
     p_res->err = &p_res->_err;
     return -1;
