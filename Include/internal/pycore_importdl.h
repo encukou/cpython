@@ -100,7 +100,7 @@ typedef PyModuleDef_Slot *(*PyModExportFunction)(PyObject *spec);
 // function changed signature, the "2" suffix helps avoid ABI issues
 extern int _PyImport_GetModInitFunc2(
     struct _Py_ext_module_loader_info *info,
-    FILE *fp, PyModInitFunction *modinit, PyModExportFunction *slotinit);
+    FILE *fp, PyModInitFunction *modinit, PyModExportFunction *modexport);
 #endif
 extern int _PyImport_RunModInitFunc(
     PyModInitFunction p0,

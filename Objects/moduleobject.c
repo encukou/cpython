@@ -322,6 +322,7 @@ module_from_def_and_spec(
     void *token = NULL;
     int has_token = 0;
     PyInterpreterState *interp = _PyInterpreterState_GET();
+    int (*execfunc)(PyObject *module) = NULL;
 
     if (def->m_size < 0) {
         PyErr_Format(
@@ -344,6 +345,16 @@ module_from_def_and_spec(
                 create = cur_slot->value;
                 break;
             case Py_mod_exec:
+                if (!src_def) {
+                    if (has_execution_slots) {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "module %s has more than one Py_mod_exec slots",
+                            name);
+                        goto error;
+                    }
+                    execfunc = cur_slot->value;
+                }
                 has_execution_slots = 1;
                 break;
             case Py_mod_multiple_interpreters:
@@ -372,7 +383,7 @@ module_from_def_and_spec(
                 if (!token) {
                     PyErr_Format(
                         PyExc_SystemError,
-                        "module %s: Py_mod_token may not be repeated",
+                        "module %s has multiple Py_mod_token slots",
                         name);
                     goto error;
                 }
@@ -381,27 +392,46 @@ module_from_def_and_spec(
                 if (!token) {
                     PyErr_Format(
                         PyExc_SystemError,
-                        "module %s: Py_mod_token may not be NULL",
+                        "module %s: Py_mod_token most not be NULL",
                         name);
                     goto error;
                 }
-                _Py_FALLTHROUGH;
-            case Py_mod_name:
-            case Py_mod_doc:
-            case Py_mod_size:
-            case Py_mod_methods:
-            case Py_mod_traverse:
-            case Py_mod_clear:
-            case Py_mod_free:
-                if (src_def) {
-                    // This could use a slot name array
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "module %s: slot %i  may not be given in PyModuleDef",
-                        name, cur_slot->slot);
-                    goto error;
-                }
                 break;
+#define CASE(SLOT_NAME, TYPE, DEST) {                               \
+    case SLOT_NAME:                                                 \
+        if (src_def) {                                              \
+            PyErr_Format(                                           \
+                PyExc_SystemError,                                  \
+                "module %s: slot " #SLOT_NAME                       \
+                    " may not be given in PyModuleDef",             \
+                name, cur_slot->slot);                              \
+            goto error;                                             \
+        }                                                           \
+        if (DEST) {                                                 \
+            PyErr_Format(                                           \
+                PyExc_SystemError,                                  \
+                "module %s: has multiple " #SLOT_NAME " slots",     \
+                name);                                              \
+            goto error;                                             \
+        }                                                           \
+        if (!cur_slot->value) {                                     \
+            PyErr_Format(                                           \
+                PyExc_SystemError,                                  \
+                #SLOT_NAME " of module %s must not be zero",        \
+                name);                                              \
+            goto error;                                             \
+        }                                                           \
+        (DEST) = (TYPE)(cur_slot->value);                           \
+        break;                                                      \
+}
+            CASE(Py_mod_name, char*, def->m_name)
+            CASE(Py_mod_doc, char*, def->m_doc);
+            CASE(Py_mod_size, Py_ssize_t, def->m_size);
+            CASE(Py_mod_methods, PyMethodDef*, def->m_methods);
+            CASE(Py_mod_traverse, traverseproc, def->m_traverse);
+            CASE(Py_mod_clear, inquiry, def->m_clear);
+            CASE(Py_mod_free, freefunc, def->m_free);
+#undef CASE
             default:
                 assert(cur_slot->slot < 0 || cur_slot->slot > _Py_mod_LAST_SLOT);
                 PyErr_Format(
@@ -460,15 +490,21 @@ module_from_def_and_spec(
     }
 
     if (PyModule_Check(m)) {
-        ((PyModuleObject*)m)->md_state = NULL;
-        ((PyModuleObject*)m)->md_def_XXX = src_def;
+        PyModuleObject *mod = (PyModuleObject*)m;
+        mod->md_state = NULL;
+        mod->md_def_XXX = src_def;
 #ifdef Py_GIL_DISABLED
-        ((PyModuleObject*)m)->md_gil = gil_slot;
+        mod->md_gil = gil_slot;
 #else
         (void)gil_slot;
 #endif
+        mod->md_size = def->m_size;
+        mod->md_traverse = def->m_traverse;
+        mod->md_clear = def->m_clear;
+        mod->md_free = def->m_free;
+        mod->md_exec = execfunc;
         if (has_token) {
-            ((PyModuleObject*)m)->md_token = token;
+            mod->md_token = token;
         }
     } else {
         if (def->m_size > 0 || def->m_traverse || def->m_clear || def->m_free) {
@@ -561,38 +597,6 @@ PyModule_FromSlotsAndSpec(PyModuleDef_Slot *slots, PyObject *spec)
 
     // Fill in enough of a PyModuleDef to pass to module_from_def_and_spec
     PyModuleDef fake_def = {.m_slots = slots};
-
-#define CASE(SLOT_NAME, TYPE, DEST) {                               \
-    case SLOT_NAME:                                                 \
-        if (DEST) {                                                 \
-            PyErr_Format(                                           \
-                PyExc_SystemError,                                  \
-                "module %s has multiple " #SLOT_NAME " slots",      \
-                name);                                              \
-            goto finally;                                           \
-        }                                                           \
-        if (!cur_slot->value) {                                     \
-            PyErr_Format(                                           \
-                PyExc_SystemError,                                  \
-                #SLOT_NAME " of module %s must not be zero",        \
-                name);                                              \
-            goto finally;                                           \
-        }                                                           \
-        (DEST) = (TYPE)(cur_slot->value);                           \
-        break;                                                      \
-}
-    for (PyModuleDef_Slot* cur_slot = slots; cur_slot->slot; cur_slot++) {
-        switch (cur_slot->slot) {
-            CASE(Py_mod_name, char*, fake_def.m_name)
-            CASE(Py_mod_doc, char*, fake_def.m_doc);
-            CASE(Py_mod_size, Py_ssize_t, fake_def.m_size);
-            CASE(Py_mod_methods, PyMethodDef*, fake_def.m_methods);
-            CASE(Py_mod_traverse, traverseproc, fake_def.m_traverse);
-            CASE(Py_mod_clear, inquiry, fake_def.m_clear);
-            CASE(Py_mod_free, freefunc, fake_def.m_free);
-        }
-    }
-#undef CASE
 
     result = module_from_def_and_spec(nameobj, name, &fake_def, spec, NULL);
 finally:
