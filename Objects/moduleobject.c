@@ -358,7 +358,7 @@ module_from_def_and_spec(
         if (DEST) {                                                 \
             PyErr_Format(                                           \
                 PyExc_SystemError,                                  \
-                "module %s: " #SLOT " slot repeated",               \
+                "module %s has more than one " #SLOT " slot",       \
                 name);                                              \
             goto error;                                             \
         }                                                           \
@@ -461,7 +461,7 @@ module_from_def_and_spec(
     }
 
     if (create) {
-        m = create(spec, def_like);
+        m = create(spec, original_def);
         if (m == NULL) {
             if (!PyErr_Occurred()) {
                 PyErr_Format(
