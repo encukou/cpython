@@ -372,6 +372,23 @@ module_from_def_and_spec(
                 gil_slot = cur_slot->value;
                 has_gil_slot = 1;
                 break;
+            case Py_mod_name:
+                if (original_def) {
+                    PyErr_Format(
+                       PyExc_SystemError,
+                       "module %s: Py_mod_name used with PyModuleDef",
+                       name);
+                    goto error;
+                }
+                if (def_like->m_name) {
+                    PyErr_Format(
+                       PyExc_SystemError,
+                       "module %s has more than one 'gil' slot",
+                       name);
+                    goto error;
+                }
+                def_like->m_name = cur_slot->value;
+                break;
             default:
                 assert(cur_slot->slot < 0 || cur_slot->slot > _Py_mod_LAST_SLOT);
                 PyErr_Format(
