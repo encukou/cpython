@@ -94,6 +94,8 @@ struct PyModuleDef_Slot {
 
 #ifndef Py_LIMITED_API
 #define _Py_mod_LAST_SLOT 12
+PyAPI_FUNC(int) _PyModule_GetGCHooks(
+    PyObject *, traverseproc*, inquiry*, freefunc*);  // For testing
 #endif
 
 #endif /* New in 3.5 */
