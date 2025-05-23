@@ -1112,7 +1112,7 @@ PyModExport__test_from_modexport_smoke(PyObject *spec)
         {Py_mod_name, "_test_from_modexport_smoke"},
         {Py_mod_doc, "the expected docstring"},
         {Py_mod_exec, modexport_smoke_exec},
-        {Py_mod_size, (void*)sizeof(int)},
+        {Py_mod_state_size, (void*)sizeof(int)},
         {Py_mod_methods, methods},
         {Py_mod_state_free, modexport_smoke_free},
         {0},

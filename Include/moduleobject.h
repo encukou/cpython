@@ -83,11 +83,11 @@ struct PyModuleDef_Slot {
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
 #define Py_mod_name 5
 #define Py_mod_doc 6
-#define Py_mod_size 7
+#define Py_mod_state_size 7
 #define Py_mod_methods 8
-#define Py_mod_traverse 9
-#define Py_mod_clear 10
-#define Py_mod_free 11
+#define Py_mod_state_traverse 9
+#define Py_mod_state_clear 10
+#define Py_mod_state_free 11
 #define Py_mod_token 12
 #endif
 
