@@ -685,7 +685,7 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
             if (run_exec_func(module, func) < 0) {
                 return -1;
             }
-            break;
+            continue;
         }
     }
     return 0;
