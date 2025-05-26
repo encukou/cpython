@@ -45,6 +45,7 @@ def main():
     std = os.environ.get("CPYTHON_TEST_STD", "")
     module_name = os.environ["CPYTHON_TEST_EXT_NAME"]
     limited = bool(os.environ.get("CPYTHON_TEST_LIMITED", ""))
+    opaque = bool(os.environ.get("CPYTHON_TEST_OPAQUE_PYOBJECT", ""))
 
     cflags = list(CFLAGS)
     cflags.append(f'-DMODULE_NAME={module_name}')
@@ -74,6 +75,11 @@ def main():
     if limited:
         version = sys.hexversion
         cflags.append(f'-DPy_LIMITED_API={version:#x}')
+
+    # Define Py_OPAQUE_PYOBJECT macro
+    if opaque:
+        version = sys.hexversion
+        cflags.append(f'-DPy_OPAQUE_PYOBJECT')
 
     # On Windows, add PCbuild\amd64\ to include and library directories
     include_dirs = []

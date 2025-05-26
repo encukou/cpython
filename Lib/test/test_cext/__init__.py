@@ -51,13 +51,17 @@ class TestExt(unittest.TestCase):
     def test_build_limited_c11(self):
         self.check_build('_test_limited_c11_cext', limited=True, std='c11')
 
-    def check_build(self, extension_name, std=None, limited=False):
+    @support.requires_gil_enabled('incompatible with Free Threading')
+    def test_build_opaque(self):
+        self.check_build('_test_limited_opaque_cext', limited=True, opaque=True)
+
+    def check_build(self, extension_name, std=None, limited=False, opaque=False):
         venv_dir = 'env'
         with support.setup_venv_with_pip_setuptools(venv_dir) as python_exe:
             self._check_build(extension_name, python_exe,
-                              std=std, limited=limited)
+                              std=std, limited=limited, opaque=opaque)
 
-    def _check_build(self, extension_name, python_exe, std, limited):
+    def _check_build(self, extension_name, python_exe, std, limited, opaque):
         pkg_dir = 'pkg'
         os.mkdir(pkg_dir)
         shutil.copy(SETUP, os.path.join(pkg_dir, os.path.basename(SETUP)))
@@ -69,6 +73,8 @@ class TestExt(unittest.TestCase):
                 env['CPYTHON_TEST_STD'] = std
             if limited:
                 env['CPYTHON_TEST_LIMITED'] = '1'
+            if opaque:
+                env['CPYTHON_TEST_OPAQUE_PYOBJECT'] = '1'
             env['CPYTHON_TEST_EXT_NAME'] = extension_name
             if support.verbose:
                 print('Run:', ' '.join(map(shlex.quote, cmd)))
