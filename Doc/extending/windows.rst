@@ -14,7 +14,7 @@ Windows programmer learning to build Python extensions and the Unix programmer
 interested in producing software which can be successfully built on both Unix
 and Windows.
 
-Module authors are encouraged to use the distutils approach for building
+Module authors are encouraged to use the ``setuptools`` approach for building
 extension modules, instead of the one described in this section. You will still
 need the C compiler that was used to build Python; typically Microsoft Visual
 C++.
@@ -37,9 +37,10 @@ There are two approaches to building extension modules on Windows, just as there
 are on Unix: use the ``setuptools`` package to control the build process, or
 do things manually.  The setuptools approach works well for most extensions;
 documentation on using ``setuptools`` to build and package extension modules
-is available in :ref:`setuptools-index`.  If you find you really need to do
-things manually, it may be instructive to study the project file for the
-:source:`winsound <PCbuild/winsound.vcxproj>` standard library module.
+is available at https://setuptools.readthedocs.io/en/latest/setuptools.html.
+If you find you really need to do things manually, it may be instructive to
+study the project file for the :source:`winsound <PCbuild/winsound.vcxproj>`
+standard library module.
 
 
 .. _dynamic-linking:

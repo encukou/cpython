@@ -1,29 +1,31 @@
 .. highlight:: c
 
-.. _building:
-
 .. _extension-modules:
 
 Defining Extension Modules
 --------------------------
 
 A C extension for CPython is a shared library (e.g. a ``.so`` file on Linux,
-``.pyd`` on Windows), which exports an *initialization function*.
+``.pyd`` on Windows), which exports an
+:ref:`initialization function <extension-export-hook>`.
 
-To be importable by the :c:class:`~importlib.machinery.ExtensionFileLoader`,
-the shared library must be available on :c:attr:`sys.path`,
+To be importable by default (that is, by
+:py:class:`importlib.machinery.ExtensionFileLoader`),
+the shared library must be available on :py:attr:`sys.path`,
 and must be named after the module name plus an extension listed in
-:c:attr:`importlib.machinery.EXTENSION_SUFFIXES`.
+:py:attr:`importlib.machinery.EXTENSION_SUFFIXES`.
 
 .. note::
 
    Building, packaging and distributing extension modules is best done with
-   a third-party tool, and is out of scope of this document.
+   third-party tools, and is out of scope of this document.
    One suitable tool is ``setuptools``, whose documentation can be found at
    https://setuptools.readthedocs.io/en/latest/setuptools.html.
 
-The initialization function returns a module definition
-initialized using :c:func:`PyModuleDef_Init`.
+The initialization function may return one of two values:
+
+Normally, the initialization function returns a module definition initialized
+using :c:func:`PyModuleDef_Init`.
 This allows splitting the creation process into several phases:
 
 - Before any substantial code is executed, Python can determine which
@@ -37,10 +39,9 @@ This allows splitting the creation process into several phases:
   equivalent of :py:meth:`~object.__init__` on classes.
 
 This is called *multi-phase initialization* to distinguish it from the legacy
-(but still supported)
-:ref:`single-phase initialization <single-phase-initialization>` scheme,
+(but still supported) *single-phase initialization* scheme,
 where the initialization function returns a fully constructed module.
-See the relevant section for details.
+See the :ref:`relevant section below <single-phase-initialization>` for details.
 
 .. versionchanged:: 3.5
 
@@ -66,8 +67,8 @@ cause crashes or undefined behavior.
 
 To avoid such issues, each instance of an extension module should
 be *isolated*: changes to one instance should not implicitly affect the others,
-and all state, including references to Python objects, should be specific to
-a particular module instance.
+and all state owned by the module, including references to Python objects,
+should be specific to a particular module instance.
 See :ref:`isolating-extensions-howto` for more details and a practical guide.
 
 A simpler way to avoid these issues is
@@ -92,6 +93,9 @@ extension, has the signature:
 
 .. c:function:: PyObject* PyInit_modulename(void)
 
+To make sure Python can load the initialization function, it is recommended
+to define it using :c:macro:`PyMODINIT_FUNC`.
+
 Its name should be :samp:`PyInit_{<name>}`, with ``<name>`` replaced by the
 name of the module.
 
@@ -100,7 +104,7 @@ For modules with ASCII-only names, the function must instead be named
 When using :ref:`multi-phase-initialization`, non-ASCII module names
 are allowed. In this case, the initialization function name is
 :samp:`PyInitU_{<name>}`, with ``<name>`` encoded using Python's
-*punycode* encoding with hyphens replaced by underscores. In Python::
+*punycode* encoding with hyphens replaced by underscores. In Python:
 
 .. code-block:: python
 
@@ -123,10 +127,11 @@ See the *"Multiple modules in one library"* section in :pep:`489` for details.
 Multi-phase initialization
 ..........................
 
-The :ref:`initialization function <extension-export-hook>`
-(``PyInit_modulename``) returns a :c:type:`PyModuleDef` instance with non-empty
-:c:member:`~PyModuleDef.m_slots`. Before it is returned, the ``PyModuleDef``
-instance must be initialized using the following function:
+Normally, the :ref:`initialization function <extension-export-hook>`
+(``PyInit_modulename``) returns a :c:type:`PyModuleDef` instance with
+non-empty :c:member:`~PyModuleDef.m_slots`.
+Before it is returned, the ``PyModuleDef`` instance must be initialized
+using the following function:
 
 
 .. c:function:: PyObject* PyModuleDef_Init(PyModuleDef *def)
@@ -139,12 +144,11 @@ instance must be initialized using the following function:
    Calling this function is required for :ref:`multi-phase-initialization`.
    It should not be used other contexts.
 
-   Note that the ``PyObject*`` return type is only used to satisfy the
-   historical :c:func:`PyInit_modulename` signature.
-   The result should *not* be treated as a Python object.
+   Note that Python assumes that ``PyModuleDef`` structures are statically
+   allocated.
+   The reference returned by this function must not be released.
 
    .. versionadded:: 3.5
-
 
 
 .. _single-phase-initialization:
@@ -161,12 +165,17 @@ In single-phase initialization, the
 :ref:`initialization function <extension-export-hook>` (``PyInit_modulename``)
 should create, populate and return a module object, typically using :c:func:`PyModule_Create` and functions like :c:func:`PyModule_AddObjectRef`.
 
-* Single-phase modules are, in some sense, “singletons”.
+Single-phase initialization differs from the default in the following ways:
 
-  When first initialized, Python saves the contents of the module's
+* Single-phase modules are, or rather *contain*, “singletons”.
+
+  When the module is initialized, Python saves the contents of the module's
   ``__dict__`` (that is, typically, the module's functions and types).
-  For subsequent initializations in the same interpreter, Python creates a new
-  module object with a new ``__dict__``, and copies the saved contents to it.
+
+  For subsequent initializations in the same interpreter, Python does not call
+  the initializatoin function again.
+  Instead, it creates a new module object with a new ``__dict__``, and copies
+  the saved contents to it.
   For example, given a single-phase module ``_testsinglephase``
   [#testsinglephase]_ that defines a function ``sum`` and an exception class
   ``error``:
@@ -205,6 +214,6 @@ should create, populate and return a module object, typically using :c:func:`PyM
 * Single-phase modules support module lookup functions like
   :c:func:`PyState_FindModule`.
 
-.. [#testsinglephase] ``_testsinglephase`` is an internal module that \
-   CPython uses to test the functionality; your distribution may or may not \
+.. [#testsinglephase] ``_testsinglephase`` is an internal module used \
+   in CPython's self-test suite; your distribution may or may not \
    include it.

@@ -145,7 +145,7 @@ See :ref:`extension-modules` for details.
    The module definition struct, which holds all information needed to create
    a module object.
    This structure must be statically allocated (or be otherwise guaranteed
-   to be valid while modules created from it exist).
+   to be valid while any modules created from it exist).
    Usually, there is only one variable of this type for each extension module.
 
    This struct is *not* a Python object.
@@ -384,7 +384,7 @@ The available slot types are:
    .. versionadded:: 3.13
 
 
-.. moduledef-dynamic::
+.. _moduledef-dynamic:
 
 Creating extension modules dynamically
 ......................................
