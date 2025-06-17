@@ -214,8 +214,6 @@ typedef struct {
 #endif
 } RemoteUnwinderObject;
 
-#define RemoteUnwinder_CAST(op) ((RemoteUnwinderObject *)(op))
-
 typedef struct
 {
     int lineno;
@@ -2915,9 +2913,8 @@ static PyMethodDef RemoteUnwinder_methods[] = {
 };
 
 static void
-RemoteUnwinder_dealloc(PyObject *op)
+RemoteUnwinder_dealloc(RemoteUnwinderObject *self)
 {
-    RemoteUnwinderObject *self = RemoteUnwinder_CAST(op);
     PyTypeObject *tp = Py_TYPE(self);
     if (self->code_object_cache) {
         _Py_hashtable_destroy(self->code_object_cache);
