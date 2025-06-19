@@ -1710,7 +1710,7 @@ class SizeofTest(unittest.TestCase):
             md_gil = '?'
         else:
             md_gil = ''
-        check(unittest, size('PPPPP' + md_gil + 'NPPPPP'))
+        check(unittest, size('PPPP?' + md_gil + 'NPPPPP'))
         # None
         check(None, size(''))
         # NotImplementedType
