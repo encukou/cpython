@@ -1,5 +1,6 @@
 #ifndef Py_INTERNAL_MODULEOBJECT_H
 #define Py_INTERNAL_MODULEOBJECT_H
+#include <stdbool.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,7 +30,7 @@ typedef struct {
     // for logging purposes after md_dict is cleared
     PyObject *md_name;
 #ifdef Py_GIL_DISABLED
-    void *md_gil;
+    bool md_needs_gil;
 #endif
     Py_ssize_t md_state_size;
     traverseproc md_state_traverse;

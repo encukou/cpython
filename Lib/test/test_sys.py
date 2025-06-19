@@ -1707,7 +1707,7 @@ class SizeofTest(unittest.TestCase):
         check(int(PyLong_BASE**2), vsize('') + 3*self.longdigit)
         # module
         if support.Py_GIL_DISABLED:
-            md_gil = 'P'
+            md_gil = '?'
         else:
             md_gil = ''
         check(unittest, size('PPPPP' + md_gil + 'NPPPPP'))

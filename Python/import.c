@@ -1031,9 +1031,9 @@ struct extensions_cache_value {
     _Py_ext_module_origin origin;
 
 #ifdef Py_GIL_DISABLED
-    /* The module's md_gil slot, for legacy modules that are reinitialized from
+    /* The module's md_needs_gil, for legacy modules that are reinitialized from
        m_dict rather than calling their initialization function again. */
-    void *md_gil;
+    bool md_needs_gil;
 #endif
 };
 
@@ -1364,7 +1364,7 @@ static struct extensions_cache_value *
 _extensions_cache_set(PyObject *path, PyObject *name,
                       PyModuleDef *def, PyModInitFunction m_init,
                       Py_ssize_t m_index, PyObject *m_dict,
-                      _Py_ext_module_origin origin, void *md_gil)
+                      _Py_ext_module_origin origin, bool md_needs_gil)
 {
     struct extensions_cache_value *value = NULL;
     void *key = NULL;
@@ -1419,11 +1419,11 @@ _extensions_cache_set(PyObject *path, PyObject *name,
         /* m_dict is set by set_cached_m_dict(). */
         .origin=origin,
 #ifdef Py_GIL_DISABLED
-        .md_gil=md_gil,
+        .md_needs_gil=md_needs_gil,
 #endif
     };
 #ifndef Py_GIL_DISABLED
-    (void)md_gil;
+    (void)md_needs_gil;
 #endif
     if (init_cached_m_dict(newvalue, m_dict) < 0) {
         goto finally;
@@ -1560,8 +1560,7 @@ _PyImport_CheckGILForModule(PyObject* module, PyObject *module_name)
         return 0;
     }
 
-    if (!PyModule_Check(module) ||
-        ((PyModuleObject *)module)->md_gil == Py_MOD_GIL_USED) {
+    if (!PyModule_Check(module) || ((PyModuleObject *)module)->md_needs_gil) {
         if (_PyEval_EnableGILPermanent(tstate)) {
             int warn_result = PyErr_WarnFormat(
                 PyExc_RuntimeWarning,
@@ -1739,7 +1738,7 @@ struct singlephase_global_update {
     Py_ssize_t m_index;
     PyObject *m_dict;
     _Py_ext_module_origin origin;
-    void *md_gil;
+    bool md_needs_gil;
 };
 
 static struct extensions_cache_value *
@@ -1798,7 +1797,7 @@ update_global_state_for_extension(PyThreadState *tstate,
 #endif
         cached = _extensions_cache_set(
                 path, name, def, m_init, singlephase->m_index, m_dict,
-                singlephase->origin, singlephase->md_gil);
+                singlephase->origin, singlephase->md_needs_gil);
         if (cached == NULL) {
             // XXX Ignore this error?  Doing so would effectively
             // mark the module as not loadable.
@@ -1887,7 +1886,7 @@ reload_singlephase_extension(PyThreadState *tstate,
         if (def->m_base.m_copy != NULL) {
             // For non-core modules, fetch the GIL slot that was stored by
             // import_run_extension().
-            ((PyModuleObject *)mod)->md_gil = cached->md_gil;
+            ((PyModuleObject *)mod)->md_needs_gil = cached->md_needs_gil;
         }
 #endif
         /* We can't set mod->md_def if it's missing,
@@ -2142,7 +2141,7 @@ import_run_extension(PyThreadState *tstate, PyModInitFunction p0,
                 .m_index=def->m_base.m_index,
                 .origin=info->origin,
 #ifdef Py_GIL_DISABLED
-                .md_gil=((PyModuleObject *)mod)->md_gil,
+                .md_needs_gil=((PyModuleObject *)mod)->md_needs_gil,
 #endif
             };
             // gh-88216: Extensions and def->m_base.m_copy can be updated
@@ -2338,7 +2337,7 @@ _PyImport_FixupBuiltin(PyThreadState *tstate, PyObject *mod, const char *name,
             .origin=_Py_ext_module_origin_CORE,
 #ifdef Py_GIL_DISABLED
             /* Unused when m_dict == NULL. */
-            .md_gil=NULL,
+            .md_needs_gil=true,
 #endif
         };
         cached = update_global_state_for_extension(

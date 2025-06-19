@@ -111,6 +111,9 @@ new_module_notrack(PyTypeObject *mt)
     m->md_state = NULL;
     m->md_weaklist = NULL;
     m->md_name = NULL;
+#ifdef Py_GIL_DISABLED
+    m->md_needs_gil = true;
+#endif
     m->md_state_size = 0;
     m->md_state_traverse = NULL;
     m->md_state_clear = NULL;
@@ -293,7 +296,7 @@ _PyModule_CreateInitialized(PyModuleDef* module, int module_api_version)
     m->md_token = module;
     module_copy_members_from_deflike(m, module);
 #ifdef Py_GIL_DISABLED
-    m->md_gil = Py_MOD_GIL_USED;
+    m->md_needs_gil = true;
 #endif
     return (PyObject*)m;
 }
@@ -501,7 +504,7 @@ module_from_def_and_spec(
             mod->md_def_or_null = original_def;
         }
 #ifdef Py_GIL_DISABLED
-        mod->md_gil = gil_slot;
+        mod->md_needs_gil = !gil_slot;
 #else
         (void)gil_slot;
 #endif
@@ -595,7 +598,7 @@ PyUnstable_Module_SetGIL(PyObject *module, void *gil)
         PyErr_BadInternalCall();
         return -1;
     }
-    ((PyModuleObject *)module)->md_gil = gil;
+    ((PyModuleObject *)module)->md_needs_gil = !gil;
     return 0;
 }
 #endif

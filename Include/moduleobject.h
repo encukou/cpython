@@ -108,6 +108,7 @@ PyAPI_FUNC(int) _PyModule_GetGCHooks(
 #endif
 
 /* for Py_mod_gil: */
+/* (note reversed logic from the internal "md_needs_gil") */
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
 #  define Py_MOD_GIL_USED ((void *)0)
 #  define Py_MOD_GIL_NOT_USED ((void *)1)
