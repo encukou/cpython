@@ -57,19 +57,9 @@ There are a few functions specific to Python functions.
    Return the code object associated with the function object *op*.
 
 
-.. c:function:: PyObject *PyFunction_GET_CODE(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetCode`, but without error checking.
-
-
 .. c:function:: PyObject* PyFunction_GetGlobals(PyObject *op)
 
    Return the globals dictionary associated with the function object *op*.
-
-
-.. c:function:: PyObject *PyFunction_GET_GLOBALS(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetGlobals`, but without error checking.
 
 
 .. c:function:: PyObject* PyFunction_GetModule(PyObject *op)
@@ -82,20 +72,10 @@ There are a few functions specific to Python functions.
    but can be set to any other object by Python code.
 
 
-.. c:function:: PyObject *PyFunction_GET_MODULE(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetModule`, but without error checking.
-
-
 .. c:function:: PyObject* PyFunction_GetDefaults(PyObject *op)
 
    Return the argument default values of the function object *op*. This can be a
    tuple of arguments or ``NULL``.
-
-
-.. c:function:: PyObject *PyFunction_GET_DEFAULTS(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetDefaults`, but without error checking.
 
 
 .. c:function:: int PyFunction_SetDefaults(PyObject *op, PyObject *defaults)
@@ -124,22 +104,10 @@ There are a few functions specific to Python functions.
    .. versionadded:: 3.0
 
 
-.. c:function:: PyObject *PyFunction_GET_KW_DEFAULTS(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetKwDefaults`, but without error checking.
-
-   .. versionadded:: 3.0
-
-
 .. c:function:: PyObject* PyFunction_GetClosure(PyObject *op)
 
    Return the closure associated with the function object *op*. This can be ``NULL``
    or a tuple of cell objects.
-
-
-.. c:function:: PyObject *PyFunction_GET_CLOSURE(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetClosure`, but without error checking.
 
 
 .. c:function:: int PyFunction_SetClosure(PyObject *op, PyObject *closure)
@@ -158,13 +126,6 @@ There are a few functions specific to Python functions.
    .. versionadded:: 3.0
 
 
-.. c:function:: PyObject *PyFunction_GET_ANNOTATIONS(PyObject *op)
-
-   Similar to :c:func:`PyFunction_GetAnnotations`, but without error checking.
-
-   .. versionadded:: 3.0
-
-
 .. c:function:: int PyFunction_SetAnnotations(PyObject *op, PyObject *annotations)
 
    Set the annotations for the function object *op*. *annotations*
@@ -173,6 +134,20 @@ There are a few functions specific to Python functions.
    Raises :exc:`SystemError` and returns ``-1`` on failure.
 
    .. versionadded:: 3.0
+
+
+.. c:function:: PyObject *PyFunction_GET_CODE(PyObject *op)
+                PyObject *PyFunction_GET_GLOBALS(PyObject *op)
+                PyObject *PyFunction_GET_MODULE(PyObject *op)
+                PyObject *PyFunction_GET_DEFAULTS(PyObject *op)
+                PyObject *PyFunction_GET_KW_DEFAULTS(PyObject *op)
+                PyObject *PyFunction_GET_CLOSURE(PyObject *op)
+                PyObject *PyFunction_GET_ANNOTATIONS(PyObject *op)
+
+   These macros are equivalent to the respective ``PyFunction_GetCode*``
+   functions documented above, except they do no type checking.
+   That is, if *op* is of type :c:data:`PyFunction_Type`, the behavior
+   is undefined.
 
 
 .. c:function:: int PyFunction_AddWatcher(PyFunction_WatchCallback callback)
