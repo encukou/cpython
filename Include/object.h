@@ -298,18 +298,6 @@ PyAPI_FUNC(PyTypeObject*) Py_TYPE(PyObject *ob);
 PyAPI_DATA(PyTypeObject) PyLong_Type;
 PyAPI_DATA(PyTypeObject) PyBool_Type;
 
-#ifndef _Py_OPAQUE_PYOBJECT
-// bpo-39573: The Py_SET_SIZE() function must be used to set an object size.
-static inline Py_ssize_t Py_SIZE(PyObject *ob) {
-    assert(Py_TYPE(ob) != &PyLong_Type);
-    assert(Py_TYPE(ob) != &PyBool_Type);
-    return  _PyVarObject_CAST(ob)->ob_size;
-}
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < 0x030b0000
-#  define Py_SIZE(ob) Py_SIZE(_PyObject_CAST(ob))
-#endif
-#endif // !defined(_Py_OPAQUE_PYOBJECT)
-
 static inline int Py_IS_TYPE(PyObject *ob, PyTypeObject *type) {
     return Py_TYPE(ob) == type;
 }
@@ -317,29 +305,46 @@ static inline int Py_IS_TYPE(PyObject *ob, PyTypeObject *type) {
 #  define Py_IS_TYPE(ob, type) Py_IS_TYPE(_PyObject_CAST(ob), (type))
 #endif
 
+// Py_SIZE(), Py_SET_TYPE(), Py_SET_SIZE() definitions for the stable ABI
+PyAPI_FUNC(Py_ssize_t) Py_SIZE(PyObject *ob);
+PyAPI_FUNC(void) Py_SET_TYPE(PyObject *ob, PyTypeObject *type);
+PyAPI_FUNC(void) Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size);
 
-#ifndef _Py_OPAQUE_PYOBJECT
-static inline void Py_SET_TYPE(PyObject *ob, PyTypeObject *type) {
-    ob->ob_type = type;
-}
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < 0x030b0000
-#  define Py_SET_TYPE(ob, type) Py_SET_TYPE(_PyObject_CAST(ob), type)
-#endif
-
-static inline void Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size) {
-    assert(Py_TYPE(_PyObject_CAST(ob)) != &PyLong_Type);
-    assert(Py_TYPE(_PyObject_CAST(ob)) != &PyBool_Type);
-#ifdef Py_GIL_DISABLED
-    _Py_atomic_store_ssize_relaxed(&ob->ob_size, size);
+#if defined(Py_LIMITED_API) && Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
+    // Stable ABI implements these as a function call
+    // on limited C API version 3.15 and newer.
 #else
-    ob->ob_size = size;
-#endif
-}
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < 0x030b0000
-#  define Py_SET_SIZE(ob, size) Py_SET_SIZE(_PyVarObject_CAST(ob), (size))
-#endif
-#endif // !defined(_Py_OPAQUE_PYOBJECT)
+    // gh-83754: The Py_SET_SIZE() function must be used to set an object size.
+    static inline Py_ssize_t _Py_SIZE(PyObject *ob) {
+        assert(Py_TYPE(ob) != &PyLong_Type);
+        assert(Py_TYPE(ob) != &PyBool_Type);
+        return  _PyVarObject_CAST(ob)->ob_size;
+    }
 
+    static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) {
+        ob->ob_type = type;
+    }
+
+    static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size) {
+        assert(Py_TYPE(_PyObject_CAST(ob)) != &PyLong_Type);
+        assert(Py_TYPE(_PyObject_CAST(ob)) != &PyBool_Type);
+        #ifdef Py_GIL_DISABLED
+            _Py_atomic_store_ssize_relaxed(&ob->ob_size, size);
+        #else
+            ob->ob_size = size;
+        #endif
+    }
+
+    #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < 0x030b0000
+        #define Py_SIZE(ob) _Py_SIZE(_PyObject_CAST(ob))
+        #define Py_SET_TYPE(ob, type) _Py_SET_TYPE(_PyObject_CAST(ob), (type))
+        #define Py_SET_SIZE(ob, size) _Py_SET_SIZE(_PyVarObject_CAST(ob), (size))
+    #else
+        #define Py_SIZE _Py_SIZE
+        #define Py_SET_TYPE _Py_SET_TYPE
+        #define Py_SET_SIZE _Py_SET_SIZE
+    #endif
+#endif
 
 /*
 Type objects contain a string containing the type name (to help somewhat

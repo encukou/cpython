@@ -3358,22 +3358,17 @@ Py_GetConstantBorrowed(unsigned int constant_id)
 }
 
 
-// Py_TYPE() implementation for the stable ABI
+// Implementations for the stable ABI
 #undef Py_TYPE
-PyTypeObject*
-Py_TYPE(PyObject *ob)
-{
-    return _Py_TYPE(ob);
-}
-
-
-// Py_REFCNT() implementation for the stable ABI
 #undef Py_REFCNT
-Py_ssize_t
-Py_REFCNT(PyObject *ob)
-{
-    return _Py_REFCNT(ob);
-}
+#undef Py_SIZE
+#undef Py_SET_TYPE
+#undef Py_SET_SIZE
+PyTypeObject* Py_TYPE(PyObject *ob) {return _Py_TYPE(ob);}
+Py_ssize_t Py_REFCNT(PyObject *ob) {return _Py_REFCNT(ob);}
+Py_ssize_t Py_SIZE(PyObject *ob) {return _Py_SIZE(ob);}
+void Py_SET_TYPE(PyObject *ob, PyTypeObject *tp) {return _Py_SET_TYPE(ob, tp);}
+void Py_SET_SIZE(PyVarObject *ob, Py_ssize_t sz) {return _Py_SET_SIZE(ob, sz);}
 
 int
 PyUnstable_IsImmortal(PyObject *op)

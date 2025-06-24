@@ -2519,8 +2519,10 @@
 
 [function.Py_TYPE]
     added = '3.14'
+    # Previously a macro. Part of limited API (all versions) in practice.
 [function.Py_REFCNT]
     added = '3.14'
+    # Previously a macro. Part of limited API (all versions) in practice.
 [function.PyIter_NextItem]
     added = '3.14'
 [function.PyLong_FromInt32]
@@ -2575,6 +2577,7 @@
     added = '3.14'
 [function.Py_PACK_VERSION]
     added = '3.14'
+
 [function.PySys_GetAttr]
     added = '3.15'
 [function.PySys_GetAttrString]
@@ -2583,3 +2586,12 @@
     added = '3.15'
 [function.PySys_GetOptionalAttrString]
     added = '3.15'
+[function.Py_SIZE]
+    added = '3.15'
+    # Previously a macro. Part of limited API (all versions) in practice.
+[function.Py_SET_TYPE]
+    added = '3.15'
+    # Previously a macro. Part of limited API (all versions) in practice.
+[function.Py_SET_SIZE]
+    added = '3.15'
+    # Previously a macro. Part of limited API (all versions) in practice.
