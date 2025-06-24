@@ -26,9 +26,7 @@
 // 0b01: locked
 // 0b10: unlocked and has parked threads
 // 0b11: locked and has parked threads
-typedef struct PyMutex {
-    uint8_t _bits;  // (private)
-} PyMutex;
+typedef struct _PyMutex PyMutex;
 
 // exported function for locking the mutex
 PyAPI_FUNC(void) PyMutex_Lock(PyMutex *m);

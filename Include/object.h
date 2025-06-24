@@ -171,7 +171,7 @@ struct _object {
     // computed "gc_refs" refcount.
     _Py_ALIGNED_DEF(_PyObject_MIN_ALIGNMENT, uintptr_t) ob_tid;
     uint16_t ob_flags;
-    PyMutex ob_mutex;           // per-object lock
+    struct _PyMutex ob_mutex;   // per-object lock
     uint8_t ob_gc_bits;         // gc-related state
     uint32_t ob_ref_local;      // local reference count
     Py_ssize_t ob_ref_shared;   // shared (atomic) reference count

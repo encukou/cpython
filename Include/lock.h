@@ -4,6 +4,11 @@
 extern "C" {
 #endif
 
+// See cpython/lock.h
+struct _PyMutex {
+    uint8_t _bits;  // (private)
+};
+
 #ifndef Py_LIMITED_API
 #  define Py_CPYTHON_LOCK_H
 #  include "cpython/lock.h"
