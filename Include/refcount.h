@@ -117,6 +117,9 @@ PyAPI_FUNC(Py_ssize_t) Py_REFCNT(PyObject *ob);
     #endif
 #endif
 
+#if defined(Py_LIMITED_API) && Py_LIMITED_API+0 >= 0x030e0000
+    // Not exposed in Stable ABI
+#else
 static inline Py_ALWAYS_INLINE int _Py_IsImmortal(PyObject *op)
 {
 #if defined(Py_GIL_DISABLED)
@@ -130,7 +133,6 @@ static inline Py_ALWAYS_INLINE int _Py_IsImmortal(PyObject *op)
 }
 #define _Py_IsImmortal(op) _Py_IsImmortal(_PyObject_CAST(op))
 
-
 static inline Py_ALWAYS_INLINE int _Py_IsStaticImmortal(PyObject *op)
 {
 #if defined(Py_GIL_DISABLED) || SIZEOF_VOID_P > 4
@@ -140,6 +142,7 @@ static inline Py_ALWAYS_INLINE int _Py_IsStaticImmortal(PyObject *op)
 #endif
 }
 #define _Py_IsStaticImmortal(op) _Py_IsStaticImmortal(_PyObject_CAST(op))
+#endif
 
 // Py_SET_REFCNT() implementation for stable ABI
 PyAPI_FUNC(void) _Py_SetRefcnt(PyObject *ob, Py_ssize_t refcnt);

@@ -45,18 +45,10 @@
 #  endif
 #endif
 
-// gh-111506: The free-threaded build is not compatible with the limited API
-// or the stable ABI.
-#if defined(Py_LIMITED_API) && defined(Py_GIL_DISABLED)
-#  error "The limited API is not currently supported in the free-threaded build"
-#endif
-
-#if defined(Py_GIL_DISABLED) && defined(_MSC_VER)
-#  include <intrin.h>             // __readgsqword()
-#endif
-
-#if defined(Py_GIL_DISABLED) && defined(__MINGW32__)
-#  include <intrin.h>             // __readgsqword()
+#if !defined(Py_LIMITED_API) && defined(Py_GIL_DISABLED)
+#  if defined(_MSC_VER) || defined(__MINGW32__)
+#    include <intrin.h>             // __readgsqword()
+#  endif
 #endif
 
 // Include Python header files
