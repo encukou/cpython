@@ -401,17 +401,17 @@ The wheels, shared libraries, and binaries are indicated by a ``t`` suffix.
 Limited C API and Stable ABI
 ............................
 
-The free-threaded build does not currently support the
-:ref:`Limited C API <limited-c-api>` or the stable ABI.  If you use
-`setuptools <https://setuptools.pypa.io/en/latest/setuptools.html>`_ to build
-your extension and currently set ``py_limited_api=True`` you can use
-``py_limited_api=not sysconfig.get_config_var("Py_GIL_DISABLED")`` to opt out
-of the limited API when building with the free-threaded build.
+The free-threaded build has exprerimental support for Stable ABI extensions.
+However, the ABI is different from the non-free-threaded Stable ABI.
+That is, when you use the limited API, you can build one wheel for
+multiple non-free-threaded Python versions, and a different wheel
+for multiple free-threaded Python versions.
 
-.. note::
-    You will need to build separate wheels specifically for the free-threaded
-    build.  If you currently use the stable ABI, you can continue to build a
-    single wheel for multiple non-free-threaded Python versions.
+Extensions built with both ``Py_LIMITED_API`` and ``Py_GIL_DISABLED`` should
+use the ``abi3t`` tag in place of ``abi3``.
+
+If you use a build tool such as `setuptools <https://setuptools.pypa.io/en/latest/setuptools.html>`_,
+please verify whether it supports stable ABI for free-threaded builds.
 
 
 Windows

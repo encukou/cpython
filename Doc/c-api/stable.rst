@@ -182,6 +182,13 @@ In particular, parts of the Limited API may be deprecated and removed,
 provided that the Stable ABI stays stable.
 
 
+Stable ABI and Free Threading
+-----------------------------
+
+See :ref:`Limited C API and Stable ABI <howto-freethreading-stable-abi>`
+section of the Free Threading C API HOWTO document.
+
+
 .. _stable-abi-platform:
 
 Platform Considerations
