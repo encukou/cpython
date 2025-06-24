@@ -4,6 +4,9 @@
 // Always enable assertions
 #undef NDEBUG
 
+// Disable access to PyObject internals
+#define _Py_OPAQUE_PYOBJECT
+
 #include "Python.h"
 
 #ifndef MODULE_NAME

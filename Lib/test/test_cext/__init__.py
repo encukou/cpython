@@ -43,7 +43,6 @@ class TestExt(unittest.TestCase):
         # Please ask the C API WG before adding a new C11-only feature.
         self.check_build('_test_c99_cext', std='c99')
 
-    @support.requires_gil_enabled('incompatible with Free Threading')
     def test_build_limited(self):
         self.check_build('_test_limited_cext', limited=True)
 
