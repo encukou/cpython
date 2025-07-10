@@ -283,6 +283,8 @@ PyAPI_FUNC(PyTypeObject*) Py_TYPE(PyObject *ob);
 #if defined(Py_LIMITED_API) && Py_LIMITED_API+0 >= 0x030e0000
     // Stable ABI implements Py_TYPE() as a function call
     // on limited C API version 3.14 and newer.
+#elif defined(_Py_OPAQUE_PYOBJECT)
+    #define Py_TYPE _Py_TYPE_NOT_EXPOSED
 #else
     static inline PyTypeObject* _Py_TYPE(PyObject *ob)
     {

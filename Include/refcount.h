@@ -98,6 +98,8 @@ PyAPI_FUNC(Py_ssize_t) Py_REFCNT(PyObject *ob);
 #if defined(Py_LIMITED_API) && Py_LIMITED_API+0 >= 0x030e0000
     // Stable ABI implements Py_REFCNT() as a function call
     // on limited C API version 3.14 and newer.
+#elif defined(_Py_OPAQUE_PYOBJECT)
+    #define Py_REFCNT _Py_REFCNT_NOT_EXPOSED
 #else
     static inline Py_ssize_t _Py_REFCNT(PyObject *ob) {
     #if !defined(Py_GIL_DISABLED)
@@ -152,6 +154,8 @@ static inline void Py_SET_REFCNT(PyObject *ob, Py_ssize_t refcnt) {
     // Stable ABI implements Py_SET_REFCNT() as a function call
     // on limited C API version 3.13 and newer.
     _Py_SetRefcnt(ob, refcnt);
+#elif defined(_Py_OPAQUE_PYOBJECT)
+    #define Py_SET_REFCNT _Py_SET_REFCNT_NOT_EXPOSED
 #else
     // This immortal check is for code that is unaware of immortal objects.
     // The runtime tracks these objects and we should avoid as much
