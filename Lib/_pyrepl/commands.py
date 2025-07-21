@@ -373,7 +373,8 @@ class self_insert(EditCommand):
         if r.paste_mode:
             data = ""
             ev = r.console.getpending()
-            data += ev.data
+            if ev.data:
+                data += ev.data
             if data:
                 r.insert(data)
                 r.last_refresh_cache.invalidated = True
@@ -452,7 +453,8 @@ class help(Command):
 class invalid_key(Command):
     def do(self) -> None:
         pending = self.reader.console.getpending()
-        s = "".join(self.event) + pending.data
+        if pending.data:
+            s = "".join(self.event) + pending.data
         self.reader.error("`%r' not bound" % s)
 
 
@@ -492,7 +494,8 @@ class perform_bracketed_paste(Command):
         start = time.time()
         while done not in data:
             ev = self.reader.console.getpending()
-            data += ev.data
+            if ev.data:
+                data += ev.data
         trace(
             "bracketed pasting of {l} chars done in {s:.2f}s",
             l=len(data),

@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 import re
 import struct
+from typing import Callable, Self, Literal, cast
+from functools import partial
+import operator
 
 
 # Terminfo constants
@@ -321,7 +324,7 @@ class TermInfo:
     terminal_name: str | bytes | None
     fallback: bool = True
 
-    _capabilities: dict[str, bytes] = field(default_factory=dict)
+    _capabilities: dict[str, 'Tparm'] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize terminal capabilities for the given terminal type.
@@ -352,7 +355,10 @@ class TermInfo:
             )
             if term_type not in _TERMINAL_CAPABILITIES:
                 term_type = "dumb"
-            self._capabilities = _TERMINAL_CAPABILITIES[term_type].copy()
+            self._capabilities = {
+                name: Tparm.from_bytes(cap)
+                for name, cap in _TERMINAL_CAPABILITIES[term_type].items()
+            }
 
     def _parse_terminfo_file(self, terminal_name: str) -> None:
         """Parse a terminfo file.
@@ -421,7 +427,7 @@ class TermInfo:
                 # Find null terminator
                 end = string_table.find(0, off)
                 if end >= 0:
-                    capabilities[cap] = string_table[off:end]
+                    capabilities[cap] = Tparm.from_bytes(string_table[off:end])
             # in other cases this is ABSENT_STRING; we don't store those.
 
         # Note: we don't support extended capabilities since PyREPL doesn't
@@ -429,7 +435,7 @@ class TermInfo:
 
         self._capabilities = capabilities
 
-    def get(self, cap: str) -> bytes | None:
+    def get(self, cap: str) -> Tparm | None:
         """Get terminal capability string by name.
         """
         if not isinstance(cap, str):
@@ -438,7 +444,7 @@ class TermInfo:
         return self._capabilities.get(cap)
 
 
-def tparm(cap_bytes: bytes, *params: int) -> bytes:
+def tparm(cap: Tparm, *params: int) -> bytes:
     """Parameterize a terminal capability string.
 
     Based on ncurses implementation in:
@@ -452,37 +458,238 @@ def tparm(cap_bytes: bytes, *params: int) -> bytes:
     - %p[1-9]%d (parameter substitution)
     - %p[1-9]%{n}%+%d (parameter plus constant)
     """
-    if not isinstance(cap_bytes, bytes):
-        raise TypeError(f"`cap` must be bytes, not {type(cap_bytes)}")
+    if not isinstance(cap, Tparm):
+        raise TypeError(f"`cap` must be Tparm, not {type(cap)}")
 
-    result = cap_bytes
+    return cap(*params)
 
-    # %i - increment parameters (1-based instead of 0-based)
-    increment = b"%i" in result
-    if increment:
-        result = result.replace(b"%i", b"")
+type TparmPart = bytes | Callable[['TparmState'], bytes | None]
 
-    # Replace %p1%d, %p2%d, etc. with actual parameter values
-    for i in range(len(params)):
-        pattern = b"%%p%d%%d" % (i + 1)
-        if pattern in result:
-            value = params[i]
-            if increment:
-                value += 1
-            result = result.replace(pattern, str(value).encode("ascii"))
+@dataclass
+class Tparm:
+    pieces: tuple[TparmPart, ...]
+    source: bytes
 
-    # Handle %p1%{1}%+%d (parameter plus constant)
-    # Used in some cursor positioning sequences
-    pattern_re = re.compile(rb"%p(\d)%\{(\d+)\}%\+%d")
-    matches = list(pattern_re.finditer(result))
-    for match in reversed(matches):  # reversed to maintain positions
-        param_idx = int(match.group(1))
-        constant = int(match.group(2))
-        value = params[param_idx] + constant
-        result = (
-            result[: match.start()]
-            + str(value).encode("ascii")
-            + result[match.end() :]
-        )
+    def __call__(self, *params: int) -> bytes:
+        result = []
+        state = TparmState(params)
+        # Note: in ncurses, variable values persist across calls to tparm.
+        # We create fresh state every time.
+        for part in self.pieces:
+            match part:
+                case bytes():
+                    if state.active:
+                        result.append(part)
+                case ConditionalOp():
+                    part(state)
+                case _:
+                    if state.active:
+                        piece = part(state)
+                        if piece:
+                            result.append(piece)
+        return b''.join(result)
 
-    return result
+    @classmethod
+    def from_const(cls, src: bytes) -> Self:
+        return cls((src,), src)
+
+    @classmethod
+    def from_bytes(cls, src: bytes) -> Self:
+        parts: list[TparmPart] = []
+        pos = 0
+        while pos < len(src):
+            percent_pos = src.find(b'%', pos)
+            if percent_pos == -1:
+                parts.append(src[pos:])
+                break
+            part = src[pos:percent_pos]
+            if part:
+                parts.append(part)
+            pos = percent_pos + 2
+            control = src[pos-1:pos]
+            def append_binop(func: Callable[[int, int], int]) -> None:
+                parts.append(partial(TparmState.binary_op, op=func))
+            match control:
+                #fmt: off
+                case b'?': parts.append(TparmState.cond_if)
+                case b't': parts.append(TparmState.cond_then)
+                case b'e': parts.append(TparmState.cond_else)
+                case b';': parts.append(TparmState.cond_endif)
+                case b'%': parts.append(b'%')
+                case b'c': parts.append(TparmState.output_byte)
+                case b's': parts.append(TparmState.output_decimal)
+                case b'l': parts.append(TparmState.output_length)
+                case b'+': append_binop(operator.add)
+                case b'-': append_binop(operator.sub)
+                case b'*': append_binop(operator.mul)
+                case b'/': append_binop(lambda a, b: int(a / b))
+                case b'm': append_binop(lambda a, b: a - (int(a / b) * b))
+                case b'&': append_binop(operator.and_)
+                case b'|': append_binop(operator.or_)
+                case b'^': append_binop(operator.xor)
+                case b'=': append_binop(lambda a, b: int(a == b))
+                case b'>': append_binop(lambda a, b: int(a > b))
+                case b'<': append_binop(lambda a, b: int(a < b))
+                case b'A': append_binop(lambda a, b: 1 if a and b else 0)
+                case b'O': append_binop(lambda a, b: 1 if a or b else 0)
+                case b'!': parts.append(TparmState.not_op)
+                case b'~': parts.append(TparmState.inv_op)
+                case b'i': parts.append(TparmState.inc2)
+                #fmt: on
+                case b'p':
+                    n = int(src[pos:pos+1].decode('ascii'))
+                    pos += 1
+                    if src[pos:pos+2] == b'%d':
+                        parts.append(partial(TparmState.output_param, index=n-1))
+                        pos += 2
+                    else:
+                        parts.append(partial(TparmState.push_param, index=n-1))
+                case b'P':
+                    n = src[pos]
+                    pos += 1
+                    parts.append(partial(TparmState.store_var, name=n))
+                case b'g':
+                    n = src[pos]
+                    pos += 1
+                    parts.append(partial(TparmState.push_var, name=n))
+                case b"'":
+                    n = src[pos]
+                    pos += 2
+                    parts.append(partial(TparmState.push, value=n))
+                case b"{":
+                    end = src.index(b'}', pos)
+                    n = int(src[pos:end].decode('ascii'))
+                    pos = end + 1
+                    parts.append(partial(TparmState.push, value=n))
+                case _:
+                    match = re.compile(b'[doxXs]').search(src, pos)
+                    if match:
+                        end = match.start()
+                        fmt = src[pos:end+1]
+                        if fmt.startswith(b'%:'):
+                            fmt = b'%' + fmt[2:]
+                        parts.append(partial(TparmState.format, fmt=fmt))
+                        pos = end + 1
+        return cls(tuple(parts), src)
+
+@dataclass
+class ConditionalOp:
+    _func: Callable[['TparmState'], None]
+
+    def __call__(self, state):
+        return self._func(state)
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return partial(self, instance)
+
+@dataclass
+class TparmState:
+    params: tuple[int, ...]
+    variables: dict[int, int] = field(default_factory=dict)
+    stack: list[int] = field(default_factory=list)
+    active: bool = True
+    if_stack: list[Literal['cond', 'then', 'wait', 'skip']] = field(default_factory=list)
+
+    def push(self, value: int) -> None:
+        self.stack.append(value)
+
+    def pop(self) -> int:
+        try:
+            return self.stack.pop()
+        except IndexError:
+            return 0
+
+    def get_param(self, n: int) -> int:
+        if 0 <= n < len(self.params):
+            return self.params[n]
+        return 0
+
+    @ConditionalOp
+    def cond_if(self):
+        self.if_stack.append('cond')
+
+    @ConditionalOp
+    def cond_then(self):
+        if self.active:
+            if self.pop():
+                self.if_stack[-1] = 'then'
+            else:
+                self.if_stack[-1] = 'wait'
+        self._set_active()
+
+    @ConditionalOp
+    def cond_else(self):
+        if self.if_stack[-1] == 'wait':
+            self.if_stack[-1] = 'cond'
+        elif self.if_stack[-1] == 'then':
+            self.if_stack[-1] = 'skip'
+        self._set_active()
+
+    @ConditionalOp
+    def cond_endif(self):
+        self.if_stack.pop()
+        self._set_active()
+
+    def _set_active(self):
+        self.active = all(e in {'cond', 'then'} for e in self.if_stack)
+
+    def output_byte(self) -> bytes:
+        char = self.pop()
+        if char == 0:
+            char = 0x80
+        char &= 0xff
+        if char == 0:
+            # ncurses outputs a zero byte, ending the string
+            return b''
+        return bytes([char])
+
+    def output_decimal(self) -> bytes | None:
+        val = self.pop()
+        if val:
+            return str(val).encode('ascii')
+        return None
+
+    def output_length(self) -> bytes:
+        val = self.pop()
+        return str(len(str(val))).encode('ascii')
+
+    def binary_op(self, op: Callable[[int, int], int]) -> None:
+        b = self.pop()
+        a = self.pop()
+        self.push(op(a, b))
+
+    def not_op(self) -> None:
+        self.push(0 if self.pop() else 1)
+
+    def inv_op(self) -> None:
+        self.push(~self.pop())
+
+    def push_param(self, index: int) -> None:
+        self.push(self.get_param(index))
+
+    def output_param(self, index: int) -> bytes | None:
+        val = self.get_param(index)
+        if val:
+            return str(val).encode('ascii')
+        return None
+
+    def store_var(self, name: int) -> None:
+        self.variables[name] = self.pop()
+
+    def push_var(self, name: int) -> None:
+        self.push(self.variables.get(name, 0))
+
+    def inc2(self) -> None:
+        a = self.get_param(0) + 1
+        b = self.get_param(1) + 1
+        self.params = (a, b, *self.params[2:])
+        self.push(a)
+        self.push(b)
+
+    def format(self, fmt: bytes) -> bytes:
+        val = self.pop()
+        if val < 0 and fmt[-1] in b'xXo':
+            val = val & 0xFFFFFFFF
+        return fmt % val

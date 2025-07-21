@@ -31,7 +31,9 @@ import termios
 import time
 import types
 import platform
+import math
 from fcntl import ioctl
+from typing import Callable
 
 from . import terminfo
 from .console import Console, Event
@@ -39,6 +41,7 @@ from .fancy_termios import tcgetattr, tcsetattr
 from .trace import trace
 from .unix_eventqueue import EventQueue
 from .utils import wlen
+from .terminfo import Tparm
 
 # declare posix optional to allow None assignment on other platforms
 posix: types.ModuleType | None
@@ -161,12 +164,12 @@ class UnixConsole(Console):
         self.term = term
 
         @overload
-        def _my_getstr(cap: str, optional: Literal[False] = False) -> bytes: ...
+        def _my_getstr(cap: str, optional: Literal[False] = False) -> Tparm: ...
 
         @overload
-        def _my_getstr(cap: str, optional: bool) -> bytes | None: ...
+        def _my_getstr(cap: str, optional: bool) -> Tparm | None: ...
 
-        def _my_getstr(cap: str, optional: bool = False) -> bytes | None:
+        def _my_getstr(cap: str, optional: bool = False) -> Tparm | None:
             r = self.terminfo.get(cap)
             if not optional and r is None:
                 raise InvalidTerminal(
@@ -223,7 +226,7 @@ class UnixConsole(Console):
         """
         self.encoding = encoding
 
-    def refresh(self, screen, c_xy):
+    def refresh(self, screen: list[str], c_xy: tuple[int, int]) -> None:
         """
         Refresh the console screen.
 
@@ -321,7 +324,12 @@ class UnixConsole(Console):
             self.posxy = x, y
             self.flushoutput()
 
-    def prepare(self):
+    __buffer: list[tuple[str, Literal[0]] | tuple[bytes, Literal[1]]]
+    __gone_tall: int
+    __move: Callable[[int, int], None]
+    __offset: int
+
+    def prepare(self) -> None:
         """
         Prepare the console for input/output operations.
         """
@@ -361,7 +369,7 @@ class UnixConsole(Console):
 
         self.__enable_bracketed_paste()
 
-    def restore(self):
+    def restore(self) -> None:
         """
         Restore the console to the default state
         """
@@ -422,7 +430,7 @@ class UnixConsole(Console):
             or bool(self.pollob.poll(timeout))
         )
 
-    def set_cursor_vis(self, visible):
+    def set_cursor_vis(self, visible: bool) -> None:
         """
         Set the visibility of the cursor.
 
@@ -434,9 +442,9 @@ class UnixConsole(Console):
         else:
             self.__hide_cursor()
 
-    if TIOCGWINSZ:
+    if TIOCGWINSZ is not None:
 
-        def getheightwidth(self):
+        def getheightwidth(self) -> tuple[int, int]:
             """
             Get the height and width of the console.
 
@@ -446,6 +454,7 @@ class UnixConsole(Console):
             try:
                 return int(os.environ["LINES"]), int(os.environ["COLUMNS"])
             except (KeyError, TypeError, ValueError):
+                assert TIOCGWINSZ is not None
                 try:
                     size = ioctl(self.input_fd, TIOCGWINSZ, b"\000" * 8)
                 except OSError:
@@ -457,7 +466,7 @@ class UnixConsole(Console):
 
     else:
 
-        def getheightwidth(self):
+        def getheightwidth(self) -> tuple[int, int]:
             """
             Get the height and width of the console.
 
@@ -469,24 +478,26 @@ class UnixConsole(Console):
             except (KeyError, TypeError, ValueError):
                 return 25, 80
 
-    def forgetinput(self):
+    def forgetinput(self) -> None:
         """
         Discard any pending input on the console.
         """
         termios.tcflush(self.input_fd, termios.TCIFLUSH)
 
-    def flushoutput(self):
+    def flushoutput(self) -> None:
         """
         Flush the output buffer.
         """
         for text, iscode in self.__buffer:
             if iscode:
+                assert isinstance(text, bytes)
                 self.__tputs(text)
             else:
+                assert isinstance(text, str)
                 os.write(self.output_fd, text.encode(self.encoding, "replace"))
         del self.__buffer[:]
 
-    def finish(self):
+    def finish(self) -> None:
         """
         Finish console operations and flush the output buffer.
         """
@@ -497,16 +508,16 @@ class UnixConsole(Console):
         self.__write("\n\r")
         self.flushoutput()
 
-    def beep(self):
+    def beep(self) -> None:
         """
         Emit a beep sound.
         """
         self.__maybe_write_code(self._bel)
         self.flushoutput()
 
-    if FIONREAD:
+    if FIONREAD is not None:
 
-        def getpending(self):
+        def getpending(self) -> Event:
             """
             Get pending events from the console event queue.
 
@@ -517,9 +528,11 @@ class UnixConsole(Console):
 
             while not self.event_queue.empty():
                 e2 = self.event_queue.get()
+                assert e2 is not None
                 e.data += e2.data
                 e.raw += e.raw
 
+            assert FIONREAD is not None
             amount = struct.unpack("i", ioctl(self.input_fd, FIONREAD, b"\0\0\0\0"))[0]
             trace("getpending({a})", a=amount)
             raw = self.__read(amount)
@@ -530,7 +543,7 @@ class UnixConsole(Console):
 
     else:
 
-        def getpending(self):
+        def getpending(self) -> Event:
             """
             Get pending events from the console event queue.
 
@@ -541,6 +554,7 @@ class UnixConsole(Console):
 
             while not self.event_queue.empty():
                 e2 = self.event_queue.get()
+                assert e2 is not None
                 e.data += e2.data
                 e.raw += e.raw
 
@@ -551,7 +565,7 @@ class UnixConsole(Console):
             e.raw += raw
             return e
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clear the console screen.
         """
@@ -574,7 +588,10 @@ class UnixConsole(Console):
     def __disable_bracketed_paste(self) -> None:
         os.write(self.output_fd, b"\x1b[?2004l")
 
-    def __setup_movement(self):
+    __move_x: Callable[[int], None]
+    __move_y: Callable[[int], None]
+
+    def __setup_movement(self) -> None:
         """
         Set up the movement functions based on the terminal capabilities.
         """
@@ -594,23 +611,25 @@ class UnixConsole(Console):
         else:
             raise RuntimeError("insufficient terminal (vertical)")
 
+        self.dch1: Tparm | None
         if self._dch1:
             self.dch1 = self._dch1
         elif self._dch:
-            self.dch1 = terminfo.tparm(self._dch, 1)
+            self.dch1 = Tparm.from_const(terminfo.tparm(self._dch, 1))
         else:
             self.dch1 = None
 
+        self.ich1: Tparm | None
         if self._ich1:
             self.ich1 = self._ich1
         elif self._ich:
-            self.ich1 = terminfo.tparm(self._ich, 1)
+            self.ich1 = Tparm.from_const(terminfo.tparm(self._ich, 1))
         else:
             self.ich1 = None
 
         self.__move = self.__move_short
 
-    def __write_changed_line(self, y, oldline, newline, px_coord):
+    def __write_changed_line(self, y: int, oldline: str, newline: str, px_coord: int) -> None:
         # this is frustrating; there's no reason to test (say)
         # self.dch1 inside the loop -- but alternative ways of
         # structuring this function are equally painful (I'm trying to
@@ -697,26 +716,28 @@ class UnixConsole(Console):
             # to the left margin should work to get to a known position.
             self.move_cursor(0, y)
 
-    def __write(self, text):
+    def __write(self, text: str) -> None:
         self.__buffer.append((text, 0))
 
-    def __write_code(self, fmt, *args):
-        self.__buffer.append((terminfo.tparm(fmt, *args), 1))
+    def __write_code(self, fmt: Tparm, *args: int, repeat: int = 1) -> None:
+        self.__buffer.append((terminfo.tparm(fmt, *args) * repeat, 1))
 
-    def __maybe_write_code(self, fmt, *args):
+    def __maybe_write_code(self, fmt: Tparm | None, *args: int) -> None:
         if fmt:
             self.__write_code(fmt, *args)
 
-    def __move_y_cuu1_cud1(self, y):
+    def __move_y_cuu1_cud1(self, y: int) -> None:
         assert self._cud1 is not None
         assert self._cuu1 is not None
         dy = y - self.posxy[1]
         if dy > 0:
-            self.__write_code(dy * self._cud1)
+            self.__write_code(self._cud1, repeat=dy)
         elif dy < 0:
-            self.__write_code((-dy) * self._cuu1)
+            self.__write_code(self._cuu1, repeat=-dy)
 
-    def __move_y_cuu_cud(self, y):
+    def __move_y_cuu_cud(self, y: int) -> None:
+        assert self._cud is not None
+        assert self._cuu is not None
         dy = y - self.posxy[1]
         if dy > 0:
             self.__write_code(self._cud, dy)
@@ -725,6 +746,7 @@ class UnixConsole(Console):
 
     def __move_x_hpa(self, x: int) -> None:
         if x != self.posxy[0]:
+            assert self._hpa is not None
             self.__write_code(self._hpa, x)
 
     def __move_x_cub1_cuf1(self, x: int) -> None:
@@ -732,40 +754,42 @@ class UnixConsole(Console):
         assert self._cub1 is not None
         dx = x - self.posxy[0]
         if dx > 0:
-            self.__write_code(self._cuf1 * dx)
+            self.__write_code(self._cuf1, repeat=dx)
         elif dx < 0:
-            self.__write_code(self._cub1 * (-dx))
+            self.__write_code(self._cub1, repeat=-dx)
 
     def __move_x_cub_cuf(self, x: int) -> None:
+        assert self._cuf is not None
+        assert self._cub is not None
         dx = x - self.posxy[0]
         if dx > 0:
             self.__write_code(self._cuf, dx)
         elif dx < 0:
             self.__write_code(self._cub, -dx)
 
-    def __move_short(self, x, y):
+    def __move_short(self, x: int, y: int) -> None:
         self.__move_x(x)
         self.__move_y(y)
 
-    def __move_tall(self, x, y):
+    def __move_tall(self, x: int, y: int) -> None:
         assert 0 <= y - self.__offset < self.height, y - self.__offset
         self.__write_code(self._cup, y - self.__offset, x)
 
-    def __sigwinch(self, signum, frame):
+    def __sigwinch(self, signum, _frame):
         self.height, self.width = self.getheightwidth()
         self.event_queue.insert(Event("resize", None))
 
-    def __hide_cursor(self):
+    def __hide_cursor(self) -> None:
         if self.cursor_visible:
             self.__maybe_write_code(self._civis)
             self.cursor_visible = 0
 
-    def __show_cursor(self):
+    def __show_cursor(self) -> None:
         if not self.cursor_visible:
             self.__maybe_write_code(self._cnorm)
             self.cursor_visible = 1
 
-    def repaint(self):
+    def repaint(self) -> None:
         if not self.__gone_tall:
             self.posxy = 0, self.posxy[1]
             self.__write("\r")
@@ -777,7 +801,7 @@ class UnixConsole(Console):
             ns = self.height * ["\000" * self.width]
             self.screen = ns
 
-    def __tputs(self, fmt, prog=delayprog):
+    def __tputs(self, fmt: bytes, prog: re.Pattern[bytes] = delayprog) -> None:
         """A Python implementation of the curses tputs function; the
         curses one can't really be wrapped in a sane manner.
 
@@ -799,7 +823,7 @@ class UnixConsole(Console):
             if b"*" in m.group(2):
                 delay *= self.height
             if self._pad and bps is not None:
-                nchars = (bps * delay) / 1000
-                os.write(self.output_fd, self._pad * nchars)
+                nchars = math.ceil((bps * delay) / 1000)
+                os.write(self.output_fd, self._pad() * nchars)
             else:
                 time.sleep(float(delay) / 1000.0)

@@ -63,7 +63,7 @@ def get_terminal_keycodes(ti: TermInfo) -> dict[bytes, str]:
         keycode = ti.get(terminal_code)
         trace('key {key} tiname {terminal_code} keycode {keycode!r}', **locals())
         if keycode:
-            keycodes[keycode] = key
+            keycodes[keycode()] = key
     keycodes.update(CTRL_ARROW_KEYCODES)
     return keycodes
 

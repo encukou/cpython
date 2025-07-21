@@ -218,7 +218,7 @@ class TestCursesCompatibility(unittest.TestCase):
                 if isinstance(ncurses_val, list):
                     ncurses_val = bytes(ncurses_val)
 
-                pyrepl_val = ti.get(cap)
+                pyrepl_val = ti.get(cap).source
 
                 self.assertEqual(
                     pyrepl_val,
@@ -298,7 +298,7 @@ class TestCursesCompatibility(unittest.TestCase):
 
         # Test cursor positioning (cup)
         cup = ti.get("cup")
-        if cup and cup not in {ABSENT_STRING, CANCELLED_STRING}:
+        if cup:
             # Test various parameter combinations
             test_cases = [
                 (0, 0),  # Top-left
@@ -380,16 +380,14 @@ class TestCursesCompatibility(unittest.TestCase):
             "cud": 1,  # cursor_down with count
             "dch": 1,  # delete_character with count
             "ich": 1,  # insert_character with count
+            "sgr": 1,  # define video attributes #1-#9
         }
 
         # Get all capabilities from PyREPL first
         pyrepl_caps = {}
         for cap in param_caps:
             cap_value = ti.get(cap)
-            if cap_value and cap_value not in {
-                ABSENT_STRING,
-                CANCELLED_STRING,
-            }:
+            if cap_value:
                 pyrepl_caps[cap] = cap_value
 
         if not pyrepl_caps:
@@ -576,7 +574,7 @@ class TestCursesCompatibility(unittest.TestCase):
                             # Convert back to bytes
                             ncurses_val = bytes(ncurses_val)
 
-                        pyrepl_val = ti.get(cap)
+                        pyrepl_val = ti.get(cap).source
 
                         # Both should return the same value
                         self.assertEqual(
