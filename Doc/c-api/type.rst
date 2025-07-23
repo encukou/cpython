@@ -573,6 +573,14 @@ The following functions and structs are used to create
         :c:member:`~PyTypeObject.tp_subclasses`, and
         :c:member:`~PyTypeObject.tp_weaklist`.
 
+      * "Sub-slot" tables:
+        :c:member:`~PyTypeObject.tp_as_async`,
+        :c:member:`~PyTypeObject.tp_as_number`,
+        :c:member:`~PyTypeObject.tp_as_sequence`,
+        :c:member:`~PyTypeObject.tp_as_mapping`, and
+        :c:member:`~PyTypeObject.tp_as_buffer`.
+        Their contents must be set using individual slots.
+
       Setting :c:data:`Py_tp_bases` or :c:data:`Py_tp_base` may be
       problematic on some platforms.
       To avoid issues, use the *bases* argument of
