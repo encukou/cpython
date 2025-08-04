@@ -1,0 +1,537 @@
+# This file lists all slots used in PyType_FromSlots & PyModule_FromSlots.
+
+# The file name and format can change at any time. Run `typeslots.py --jsonl`
+# to get the info in a more stable format.
+
+# Each slot entry can have these values:
+# - 'id': the slot number (mentioned explicitly, must not be changed)
+# - 'kind' (usually implicit):
+#     - 'type' is for PyTypeObject slots
+#     - 'mod' is for module slots
+#     - 'slot' works for any kind; handled by the slot system itself
+#     - 'compat' is for slots reserved for backwards compatibility
+# - subslots: true if this contains an array of slots to be merged in
+# - duplicates:
+#     - "reject": duplicates should be rejected
+#     - "allow": duplicates are allowed
+# - is_name: true for "name" slots: the value is a char* used in error messages
+
+# Compatibility slots (kind='compat') must have:
+# - new_slot_names: the slots identified by this slot's ID
+
+# Non-compatibility slots must have:
+# - data_type (except compat slots): basic data type
+#    - 'func', 'ptr', 'size', 'uint64', 'int64': the field of the PySlot union
+#    - 'void': value is ignored
+
+# Pointers (data_type is 'ptr' or 'func') can have:
+# - 'null': Behavior for NULL values:
+#   - 'reject': NULLs not allowed
+#   - 'allow': NULLs allowed
+#   - 'deprecated' (default): NULL is deprecated
+
+# Type slots (kind='type') can have:
+# - 'table' (usually implicit): Slot table like 'nb' or 'tp'.
+#       If not specified, the first part of the name is used.
+#       Empty ("") for slots that don't correspond to a PyHeapTypeObject field.
+# - 'field': The field in the above table. By default this is the slot name.
+
+
+[slot_end]
+id = 0
+data_type = "void"
+
+[_compat_slot_1]
+id = 1
+kind = "compat"
+new_slot_names = {type = "bf_getbuffer", mod = "mod_create"}
+
+[_compat_slot_2]
+id = 2
+kind = "compat"
+new_slot_names = {type = "bf_releasebuffer", mod = "mod_exec"}
+
+[_compat_slot_3]
+id = 3
+kind = "compat"
+new_slot_names = {type = "mp_ass_subscript", mod = "mod_multiple_interpreters"}
+
+[_compat_slot_4]
+id = 4
+kind = "compat"
+new_slot_names = {type = "mp_length", mod = "mod_gil"}
+
+[mp_subscript]
+id = 5
+data_type = "func"
+
+[nb_absolute]
+id = 6
+data_type = "func"
+
+[nb_add]
+id = 7
+data_type = "func"
+
+[nb_and]
+id = 8
+data_type = "func"
+
+[nb_bool]
+id = 9
+data_type = "func"
+
+[nb_divmod]
+id = 10
+data_type = "func"
+
+[nb_float]
+id = 11
+data_type = "func"
+
+[nb_floor_divide]
+id = 12
+data_type = "func"
+
+[nb_index]
+id = 13
+data_type = "func"
+
+[nb_inplace_add]
+id = 14
+data_type = "func"
+
+[nb_inplace_and]
+id = 15
+data_type = "func"
+
+[nb_inplace_floor_divide]
+id = 16
+data_type = "func"
+
+[nb_inplace_lshift]
+id = 17
+data_type = "func"
+
+[nb_inplace_multiply]
+id = 18
+data_type = "func"
+
+[nb_inplace_or]
+id = 19
+data_type = "func"
+
+[nb_inplace_power]
+id = 20
+data_type = "func"
+
+[nb_inplace_remainder]
+id = 21
+data_type = "func"
+
+[nb_inplace_rshift]
+id = 22
+data_type = "func"
+
+[nb_inplace_subtract]
+id = 23
+data_type = "func"
+
+[nb_inplace_true_divide]
+id = 24
+data_type = "func"
+
+[nb_inplace_xor]
+id = 25
+data_type = "func"
+
+[nb_int]
+id = 26
+data_type = "func"
+
+[nb_invert]
+id = 27
+data_type = "func"
+
+[nb_lshift]
+id = 28
+data_type = "func"
+
+[nb_multiply]
+id = 29
+data_type = "func"
+
+[nb_negative]
+id = 30
+data_type = "func"
+
+[nb_or]
+id = 31
+data_type = "func"
+
+[nb_positive]
+id = 32
+data_type = "func"
+
+[nb_power]
+id = 33
+data_type = "func"
+
+[nb_remainder]
+id = 34
+data_type = "func"
+
+[nb_rshift]
+id = 35
+data_type = "func"
+
+[nb_subtract]
+id = 36
+data_type = "func"
+
+[nb_true_divide]
+id = 37
+data_type = "func"
+
+[nb_xor]
+id = 38
+data_type = "func"
+
+[sq_ass_item]
+id = 39
+data_type = "func"
+
+[sq_concat]
+id = 40
+data_type = "func"
+
+[sq_contains]
+id = 41
+data_type = "func"
+
+[sq_inplace_concat]
+id = 42
+data_type = "func"
+
+[sq_inplace_repeat]
+id = 43
+data_type = "func"
+
+[sq_item]
+id = 44
+data_type = "func"
+
+[sq_length]
+id = 45
+data_type = "func"
+
+[sq_repeat]
+id = 46
+data_type = "func"
+
+[tp_alloc]
+id = 47
+data_type = "func"
+
+[tp_base]
+id = 48
+data_type = "ptr"
+
+[tp_bases]
+id = 49
+data_type = "ptr"
+
+[tp_call]
+id = 50
+data_type = "func"
+
+[tp_clear]
+id = 51
+data_type = "func"
+
+[tp_dealloc]
+id = 52
+data_type = "func"
+
+[tp_del]
+id = 53
+data_type = "func"
+
+[tp_descr_get]
+id = 54
+data_type = "func"
+
+[tp_descr_set]
+id = 55
+data_type = "func"
+
+[tp_doc]
+id = 56
+null = "allow"
+duplicates = "reject"
+data_type = "ptr"
+
+[tp_getattr]
+id = 57
+data_type = "func"
+
+[tp_getattro]
+id = 58
+data_type = "func"
+
+[tp_hash]
+id = 59
+data_type = "func"
+
+[tp_init]
+id = 60
+data_type = "func"
+
+[tp_is_gc]
+id = 61
+data_type = "func"
+
+[tp_iter]
+id = 62
+data_type = "func"
+
+[tp_iternext]
+id = 63
+data_type = "func"
+
+[tp_methods]
+id = 64
+duplicates = "reject"
+data_type = "ptr"
+
+[tp_new]
+id = 65
+data_type = "func"
+
+[tp_repr]
+id = 66
+data_type = "func"
+
+[tp_richcompare]
+id = 67
+data_type = "func"
+
+[tp_setattr]
+id = 68
+data_type = "func"
+
+[tp_setattro]
+id = 69
+data_type = "func"
+
+[tp_str]
+id = 70
+data_type = "func"
+
+[tp_traverse]
+id = 71
+data_type = "func"
+
+[tp_members]
+id = 72
+duplicates = "reject"
+data_type = "ptr"
+
+[tp_getset]
+id = 73
+duplicates = "reject"
+data_type = "ptr"
+
+[tp_free]
+id = 74
+data_type = "func"
+
+[nb_matrix_multiply]
+id = 75
+data_type = "func"
+
+[nb_inplace_matrix_multiply]
+id = 76
+data_type = "func"
+
+[am_await]
+id = 77
+data_type = "func"
+
+[am_aiter]
+id = 78
+data_type = "func"
+
+[am_anext]
+id = 79
+data_type = "func"
+
+[tp_finalize]
+id = 80
+data_type = "func"
+
+[am_send]
+id = 81
+data_type = "func"
+
+[tp_vectorcall]
+id = 82
+data_type = "func"
+
+[tp_token]
+id = 83
+table = "ht"
+field = "ht_token"
+null = "allow"
+duplicates = "reject"
+data_type = "ptr"
+
+[mod_create]
+id = 84
+duplicates = "reject"
+data_type = "func"
+
+[mod_exec]
+id = 85
+duplicates = "allow"
+data_type = "func"
+
+[mod_multiple_interpreters]
+id = 86
+duplicates = "reject"
+data_type = "uint64"
+
+[mod_gil]
+id = 87
+duplicates = "reject"
+data_type = "uint64"
+
+[bf_getbuffer]
+id = 88
+data_type = "func"
+
+[bf_releasebuffer]
+id = 89
+data_type = "func"
+
+[mp_ass_subscript]
+id = 90
+data_type = "func"
+
+[mp_length]
+id = 91
+data_type = "func"
+
+[slot_subslots]
+id = 92
+subslots = "true"
+null = "allow"
+data_type = "ptr"
+
+[tp_slots]
+id = 93
+table = ""
+subslots = "true"
+null = "allow"
+data_type = "ptr"
+
+[mod_slots]
+id = 94
+subslots = "true"
+null = "allow"
+data_type = "ptr"
+
+[tp_name]
+id = 95
+table = ""
+null = "reject"
+duplicates = "reject"
+is_name = "true"
+data_type = "ptr"
+
+[tp_basicsize]
+id = 96
+duplicates = "reject"
+data_type = "size"
+
+[tp_extra_basicsize]
+id = 97
+table = ""
+duplicates = "reject"
+data_type = "size"
+
+[tp_itemsize]
+id = 98
+duplicates = "reject"
+data_type = "size"
+
+[tp_flags]
+id = 99
+duplicates = "reject"
+data_type = "uint64"
+
+[mod_name]
+id = 100
+null = "reject"
+duplicates = "reject"
+is_name = "true"
+data_type = "ptr"
+
+[mod_doc]
+id = 101
+null = "allow"
+duplicates = "reject"
+data_type = "ptr"
+
+[mod_state_size]
+id = 102
+duplicates = "reject"
+data_type = "size"
+
+[mod_methods]
+id = 103
+null = "reject"
+duplicates = "reject"
+data_type = "ptr"
+
+[mod_state_traverse]
+id = 104
+null = "reject"
+duplicates = "reject"
+data_type = "func"
+
+[mod_state_clear]
+id = 105
+null = "reject"
+duplicates = "reject"
+data_type = "func"
+
+[mod_state_free]
+id = 106
+null = "reject"
+duplicates = "reject"
+data_type = "func"
+
+[mod_token]
+id = 107
+null = "reject"
+duplicates = "reject"
+data_type = "ptr"
+
+[slot_invalid]
+id = 108
+data_type = "void"
+
+[tp_metaclass]
+id = 109
+table = ""
+null = "reject"
+duplicates = "reject"
+data_type = "ptr"
+
+[tp_module]
+id = 110
+table = ""
+null = "reject"
+duplicates = "reject"
+data_type = "ptr"
