@@ -853,8 +853,6 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .kind = _PySlot_KIND_TYPE,
         .null_handling = _PySlot_NULL_ALLOW,
         .reject_duplicates = true,
-        .type_info.slot_offset = offsetof(PyTypeObject, tp_basicsize),
-        .type_info.subslot_offset = -1,
     },
     [97] = {
         .name = "tp_extra_basicsize",
@@ -869,8 +867,6 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .kind = _PySlot_KIND_TYPE,
         .null_handling = _PySlot_NULL_ALLOW,
         .reject_duplicates = true,
-        .type_info.slot_offset = offsetof(PyTypeObject, tp_itemsize),
-        .type_info.subslot_offset = -1,
     },
     [99] = {
         .name = "tp_flags",
@@ -878,8 +874,6 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .kind = _PySlot_KIND_TYPE,
         .null_handling = _PySlot_NULL_ALLOW,
         .reject_duplicates = true,
-        .type_info.slot_offset = offsetof(PyTypeObject, tp_flags),
-        .type_info.subslot_offset = -1,
     },
     [100] = {
         .name = "mod_name",

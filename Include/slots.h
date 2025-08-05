@@ -23,9 +23,6 @@ struct PySlot {
 #define PySlot_STATIC 0x04
 #define PySlot_INTPTR 0x08
 
-
-#define PySlot_END {Py_slot_end}
-
 #ifndef __cplusplus
 
 /* Convenience macros.
@@ -34,22 +31,25 @@ struct PySlot {
  */
 
 #define PySlot_PTR(NAME, VALUE) \
-    {NAME, .sl_flags=0, .sl_ptr=(void*)VALUE}
+    ((PySlot){NAME, .sl_flags=0, .sl_ptr=(void*)VALUE})
 
 #define PySlot_FUNC(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_func=(_Py_generic_funcptr_t)(VALUE)}
+    ((PySlot){NAME, PySlot_STATIC, .sl_func=(_Py_generic_funcptr_t)(VALUE)})
 
 #define PySlot_SIZE(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_size=(Py_ssize_t)(VALUE)}
+    ((PySlot){NAME, PySlot_STATIC, .sl_size=(Py_ssize_t)(VALUE)})
 
 #define PySlot_INT64(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_int64=(int64_t)(VALUE)}
+    ((PySlot){NAME, PySlot_STATIC, .sl_int64=(int64_t)(VALUE)})
 
 #define PySlot_UINT64(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_uint64=(uint64_t)(VALUE)}
+    ((PySlot){NAME, PySlot_STATIC, .sl_uint64=(uint64_t)(VALUE)})
 
 #define PySlot_STATIC_PTR(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_ptr=(void*)VALUE}
+    ((PySlot){NAME, PySlot_STATIC, .sl_ptr=(void*)VALUE})
+
+#define PySlot_END ((PySlot){Py_slot_end})
+#define PySlot_NOOP ((PySlot){Py_slot_invalid, PySlot_OPTIONAL})
 
 #else
 
@@ -105,6 +105,9 @@ PySlot_STATIC_PTR(uint16_t name, void *value)
     result.sl_ptr = value;
     return result;
 }
+
+#define PySlot_END {Py_slot_end}
+#define PySlot_NOOP {Py_slot_invalid, PySlot_OPTIONAL}
 
 #endif
 

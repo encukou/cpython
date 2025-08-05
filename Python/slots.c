@@ -226,7 +226,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
             advance(it);
             continue;
         }
-        if (result->sl_id >= _Py_slot_COUNT) {
+        if (result->sl_id >= _Py_slot_COUNT || result->sl_id == Py_slot_invalid) {
             if (flags & (PySlot_OPTIONAL | PySlot_HAS_FALLBACK)) {
                 MSG("skipped (unknown slot)");
                 advance(it);
@@ -260,7 +260,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
         MSG("slot %d: %s", (int)result->sl_id, it->info->name);
 
         if (it->info->is_name) {
-            MSG("setting name for error messages");
+            MSG("setting name for error messages: %s", result->sl_ptr);
             assert(it->info->dtype == _PySlot_TYPE_PTR);
             it->name = result->sl_ptr;
         }

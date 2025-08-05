@@ -235,10 +235,12 @@ data_type = "func"
 
 [tp_base]
 id = 48
+duplicates = "deprecate"
 data_type = "ptr"
 
 [tp_bases]
 id = 49
+duplicates = "deprecate"
 data_type = "ptr"
 
 [tp_call]
@@ -453,6 +455,7 @@ data_type = "ptr"
 
 [tp_basicsize]
 id = 96
+table = ""
 duplicates = "reject"
 data_type = "size"
 
@@ -464,11 +467,13 @@ data_type = "size"
 
 [tp_itemsize]
 id = 98
+table = ""
 duplicates = "reject"
 data_type = "size"
 
 [tp_flags]
 id = 99
+table = ""
 duplicates = "reject"
 data_type = "uint64"
 
