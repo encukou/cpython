@@ -17,6 +17,7 @@ extern int _PyModule_IsPossiblyShadowing(PyObject *);
 
 extern int _PyModule_IsExtension(PyObject *obj);
 
+typedef PyObject * (*_Py_modcreatefunc)(PyObject *, PyModuleDef*);
 typedef int (*_Py_modexecfunc)(PyObject *);
 
 typedef struct {

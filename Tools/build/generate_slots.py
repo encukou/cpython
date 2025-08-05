@@ -195,14 +195,12 @@ def write_header(f, slots):
     for slot in slots:
         if slot.kind == 'compat':
             continue
-        if slot.kind == 'mod':
-            # XXX: Skip module slots for now
-            continue
         slot_id = slot.id
         if slot.compat_id is not None:
             slot_id = f'_Py_SLOT_COMPAT_VALUE({slot.compat_id}, {slot.id})'
-            # XXX: Use old slot IDs for now
-            slot_id = slot.compat_id
+            if slot.kind == 'type':
+                # XXX: Use old slot IDs for now
+                slot_id = slot.compat_id
         out(f'#define Py_{slot.name} {slot_id}')
     out()
     out(f'#define _Py_slot_COUNT {len(slots)}')

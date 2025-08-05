@@ -1541,6 +1541,9 @@
     <ClCompile Include="..\Python\specialize.c">
       <Filter>Python</Filter>
     </ClCompile>
+    <ClCompile Include="..\Objects\slots.c">
+      <Filter>Objects</Filter>
+    </ClCompile>
     <ClCompile Include="..\Objects\slots_generated.c">
       <Filter>Objects</Filter>
     </ClCompile>

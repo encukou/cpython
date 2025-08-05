@@ -10,8 +10,8 @@
 static PyObject *
 module_from_slots_empty(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {0},
+    PySlot slots[] = {
+        PySlot_END,
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
 }
@@ -25,8 +25,8 @@ module_from_slots_null(PyObject *self, PyObject *spec)
 static PyObject *
 module_from_slots_name(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "currently ignored..."},
+    PySlot slots[] = {
+        PySlot_STATIC_PTR(Py_mod_name, "currently ignored..."),
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
@@ -35,8 +35,8 @@ module_from_slots_name(PyObject *self, PyObject *spec)
 static PyObject *
 module_from_slots_doc(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_doc, "the docstring"},
+    PySlot slots[] = {
+        PySlot_STATIC_PTR(Py_mod_doc, "the docstring"),
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
@@ -45,8 +45,8 @@ module_from_slots_doc(PyObject *self, PyObject *spec)
 static PyObject *
 module_from_slots_size(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_state_size, (void*)123},
+    PySlot slots[] = {
+        PySlot_SIZE(Py_mod_state_size, 123),
         {0},
     };
     PyObject *mod = PyModule_FromSlotsAndSpec(slots, spec);
@@ -70,8 +70,8 @@ static PyMethodDef a_methoddef_array[] = {
 static PyObject *
 module_from_slots_methods(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_methods, a_methoddef_array},
+    PySlot slots[] = {
+        PySlot_STATIC_PTR(Py_mod_methods, a_methoddef_array),
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
@@ -86,10 +86,10 @@ static void trivial_free(void *self) { }
 static PyObject *
 module_from_slots_gc(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_state_traverse, trivial_traverse},
-        {Py_mod_state_clear, trivial_clear},
-        {Py_mod_state_free, trivial_free},
+    PySlot slots[] = {
+        PySlot_FUNC(Py_mod_state_traverse, trivial_traverse),
+        PySlot_FUNC(Py_mod_state_clear, trivial_clear),
+        PySlot_FUNC(Py_mod_state_free, trivial_free),
         {0},
     };
     PyObject *mod = PyModule_FromSlotsAndSpec(slots, spec);
@@ -114,8 +114,8 @@ static char test_token;
 static PyObject *
 module_from_slots_token(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_token, &test_token},
+    PySlot slots[] = {
+        PySlot_STATIC_PTR(Py_mod_token, &test_token),
         {0},
     };
     PyObject *mod = PyModule_FromSlotsAndSpec(slots, spec);
@@ -140,8 +140,8 @@ simple_exec(PyObject *module)
 static PyObject *
 module_from_slots_exec(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_exec, simple_exec},
+    PySlot slots[] = {
+        PySlot_FUNC(Py_mod_exec, simple_exec),
         {0},
     };
     PyObject *mod = PyModule_FromSlotsAndSpec(slots, spec);
@@ -171,8 +171,8 @@ create_attr_from_spec(PyObject *spec, PyObject *def)
 static PyObject *
 module_from_slots_create(PyObject *self, PyObject *spec)
 {
-    PyModuleDef_Slot slots[] = {
-        {Py_mod_create, create_attr_from_spec},
+    PySlot slots[] = {
+        PySlot_FUNC(Py_mod_create, create_attr_from_spec),
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
@@ -200,9 +200,9 @@ module_from_slots_repeat_slot(PyObject *self, PyObject *spec)
     if (slot_id < 0) {
         return NULL;
     }
-    PyModuleDef_Slot slots[] = {
-        {slot_id, "anything"},
-        {slot_id, "anything else"},
+    PySlot slots[] = {
+        {slot_id, PySlot_INTPTR, .sl_ptr="anything"},
+        {slot_id, PySlot_INTPTR, .sl_ptr="anything else"},
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);
@@ -215,8 +215,8 @@ module_from_slots_null_slot(PyObject *self, PyObject *spec)
     if (slot_id < 0) {
         return NULL;
     }
-    PyModuleDef_Slot slots[] = {
-        {slot_id, NULL},
+    PySlot slots[] = {
+        {slot_id},
         {0},
     };
     return PyModule_FromSlotsAndSpec(slots, spec);

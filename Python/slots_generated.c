@@ -756,14 +756,14 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .name = "mod_create",
         .dtype = _PySlot_TYPE_FUNC,
         .kind = _PySlot_KIND_MOD,
-        .null_handling = _PySlot_NULL_DEPRECATED,
+        .null_handling = _PySlot_NULL_REJECT,
         .reject_duplicates = true,
     },
     [85] = {
         .name = "mod_exec",
         .dtype = _PySlot_TYPE_FUNC,
         .kind = _PySlot_KIND_MOD,
-        .null_handling = _PySlot_NULL_DEPRECATED,
+        .null_handling = _PySlot_NULL_REJECT,
     },
     [86] = {
         .name = "mod_multiple_interpreters",
@@ -893,7 +893,7 @@ _PySlot_Info _PySlot_InfoTable[_Py_slot_COUNT + 1] = {
         .name = "mod_doc",
         .dtype = _PySlot_TYPE_PTR,
         .kind = _PySlot_KIND_MOD,
-        .null_handling = _PySlot_NULL_ALLOW,
+        .null_handling = _PySlot_NULL_REJECT,
         .reject_duplicates = true,
     },
     [102] = {

@@ -103,6 +103,6 @@
 #endif
 
 #define PyMODINIT_FUNC _PyINIT_FUNC_DECLSPEC PyObject*
-#define PyMODEXPORT_FUNC _PyINIT_FUNC_DECLSPEC PyModuleDef_Slot*
+#define PyMODEXPORT_FUNC _PyINIT_FUNC_DECLSPEC PySlot*
 
 #endif /* Py_EXPORTS_H */

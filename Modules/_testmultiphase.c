@@ -589,7 +589,7 @@ PyInit__testmultiphase_null_slots(void)
 /**** Problematic modules ****/
 
 static PyModuleDef_Slot slots_bad_large[] = {
-    {_Py_mod_LAST_SLOT + 1, NULL},
+    {_Py_slot_COUNT + 1, NULL},
     {0, NULL},
 };
 
@@ -1020,8 +1020,8 @@ PyInit__test_no_multiple_interpreter_slot(void)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport(PyObject *spec)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport"},
+    static PySlot slots[] = {
+        PySlot_PTR(Py_mod_name, "_test_from_modexport"),
         {0},
     };
     return slots;
@@ -1076,15 +1076,15 @@ modexport_create_string(PyObject *spec, PyObject *def)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport_create_nonmodule(PyObject *spec)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_create_nonmodule"},
-        {Py_mod_create, modexport_create_string},
+    static PySlot slots[] = {
+        PySlot_PTR(Py_mod_name, "_test_from_modexport_create_nonmodule"),
+        PySlot_FUNC(Py_mod_create, modexport_create_string),
         {0},
     };
     return slots;
 }
 
-static PyModuleDef_Slot modexport_empty_slots[] = {
+static PySlot modexport_empty_slots[] = {
     {0},
 };
 
@@ -1162,14 +1162,14 @@ PyModExport__test_from_modexport_smoke(PyObject *spec)
         {"get_modexport_empty_slots", modexport_get_empty_slots, METH_NOARGS},
         {0},
     };
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_smoke"},
-        {Py_mod_doc, "the expected docstring"},
-        {Py_mod_exec, modexport_smoke_exec},
-        {Py_mod_state_size, (void*)sizeof(int)},
-        {Py_mod_methods, methods},
-        {Py_mod_state_free, modexport_smoke_free},
-        {Py_mod_token, (void*)&modexport_smoke_test_token},
+    static PySlot slots[] = {
+        PySlot_STATIC_PTR(Py_mod_name, "_test_from_modexport_smoke"),
+        PySlot_STATIC_PTR(Py_mod_doc, "the expected docstring"),
+        PySlot_FUNC(Py_mod_exec, modexport_smoke_exec),
+        PySlot_SIZE(Py_mod_state_size, sizeof(int)),
+        PySlot_PTR(Py_mod_methods, methods),
+        PySlot_FUNC(Py_mod_state_free, modexport_smoke_free),
+        PySlot_PTR(Py_mod_token, (void*)&modexport_smoke_test_token),
         {0},
     };
     return slots;

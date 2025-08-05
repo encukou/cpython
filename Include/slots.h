@@ -1,6 +1,8 @@
 #ifndef _Py_HAVE_SLOTS_H
 #define _Py_HAVE_SLOTS_H
 
+typedef void (*_Py_generic_funcptr_t)(void);
+
 struct PySlot {
     uint16_t sl_id;
     uint16_t sl_flags;
@@ -9,7 +11,7 @@ struct PySlot {
     };
     _Py_ANONYMOUS union {
         void *sl_ptr;
-        void (*sl_func)(void);
+        _Py_generic_funcptr_t sl_func;
         Py_ssize_t sl_size;
         int64_t sl_int64;
         uint64_t sl_uint64;
@@ -35,7 +37,7 @@ struct PySlot {
     {NAME, .sl_flags=0, .sl_ptr=(void*)VALUE}
 
 #define PySlot_FUNC(NAME, VALUE) \
-    {NAME, PySlot_STATIC, .sl_func=(VALUE)}
+    {NAME, PySlot_STATIC, .sl_func=(_Py_generic_funcptr_t)(VALUE)}
 
 #define PySlot_SIZE(NAME, VALUE) \
     {NAME, PySlot_STATIC, .sl_size=(Py_ssize_t)(VALUE)}
@@ -64,12 +66,13 @@ PySlot_PTR(uint16_t name, void *value)
 }
 
 static inline PySlot
-PySlot_FUNC(uint16_t name, void (*value)(void))
+PySlot_FUNC(uint16_t name, _Py_generic_funcptr_t value)
 {
     PySlot result = {name, PySlot_STATIC};
     result.sl_func = value;
     return result;
 }
+#define PySlot_FUNC(NAME, VALUE) PySlot_FUNC(NAME, (_Py_generic_funcptr_t)VALUE)
 
 static inline PySlot
 PySlot_SIZE(uint16_t name, Py_ssize_t value)

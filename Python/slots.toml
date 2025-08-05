@@ -389,11 +389,13 @@ data_type = "ptr"
 [mod_create]
 id = 84
 duplicates = "reject"
+null = "reject"
 data_type = "func"
 
 [mod_exec]
 id = 85
 duplicates = "allow"
+null = "reject"
 data_type = "func"
 
 [mod_multiple_interpreters]
@@ -479,7 +481,7 @@ data_type = "ptr"
 
 [mod_doc]
 id = 101
-null = "allow"
+null = "reject"
 duplicates = "reject"
 data_type = "ptr"
 

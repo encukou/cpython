@@ -89,17 +89,30 @@
 #define Py_am_send 81
 #define Py_tp_vectorcall 82
 #define Py_tp_token 83
+#define Py_mod_create _Py_SLOT_COMPAT_VALUE(1, 84)
+#define Py_mod_exec _Py_SLOT_COMPAT_VALUE(2, 85)
+#define Py_mod_multiple_interpreters _Py_SLOT_COMPAT_VALUE(3, 86)
+#define Py_mod_gil _Py_SLOT_COMPAT_VALUE(4, 87)
 #define Py_bf_getbuffer 1
 #define Py_bf_releasebuffer 2
 #define Py_mp_ass_subscript 3
 #define Py_mp_length 4
 #define Py_slot_subslots 92
 #define Py_tp_slots 93
+#define Py_mod_slots 94
 #define Py_tp_name 95
 #define Py_tp_basicsize 96
 #define Py_tp_extra_basicsize 97
 #define Py_tp_itemsize 98
 #define Py_tp_flags 99
+#define Py_mod_name 100
+#define Py_mod_doc 101
+#define Py_mod_state_size 102
+#define Py_mod_methods 103
+#define Py_mod_state_traverse 104
+#define Py_mod_state_clear 105
+#define Py_mod_state_free 106
+#define Py_mod_token 107
 #define Py_slot_invalid 108
 #define Py_tp_metaclass 109
 #define Py_tp_module 110
