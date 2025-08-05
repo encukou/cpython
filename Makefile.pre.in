@@ -1888,7 +1888,7 @@ regen-unicodedata:
 
 # "clinic" is regenerated implicitly via "regen-global-objects".
 .PHONY: regen-all
-regen-all: regen-cases regen-typeslots \
+regen-all: regen-cases regen-slots \
 	regen-token regen-ast regen-keyword regen-sre regen-frozen \
 	regen-pegen-metaparser regen-pegen regen-test-frozenmain \
 	regen-test-levenshtein regen-global-objects
@@ -2242,12 +2242,15 @@ Python/pydtrace.o: $(srcdir)/Include/pydtrace.d $(DTRACE_DEPS)
 
 .PHONY: regen-typeslots
 regen-typeslots:
-	# Regenerate Objects/typeslots.inc from Include/typeslotsh
-	# using Objects/typeslots.py
-	$(PYTHON_FOR_REGEN) $(srcdir)/Objects/typeslots.py \
-		< $(srcdir)/Include/typeslots.h \
-		$(srcdir)/Objects/typeslots.inc.new
-	$(UPDATE_FILE) $(srcdir)/Objects/typeslots.inc $(srcdir)/Objects/typeslots.inc.new
+	echo 'NOTE: "regen-typeslots" was renamed to "regen-slots"'
+	$(MAKE) regen-slots
+
+.PHONY: regen-slots
+regen-slots:
+	# Regenerate {Python,Include}/slots_generated.{c,h}
+	# from Python/slots.csv using generate_slots.py
+	$(PYTHON_FOR_REGEN) $(srcdir)/Tools/build/generate_slots.py \
+		--generate-all
 
 $(LIBRARY_OBJS) $(MODOBJS) Programs/python.o: $(PYTHON_HEADERS)
 
