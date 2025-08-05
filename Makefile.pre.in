@@ -1228,6 +1228,7 @@ PYTHON_HEADERS= \
 		$(srcdir)/Include/refcount.h \
 		$(srcdir)/Include/setobject.h \
 		$(srcdir)/Include/sliceobject.h \
+		$(srcdir)/Include/slots.h \
 		$(srcdir)/Include/slots_generated.h \
 		$(srcdir)/Include/structmember.h \
 		$(srcdir)/Include/structseq.h \

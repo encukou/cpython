@@ -82,6 +82,7 @@ __pragma(warning(disable: 4201))
 #include "object.h"
 #include "refcount.h"
 #include "objimpl.h"
+#include "slots.h"
 #include "slots_generated.h"
 #include "pyhash.h"
 #include "cpython/pydebug.h"
