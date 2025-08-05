@@ -1227,12 +1227,12 @@ PYTHON_HEADERS= \
 		$(srcdir)/Include/refcount.h \
 		$(srcdir)/Include/setobject.h \
 		$(srcdir)/Include/sliceobject.h \
+		$(srcdir)/Include/slots_generated.h \
 		$(srcdir)/Include/structmember.h \
 		$(srcdir)/Include/structseq.h \
 		$(srcdir)/Include/sysmodule.h \
 		$(srcdir)/Include/traceback.h \
 		$(srcdir)/Include/tupleobject.h \
-		$(srcdir)/Include/typeslots.h \
 		$(srcdir)/Include/unicodeobject.h \
 		$(srcdir)/Include/warnings.h \
 		$(srcdir)/Include/weakrefobject.h \

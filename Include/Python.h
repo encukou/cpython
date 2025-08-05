@@ -73,7 +73,7 @@
 #include "object.h"
 #include "refcount.h"
 #include "objimpl.h"
-#include "typeslots.h"
+#include "slots_generated.h"
 #include "pyhash.h"
 #include "cpython/pydebug.h"
 #include "bytearrayobject.h"

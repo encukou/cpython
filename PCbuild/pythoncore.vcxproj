@@ -375,6 +375,7 @@
     <ClInclude Include="..\Include\refcount.h" />
     <ClInclude Include="..\Include\setobject.h" />
     <ClInclude Include="..\Include\sliceobject.h" />
+    <ClInclude Include="..\Include\slots_generated.h" />
     <ClInclude Include="..\Include\structmember.h" />
     <ClInclude Include="..\Include\structseq.h" />
     <ClInclude Include="..\Include\sysmodule.h" />
