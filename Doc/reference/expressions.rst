@@ -188,10 +188,24 @@ Strings
    :diagrams: strings
 
    strings:
-       | (   STRING
-           | FSTRING_START
+       | (   FSTRING_START
              (`fstring_replacement_field` | FSTRING_MIDDLE)*
              FSTRING_END
+           | STRING
+         )+
+       | ( TSTRING_START
+           (   '{' `annotated_rhs` ['='] ["!" NAME]
+               [ ':'
+                 (   TSTRING_MIDDLE
+                   | '{' `annotated_rhs` ['='] ["!" NAME]
+                     [':' `tstring_format_spec`*]
+                     '}'
+                 )*
+               ]
+               '}'
+             | TSTRING_MIDDLE
+           )*
+           TSTRING_END
          )+
    fstring_replacement_field:
        | '{' `annotated_rhs` ['='] ["!" NAME]

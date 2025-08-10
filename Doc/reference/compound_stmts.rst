@@ -246,7 +246,7 @@ for a group of statements:
 .. grammar-snippet:: try_stmt except_block except_star_block
    :group: python-grammar
    :generated-by: Tools/peg_generator/docs_generator.py
-   :diagrams: try_stmt finally_block
+   :diagrams: try_stmt finally_block expressions
 
    try_stmt:
        | 'try' ':' `block`
@@ -254,11 +254,13 @@ for a group of statements:
           | (`except_block`+ | `except_star_block`+) [`else_block`] [`finally_block`]
          )
    except_block:
-       | 'except' [`expression` ['as' NAME]] ':' `block`
+       | 'except' [`expression` ['as' NAME] | `expressions`] ':' `block`
    except_star_block:
-       | 'except' '*' `expression` ['as' NAME] ':' `block`
+       | 'except' '*' (`expression` ['as' NAME] | `expressions`) ':' `block`
    finally_block:
        | 'finally' ':' `block`
+   expressions:
+       | ','.`expression`+ [',']
 
 .. productionlist:: python-grammar-old
    try_stmt: `try1_stmt` | `try2_stmt` | `try3_stmt`
