@@ -156,14 +156,18 @@ Literals
 
 Python supports string and bytes literals and various numeric literals:
 
-.. productionlist:: python-grammar
-   literal: `stringliteral` | `bytesliteral`
-          : | `integer` | `floatnumber` | `imagnumber`
+.. grammar-snippet::
+   :group: python-grammar
+
+   literal: `strings` | `NUMBER`
 
 Evaluation of a literal yields an object of the given type (string, bytes,
 integer, floating-point number, complex number) with the given value.  The value
 may be approximated in the case of floating-point and imaginary (complex)
-literals.  See section :ref:`literals` for details.
+literals.
+See section :ref:`literals` for details.
+See section :ref:`string-concatenation` for details on ``strings``.
+
 
 .. index::
    triple: immutable; data; type
@@ -193,6 +197,58 @@ Strings
        | '{' `annotated_rhs` ['='] ["!" NAME]
          [':' (FSTRING_MIDDLE | `fstring_replacement_field`)*]
          '}'
+
+.. _string-concatenation:
+
+String literal concatenation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Multiple adjacent string or bytes literals (delimited by whitespace), possibly
+using different quoting conventions, are allowed, and their meaning is the same
+as their concatenation::
+
+   >>> "hello" 'world'
+   "helloworld"
+
+Formally:
+
+.. grammar-snippet::
+   :group: python-grammar
+
+   strings: ( `STRING` | fstring)+ | tstring+
+
+This feature is defined at the syntactical level, so it only works with literals.
+To concatenate string expressions at run time, the '+' operator may be used::
+
+   >>> greeting = "Hello"
+   >>> space = " "
+   >>> name = "Blaise"
+   >>> print(greeting + space + name)   # not: print(greeting space name)
+   Hello Blaise
+
+Literal concatenation can freely mix raw strings, triple-quoted strings,
+and formatted string literals.
+For example::
+
+   >>> "Hello" r', ' f"{name}!"
+   "Hello, Blaise!"
+
+This feature can be used to reduce the number of backslashes
+needed, to split long strings conveniently across long lines, or even to add
+comments to parts of strings. For example::
+
+   re.compile("[A-Za-z_]"       # letter or underscore
+              "[A-Za-z0-9_]*"   # letter, digit or underscore
+             )
+
+However, bytes literals may only be combined with other byte literals;
+not with string literals of any kind.
+Also, template string literals may only be combined with other template
+string literals::
+
+   >>> t"Hello" t"{name}!"
+   Template(strings=('Hello', '!'), interpolations=(...))
+
 
 .. _parenthesized:
 
@@ -507,8 +563,9 @@ brackets or curly braces.
 Variables used in the generator expression are evaluated lazily when the
 :meth:`~generator.__next__` method is called for the generator object (in the same
 fashion as normal generators).  However, the iterable expression in the
-leftmost :keyword:`!for` clause is immediately evaluated, so that an error
-produced by it will be emitted at the point where the generator expression
+leftmost :keyword:`!for` clause is immediately evaluated, and the
+:term:`iterator` is immediately created for that iterable, so that an error
+produced while creating the iterator will be emitted at the point where the generator expression
 is defined, rather than at the point where the first value is retrieved.
 Subsequent :keyword:`!for` clauses and any filter condition in the leftmost
 :keyword:`!for` clause cannot be evaluated in the enclosing scope as they may
@@ -733,8 +790,10 @@ is already executing raises a :exc:`ValueError` exception.
 
 .. method:: generator.close()
 
-   Raises a :exc:`GeneratorExit` at the point where the generator function was
-   paused.  If the generator function catches the exception and returns a
+   Raises a :exc:`GeneratorExit` exception at the point where the generator
+   function was paused (equivalent to calling ``throw(GeneratorExit)``).
+   The exception is raised by the yield expression where the generator was paused.
+   If the generator function catches the exception and returns a
    value, this value is returned from :meth:`close`.  If the generator function
    is already closed, or raises :exc:`GeneratorExit` (by not catching the
    exception), :meth:`close` returns :const:`None`.  If the generator yields a
@@ -859,7 +918,8 @@ which are used to control the execution of a generator function.
 
 .. index:: pair: exception; StopAsyncIteration
 
-.. coroutinemethod:: agen.__anext__()
+.. method:: agen.__anext__()
+   :async:
 
    Returns an awaitable which when run starts to execute the asynchronous
    generator or resumes it at the last executed yield expression.  When an
@@ -876,7 +936,8 @@ which are used to control the execution of a generator function.
    This method is normally called implicitly by a :keyword:`async for` loop.
 
 
-.. coroutinemethod:: agen.asend(value)
+.. method:: agen.asend(value)
+   :async:
 
    Returns an awaitable which when run resumes the execution of the
    asynchronous generator. As with the :meth:`~generator.send` method for a
@@ -891,8 +952,9 @@ which are used to control the execution of a generator function.
    because there is no yield expression that could receive the value.
 
 
-.. coroutinemethod:: agen.athrow(value)
-                     agen.athrow(type[, value[, traceback]])
+.. method:: agen.athrow(value)
+            agen.athrow(type[, value[, traceback]])
+   :async:
 
    Returns an awaitable that raises an exception of type ``type`` at the point
    where the asynchronous generator was paused, and returns the next value
@@ -912,7 +974,8 @@ which are used to control the execution of a generator function.
 .. index:: pair: exception; GeneratorExit
 
 
-.. coroutinemethod:: agen.aclose()
+.. method:: agen.aclose()
+   :async:
 
    Returns an awaitable that when run will throw a :exc:`GeneratorExit` into
    the asynchronous generator function at the point where it was paused.
@@ -1167,7 +1230,7 @@ series of :term:`arguments <argument>`:
                 :   ["," `keywords_arguments`]
                 : | `starred_and_keywords` ["," `keywords_arguments`]
                 : | `keywords_arguments`
-   positional_arguments: positional_item ("," positional_item)*
+   positional_arguments: `positional_item` ("," `positional_item`)*
    positional_item: `assignment_expression` | "*" `expression`
    starred_and_keywords: ("*" `expression` | `keyword_item`)
                 : ("," "*" `expression` | "," `keyword_item`)*
@@ -2184,7 +2247,7 @@ Expression lists
        | `named_expression`
 
 .. productionlist:: python-grammar-old
-   starred_expression: ["*"] `or_expr`
+   starred_expression: "*" `or_expr` | `expression`
    flexible_expression: `assignment_expression` | `starred_expression`
    flexible_expression_list: `flexible_expression` ("," `flexible_expression`)* [","]
    starred_expression_list: `starred_expression` ("," `starred_expression`)* [","]
