@@ -15,7 +15,7 @@ from pegen.build import build_parser
 LINE_LENGTH = 80
 
 # TODO: handle indentation
-HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::(.*)', re.DOTALL)
+HEADER_RE = re.compile(r'..\s+grammar-snippet\s*::\s+(.+)', re.DOTALL)
 
 # Hardcoded so it's the same regardless of how this script is invoked
 SCRIPT_NAME = 'Tools/peg_generator/docs_generator.py'

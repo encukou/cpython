@@ -217,7 +217,7 @@ class GrammarSnippetDirective(GrammarSnippetBase):
         [node] = self.make_grammar_snippet(self.options, self.content)
 
         content = StringList()
-        for rule_name in self.options['diagrams'].split():
+        for rule_name in self.options.get('diagrams', '').split():
             content.append('', source=__file__)
             content.append(f'``{rule_name}``:', source=__file__)
             content.append('', source=__file__)
