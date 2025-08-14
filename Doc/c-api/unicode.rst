@@ -1753,6 +1753,8 @@ They all return ``NULL`` or ``-1`` if an exception occurs.
       intern-related details, may change between CPython versions.
 
 
+.. _PyUnicodeWriter:
+
 PyUnicodeWriter
 ^^^^^^^^^^^^^^^
 
@@ -1900,6 +1902,92 @@ object.
    On error, set an exception, leave the writer unchanged, and return ``-1``.
 
    See also :c:func:`PyUnicodeWriter_WriteUTF8`.
+
+
+Unicode Subtype Support
+^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to subclass :c:data:`PyUnicode_Type`, in which case the
+subclass can be called to initialize instances of the subclass using another
+Unicode object. (The call can be done using, for example,
+:c:func:`PyObject_CallOneArg` or :c:member:`~PyTypeObject.tp_new`.)
+
+This is the preferred way to create subclass instances if best performance
+is not necessary.
+
+The following API may be faster and/or more memory-efficient, at the cost
+of requiring the desired contents to be in a particular format.
+Note that for best performance, the source format must match CPython's internal
+storage format, which may change in future CPython versions.
+
+
+.. c:function:: PyObject* PyUnicode_SubtypeFromBuffer(PyTypeObject *subtype, \
+   int kind, const void *buffer, Py_ssize_t buffer_size, Py_UCS4 max_char, \
+   int flags)
+
+   Create an instance of *subtype*, which must be a subtype of
+   :c:data:`PyUnicode_Type`, and initialize it using the contents of *buffer*.
+
+   The *kind* argument must be :c:data:`PyUnicode_1BYTE_KIND`,
+   :c:data:`PyUnicode_2BYTE_KIND`, or :c:data:`PyUnicode_4BYTE_KIND`.
+   It gives the type of *buffer*: :c:expr:`Py_UCS1 *`, :c:expr:`Py_UCS2 *` or
+   :c:expr:`Py_UCS4 *`, respectively.
+
+   The *buffer_size* argument gives the size of *buffer* in characters (that
+   is, units given by *kind*).
+
+   *max_char* must be zero unless the :c:data:`PyUnicode_USE_MAX_CHAR` flag
+   is given.
+
+   *flags* may be set to the following flags, combined using bitwise OR:
+
+   .. c:namespace:: NULL
+
+   .. c:macro:: PyUnicode_CONSUME_BUFFER
+
+      *buffer* must have been allocated using :c:func:`PyMem_Malloc`.
+
+      The function takes ownership of the *buffer* argument.
+      That is, after the :c:func:`PyUnicode_SubtypeFromBuffer` call, you must
+      not use or free *buffer*.
+
+   .. c:macro:: PyUnicode_EXTRA_NULL_TERMINATOR
+
+      *buffer* must end with a NUL terminator.
+
+      The terminator will not be included in the result.
+      The length of the resulting string will be :samp:`{buffer_size}-1`.
+
+   .. c:macro:: PyUnicode_USE_MAX_CHAR
+
+      *max_char* must be set to the maximum code point in *buffer*,
+      as in :c:func:`PyUnicode_New` (as an approximation, it can be rounded
+      up to the nearest value in the sequence 127, 255, 65535, 1114111).
+      This is not checked; if the value is incorrect then the behavior is
+      undefined.
+
+   .. c:macro:: PyUnicode_USE_ITEMS
+
+      *subtype* must have the :c:data:`Py_TPFLAGS_ITEMS_AT_END` flag
+      and must have :c:member:`!PyTypeObject.tp_basicsize` set to 1.
+
+      The variable-sized portion of the instance will be reserved for
+      internal use.
+
+   .. impl-detail::
+
+      If the :c:data:`!PyUnicode_CONSUME_BUFFER` and
+      :c:data:`!PyUnicode_EXTRA_NULL_TERMINATOR` flags are given, and *kind*
+      matches *max_char*, the *buffer* will not be copied.
+
+      Otherwise, if :c:data:`PyUnicode_USE_ITEMS` is given, then CPython will
+      avoid an extra allocation.
+
+      If the :c:data:`PyUnicode_USE_MAX_CHAR` flag is not given, CPython will
+      do an *O*\ (*n*) scan to determine the necessary storage size.
+
+      These details may change without warning in future CPython versions.
+
 
 Deprecated API
 ^^^^^^^^^^^^^^
