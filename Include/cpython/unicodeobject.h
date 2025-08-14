@@ -477,6 +477,9 @@ PyAPI_FUNC(PyObject*) PyUnicode_FromKindAndData(
 typedef struct PyUnicodeWriter PyUnicodeWriter;
 
 PyAPI_FUNC(PyUnicodeWriter*) PyUnicodeWriter_Create(Py_ssize_t length);
+PyAPI_FUNC(PyUnicodeWriter*) PyUnicodeWriter_CreateForSubclass(
+    Py_ssize_t length,
+    PyTypeObject* subtype);
 PyAPI_FUNC(void) PyUnicodeWriter_Discard(PyUnicodeWriter *writer);
 PyAPI_FUNC(PyObject*) PyUnicodeWriter_Finish(PyUnicodeWriter *writer);
 
@@ -545,6 +548,12 @@ typedef struct {
     /* If readonly is 1, buffer is a shared string (cannot be modified)
        and size is set to 0. */
     unsigned char readonly;
+
+    /* If NULL, create `str` type.
+     * Otherwise, create the given type, with PyUnicodeObject (compact=0)
+     * layout.
+     */
+    PyTypeObject* subtype;
 } _PyUnicodeWriter;
 
 // Initialize a Unicode writer.
