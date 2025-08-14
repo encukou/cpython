@@ -97,10 +97,12 @@ struct _PyUnicodeObject_state {
     unsigned int ascii:1;
     /* The object is statically allocated. */
     unsigned int statically_allocated:1;
+    /* The object's data should be freed on deallocation. */
+    unsigned int free_data:1;
 #ifndef Py_GIL_DISABLED
     /* Historical: padding to ensure that PyUnicode_DATA() is always aligned to
        4 bytes (see issue gh-63736 on m68k) */
-    unsigned int :24;
+    unsigned int :23;
 #endif
 };
 
@@ -471,15 +473,38 @@ PyAPI_FUNC(PyObject*) PyUnicode_FromKindAndData(
     const void *buffer,
     Py_ssize_t size);
 
+/* Create a new string from a *buffer* of Py_UCS1, Py_UCS2 or Py_UCS4
+ * (as given by *kind*), containing *size* characters.
+ * Flags:
+ * - PyUnicode_CONSUME_BUFFER: take ownership of the buffer, which
+ *   must have been allocated using PyMem_Malloc.
+ * - PyUnicode_EXTRA_NULL_TERMINATOR: *buffer* ends with a NUL terminator;
+ *   the resulting string will have size (buffer_size-1)
+ * - PyUnicode_USE_MAX_CHAR: the *max_char* argument is valid.
+ *   if this flag is unset, *max_char* must be 0.
+ * - PyUnicode_USE_ITEMS: the object's variable-sized storage, and Py_SIZE,
+ *   may be used for internal PyUnicode purposes.
+ *   The subclass must have Py_TPFLAGS_ITEMS_AT_END set, and tp_itemsize must
+ *   be 1.
+ */
+PyAPI_FUNC(PyObject*) PyUnicode_SubtypeFromBuffer(
+    PyTypeObject *subtype,
+    int kind,
+    const void *buffer,
+    Py_ssize_t buffer_size,
+    Py_UCS4 max_char,
+    int flags);
+#define PyUnicode_CONSUME_BUFFER        0x01
+#define PyUnicode_EXTRA_NULL_TERMINATOR 0x02
+#define PyUnicode_USE_MAX_CHAR          0x04
+#define PyUnicode_USE_ITEMS             0x08
+
 
 /* --- Public PyUnicodeWriter API ----------------------------------------- */
 
 typedef struct PyUnicodeWriter PyUnicodeWriter;
 
 PyAPI_FUNC(PyUnicodeWriter*) PyUnicodeWriter_Create(Py_ssize_t length);
-PyAPI_FUNC(PyUnicodeWriter*) PyUnicodeWriter_CreateForSubclass(
-    Py_ssize_t length,
-    PyTypeObject* subtype);
 PyAPI_FUNC(void) PyUnicodeWriter_Discard(PyUnicodeWriter *writer);
 PyAPI_FUNC(PyObject*) PyUnicodeWriter_Finish(PyUnicodeWriter *writer);
 
@@ -548,12 +573,6 @@ typedef struct {
     /* If readonly is 1, buffer is a shared string (cannot be modified)
        and size is set to 0. */
     unsigned char readonly;
-
-    /* If NULL, create `str` type.
-     * Otherwise, create the given type, with PyUnicodeObject (compact=0)
-     * layout.
-     */
-    PyTypeObject* subtype;
 } _PyUnicodeWriter;
 
 // Initialize a Unicode writer.
