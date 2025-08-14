@@ -711,6 +711,10 @@ _PyUnicode_CheckConsistency(PyObject *op, int check_content)
 #endif
     }
 
+    if (ascii->state.compact == 1) {
+        CHECK(ascii->state.free_data == 0);
+    }
+
     /* check that the best kind is used: O(n) operation */
     if (check_content) {
         Py_ssize_t i;
@@ -1419,6 +1423,7 @@ PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
     _PyUnicode_STATE(unicode).compact = 1;
     _PyUnicode_STATE(unicode).ascii = is_ascii;
     _PyUnicode_STATE(unicode).statically_allocated = 0;
+    _PyUnicode_STATE(unicode).free_data = 0;
     if (is_ascii) {
         ((char*)data)[size] = 0;
     }
@@ -1781,7 +1786,7 @@ unicode_dealloc(PyObject *unicode)
     if (_PyUnicode_HAS_UTF8_MEMORY(unicode)) {
         PyMem_Free(_PyUnicode_UTF8(unicode));
     }
-    if (!PyUnicode_IS_COMPACT(unicode) && _PyUnicode_DATA_ANY(unicode)) {
+    if (_PyUnicode_STATE(unicode).free_data) {
         PyMem_Free(_PyUnicode_DATA_ANY(unicode));
     }
 
@@ -13693,8 +13698,8 @@ _PyUnicodeWriter_Init(_PyUnicodeWriter *writer)
 }
 
 
-static inline PyUnicodeWriter*
-writer_CreateForSubclass(Py_ssize_t length, PyTypeObject *subtype)
+PyUnicodeWriter*
+PyUnicodeWriter_Create(Py_ssize_t length)
 {
     if (length < 0) {
         PyErr_SetString(PyExc_ValueError,
@@ -13714,7 +13719,6 @@ writer_CreateForSubclass(Py_ssize_t length, PyTypeObject *subtype)
     _PyUnicodeWriter *writer = (_PyUnicodeWriter *)pub_writer;
 
     _PyUnicodeWriter_Init(writer);
-    writer->subtype = subtype;
     if (_PyUnicodeWriter_Prepare(writer, length, 127) < 0) {
         PyUnicodeWriter_Discard(pub_writer);
         return NULL;
@@ -13724,34 +13728,6 @@ writer_CreateForSubclass(Py_ssize_t length, PyTypeObject *subtype)
     return pub_writer;
 }
 
-
-PyUnicodeWriter*
-PyUnicodeWriter_CreateForSubclass(Py_ssize_t length, PyTypeObject *subtype)
-{
-    if (!subtype) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "PyUnicodeWriter_CreateForSubclass: subtype cannot be NULL");
-        return NULL;
-    }
-    if (subtype == &PyUnicode_Type) {
-        return PyUnicodeWriter_Create(length);
-    }
-    if (!PyType_FastSubclass(subtype, Py_TPFLAGS_UNICODE_SUBCLASS)) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "PyUnicodeWriter_CreateForSubclass: subtype must be a proper "
-                "subtype of PyUnicode_Type");
-        return NULL;
-    }
-    return writer_CreateForSubclass(length, subtype);
-}
-
-PyUnicodeWriter*
-PyUnicodeWriter_Create(Py_ssize_t length)
-{
-    return writer_CreateForSubclass(length, NULL);
-}
 
 void PyUnicodeWriter_Discard(PyUnicodeWriter *writer)
 {
@@ -13806,16 +13782,7 @@ _PyUnicodeWriter_PrepareInternal(_PyUnicodeWriter *writer,
         if (newlen < writer->min_length)
             newlen = writer->min_length;
 
-        if (writer->subtype) {
-            writer->buffer = unicode_subtype_new_kind(
-                writer->subtype,
-                kind,
-                maxchar < 128,
-                length);
-        }
-        else {
-            writer->buffer = PyUnicode_New(newlen, maxchar);
-        }
+        writer->buffer = PyUnicode_New(newlen, maxchar);
         if (writer->buffer == NULL)
             return -1;
     }
@@ -15656,99 +15623,267 @@ unicode_vectorcall(PyObject *type, PyObject *const *args,
     return PyUnicode_FromEncodedObject(object, encoding, errors);
 }
 
-static int
-unicode_subtype_new_kind(
-    PyTypeObject *type,
-    int kind,
-    int is_ascii,
-    Py_ssize_t length,
-)
+PyObject *
+_unicode_subtype_alloc(PyTypeObject *subtype, Py_ssize_t item_count)
 {
-    assert(PyType_IsSubtype(type, &PyUnicode_Type));
-    assert(_PyUnicode_CHECK(unicode));
-
-    self = type->tp_alloc(type, 0);
+    PyObject *self = subtype->tp_alloc(subtype, item_count);
     if (self == NULL) {
         return NULL;
     }
-    _PyUnicode_LENGTH(self) = length;
-    _PyUnicode_HASH(self) = -1;
     _PyUnicode_STATE(self).interned = 0;
-    _PyUnicode_STATE(self).kind = kind;
     _PyUnicode_STATE(self).compact = 0;
-    _PyUnicode_STATE(self).ascii = is_ascii;
     _PyUnicode_STATE(self).statically_allocated = 0;
+    _PyUnicode_STATE(self).free_data = 0;
+    _PyUnicode_LENGTH(self) = 0;
+    _PyUnicode_DATA_ANY(self) = NULL;
     PyUnicode_SET_UTF8_LENGTH(self, 0);
     PyUnicode_SET_UTF8(self, NULL);
-    _PyUnicode_DATA_ANY(self) = NULL;
 
-    Py_ssize_t char_size;
-    if (kind == PyUnicode_1BYTE_KIND) {
-        char_size = 1;
-    }
-    else if (kind == PyUnicode_2BYTE_KIND) {
-        char_size = 2;
-    }
-    else {
-        assert(kind == PyUnicode_4BYTE_KIND);
-        char_size = 4;
-    }
-
-    /* Ensure we won't overflow the length. */
-    if (length > (PY_SSIZE_T_MAX / char_size - 1)) {
-        PyErr_NoMemory();
-        goto onError;
-    }
-    data = PyMem_Malloc((length + 1) * char_size);
-    if (data == NULL) {
-        PyErr_NoMemory();
-        goto onError;
-    }
-    _PyUnicode_DATA_ANY(self) = data;
-    if (is_ascii) {
-        PyUnicode_SET_UTF8_LENGTH(self, length);
-        PyUnicode_SET_UTF8(self, data);
-    }
     return self;
-
-onError:
-    Py_DECREF(self);
-    return NULL;
 }
 
 static PyObject *
 unicode_subtype_new(PyTypeObject *type, PyObject *unicode)
 {
-    int kind;
-    void *data;
+    assert(PyType_IsSubtype(type, &PyUnicode_Type));
+    assert(_PyUnicode_CHECK(unicode));
 
-    int kind = PyUnicode_KIND(unicode);
     Py_ssize_t length = PyUnicode_GET_LENGTH(unicode);
-    int is_ascii =  _PyUnicode_STATE(unicode).ascii;
-    assert(is_ascii == (PyUnicode_MAX_CHAR_VALUE(unicode) < 128));
-    PyObject *self = unicode_subtype_new_kind(type, kind, is_ascii, length);
+    Py_ssize_t char_size = PyUnicode_KIND(unicode);
+    /* Ensure we won't overflow the length. */
+    if (length > (PY_SSIZE_T_MAX / char_size - 1)) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    PyObject *self = _unicode_subtype_alloc(type, 0);
     if (!self) {
         return NULL;
     }
+
+    int kind = PyUnicode_KIND(unicode);
+    _PyUnicode_STATE(self).kind = kind;
+
+    _PyUnicode_STATE(self).ascii = PyUnicode_IS_ASCII(unicode);
+
+    void *data = PyMem_Malloc((length + 1) * char_size);
+    if (data == NULL) {
+        Py_DECREF(self);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    _PyUnicode_LENGTH(self) = length;
+    _PyUnicode_DATA_ANY(self) = data;
+    _PyUnicode_STATE(self).free_data = 1;
+    if (PyUnicode_IS_ASCII(unicode)) {
+        PyUnicode_SET_UTF8_LENGTH(self, length);
+        PyUnicode_SET_UTF8(self, data);
+    }
+
+    memcpy(data, PyUnicode_DATA(unicode), kind * (length + 1));
 
 #ifdef Py_DEBUG
     _PyUnicode_HASH(self) = -1;
 #else
     _PyUnicode_HASH(self) = _PyUnicode_HASH(unicode);
 #endif
-    _PyUnicode_STATE(self).ascii = ascii;
 
-    void *data = _PyUnicode_DATA_ANY(self);
-    memcpy(data, PyUnicode_DATA(unicode), kind * (length + 1));
     assert(_PyUnicode_CheckConsistency(self, 1));
 #ifdef Py_DEBUG
     _PyUnicode_HASH(self) = _PyUnicode_HASH(unicode);
 #endif
     return self;
+}
 
-onError:
-    Py_DECREF(self);
-    return NULL;
+PyObject *
+PyUnicode_SubtypeFromBuffer(
+    PyTypeObject *subtype,
+    int buffer_kind,
+    const void *buffer,
+    Py_ssize_t buffer_size,
+    Py_UCS4 max_char,
+    int flags)
+{
+    PyObject *self = NULL;
+    bool consume_buffer = flags & PyUnicode_CONSUME_BUFFER;
+    bool use_max_char = flags & PyUnicode_USE_MAX_CHAR;
+    bool extra_null_terminator = flags & PyUnicode_EXTRA_NULL_TERMINATOR;
+    bool use_items = flags & PyUnicode_USE_ITEMS;
+
+    if (!use_max_char && max_char) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromBuffer: set PyUnicode_USE_MAX_CHAR flag if "
+                "max_char is known");
+        goto finally;
+    }
+
+    switch (buffer_kind) {
+        case PyUnicode_1BYTE_KIND:
+        case PyUnicode_2BYTE_KIND:
+        case PyUnicode_4BYTE_KIND:
+            break;
+        default:
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromBuffer: invalid buffer_kind");
+            goto finally;
+    }
+
+    int result_length = buffer_size;
+    if (extra_null_terminator) {
+        result_length--;
+        switch (buffer_kind) {
+            case PyUnicode_1BYTE_KIND:
+                assert(((char*)buffer)[buffer_size] == 0);
+                break;
+            case PyUnicode_2BYTE_KIND:
+                assert(((Py_UCS2*)buffer)[buffer_size] == 0);
+                break;
+            case PyUnicode_4BYTE_KIND:
+                assert(((Py_UCS4*)buffer)[buffer_size] == 0);
+                break;
+        }
+    }
+
+    if (result_length < 0) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromBuffer: size must not be negative");
+        goto finally;
+    }
+
+    if (!subtype) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromBuffer: subtype must not be NULL");
+        goto finally;
+    }
+
+    if (use_items) {
+        if (!(subtype->tp_flags & Py_TPFLAGS_ITEMS_AT_END)) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromBuffer: PyUnicode_USE_ITEMS requires "
+                    "Py_TPFLAGS_ITEMS_AT_END");
+            goto finally;
+        }
+        if (!(subtype->tp_itemsize != 1)) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromBuffer: PyUnicode_USE_ITEMS requires "
+                    "tp_itemsize = 1");
+            goto finally;
+        }
+    }
+
+    if (!PyType_FastSubclass(subtype, Py_TPFLAGS_UNICODE_SUBCLASS)) {
+        PyErr_Format(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromBuffer needs a PyUnicode subtype, got '%s'",
+            subtype->tp_name);
+    }
+
+    if (!PyUnicode_USE_MAX_CHAR) {
+        switch (buffer_kind) {
+            case PyUnicode_1BYTE_KIND: {
+                const Py_UCS1 *buf = buffer;
+                max_char = ucs1lib_find_max_char(buf, buf + result_length);
+                break;
+            }
+            case PyUnicode_2BYTE_KIND: {
+                const Py_UCS2 *buf = buffer;
+                max_char = ucs2lib_find_max_char(buf, buf + result_length);
+                break;
+            }
+            case PyUnicode_4BYTE_KIND: {
+                const Py_UCS4 *buf = buffer;
+                max_char = ucs4lib_find_max_char(buf, buf + result_length);
+                break;
+            }
+            default: {
+                Py_UNREACHABLE();
+            }
+        }
+    }
+
+    int result_kind;
+    bool is_ascii = false;
+    if (max_char <= 0x7f) {
+        is_ascii = true;
+        result_kind = PyUnicode_1BYTE_KIND;
+    }
+    if (max_char <= 0xff) {
+        result_kind = PyUnicode_1BYTE_KIND;
+    }
+    else if (max_char <= 0xffff) {
+        result_kind = PyUnicode_2BYTE_KIND;
+    }
+    else {
+        result_kind = PyUnicode_4BYTE_KIND;
+    }
+    bool kind_matches = result_kind == buffer_kind;
+
+    if (result_length > (PY_SSIZE_T_MAX / result_kind - 1)) {
+        PyErr_NoMemory();
+        goto finally;
+    }
+    Py_ssize_t result_buffer_nbytes = result_kind * (result_length + 1);
+
+    if (consume_buffer && kind_matches && extra_null_terminator) {
+        use_items = false;
+    }
+
+    self = _unicode_subtype_alloc(subtype, use_items ? result_buffer_nbytes : 0);
+    if (!self) {
+        goto finally;
+    }
+    if (use_items) {
+        _PyUnicode_DATA_ANY(self) = ((char *)self) + subtype->tp_basicsize;
+    }
+    else if (consume_buffer && kind_matches && extra_null_terminator) {
+        _PyUnicode_DATA_ANY(self) = (void*)buffer;
+        consume_buffer = false;
+    }
+    else {
+        void *data = PyMem_Malloc(result_buffer_nbytes);
+        if (data == NULL) {
+            Py_CLEAR(self);
+            PyErr_NoMemory();
+            return NULL;
+        }
+        _PyUnicode_STATE(self).free_data = 1;
+        if (kind_matches) {
+            memcpy(data, buffer, buffer_size);
+            if (!extra_null_terminator) {
+                if (result_kind == PyUnicode_1BYTE_KIND) {
+                    ((char*)data)[result_length] = 0;
+                }
+                else if (result_kind == PyUnicode_2BYTE_KIND) {
+                    ((Py_UCS2*)data)[result_length] = 0;
+                }
+                else {
+                    ((Py_UCS4*)data)[result_length] = 0;
+                }
+            }
+        }
+    }
+    if (is_ascii) {
+        PyUnicode_SET_UTF8_LENGTH(self, result_length);
+        PyUnicode_SET_UTF8(self, _PyUnicode_DATA_ANY(self));
+    }
+    _PyUnicode_LENGTH(self) = result_length;
+    consume_buffer = false;
+
+finally:
+    if (consume_buffer) {
+        PyMem_Free((void*)buffer);
+    }
+    if (self) {
+        assert(_PyUnicode_CheckConsistency(self, 1));
+    }
+    return self;
 }
 
 void
