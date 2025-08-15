@@ -97,12 +97,10 @@ struct _PyUnicodeObject_state {
     unsigned int ascii:1;
     /* The object is statically allocated. */
     unsigned int statically_allocated:1;
-    /* The object's data should be freed on deallocation. */
-    unsigned int free_data:1;
 #ifndef Py_GIL_DISABLED
     /* Historical: padding to ensure that PyUnicode_DATA() is always aligned to
        4 bytes (see issue gh-63736 on m68k) */
-    unsigned int :23;
+    unsigned int :24;
 #endif
 };
 
@@ -482,10 +480,6 @@ PyAPI_FUNC(PyObject*) PyUnicode_FromKindAndData(
  *   the resulting string will have size (buffer_size-1)
  * - PyUnicode_USE_MAX_CHAR: the *max_char* argument is valid.
  *   if this flag is unset, *max_char* must be 0.
- * - PyUnicode_USE_ITEMS: the object's variable-sized storage, and Py_SIZE,
- *   may be used for internal PyUnicode purposes.
- *   The subclass must have Py_TPFLAGS_ITEMS_AT_END set, and tp_itemsize must
- *   be 1.
  */
 PyAPI_FUNC(PyObject*) PyUnicode_SubtypeFromBuffer(
     PyTypeObject *subtype,
@@ -497,7 +491,6 @@ PyAPI_FUNC(PyObject*) PyUnicode_SubtypeFromBuffer(
 #define PyUnicode_CONSUME_BUFFER        0x01
 #define PyUnicode_EXTRA_NULL_TERMINATOR 0x02
 #define PyUnicode_USE_MAX_CHAR          0x04
-#define PyUnicode_USE_ITEMS             0x08
 
 
 /* --- Public PyUnicodeWriter API ----------------------------------------- */

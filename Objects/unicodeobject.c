@@ -711,10 +711,6 @@ _PyUnicode_CheckConsistency(PyObject *op, int check_content)
 #endif
     }
 
-    if (ascii->state.compact == 1) {
-        CHECK(ascii->state.free_data == 0);
-    }
-
     /* check that the best kind is used: O(n) operation */
     if (check_content) {
         Py_ssize_t i;
@@ -1423,7 +1419,6 @@ PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
     _PyUnicode_STATE(unicode).compact = 1;
     _PyUnicode_STATE(unicode).ascii = is_ascii;
     _PyUnicode_STATE(unicode).statically_allocated = 0;
-    _PyUnicode_STATE(unicode).free_data = 0;
     if (is_ascii) {
         ((char*)data)[size] = 0;
     }
@@ -1786,7 +1781,7 @@ unicode_dealloc(PyObject *unicode)
     if (_PyUnicode_HAS_UTF8_MEMORY(unicode)) {
         PyMem_Free(_PyUnicode_UTF8(unicode));
     }
-    if (_PyUnicode_STATE(unicode).free_data) {
+    if (!_PyUnicode_STATE(unicode).compact) {
         PyMem_Free(_PyUnicode_DATA_ANY(unicode));
     }
 
@@ -15655,16 +15650,15 @@ unicode_vectorcall(PyObject *type, PyObject *const *args,
 }
 
 PyObject *
-_unicode_subtype_alloc(PyTypeObject *subtype, Py_ssize_t item_count)
+_unicode_subtype_alloc(PyTypeObject *subtype)
 {
-    PyObject *self = subtype->tp_alloc(subtype, item_count);
+    PyObject *self = subtype->tp_alloc(subtype, 0);
     if (self == NULL) {
         return NULL;
     }
     _PyUnicode_STATE(self).interned = 0;
     _PyUnicode_STATE(self).compact = 0;
     _PyUnicode_STATE(self).statically_allocated = 0;
-    _PyUnicode_STATE(self).free_data = 0;
     _PyUnicode_LENGTH(self) = 0;
     _PyUnicode_DATA_ANY(self) = NULL;
     PyUnicode_SET_UTF8_LENGTH(self, 0);
@@ -15687,7 +15681,7 @@ unicode_subtype_new(PyTypeObject *type, PyObject *unicode)
         return NULL;
     }
 
-    PyObject *self = _unicode_subtype_alloc(type, 0);
+    PyObject *self = _unicode_subtype_alloc(type);
     if (!self) {
         return NULL;
     }
@@ -15706,7 +15700,6 @@ unicode_subtype_new(PyTypeObject *type, PyObject *unicode)
 
     _PyUnicode_LENGTH(self) = length;
     _PyUnicode_DATA_ANY(self) = data;
-    _PyUnicode_STATE(self).free_data = 1;
     if (PyUnicode_IS_ASCII(unicode)) {
         PyUnicode_SET_UTF8_LENGTH(self, length);
         PyUnicode_SET_UTF8(self, data);
@@ -15740,7 +15733,6 @@ PyUnicode_SubtypeFromBuffer(
     bool consume_buffer = flags & PyUnicode_CONSUME_BUFFER;
     bool use_max_char = flags & PyUnicode_USE_MAX_CHAR;
     bool extra_null_terminator = flags & PyUnicode_EXTRA_NULL_TERMINATOR;
-    bool use_items = flags & PyUnicode_USE_ITEMS;
 
     if (!use_max_char && max_char) {
         PyErr_SetString(
@@ -15790,23 +15782,6 @@ PyUnicode_SubtypeFromBuffer(
             PyExc_SystemError,
             "PyUnicode_SubtypeFromBuffer: subtype must not be NULL");
         goto finally;
-    }
-
-    if (use_items) {
-        if (!(subtype->tp_flags & Py_TPFLAGS_ITEMS_AT_END)) {
-            PyErr_SetString(
-                PyExc_SystemError,
-                "PyUnicode_SubtypeFromBuffer: PyUnicode_USE_ITEMS requires "
-                    "Py_TPFLAGS_ITEMS_AT_END");
-            goto finally;
-        }
-        if (!(subtype->tp_itemsize != 1)) {
-            PyErr_SetString(
-                PyExc_SystemError,
-                "PyUnicode_SubtypeFromBuffer: PyUnicode_USE_ITEMS requires "
-                    "tp_itemsize = 1");
-            goto finally;
-        }
     }
 
     if (!PyType_FastSubclass(subtype, Py_TPFLAGS_UNICODE_SUBCLASS)) {
@@ -15862,18 +15837,11 @@ PyUnicode_SubtypeFromBuffer(
     }
     Py_ssize_t result_buffer_nbytes = result_kind * (result_length + 1);
 
-    if (consume_buffer && kind_matches && extra_null_terminator) {
-        use_items = false;
-    }
-
-    self = _unicode_subtype_alloc(subtype, use_items ? result_buffer_nbytes : 0);
+    self = _unicode_subtype_alloc(subtype);
     if (!self) {
         goto finally;
     }
-    if (use_items) {
-        _PyUnicode_DATA_ANY(self) = ((char *)self) + subtype->tp_basicsize;
-    }
-    else if (consume_buffer && kind_matches && extra_null_terminator) {
+    if (consume_buffer && kind_matches && extra_null_terminator) {
         _PyUnicode_DATA_ANY(self) = (void*)buffer;
         consume_buffer = false;
     }
@@ -15884,7 +15852,6 @@ PyUnicode_SubtypeFromBuffer(
             PyErr_NoMemory();
             return NULL;
         }
-        _PyUnicode_STATE(self).free_data = 1;
         if (kind_matches) {
             memcpy(data, buffer, buffer_size);
             if (!extra_null_terminator) {

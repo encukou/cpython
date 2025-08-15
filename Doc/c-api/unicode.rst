@@ -1966,22 +1966,11 @@ storage format, which may change in future CPython versions.
       This is not checked; if the value is incorrect then the behavior is
       undefined.
 
-   .. c:macro:: PyUnicode_USE_ITEMS
-
-      *subtype* must have the :c:data:`Py_TPFLAGS_ITEMS_AT_END` flag
-      and must have :c:member:`!PyTypeObject.tp_basicsize` set to 1.
-
-      The variable-sized portion of the instance will be reserved for
-      internal use.
-
    .. impl-detail::
 
       If the :c:data:`!PyUnicode_CONSUME_BUFFER` and
       :c:data:`!PyUnicode_EXTRA_NULL_TERMINATOR` flags are given, and *kind*
       matches *max_char*, the *buffer* will not be copied.
-
-      Otherwise, if :c:data:`PyUnicode_USE_ITEMS` is given, then CPython will
-      avoid an extra allocation.
 
       If the :c:data:`PyUnicode_USE_MAX_CHAR` flag is not given, CPython will
       do an *O*\ (*n*) scan to determine the necessary storage size.
