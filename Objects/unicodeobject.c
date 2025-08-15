@@ -189,7 +189,9 @@ static inline int _PyUnicode_HAS_UTF8_MEMORY(PyObject *op)
    from_type and to_type have to be valid type names, begin and end
    are pointers to the source characters which should be of type
    "from_type *".  to is a pointer of type "to_type *" and points to the
-   buffer where the result characters are written to. */
+   buffer where the result characters are written to.
+   See also _copy_character_buffer() below.
+   */
 #define _PyUnicode_CONVERT_BYTES(from_type, to_type, begin, end, to) \
     do {                                                \
         to_type *_to = (to_type *)(to);                 \
@@ -1453,6 +1455,98 @@ unicode_check_modifiable(PyObject *unicode)
     return 0;
 }
 
+static inline void
+_copy_character_buffer(
+    const void *from, int from_kind,
+    void *to, int to_kind,
+    Py_ssize_t how_many)
+{
+    if (from_kind == to_kind) {
+        memcpy(to, from, how_many * to_kind);
+        return;
+    }
+/*[python input]
+from textwrap import indent, dedent
+print(f"    switch (from_kind) {{")
+for from_b in 1, 2, 4:
+    print(indent(dedent(f"""
+        case PyUnicode_{from_b}BYTE_KIND:
+        {{
+            Py_UCS{from_b} *start = (Py_UCS{from_b} *)from;
+            Py_UCS{from_b} *end = start + how_many;
+            switch (to_kind) {{
+    """).strip('\n'), '        '))
+    for to_b in 1, 2, 4:
+        if to_b == from_b:
+            continue;
+        to = f'(Py_UCS{to_b}*)to';
+        print(indent(dedent(f"""
+            case PyUnicode_{to_b}BYTE_KIND:
+                _PyUnicode_CONVERT_BYTES(
+                    Py_UCS{from_b}, Py_UCS{to_b}, start, end, {to});
+                return;
+        """).strip('\n'), '                '))
+    print(indent(dedent(f"""
+            }}
+            break;
+        }}
+    """).strip('\n'), '        '))
+print(f"    }}")
+[python start generated code]*/
+    switch (from_kind) {
+        case PyUnicode_1BYTE_KIND:
+        {
+            Py_UCS1 *start = (Py_UCS1 *)from;
+            Py_UCS1 *end = start + how_many;
+            switch (to_kind) {
+                case PyUnicode_2BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS1, Py_UCS2, start, end, (Py_UCS2*)to);
+                    return;
+                case PyUnicode_4BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS1, Py_UCS4, start, end, (Py_UCS4*)to);
+                    return;
+            }
+            break;
+        }
+        case PyUnicode_2BYTE_KIND:
+        {
+            Py_UCS2 *start = (Py_UCS2 *)from;
+            Py_UCS2 *end = start + how_many;
+            switch (to_kind) {
+                case PyUnicode_1BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS2, Py_UCS1, start, end, (Py_UCS1*)to);
+                    return;
+                case PyUnicode_4BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS2, Py_UCS4, start, end, (Py_UCS4*)to);
+                    return;
+            }
+            break;
+        }
+        case PyUnicode_4BYTE_KIND:
+        {
+            Py_UCS4 *start = (Py_UCS4 *)from;
+            Py_UCS4 *end = start + how_many;
+            switch (to_kind) {
+                case PyUnicode_1BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS4, Py_UCS1, start, end, (Py_UCS1*)to);
+                    return;
+                case PyUnicode_2BYTE_KIND:
+                    _PyUnicode_CONVERT_BYTES(
+                        Py_UCS4, Py_UCS2, start, end, (Py_UCS2*)to);
+                    return;
+            }
+            break;
+        }
+    }
+/*[python end generated code: output=9de53e59601886bd input=d5a5992b80f4cac8]*/
+    Py_UNREACHABLE();
+}
+
 static int
 _copy_characters(PyObject *to, Py_ssize_t to_start,
                  PyObject *from, Py_ssize_t from_start,
@@ -1496,103 +1590,38 @@ _copy_characters(PyObject *to, Py_ssize_t to_start,
     }
 #endif
 
-    if (from_kind == to_kind) {
-        if (check_maxchar
+    if (check_maxchar) {
+        if (from_kind == PyUnicode_1BYTE_KIND
             && !PyUnicode_IS_ASCII(from) && PyUnicode_IS_ASCII(to))
         {
             /* Writing Latin-1 characters into an ASCII string requires to
-               check that all written characters are pure ASCII */
+                check that all written characters are pure ASCII */
             Py_UCS4 max_char;
-            max_char = ucs1lib_find_max_char(from_data,
-                                             (const Py_UCS1*)from_data + how_many);
-            if (max_char >= 128)
+            max_char = ucs1lib_find_max_char(
+                from_data, (const Py_UCS1*)from_data + how_many);
+            if (max_char >= 128) {
                 return -1;
-        }
-        memcpy((char*)to_data + to_kind * to_start,
-                  (const char*)from_data + from_kind * from_start,
-                  to_kind * how_many);
-    }
-    else if (from_kind == PyUnicode_1BYTE_KIND
-             && to_kind == PyUnicode_2BYTE_KIND)
-    {
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS1, Py_UCS2,
-            PyUnicode_1BYTE_DATA(from) + from_start,
-            PyUnicode_1BYTE_DATA(from) + from_start + how_many,
-            PyUnicode_2BYTE_DATA(to) + to_start
-            );
-    }
-    else if (from_kind == PyUnicode_1BYTE_KIND
-             && to_kind == PyUnicode_4BYTE_KIND)
-    {
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS1, Py_UCS4,
-            PyUnicode_1BYTE_DATA(from) + from_start,
-            PyUnicode_1BYTE_DATA(from) + from_start + how_many,
-            PyUnicode_4BYTE_DATA(to) + to_start
-            );
-    }
-    else if (from_kind == PyUnicode_2BYTE_KIND
-             && to_kind == PyUnicode_4BYTE_KIND)
-    {
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS2, Py_UCS4,
-            PyUnicode_2BYTE_DATA(from) + from_start,
-            PyUnicode_2BYTE_DATA(from) + from_start + how_many,
-            PyUnicode_4BYTE_DATA(to) + to_start
-            );
-    }
-    else {
-        assert (PyUnicode_MAX_CHAR_VALUE(from) > PyUnicode_MAX_CHAR_VALUE(to));
-
-        if (!check_maxchar) {
-            if (from_kind == PyUnicode_2BYTE_KIND
-                && to_kind == PyUnicode_1BYTE_KIND)
-            {
-                _PyUnicode_CONVERT_BYTES(
-                    Py_UCS2, Py_UCS1,
-                    PyUnicode_2BYTE_DATA(from) + from_start,
-                    PyUnicode_2BYTE_DATA(from) + from_start + how_many,
-                    PyUnicode_1BYTE_DATA(to) + to_start
-                    );
-            }
-            else if (from_kind == PyUnicode_4BYTE_KIND
-                     && to_kind == PyUnicode_1BYTE_KIND)
-            {
-                _PyUnicode_CONVERT_BYTES(
-                    Py_UCS4, Py_UCS1,
-                    PyUnicode_4BYTE_DATA(from) + from_start,
-                    PyUnicode_4BYTE_DATA(from) + from_start + how_many,
-                    PyUnicode_1BYTE_DATA(to) + to_start
-                    );
-            }
-            else if (from_kind == PyUnicode_4BYTE_KIND
-                     && to_kind == PyUnicode_2BYTE_KIND)
-            {
-                _PyUnicode_CONVERT_BYTES(
-                    Py_UCS4, Py_UCS2,
-                    PyUnicode_4BYTE_DATA(from) + from_start,
-                    PyUnicode_4BYTE_DATA(from) + from_start + how_many,
-                    PyUnicode_2BYTE_DATA(to) + to_start
-                    );
-            }
-            else {
-                Py_UNREACHABLE();
             }
         }
-        else {
+        if (from_kind > to_kind) {
             const Py_UCS4 to_maxchar = PyUnicode_MAX_CHAR_VALUE(to);
             Py_UCS4 ch;
             Py_ssize_t i;
 
             for (i=0; i < how_many; i++) {
                 ch = PyUnicode_READ(from_kind, from_data, from_start + i);
-                if (ch > to_maxchar)
+                if (ch > to_maxchar) {
                     return -1;
+                }
                 PyUnicode_WRITE(to_kind, to_data, to_start + i, ch);
             }
+            return 0;
         }
     }
+    _copy_character_buffer(
+        (const char*)from_data + from_kind * from_start, from_kind,
+        (char*)to_data + to_kind * to_start, to_kind,
+        how_many);
     return 0;
 }
 
@@ -2385,19 +2414,10 @@ PyUnicodeWriter_WriteUCS4(PyUnicodeWriter *pub_writer,
 
     int kind = writer->kind;
     void *data = (Py_UCS1*)writer->data + writer->pos * kind;
-    if (kind == PyUnicode_1BYTE_KIND) {
-        _PyUnicode_CONVERT_BYTES(Py_UCS4, Py_UCS1,
-                                 str, str + size,
-                                 data);
-    }
-    else if (kind == PyUnicode_2BYTE_KIND) {
-        _PyUnicode_CONVERT_BYTES(Py_UCS4, Py_UCS2,
-                                 str, str + size,
-                                 data);
-    }
-    else {
-        memcpy(data, str, size * sizeof(Py_UCS4));
-    }
+    _copy_character_buffer(
+        str, PyUnicode_4BYTE_KIND,
+        data, kind,
+        size);
     writer->pos += size;
 
     return 0;
@@ -2535,45 +2555,16 @@ _PyUnicode_Copy(PyObject *unicode)
 static void*
 unicode_askind(int skind, void const *data, Py_ssize_t len, int kind)
 {
-    void *result;
-
     assert(skind < kind);
-    switch (kind) {
-    case PyUnicode_2BYTE_KIND:
-        result = PyMem_New(Py_UCS2, len);
-        if (!result)
-            return PyErr_NoMemory();
-        assert(skind == PyUnicode_1BYTE_KIND);
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS1, Py_UCS2,
-            (const Py_UCS1 *)data,
-            ((const Py_UCS1 *)data) + len,
-            result);
-        return result;
-    case PyUnicode_4BYTE_KIND:
-        result = PyMem_New(Py_UCS4, len);
-        if (!result)
-            return PyErr_NoMemory();
-        if (skind == PyUnicode_2BYTE_KIND) {
-            _PyUnicode_CONVERT_BYTES(
-                Py_UCS2, Py_UCS4,
-                (const Py_UCS2 *)data,
-                ((const Py_UCS2 *)data) + len,
-                result);
-        }
-        else {
-            assert(skind == PyUnicode_1BYTE_KIND);
-            _PyUnicode_CONVERT_BYTES(
-                Py_UCS1, Py_UCS4,
-                (const Py_UCS1 *)data,
-                ((const Py_UCS1 *)data) + len,
-                result);
-        }
-        return result;
-    default:
-        Py_UNREACHABLE();
-        return NULL;
+    void *result = PyMem_Malloc(kind * len);
+    if (!result) {
+        return PyErr_NoMemory();
     }
+    _copy_character_buffer(
+        data, skind,
+        result, kind,
+        len);
+    return result;
 }
 
 static Py_UCS4*
@@ -2605,22 +2596,13 @@ as_ucs4(PyObject *string, Py_UCS4 *target, Py_ssize_t targetsize,
             return NULL;
         }
     }
-    if (kind == PyUnicode_1BYTE_KIND) {
-        const Py_UCS1 *start = (const Py_UCS1 *) data;
-        _PyUnicode_CONVERT_BYTES(Py_UCS1, Py_UCS4, start, start + len, target);
-    }
-    else if (kind == PyUnicode_2BYTE_KIND) {
-        const Py_UCS2 *start = (const Py_UCS2 *) data;
-        _PyUnicode_CONVERT_BYTES(Py_UCS2, Py_UCS4, start, start + len, target);
-    }
-    else if (kind == PyUnicode_4BYTE_KIND) {
-        memcpy(target, data, len * sizeof(Py_UCS4));
-    }
-    else {
-        Py_UNREACHABLE();
-    }
-    if (copy_null)
+    _copy_character_buffer(
+        data, kind,
+        target, PyUnicode_4BYTE_KIND,
+        len);
+    if (copy_null) {
         target[len] = 0;
+    }
     return target;
 }
 
@@ -10168,10 +10150,9 @@ case_operation(PyObject *self,
 {
     PyObject *res = NULL;
     Py_ssize_t length, newlength = 0;
-    int kind, outkind;
+    int kind;
     const void *data;
-    void *outdata;
-    Py_UCS4 maxchar = 0, *tmp, *tmpend;
+    Py_UCS4 maxchar = 0, *tmp;
 
     kind = PyUnicode_KIND(self);
     data = PyUnicode_DATA(self);
@@ -10181,29 +10162,17 @@ case_operation(PyObject *self,
         return NULL;
     }
     tmp = PyMem_Malloc(sizeof(Py_UCS4) * 3 * length);
-    if (tmp == NULL)
+    if (tmp == NULL) {
         return PyErr_NoMemory();
+    }
     newlength = perform(kind, data, length, tmp, &maxchar);
     res = PyUnicode_New(newlength, maxchar);
-    if (res == NULL)
-        goto leave;
-    tmpend = tmp + newlength;
-    outdata = PyUnicode_DATA(res);
-    outkind = PyUnicode_KIND(res);
-    switch (outkind) {
-    case PyUnicode_1BYTE_KIND:
-        _PyUnicode_CONVERT_BYTES(Py_UCS4, Py_UCS1, tmp, tmpend, outdata);
-        break;
-    case PyUnicode_2BYTE_KIND:
-        _PyUnicode_CONVERT_BYTES(Py_UCS4, Py_UCS2, tmp, tmpend, outdata);
-        break;
-    case PyUnicode_4BYTE_KIND:
-        memcpy(outdata, tmp, sizeof(Py_UCS4) * newlength);
-        break;
-    default:
-        Py_UNREACHABLE();
+    if (res) {
+        _copy_character_buffer(
+            tmp, PyUnicode_4BYTE_KIND,
+            PyUnicode_DATA(res), PyUnicode_KIND(res),
+            newlength);
     }
-  leave:
     PyMem_Free(tmp);
     return res;
 }
@@ -14054,38 +14023,14 @@ _PyUnicodeWriter_WriteASCIIString(_PyUnicodeWriter *writer,
         return 0;
     }
 
-    if (_PyUnicodeWriter_Prepare(writer, len, 127) == -1)
+    if (_PyUnicodeWriter_Prepare(writer, len, 127) == -1) {
         return -1;
+    }
 
-    switch (writer->kind)
-    {
-    case PyUnicode_1BYTE_KIND:
-    {
-        const Py_UCS1 *str = (const Py_UCS1 *)ascii;
-        Py_UCS1 *data = writer->data;
-
-        memcpy(data + writer->pos, str, len);
-        break;
-    }
-    case PyUnicode_2BYTE_KIND:
-    {
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS1, Py_UCS2,
-            ascii, ascii + len,
-            (Py_UCS2 *)writer->data + writer->pos);
-        break;
-    }
-    case PyUnicode_4BYTE_KIND:
-    {
-        _PyUnicode_CONVERT_BYTES(
-            Py_UCS1, Py_UCS4,
-            ascii, ascii + len,
-            (Py_UCS4 *)writer->data + writer->pos);
-        break;
-    }
-    default:
-        Py_UNREACHABLE();
-    }
+    _copy_character_buffer(
+        ascii, PyUnicode_1BYTE_KIND,
+        ((char*)writer->data) + writer->pos * writer->kind, writer->kind,
+        len);
 
     writer->pos += len;
     return 0;
@@ -15852,18 +15797,19 @@ PyUnicode_SubtypeFromBuffer(
             PyErr_NoMemory();
             return NULL;
         }
-        if (kind_matches) {
-            memcpy(data, buffer, buffer_size);
-            if (!extra_null_terminator) {
-                if (result_kind == PyUnicode_1BYTE_KIND) {
-                    ((char*)data)[result_length] = 0;
-                }
-                else if (result_kind == PyUnicode_2BYTE_KIND) {
-                    ((Py_UCS2*)data)[result_length] = 0;
-                }
-                else {
-                    ((Py_UCS4*)data)[result_length] = 0;
-                }
+        _copy_character_buffer(
+            buffer, buffer_kind,
+            data, result_kind,
+            result_length);
+        if (!extra_null_terminator) {
+            if (result_kind == PyUnicode_1BYTE_KIND) {
+                ((char*)data)[result_length] = 0;
+            }
+            else if (result_kind == PyUnicode_2BYTE_KIND) {
+                ((Py_UCS2*)data)[result_length] = 0;
+            }
+            else {
+                ((Py_UCS4*)data)[result_length] = 0;
             }
         }
     }
