@@ -1904,78 +1904,247 @@ object.
    See also :c:func:`PyUnicodeWriter_WriteUTF8`.
 
 
-Unicode Subtype Support
-^^^^^^^^^^^^^^^^^^^^^^^
+Data export
+^^^^^^^^^^^
+
+.. c:function:: int32_t PyUnicode_Export(PyObject *unicode, int32_t formats, \
+   Py_buffer *view, int32_t *flags)
+
+   Export the contents of the *unicode* string in one of the requested
+   *formats*.
+   This function directly exposes Python's underlying data -- that is, no
+   copying or conversion is done.
+   The resulting buffer is read-only and must not be modified.
+
+   On success, fill the *view buffer, and *\ *flags*, and return a format
+   -- one of the :ref:`PyUnicode_FORMAT constants <unicode-export-formats>`
+   present in *formats*.
+
+   If none of the requested formats is readily available for export, zero-fill
+   *\ *view* and *\ *flags* and return 0.
+
+   On other error, zero-fill *\ *view* and *\ *flags*, and return -1 with an
+   exception set.
+
+   Buffer availability and known features depend on internal implementation
+   details that may change at any time, even at runtime for a given object.
+   There is no guarantee that :c:func:`PyUnicode_Export` will produce a buffer
+   or a given set of *flags*.
+   Most callers will need to check for return value of 0, and fall back to
+   a function like :c:func:`PyUnicode_AsUTF8AndSize`.
+
+   After a successful call to :c:func:`PyUnicode_Export`, the *view* buffer
+   must be released by :c:func:`PyBuffer_Release`.
+   The contents of the buffer (*view->buf*) are valid until they are released.
+
+   *flags* may be NULL, in which case *\ *flags* is never set.
+   Otherwise, on sucess, *\ *flags* is set to a bitwise-or combination of
+   :ref:`PyUnicode_FLAG <unicode-export-flags>` flags that are known to
+   describe the buffer.
+   Note that the interpreter is free to leave any flag bit unset even if the
+   given feature is present.
+
+Creating Unicode Subtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is possible to subclass :c:data:`PyUnicode_Type`, in which case the
 subclass can be called to initialize instances of the subclass using another
 Unicode object. (The call can be done using, for example,
 :c:func:`PyObject_CallOneArg` or :c:member:`~PyTypeObject.tp_new`.)
 
-This is the preferred way to create subclass instances if best performance
-is not necessary.
+This is the preferred way to create subclass instances if such an object is
+available, or can be created cheaply.
+(Note that Python programmers rarely worry about the cost of creating a
+temporary string.)
 
-The following API may be faster and/or more memory-efficient, at the cost
-of requiring the desired contents to be in a particular format.
+Alternatively, Unicode subclasses may be initialized from character data
+using the following API.
+
 Note that for best performance, the source format must match CPython's internal
 storage format, which may change in future CPython versions.
+Use :c:func:`PyUnicode_GetFlagInfo` for hints.
 
 
-.. c:function:: PyObject* PyUnicode_SubtypeFromBuffer(PyTypeObject *subtype, \
-   int kind, const void *buffer, Py_ssize_t buffer_size, Py_UCS4 max_char, \
-   int flags)
+.. c:function:: PyObject* PyUnicode_SubtypeFromData( \
+   PyTypeObject *type, PyObject **resultp, void *data, Py_ssize_t nbytes, \
+   int32_t format, int32_t flags)
 
-   Create an instance of *subtype*, which must be a subtype of
-   :c:data:`PyUnicode_Type`, and initialize it using the contents of *buffer*.
+   Allocate an instance of *type*, which must be a subtype of
+   :c:data:`PyUnicode_Type`, and initialize its contents.
 
-   The *kind* argument must be :c:data:`PyUnicode_1BYTE_KIND`,
-   :c:data:`PyUnicode_2BYTE_KIND`, or :c:data:`PyUnicode_4BYTE_KIND`.
-   It gives the type of *buffer*: :c:expr:`Py_UCS1 *`, :c:expr:`Py_UCS2 *` or
-   :c:expr:`Py_UCS4 *`, respectively.
+   Instance memory that does not belong to ``PyUnicode`` is not initialized.
+   (This means that if ``subtype->tp_alloc`` is the recommended
+   :c:func:`PyType_GenericAlloc`, instance memory that CPython doesn't use
+   internally will be zeroed).
 
-   The *buffer_size* argument gives the size of *buffer* in characters (that
-   is, units given by *kind*).
+   On success, set *\ *resultp* to the new object, and return 0
+   (or other non-negative value as documented below).
 
-   *max_char* must be zero unless the :c:data:`PyUnicode_USE_MAX_CHAR` flag
-   is given.
+   On error, set *\ *resultp* to NULL and return -1 with an exception set.
 
-   *flags* may be set to the following flags, combined using bitwise OR:
+   *resultp* must not be NULL.
+   *data* may only be NULL if *nbytes* is zero.
 
-   .. c:namespace:: NULL
+   *data* must point to a buffer of *nbytes* bytes, in the format given by
+   *format*.
 
-   .. c:macro:: PyUnicode_CONSUME_BUFFER
+   *format* must be exactly one of the following ``PyUnicode_FORMAT_*`` values.
+   (Note that future versions of CPython, and other Python implementations,
+   may allow additional values.)
 
-      *buffer* must have been allocated using :c:func:`PyMem_Malloc`.
+   The data will be copied to the resulting object's internal storage
+   (unless flags specify otherwise as documented below).
 
-      The function takes ownership of the *buffer* argument.
-      That is, after the :c:func:`PyUnicode_SubtypeFromBuffer` call, you must
-      not use or free *buffer*.
+   *flags* is a bitwise-OR combination of the ``PyUnicode_FLAG_*`` values
+   documented below.
+   Unused bits must be unset.
 
-   .. c:macro:: PyUnicode_EXTRA_NULL_TERMINATOR
+   If some property asserted by the *flags* does not hold, the behavior is
+   undefined.
 
-      *buffer* must end with a NUL terminator.
 
-      The terminator will not be included in the result.
-      The length of the resulting string will be :samp:`{buffer_size}-1`.
+.. _unicode-export-formats:
 
-   .. c:macro:: PyUnicode_USE_MAX_CHAR
+Import/export formats
+^^^^^^^^^^^^^^^^^^^^^
 
-      *max_char* must be set to the maximum code point in *buffer*,
-      as in :c:func:`PyUnicode_New` (as an approximation, it can be rounded
-      up to the nearest value in the sequence 127, 255, 65535, 1114111).
-      This is not checked; if the value is incorrect then the behavior is
-      undefined.
+The following formats are available for :c:func:`PyUnicode_Export`
+and :c:func:`PyUnicode_SubtypeFromData`:
 
-   .. impl-detail::
+.. c:macro:: PyUnicode_FORMAT_UCS1
+.. c:macro:: PyUnicode_FORMAT_UCS2
+.. c:macro:: PyUnicode_FORMAT_UCS4
 
-      If the :c:data:`!PyUnicode_CONSUME_BUFFER` and
-      :c:data:`!PyUnicode_EXTRA_NULL_TERMINATOR` flags are given, and *kind*
-      matches *max_char*, the *buffer* will not be copied.
+   *data* is an array of :c:type:`Py_UCS1`, :c:type:`Py_UCS2`, or
+   :c:type:`Py_UCS4` characters, respectively.
 
-      If the :c:data:`PyUnicode_USE_MAX_CHAR` flag is not given, CPython will
-      do an *O*\ (*n*) scan to determine the necessary storage size.
+.. c:macro:: PyUnicode_FORMAT_UTF8
 
-      These details may change without warning in future CPython versions.
+   *data* is an array of bytes, encoded with UTF-8 using the ``surrogatepass``
+   error handler.
+
+
+.. _unicode-export-flags:
+
+Import/export flags
+^^^^^^^^^^^^^^^^^^^
+
+The interpreter may safely ignore any flag.
+
+The sign bit is reserved for errors.
+
+.. c:macro:: PyUnicode_FLAG_CONSUME_BUFFER
+
+   Not set by :c:func:`PyUnicode_Export`.
+
+   When passed to :c:func:`PyUnicode_SubtypeFromData`, the interpreter may take
+   ownership of the *data* buffer, which must have been allocated using
+   :c:func:`PyMem_Malloc`.
+
+   If :c:func:`PyUnicode_SubclassFromData` does take ownership of the buffer,
+   it will return 1.
+   In this case, the caller must not use the buffer further.
+   Otherwise (when :c:func:`PyUnicode_SubclassFromData` returns 0),
+   the caller remains responsible for freeing the buffer.
+
+.. c:macro:: PyUnicode_FLAG_EXTRA_NUL_TERMINATOR
+
+   Indicates that there is an extra null terminator (1-4 bytes, depending on
+   *format*) just past the end of the buffer.
+
+   Note that the terminator is **not** included in the buffer length (that is,
+   neither in *nbytes* for :c:func:`PyUnicode_SubtypeFromData` nor
+   *view->len* for :c:func:`PyUnicode_Export`).
+
+
+The remaining flags are paired to encode assertions: there is a "yes" flag and
+a corresponding "no" flag.
+If neither is set, then the property in question is unknown.
+Setting both flags of the pair results in undefined behaviour.
+
+.. c:macro:: PyUnicode_FLAG_EMBEDDED_NUL
+.. c:macro:: PyUnicode_FLAG_NO_EMBEDDED_NUL
+
+   The string contains [or does *not* contain] at least one null character.
+
+.. c:macro:: PyUnicode_FLAG_SURROGATES
+.. c:macro:: PyUnicode_FLAG_NO_SURROGATES
+
+   The string contains [or does *not* contain] at least one surrogate.
+
+.. c:macro:: PyUnicode_FLAG_TIGHT_FORMAT
+.. c:macro:: PyUnicode_FLAG_LARGE_FORMAT
+
+   The string data could [or could *not*] be encoded in a "smaller" *format*
+   (ASCII < UCS1 < UCS2 < UCS4).
+
+   For clarity, we describe these flags separately:
+
+   ``TIGHT_FORMAT``
+      * UCS1: The string contains is at least one non-ASCII character (>127).
+      * UCS2: The string contains is at least one non-UCS1 character (>255).
+      * UCS4: The string contains is at least one non-UCS2 character (>65535).
+      * UTF8: unused; must be unset. (Use UCS1 for known ASCII.)
+
+   ``LARGE_FORMAT``
+      * UCS1: The string is ASCII.
+      * UCS2: The string contains only characters encodable in UCS-1.
+      * UCS4: The string contains only characters encodable in UCS-2.
+      * UTF8: unused; must be unset.
+
+.. c:macro:: PyUnicode_FLAG_INVALID_UNICODE
+.. c:macro:: PyUnicode_FLAG_VALID_UNICODE
+
+   The buffer contains [or does *not* contain] at least one invalid UTF-8
+   sequence (including overlong encodings) or out-of-range value
+   (a "character" larger than ``U+0x10ffff``).
+
+   (Note that CPython will reject such invalid strings.)
+
+.. c:function:: int PyUnicode_GetFlagInfo(int version, int32_t format, \
+      PyUnicodeFlagInfo *flagsp)
+
+   Fill *\ *flagsp* with information about flags and formats accepted or
+   preferred by :c:func:`PyUnicode_SubtypeFromData`.
+
+   When optimizing for various CPython versions (or Python implementations),
+   please prefer this information over checking the version.
+
+   *version* must be 0; this is the version of the
+   :c:struct:`PyUnicodeFlagInfo` structure.
+
+   *format* may be 0 to get general information, or a value accepted by
+   PyUnicode_SubtypeFromData to get information specific to a given format.
+
+   On success, fill *\ *flagsp* and return 0.
+   On failure, return -1 with an exception set; members
+   of *\ *flagsp* will be set to invalid values (-1).
+
+.. c:struct:: PyUnicodeFlagInfo
+
+   Structure filled by :c:func:`PyUnicode_GetFlagInfo`.
+
+   .. c:member:: int32_t recognized_formats
+
+      A bit-mask of allowable bits for :c:func:`PyUnicode_SubtypeFromData`\ 's
+      *format* argument.
+      (:c:func:`PyUnicode_SubtypeFromData` will fail if any other bits are set.)
+
+   .. c:member:: int32_t preferred_formats
+
+      A bit-mask of *format* bits that are "preferred" -- for example,
+      ones that give best performance.
+
+   .. c:member:: int32_t recognized_flags
+
+      A bit-mask of *flags* bits that the interpreter can check
+      (in :c:func:`PyUnicode_SubtypeFromData`) or set
+      (in :c:func:`PyUnicode_Export`).
+
+   .. c:member:: int32_t preferred_flags
+
+      A bit-mask of *flags* bits that are *preferred* -- for example, they
+      are most likely to result in best performance.
 
 
 Deprecated API

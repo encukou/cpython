@@ -15610,7 +15610,7 @@ unicode_vectorcall(PyObject *type, PyObject *const *args,
     return PyUnicode_FromEncodedObject(object, encoding, errors);
 }
 
-/* Common code for unicode_subtype_new and PyUnicode_SubtypeFromBuffer.
+/* Common code for unicode_subtype_new and PyUnicode_SubtypeFromData.
  * Caller must fill in fields not initialized here!
  *
  * Subtype instances have the non-compact layout.
@@ -15686,142 +15686,479 @@ unicode_subtype_new(PyTypeObject *type, PyObject *unicode)
     return self;
 }
 
-PyObject *
-PyUnicode_SubtypeFromBuffer(
-    PyTypeObject *subtype,
-    int buffer_kind,
-    const void *buffer,
-    Py_ssize_t buffer_size,
-    Py_UCS4 max_char,
-    int flags)
+int
+PyUnicode_SubtypeFromData(
+    PyTypeObject *type,
+    PyObject **resultp,
+    void *data,
+    Py_ssize_t nbytes,
+    int32_t format,
+    int32_t flags)
 {
-    PyObject *self = NULL;
-    PyObject *result = NULL;
+    assert(type);
+    assert(resultp);
 
-    bool consume_buffer = flags & PyUnicode_CONSUME_BUFFER;
-    bool use_max_char = flags & PyUnicode_USE_MAX_CHAR;
-    bool extra_null_terminator = flags & PyUnicode_EXTRA_NULL_TERMINATOR;
+    int return_value = -1;
+    PyObject *result_obj = NULL;
+    PyObject *tmp = NULL;
 
-    switch (buffer_kind) {
-        case PyUnicode_1BYTE_KIND:
-        case PyUnicode_2BYTE_KIND:
-        case PyUnicode_4BYTE_KIND:
+    bool consume_buffer = flags & PyUnicode_FLAG_CONSUME_BUFFER;
+    bool tight_format = flags & PyUnicode_FLAG_TIGHT_FORMAT;
+    bool large_format = flags & PyUnicode_FLAG_LARGE_FORMAT;
+    bool extra_null_terminator = flags & PyUnicode_FLAG_EXTRA_NUL_TERMINATOR;
+    bool buffer_consumed = false;
+
+#ifdef Py_DEBUG
+    // Sometimes, don't consume the buffer even if asked
+    static unsigned char rand;
+    if (consume_buffer) {
+        if (_PyOS_URandomNonblock(&rand, 1) < 0) {
+            PyErr_Clear();
+            rand++;
+        }
+        if (rand & 0x0f == 0) {
+            consume_buffer = false;
+        }
+    }
+#endif
+
+    if (!PyType_FastSubclass(type, Py_TPFLAGS_UNICODE_SUBCLASS)) {
+        PyErr_Format(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromData needs a PyUnicode type, got '%N'",
+            type);
+    }
+
+    {
+        int32_t _pair;
+/*[python input]
+for yesflag, noflag in (
+    ('EMBEDDED_NUL', 'NO_EMBEDDED_NUL'),
+    ('SURROGATES', 'NO_SURROGATES'),
+    ('TIGHT_FORMAT', 'LARGE_FORMAT'),
+    ('INVALID_UNICODE', 'VALID_UNICODE'),
+):
+    print(f'''\
+        _pair = PyUnicode_FLAG_{yesflag} | PyUnicode_FLAG_{noflag};
+        if ((flags & _pair) == _pair) {{
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromData: cannot specify both "
+                    "PyUnicode_FLAG_{yesflag} and "
+                    "PyUnicode_FLAG_{noflag}");
+            goto finally;
+        }}
+    '''.rstrip())
+[python start generated code]*/
+        _pair = PyUnicode_FLAG_EMBEDDED_NUL | PyUnicode_FLAG_NO_EMBEDDED_NUL;
+        if ((flags & _pair) == _pair) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromData: cannot specify both "
+                    "PyUnicode_FLAG_EMBEDDED_NUL and "
+                    "PyUnicode_FLAG_NO_EMBEDDED_NUL");
+            goto finally;
+        }
+        _pair = PyUnicode_FLAG_SURROGATES | PyUnicode_FLAG_NO_SURROGATES;
+        if ((flags & _pair) == _pair) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromData: cannot specify both "
+                    "PyUnicode_FLAG_SURROGATES and "
+                    "PyUnicode_FLAG_NO_SURROGATES");
+            goto finally;
+        }
+        _pair = PyUnicode_FLAG_TIGHT_FORMAT | PyUnicode_FLAG_LARGE_FORMAT;
+        if ((flags & _pair) == _pair) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromData: cannot specify both "
+                    "PyUnicode_FLAG_TIGHT_FORMAT and "
+                    "PyUnicode_FLAG_LARGE_FORMAT");
+            goto finally;
+        }
+        _pair = PyUnicode_FLAG_INVALID_UNICODE | PyUnicode_FLAG_VALID_UNICODE;
+        if ((flags & _pair) == _pair) {
+            PyErr_SetString(
+                PyExc_SystemError,
+                "PyUnicode_SubtypeFromData: cannot specify both "
+                    "PyUnicode_FLAG_INVALID_UNICODE and "
+                    "PyUnicode_FLAG_VALID_UNICODE");
+            goto finally;
+        }
+/*[python end generated code: output=f63f0e02803994d2 input=734f513b38bc0be7]*/
+    }
+
+    if (flags & PyUnicode_FLAG_INVALID_UNICODE) {
+        PyErr_SetString(
+            PyExc_UnicodeDecodeError,
+            "Invalid Unicode data passed to PyUnicode_SubtypeFromData");
+        goto finally;
+    }
+
+    if (nbytes < 0) {
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyUnicode_SubtypeFromData: size must not be negative");
+        goto finally;
+    }
+
+    bool is_ascii = false;
+    switch (format) {
+        case PyUnicode_FORMAT_UCS1:
+            if (large_format) {
+                is_ascii = true;
+                tight_format = true;
+            }
+            if (extra_null_terminator) {
+                assert(((Py_UCS1*)data)[nbytes] == 0);
+            }
             break;
+        case PyUnicode_FORMAT_UCS2:
+            if (extra_null_terminator) {
+                assert(((Py_UCS2*)data)[nbytes / 2] == 0);
+            }
+            break;
+        case PyUnicode_FORMAT_UCS4:
+            if (extra_null_terminator) {
+                assert(((Py_UCS4*)data)[nbytes / 4] == 0);
+            }
+            break;
+        case PyUnicode_FORMAT_UTF8:
+            if (tight_format || large_format) {
+                PyErr_SetString(
+                    PyExc_SystemError,
+                    "PyUnicode_SubtypeFromData: PyUnicode_FLAG_TIGHT_FORMAT "
+                        "and PyUnicode_FLAG_LARGE_FORMAT "
+                        "cannot be used with UTF-8");
+                goto finally;
+            }
+            /* Decoding from UTF-8 -- a slow path.
+             * Currently we use a PyUnicode object as a temporary buffer,
+             * for ease of implementation.
+             * (This copies data twice -- but that would happen anyway if we
+             * needed to trim an overallocated buffer after decoding.)
+             */
+
+            if (flags & PyUnicode_FLAG_NO_SURROGATES) {
+                tmp = PyUnicode_DecodeUTF8(data, nbytes, NULL);
+            }
+            else {
+                tmp = PyUnicode_DecodeUTF8(data, nbytes, "surrogatepass");
+            }
+            if (!tmp) {
+                goto finally;
+            }
+            result_obj = unicode_subtype_new(type, tmp);
+            if (result_obj) {
+                if (
+                    consume_buffer && extra_null_terminator
+                    && !_PyUnicode_HAS_UTF8_MEMORY(result_obj)
+                ) {
+                    PyUnicode_SET_UTF8_LENGTH(result_obj, nbytes);
+                    PyUnicode_SET_UTF8(result_obj, data);
+                    buffer_consumed = true;
+                }
+                return_value = 0;
+            }
+            goto finally;
         default:
             PyErr_SetString(
                 PyExc_SystemError,
-                "PyUnicode_SubtypeFromBuffer: invalid buffer_kind");
+                "PyUnicode_SubtypeFromData: invalid format");
             goto finally;
     }
 
-    int result_length = buffer_size;
-    if (extra_null_terminator) {
-        result_length--;
-    }
+    /* At this point we have an UCS encoding: `format` is the number of bytes
+     * per character in `data`
+     */
 
-    if (result_length < 0) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "PyUnicode_SubtypeFromBuffer: size must not be negative");
-        goto finally;
-    }
+    assert(format);
+    assert(format == (format & 0x7));
 
-    if (!subtype) {
-        PyErr_SetString(
-            PyExc_SystemError,
-            "PyUnicode_SubtypeFromBuffer: subtype must not be NULL");
-        goto finally;
-    }
-
-    if (!PyType_FastSubclass(subtype, Py_TPFLAGS_UNICODE_SUBCLASS)) {
+    if (nbytes % format) {
         PyErr_Format(
             PyExc_SystemError,
-            "PyUnicode_SubtypeFromBuffer needs a PyUnicode subtype, got '%N'",
-            subtype);
+            "PyUnicode_SubtypeFromData: nbytes (%zd) not divisible by "
+                "character size (%d)",
+            nbytes,
+            (int)format);
+        goto finally;
     }
-
-    if (!use_max_char) {
-        if (max_char) {
-            PyErr_SetString(
-                PyExc_SystemError,
-                "PyUnicode_SubtypeFromBuffer: set PyUnicode_USE_MAX_CHAR flag "
-                    "if max_char is known");
-            goto finally;
-        }
-        max_char = find_max_char(buffer_kind, buffer, result_length);
-    }
+    int result_length = nbytes / format;
 
     int result_kind;
-    if (max_char <= 0x7f) {
-        result_kind = PyUnicode_1BYTE_KIND;
-    }
-    if (max_char <= 0xff) {
-        result_kind = PyUnicode_1BYTE_KIND;
-    }
-    else if (max_char <= 0xffff) {
-        result_kind = PyUnicode_2BYTE_KIND;
+    bool kind_matches;
+    if (tight_format) {
+        result_kind = format;
+        kind_matches = true;
     }
     else {
-        result_kind = PyUnicode_4BYTE_KIND;
+        Py_UCS4 max_char = find_max_char(format, data, nbytes / format);
+        if (max_char <= 0x7f) {
+            result_kind = PyUnicode_1BYTE_KIND;
+            is_ascii = true;
+        }
+        if (max_char <= 0xff) {
+            result_kind = PyUnicode_1BYTE_KIND;
+        }
+        else if (max_char <= 0xffff) {
+            result_kind = PyUnicode_2BYTE_KIND;
+        }
+        else {
+            result_kind = PyUnicode_4BYTE_KIND;
+        }
+        kind_matches = result_kind == format;
     }
-    bool kind_matches = result_kind == buffer_kind;
 
-    if (result_length > (PY_SSIZE_T_MAX / result_kind - 1)) {
-        PyErr_NoMemory();
+    result_obj = _unicode_subtype_alloc(type);
+    if (!result_obj) {
         goto finally;
     }
-    Py_ssize_t result_buffer_nbytes = result_kind * (result_length + 1);
 
-    self = _unicode_subtype_alloc(subtype);
-    if (!self) {
-        goto finally;
-    }
+    _PyUnicode_STATE(result_obj).kind = result_kind;
+    _PyUnicode_STATE(result_obj).ascii = is_ascii;
+    _PyUnicode_LENGTH(result_obj) = result_length;
+
     if (consume_buffer && kind_matches && extra_null_terminator) {
-        _PyUnicode_DATA_ANY(self) = (void*)buffer;
-        consume_buffer = false;
+        _PyUnicode_DATA_ANY(result_obj) = (void*)data;
+        buffer_consumed = true;
     }
     else {
-        void *data = PyMem_Malloc(result_buffer_nbytes);
-        if (data == NULL) {
+        if (result_length > (PY_SSIZE_T_MAX / result_kind - 1)) {
             PyErr_NoMemory();
             goto finally;
         }
-        _PyUnicode_DATA_ANY(self) = data;
+        Py_ssize_t result_buffer_nbytes = result_kind * (result_length + 1);
+        void *new_data = PyMem_Malloc(result_buffer_nbytes);
+        if (new_data == NULL) {
+            PyErr_NoMemory();
+            goto finally;
+        }
+
         _copy_character_buffer(
-            buffer, buffer_kind,
-            data, result_kind,
+            data, format,
+            new_data, result_kind,
             result_length);
+        _PyUnicode_DATA_ANY(result_obj) = new_data;
         if (!extra_null_terminator) {
             if (result_kind == PyUnicode_1BYTE_KIND) {
-                ((char*)data)[result_length] = 0;
+                ((Py_UCS1*)new_data)[result_length] = 0;
             }
             else if (result_kind == PyUnicode_2BYTE_KIND) {
-                ((Py_UCS2*)data)[result_length] = 0;
+                ((Py_UCS2*)new_data)[result_length] = 0;
             }
             else {
-                ((Py_UCS4*)data)[result_length] = 0;
+                ((Py_UCS4*)new_data)[result_length] = 0;
             }
         }
     }
-    if (max_char <= 0x7f) {
-        PyUnicode_SET_UTF8_LENGTH(self, result_length);
-        PyUnicode_SET_UTF8(self, _PyUnicode_DATA_ANY(self));
+    if (is_ascii) {
+        PyUnicode_SET_UTF8_LENGTH(result_obj, result_length);
+        PyUnicode_SET_UTF8(result_obj, _PyUnicode_DATA_ANY(result_obj));
     }
-    _PyUnicode_LENGTH(self) = result_length;
+    _PyUnicode_LENGTH(result_obj) = result_length;
 
-    result = self;
-    self = NULL;
+    return_value = 0;
 
 finally:
-    Py_XDECREF(self);
-    if (consume_buffer) {
-        PyMem_Free((void*)buffer);
+    Py_XDECREF(tmp);
+    if (return_value < 0) {
+        Py_XDECREF(result_obj);
+        *resultp = NULL;
+        return return_value;
     }
-    if (result) {
-        assert(_PyUnicode_CheckConsistency(result, 1));
+    assert(result_obj);
+    assert(_PyUnicode_CheckConsistency(result_obj, 1));
+    *resultp = result_obj;
+    if (buffer_consumed) {
+        return 1;
     }
-    return result;
+#ifdef Py_DEBUG
+    // Sometimes, consume the buffer even if we didn't use it
+    if ((rand & 0xf0 == 0) && consume_buffer && !buffer_consumed) {
+        PyMem_Free((void*)data);
+        return 1;
+    }
+#endif
+    return 0;
 }
+
+int
+PyUnicode_GetFlagInfo(int version, int32_t format, PyUnicodeFlagInfo *resultp)
+{
+    if (version != 0) {
+        PyErr_Format(
+            PyExc_SystemError,
+            "PyUnicode_GetFlagInfo: unknown version (%x)",
+            version);
+        goto error;
+    }
+    assert(resultp);
+    resultp->preferred_formats = (
+        0
+        | PyUnicode_FORMAT_UCS1
+        | PyUnicode_FORMAT_UCS2
+        | PyUnicode_FORMAT_UCS4
+        );
+    resultp->recognized_formats = (
+        resultp->preferred_formats
+        | PyUnicode_FORMAT_UTF8
+        );
+    resultp->recognized_flags = (
+        0
+        | PyUnicode_FLAG_CONSUME_BUFFER
+        | PyUnicode_FLAG_EXTRA_NUL_TERMINATOR
+        | PyUnicode_FLAG_INVALID_UNICODE
+        );
+    resultp->preferred_flags = (
+        0
+        | PyUnicode_FLAG_CONSUME_BUFFER
+        | PyUnicode_FLAG_EXTRA_NUL_TERMINATOR
+        );
+    switch (format) {
+        case 0:
+            resultp->recognized_flags |= PyUnicode_FLAG_TIGHT_FORMAT;
+            resultp->recognized_flags |= PyUnicode_FLAG_LARGE_FORMAT;
+            resultp->recognized_flags |= PyUnicode_FLAG_NO_SURROGATES;
+            break;
+        case PyUnicode_FORMAT_UCS1:
+            resultp->recognized_flags |= PyUnicode_FLAG_LARGE_FORMAT;
+            resultp->preferred_flags |= PyUnicode_FLAG_LARGE_FORMAT;
+            break;
+        case PyUnicode_FORMAT_UCS2:
+        case PyUnicode_FORMAT_UCS4:
+            resultp->recognized_flags |= PyUnicode_FLAG_TIGHT_FORMAT;
+            resultp->preferred_flags |= PyUnicode_FLAG_TIGHT_FORMAT;
+            break;
+        case PyUnicode_FORMAT_UTF8:
+            resultp->recognized_flags |= PyUnicode_FLAG_NO_SURROGATES;
+            resultp->preferred_flags |= PyUnicode_FLAG_NO_SURROGATES;
+            break;
+        default:
+            resultp->recognized_flags = -1;
+            resultp->preferred_flags = -1;
+            PyErr_Format(
+                PyExc_SystemError,
+                "PyUnicode_GetFlagInfo: unknown format (%x)",
+                (int)format);
+            goto error;
+    }
+    return 0;
+error:
+    resultp->preferred_formats = -1;
+    resultp->recognized_formats = -1;
+    resultp->recognized_flags = -1;
+    resultp->preferred_flags = -1;
+    return -1;
+}
+
+static int32_t
+unicode_export(
+    PyObject *obj, Py_buffer *view, int32_t *flagsp,
+    Py_ssize_t len, const void *buf,
+    int itemsize, const char *format, int32_t export_format,
+    int32_t flags)
+{
+    if (PyBuffer_FillInfo(view, obj, (void*)buf, len,
+                          1, PyBUF_SIMPLE) < 0) {
+        if (flagsp) {
+            *flagsp = -1;
+        }
+        return -1;
+    }
+    view->itemsize = itemsize;
+    view->format = (char*)format;
+    if (flagsp) {
+        *flagsp = flags;
+    }
+    return export_format;
+}
+
+int32_t
+PyUnicode_Export(
+    PyObject *unicode, int32_t formats, Py_buffer *viewp, int32_t *flagsp)
+{
+    if (!PyUnicode_Check(unicode)) {
+        PyErr_Format(PyExc_TypeError, "must be str, not %T", unicode);
+        return -1;
+    }
+
+#ifdef Py_DEBUG
+    // Sometimes, pretend that we can't export this string
+    static unsigned char rand;
+    if (_PyOS_URandomNonblock(&rand, 1) < 0) {
+        PyErr_Clear();
+        rand++;
+    }
+    if (rand & 0x0f == 0) {
+        goto dont_export;
+    }
+#endif
+
+    Py_ssize_t len = PyUnicode_GET_LENGTH(unicode);
+    int kind = PyUnicode_KIND(unicode);
+
+    const int32_t common_flags = (
+        0
+        | PyUnicode_FLAG_EXTRA_NUL_TERMINATOR
+        | PyUnicode_FLAG_VALID_UNICODE
+        );
+
+    // Native UCS1 (and ASCII)
+    if (kind == PyUnicode_1BYTE_KIND
+        && (formats & PyUnicode_FORMAT_UCS1))
+    {
+        const int32_t extra_flag = PyUnicode_IS_ASCII(unicode)
+            ? PyUnicode_FLAG_LARGE_FORMAT
+            : PyUnicode_FLAG_TIGHT_FORMAT;
+        return unicode_export(
+            unicode, viewp, flagsp,
+            len, PyUnicode_1BYTE_DATA(unicode),
+            1, "B", PyUnicode_FORMAT_UCS1,
+            common_flags | extra_flag);
+    }
+
+    // Native UCS2
+    if (kind == PyUnicode_2BYTE_KIND
+        && (formats & PyUnicode_FORMAT_UCS2))
+    {
+        return unicode_export(
+            unicode, viewp, flagsp,
+            len, PyUnicode_2BYTE_DATA(unicode),
+            2, "=H", PyUnicode_FORMAT_UCS2,
+            common_flags | PyUnicode_FLAG_TIGHT_FORMAT);
+    }
+
+    // Native UCS4
+    if (kind == PyUnicode_4BYTE_KIND
+        && (formats & PyUnicode_FORMAT_UCS4))
+    {
+        return unicode_export(
+            unicode, viewp, flagsp,
+            len, PyUnicode_2BYTE_DATA(unicode),
+            4, "=I", PyUnicode_FORMAT_UCS4,
+            common_flags | PyUnicode_FLAG_TIGHT_FORMAT);
+    }
+
+    if (_PyUnicode_HAS_UTF8_MEMORY(unicode)
+        && (formats & PyUnicode_FORMAT_UTF8))
+    {
+        return unicode_export(
+            unicode, viewp, flagsp,
+            PyUnicode_UTF8_LENGTH(unicode), PyUnicode_UTF8(unicode),
+            1, "B", PyUnicode_FORMAT_UTF8,
+            common_flags);
+    }
+
+    // Otherwise: cannot comply
+dont_export:
+    if (flagsp) {
+        *flagsp = -1;
+    }
+    return 0;
+}
+
 
 void
 _PyUnicode_ExactDealloc(PyObject *op)

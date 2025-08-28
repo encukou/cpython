@@ -481,16 +481,47 @@ PyAPI_FUNC(PyObject*) PyUnicode_FromKindAndData(
  * - PyUnicode_USE_MAX_CHAR: the *max_char* argument is valid.
  *   if this flag is unset, *max_char* must be 0.
  */
-PyAPI_FUNC(PyObject*) PyUnicode_SubtypeFromBuffer(
-    PyTypeObject *subtype,
-    int kind,
-    const void *buffer,
-    Py_ssize_t buffer_size,
-    Py_UCS4 max_char,
-    int flags);
-#define PyUnicode_CONSUME_BUFFER        0x01
-#define PyUnicode_EXTRA_NULL_TERMINATOR 0x02
-#define PyUnicode_USE_MAX_CHAR          0x04
+PyAPI_FUNC(int) PyUnicode_SubtypeFromData(
+    PyTypeObject *type,
+    PyObject **resultp,
+    void *data,
+    Py_ssize_t nbytes,
+    int32_t format,
+    int32_t flags);
+// internal: UCS* values are the same as PyUnicode_*BYTE_KIND, and also the
+// number of bytes per character
+#define PyUnicode_FORMAT_UCS1  0x01   // Py_UCS1 *data
+#define PyUnicode_FORMAT_UCS2  0x02   // Py_UCS2 *data
+#define PyUnicode_FORMAT_UCS4  0x04   // Py_UCS4 *data
+#define PyUnicode_FORMAT_UTF8  0x08   // char *data
+
+#define PyUnicode_FLAG_CONSUME_BUFFER           0x0001
+#define PyUnicode_FLAG_EXTRA_NUL_TERMINATOR     0x0002
+
+#define PyUnicode_FLAG_EMBEDDED_NUL             0x0100
+#define PyUnicode_FLAG_NO_EMBEDDED_NUL          0x0200
+#define PyUnicode_FLAG_SURROGATES               0x0400
+#define PyUnicode_FLAG_NO_SURROGATES            0x0800
+#define PyUnicode_FLAG_TIGHT_FORMAT             0x1000
+#define PyUnicode_FLAG_LARGE_FORMAT             0x2000
+#define PyUnicode_FLAG_INVALID_UNICODE          0x4000
+#define PyUnicode_FLAG_VALID_UNICODE            0x8000
+
+typedef struct PyUnicodeFlagInfo {
+    int32_t recognized_formats;
+    int32_t preferred_formats;
+    int32_t recognized_flags;
+    int32_t preferred_flags;
+} PyUnicodeFlagInfo;
+PyAPI_FUNC(int) PyUnicode_GetFlagInfo(
+    int version,
+    int32_t format,
+    PyUnicodeFlagInfo *);
+PyAPI_FUNC(int32_t) PyUnicode_Export(
+    PyObject *unicode,
+    int32_t formats,
+    Py_buffer *view,
+    int32_t *flags);
 
 
 /* --- Public PyUnicodeWriter API ----------------------------------------- */
