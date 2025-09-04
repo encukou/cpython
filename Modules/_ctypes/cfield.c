@@ -256,7 +256,7 @@ _noswap8(uint8_t v)
 }
 
 void
-_write_bitfield(void *loc, void *val, CFieldObject *self, uint16_t flags)
+_write_bitfield(void *target, void *buf, CFieldObject *self, uint16_t flags)
 {
     bool swapped = flags & TYPEFLAG_IS_SWAPPED;
 
@@ -265,8 +265,8 @@ _write_bitfield(void *loc, void *val, CFieldObject *self, uint16_t flags)
         assert(sizeof(TYPE) == self->byte_size);                              \
         assert(sizeof(UTYPE) == self->byte_size);                             \
         UTYPE field, value;                                                   \
-        memcpy(&field, loc, self->byte_size);                                 \
-        memcpy(&value, val, self->byte_size);                                 \
+        memcpy(&field, target, self->byte_size);                              \
+        memcpy(&value, buf, self->byte_size);                                 \
         if (swapped) {                                                        \
             field = SWAPFUNC(field);                                          \
             value = SWAPFUNC(value);                                          \
@@ -278,7 +278,7 @@ _write_bitfield(void *loc, void *val, CFieldObject *self, uint16_t flags)
         if (swapped) {                                                        \
             field = SWAPFUNC(field);                                          \
         }                                                                     \
-        memcpy(loc, &field, self->byte_size);                                 \
+        memcpy(target, &field, self->byte_size);                              \
         break;                                                                \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
@@ -324,7 +324,6 @@ PyCField_set_lock_held(PyObject *op, PyObject *inst, PyObject *value)
     }
 
     ptr = dst->b_ptr + self->byte_offset;
-    // TODO: align this!
     char _buf[BITFIELD_BUFFER_SIZE] = {0};
     if (self->bitfield_size) {
         assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
@@ -332,7 +331,7 @@ PyCField_set_lock_held(PyObject *op, PyObject *inst, PyObject *value)
     }
 
     if (PyCData_set(st, inst, self->proto, self->setfunc, value,
-                       self->index, self->byte_size, ptr) < 0)
+                    self->index, self->byte_size, ptr) < 0)
     {
         return -1;
     }
@@ -419,11 +418,10 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
     }
     src = _CDataObject_CAST(inst);
     PyObject *res;
-    Py_BEGIN_CRITICAL_SECTION(inst);
 
+    Py_BEGIN_CRITICAL_SECTION(inst);
     void *ptr = src->b_ptr + self->byte_offset;
-    // TODO: align this!
-    char _buf[BITFIELD_BUFFER_SIZE] = {0};
+    _Alignas(max_align_t) char _buf[BITFIELD_BUFFER_SIZE] = {0};
     if (self->bitfield_size) {
         assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
         StgInfo *info;
@@ -436,7 +434,7 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
     }
 
     res = PyCData_get(st, self->proto, self->getfunc, inst,
-                       self->index, self->byte_size, ptr);
+                      self->index, self->byte_size, ptr);
     Py_END_CRITICAL_SECTION();
     return res;
 }
