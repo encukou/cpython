@@ -753,12 +753,15 @@ static PyObject *
 fixint_set_sw(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(!NUM_BITS(size));
+    char buf[8];
     if (PyLong_AsNativeBytes(
-        value, ptr, size,
-        SWAPPED_FLAG | Py_ASNATIVEBYTES_ALLOW_INDEX) < 0)
+        value, buf, size,
+        Py_ASNATIVEBYTES_NATIVE_ENDIAN | Py_ASNATIVEBYTES_ALLOW_INDEX) < 0)
     {
         return NULL;
     }
+    inplace_byteswap(buf, size);
+    memcpy(ptr, buf, size);
     _RET(value);
 }
 
