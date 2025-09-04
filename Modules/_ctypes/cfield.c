@@ -280,48 +280,48 @@ PyCField_set(PyObject *op, PyObject *inst, PyObject *value)
     return res;
 }
 
+static void inplace_byteswap(void *ptr, Py_ssize_t size);
+
 /* This macro CHANGES the first parameter IN PLACE. For proper sign handling,
    we must first shift left, then right.
 */
-#define GET_BITFIELD_2(TYPE)                                           \
+#define GET_BITFIELD_2(TYPE) \
+    {                                          \
         TYPE *v = buf;    \
         *v <<= (sizeof(*v)*8 - self->bit_offset - self->bitfield_size);           \
         *v >>= (sizeof(*v)*8 - self->bitfield_size);                           \
-        return; \
+        break; \
+    } \
     ///
 
 void
 _extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
 {
-    bool is_signed = flags & TYPEFLAG_IS_SIGNED;
-    if (self->byte_size == 1 && is_signed) {
-        GET_BITFIELD_2(int8_t);
+    if (flags & TYPEFLAG_IS_SWAPPED) {
+        inplace_byteswap(buf, self->byte_size);
     }
-    if (self->byte_size == 1) {
-        GET_BITFIELD_2(uint8_t);
+    if (flags & TYPEFLAG_IS_SIGNED) {
+        switch (self->byte_size) {
+            case 1: GET_BITFIELD_2(int8_t);
+            case 2: GET_BITFIELD_2(int16_t);
+            case 4: GET_BITFIELD_2(int32_t);
+            case 8: GET_BITFIELD_2(int64_t);
+            default: Py_UNREACHABLE();
+        }
     }
-    if (self->byte_size == 2 && is_signed) {
-        GET_BITFIELD_2(int16_t);
+    else {
+        switch (self->byte_size) {
+            case 1: GET_BITFIELD_2(uint8_t);
+            case 2: GET_BITFIELD_2(uint16_t);
+            case 4: GET_BITFIELD_2(uint32_t);
+            case 8: GET_BITFIELD_2(uint64_t);
+            default: Py_UNREACHABLE();
+        }
     }
-    if (self->byte_size == 2) {
-        GET_BITFIELD_2(uint16_t);
+    if (flags & TYPEFLAG_IS_SWAPPED) {
+        inplace_byteswap(buf, self->byte_size);
     }
-    if (self->byte_size == 4 && is_signed) {
-        GET_BITFIELD_2(int32_t);
-    }
-    if (self->byte_size == 4) {
-        GET_BITFIELD_2(uint32_t);
-    }
-    if (self->byte_size == 8 && is_signed) {
-        GET_BITFIELD_2(int64_t);
-    }
-    if (self->byte_size == 8) {
-        GET_BITFIELD_2(uint64_t);
-    }
-    Py_UNREACHABLE();
 }
-
-static void inplace_byteswap(void *ptr, Py_ssize_t size);
 
 #define BITFIELD_BUFFER_SIZE 8
 
@@ -352,13 +352,7 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
             return NULL;
         }
         memcpy(_buf, ptr, self->byte_size);
-        if (info->flags & TYPEFLAG_IS_SWAPPED) {
-            inplace_byteswap(_buf, self->byte_size);
-        }
         _extract_bitfield(_buf, self, info->flags);
-        if (info->flags & TYPEFLAG_IS_SWAPPED) {
-            inplace_byteswap(_buf, self->byte_size);
-        }
         ptr = _buf;
     }
 
@@ -595,15 +589,6 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
 /* Doesn't work if NUM_BITS(size) == 0, but it never happens in SET() call. */
 #define BIT_MASK(type, size) (((((type)1 << (NUM_BITS(size) - 1)) - 1) << 1) + 1)
 
-/* This macro CHANGES the first parameter IN PLACE. For proper sign handling,
-   we must first shift left, then right.
-*/
-#define GET_BITFIELD(v, size)                                           \
-    if (NUM_BITS(size)) {                                               \
-        v <<= (sizeof(v)*8 - LOW_BIT(size) - NUM_BITS(size));           \
-        v >>= (sizeof(v)*8 - NUM_BITS(size));                           \
-    }
-
 /* This macro RETURNS the first parameter with the bit field CHANGED. */
 #define SET(type, x, v, size)                                                 \
     (NUM_BITS(size) ?                                                   \
@@ -668,10 +653,9 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
     static PyObject *                                                         \
     TAG ## _get(void *ptr, Py_ssize_t size_arg)                               \
     {                                                                         \
-        assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
+        assert(!NUM_BITS(size_arg));                                          \
         CTYPE val;                                                            \
         memcpy(&val, ptr, sizeof(val));                                       \
-        GET_BITFIELD(val, size_arg);                                          \
         return PYAPI_FROMFUNC(val);                                           \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
@@ -700,11 +684,10 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
     static PyObject *                                                         \
     TAG ## _get_sw(void *ptr, Py_ssize_t size_arg)                            \
     {                                                                         \
-        assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
+        assert(!NUM_BITS(size_arg));                                          \
         CTYPE val;                                                            \
         memcpy(&val, ptr, sizeof(val));                                       \
         inplace_byteswap(&val, (NBITS) / 8);                                  \
-        GET_BITFIELD(val, size_arg);                                          \
         return PYAPI_FROMFUNC(val);                                           \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
