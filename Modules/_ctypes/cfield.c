@@ -280,6 +280,51 @@ PyCField_set(PyObject *op, PyObject *inst, PyObject *value)
     return res;
 }
 
+/* This macro CHANGES the first parameter IN PLACE. For proper sign handling,
+   we must first shift left, then right.
+*/
+#define GET_BITFIELD_2(TYPE)                                           \
+        TYPE *v = buf;    \
+        *v <<= (sizeof(*v)*8 - self->bit_offset - self->bitfield_size);           \
+        *v >>= (sizeof(*v)*8 - self->bitfield_size);                           \
+        return; \
+    ///
+
+void
+_extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
+{
+    bool is_signed = flags & TYPEFLAG_IS_SIGNED;
+    if (self->byte_size == 1 && is_signed) {
+        GET_BITFIELD_2(int8_t);
+    }
+    if (self->byte_size == 1) {
+        GET_BITFIELD_2(uint8_t);
+    }
+    if (self->byte_size == 2 && is_signed) {
+        GET_BITFIELD_2(int16_t);
+    }
+    if (self->byte_size == 2) {
+        GET_BITFIELD_2(uint16_t);
+    }
+    if (self->byte_size == 4 && is_signed) {
+        GET_BITFIELD_2(int32_t);
+    }
+    if (self->byte_size == 4) {
+        GET_BITFIELD_2(uint32_t);
+    }
+    if (self->byte_size == 8 && is_signed) {
+        GET_BITFIELD_2(int64_t);
+    }
+    if (self->byte_size == 8) {
+        GET_BITFIELD_2(uint64_t);
+    }
+    Py_UNREACHABLE();
+}
+
+static void inplace_byteswap(void *ptr, Py_ssize_t size);
+
+#define BITFIELD_BUFFER_SIZE 8
+
 static PyObject *
 PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
 {
@@ -297,12 +342,33 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
     src = _CDataObject_CAST(inst);
     PyObject *res;
     Py_BEGIN_CRITICAL_SECTION(inst);
+
+    void *ptr = src->b_ptr + self->byte_offset;
+    char _buf[BITFIELD_BUFFER_SIZE] = {0};
+    if (self->bitfield_size) {
+        assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
+        StgInfo *info;
+        if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
+            return NULL;
+        }
+        memcpy(_buf, ptr, self->byte_size);
+        if (info->flags & TYPEFLAG_IS_SWAPPED) {
+            inplace_byteswap(_buf, self->byte_size);
+        }
+        _extract_bitfield(_buf, self, info->flags);
+        if (info->flags & TYPEFLAG_IS_SWAPPED) {
+            inplace_byteswap(_buf, self->byte_size);
+        }
+        ptr = _buf;
+    }
+
     res = PyCData_get(st, self->proto, self->getfunc, inst,
-                       self->index, _pack_legacy_size(self),
-                       src->b_ptr + self->byte_offset);
+                       self->index, self->byte_size, ptr);
     Py_END_CRITICAL_SECTION();
     return res;
 }
+
+#undef BITFIELD_BUFFER_SIZE
 
 static PyObject *
 PyCField_get_legacy_size(PyObject *self, void *Py_UNUSED(closure))
