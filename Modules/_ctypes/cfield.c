@@ -620,6 +620,42 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
 #define _RET(X) Py_RETURN_NONE
 #endif
 
+static PyObject *
+fixint_get_signed(void *ptr, Py_ssize_t size)
+{
+    assert(!NUM_BITS(size));
+    return PyLong_FromNativeBytes(ptr, size, -1);
+}
+
+static PyObject *
+fixint_get_unsigned(void *ptr, Py_ssize_t size)
+{
+    assert(!NUM_BITS(size));
+    return PyLong_FromUnsignedNativeBytes(ptr, size, -1);
+}
+
+#if Py_LITTLE_ENDIAN
+#   define SWAPPED_FLAG Py_ASNATIVEBYTES_BIG_ENDIAN
+#else
+#   define SWAPPED_FLAG Py_ASNATIVEBYTES_LITTLE_ENDIAN
+#endif
+
+static PyObject *
+fixint_get_signed_sw(void *ptr, Py_ssize_t size)
+{
+    assert(!NUM_BITS(size));
+    return PyLong_FromNativeBytes(ptr, size, SWAPPED_FLAG);
+}
+
+static PyObject *
+fixint_get_unsigned_sw(void *ptr, Py_ssize_t size)
+{
+    assert(!NUM_BITS(size));
+    return PyLong_FromUnsignedNativeBytes(ptr, size, SWAPPED_FLAG);
+}
+
+#undef SWAPPED_FLAG
+
 /*****************************************************************
  * accessor methods for fixed-width integers (e.g. int8_t, uint64_t),
  * supporting bit fields.
@@ -1580,11 +1616,12 @@ for nbytes in 8, 16, 32, 64:
     for sgn in 'i', 'u':
         is_signed = sgn == 'i'
         u = 'u' if sgn == 'u' else 's'
+        un = 'un' if sgn == 'u' else ''
         parts = [
             f"0",
             f'&ffi_type_{u}int{nbytes}',
             f'{sgn}{nbytes}_set',
-            f'{sgn}{nbytes}_get',
+            f'fixint_get_{un}signed',
             f'{sgn}{nbytes}_set_sw',
             f'{sgn}{nbytes}_get_sw',
         ]
@@ -1596,30 +1633,30 @@ for nbytes in 8, 16, 32, 64:
         print(f'            .flags = {" | ".join(flags)} }};')
 [python start generated code]*/
     formattable.fmt_i8 = (struct fielddesc){
-            0, &ffi_type_sint8, i8_set, i8_get, i8_set_sw, i8_get_sw,
+            0, &ffi_type_sint8, i8_set, fixint_get_signed, i8_set_sw, i8_get_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u8 = (struct fielddesc){
-            0, &ffi_type_uint8, u8_set, u8_get, u8_set_sw, u8_get_sw,
+            0, &ffi_type_uint8, u8_set, fixint_get_unsigned, u8_set_sw, u8_get_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i16 = (struct fielddesc){
-            0, &ffi_type_sint16, i16_set, i16_get, i16_set_sw, i16_get_sw,
+            0, &ffi_type_sint16, i16_set, fixint_get_signed, i16_set_sw, i16_get_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u16 = (struct fielddesc){
-            0, &ffi_type_uint16, u16_set, u16_get, u16_set_sw, u16_get_sw,
+            0, &ffi_type_uint16, u16_set, fixint_get_unsigned, u16_set_sw, u16_get_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i32 = (struct fielddesc){
-            0, &ffi_type_sint32, i32_set, i32_get, i32_set_sw, i32_get_sw,
+            0, &ffi_type_sint32, i32_set, fixint_get_signed, i32_set_sw, i32_get_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u32 = (struct fielddesc){
-            0, &ffi_type_uint32, u32_set, u32_get, u32_set_sw, u32_get_sw,
+            0, &ffi_type_uint32, u32_set, fixint_get_unsigned, u32_set_sw, u32_get_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i64 = (struct fielddesc){
-            0, &ffi_type_sint64, i64_set, i64_get, i64_set_sw, i64_get_sw,
+            0, &ffi_type_sint64, i64_set, fixint_get_signed, i64_set_sw, i64_get_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u64 = (struct fielddesc){
-            0, &ffi_type_uint64, u64_set, u64_get, u64_set_sw, u64_get_sw,
+            0, &ffi_type_uint64, u64_set, fixint_get_unsigned, u64_set_sw, u64_get_sw,
             .flags = TYPEFLAG_IS_INTEGER };
-/*[python end generated code: output=f4a64738bd0af9ee input=b050aa3aa6871a68]*/
+/*[python end generated code: output=e56df27c9b3eda7e input=a978375c5bcf78f0]*/
 
 
     /* Native C integers.
