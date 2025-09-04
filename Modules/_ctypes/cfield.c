@@ -247,38 +247,7 @@ _pack_legacy_size(CFieldObject *field)
     return field->byte_size;
 }
 
-static int
-PyCField_set_lock_held(PyObject *op, PyObject *inst, PyObject *value)
-{
-    CDataObject *dst;
-    char *ptr;
-    CFieldObject *self = _CFieldObject_CAST(op);
-    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
-    if (!CDataObject_Check(st, inst)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "not a ctype instance");
-        return -1;
-    }
-    dst = _CDataObject_CAST(inst);
-    ptr = dst->b_ptr + self->byte_offset;
-    if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError,
-                        "can't delete attribute");
-        return -1;
-    }
-    return PyCData_set(st, inst, self->proto, self->setfunc, value,
-                       self->index, _pack_legacy_size(self), ptr);
-}
-
-static int
-PyCField_set(PyObject *op, PyObject *inst, PyObject *value)
-{
-    int res;
-    Py_BEGIN_CRITICAL_SECTION(inst);
-    res = PyCField_set_lock_held(op, inst, value);
-    Py_END_CRITICAL_SECTION();
-    return res;
-}
+#define BITFIELD_BUFFER_SIZE 8
 
 static uint8_t
 _noswap8(uint8_t v)
@@ -287,22 +256,29 @@ _noswap8(uint8_t v)
 }
 
 void
-_extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
+_write_bitfield(void *loc, void *val, CFieldObject *self, uint16_t flags)
 {
     bool swapped = flags & TYPEFLAG_IS_SWAPPED;
 
 #define CASE(TYPE, UTYPE, SWAPFUNC)                                           \
     {                                                                         \
         assert(sizeof(TYPE) == self->byte_size);                              \
-        TYPE *val = buf;                                                      \
+        assert(sizeof(UTYPE) == self->byte_size);                             \
+        UTYPE field, value;                                                   \
+        memcpy(&field, loc, self->byte_size);                                 \
+        memcpy(&value, val, self->byte_size);                                 \
         if (swapped) {                                                        \
-            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+            field = SWAPFUNC(field);                                          \
+            value = SWAPFUNC(value);                                          \
         }                                                                     \
-        *val <<= (sizeof(TYPE)*8 - self->bit_offset - self->bitfield_size);   \
-        *val >>= (sizeof(TYPE)*8 - self->bitfield_size);                      \
+        UTYPE mask = (UTYPE)-1;                                               \
+        mask >>= (self->byte_size*8) - self->bitfield_size;                   \
+        field &= ~(mask << self->bit_offset);                                 \
+        field |= (mask & value) << self->bit_offset;                          \
         if (swapped) {                                                        \
-            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+            field = SWAPFUNC(field);                                          \
         }                                                                     \
+        memcpy(loc, &field, self->byte_size);                                 \
         break;                                                                \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
@@ -310,7 +286,7 @@ _extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
     if (flags & TYPEFLAG_IS_SIGNED) {
         switch (self->byte_size) {
             case 1: CASE(int8_t, uint8_t, _noswap8);
-            case 2: CASE(int16_t, int16_t, _Py_bswap16);
+            case 2: CASE(int16_t, uint16_t, _Py_bswap16);
             case 4: CASE(int32_t, uint32_t, _Py_bswap32);
             case 8: CASE(int64_t, uint64_t, _Py_bswap64);
             default: Py_UNREACHABLE();
@@ -328,7 +304,104 @@ _extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
 #undef CASE
 }
 
-#define BITFIELD_BUFFER_SIZE 8
+static int
+PyCField_set_lock_held(PyObject *op, PyObject *inst, PyObject *value)
+{
+    CDataObject *dst;
+    char *ptr;
+    CFieldObject *self = _CFieldObject_CAST(op);
+    ctypes_state *st = get_module_state_by_class(Py_TYPE(self));
+    if (!CDataObject_Check(st, inst)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "not a ctype instance");
+        return -1;
+    }
+    dst = _CDataObject_CAST(inst);
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError,
+                        "can't delete attribute");
+        return -1;
+    }
+
+    ptr = dst->b_ptr + self->byte_offset;
+    // TODO: align this!
+    char _buf[BITFIELD_BUFFER_SIZE] = {0};
+    if (self->bitfield_size) {
+        assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
+        ptr = _buf;
+    }
+
+    if (PyCData_set(st, inst, self->proto, self->setfunc, value,
+                       self->index, self->byte_size, ptr) < 0)
+    {
+        return -1;
+    }
+
+    if (self->bitfield_size) {
+        StgInfo *info;
+        if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
+            return -1;
+        }
+
+        ptr = dst->b_ptr + self->byte_offset;
+        _write_bitfield(ptr, _buf, self, info->flags);
+    }
+
+    return 0;
+}
+
+static int
+PyCField_set(PyObject *op, PyObject *inst, PyObject *value)
+{
+    int res;
+    Py_BEGIN_CRITICAL_SECTION(inst);
+    res = PyCField_set_lock_held(op, inst, value);
+    Py_END_CRITICAL_SECTION();
+    return res;
+}
+
+void
+_extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
+{
+    bool swapped = flags & TYPEFLAG_IS_SWAPPED;
+
+#define CASE(TYPE, UTYPE, SWAPFUNC)                                           \
+    {                                                                         \
+        assert(sizeof(TYPE) == self->byte_size);                              \
+        assert(sizeof(UTYPE) == self->byte_size);                             \
+        TYPE *val = buf;                                                      \
+        if (swapped) {                                                        \
+            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+        }                                                                     \
+        *val <<= (sizeof(TYPE)*8 - self->bit_offset - self->bitfield_size);   \
+        *val >>= (sizeof(TYPE)*8 - self->bitfield_size);                      \
+        if (swapped) {                                                        \
+            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+        }                                                                     \
+        break;                                                                \
+    }                                                                         \
+    ///////////////////////////////////////////////////////////////////////////
+
+    if (flags & TYPEFLAG_IS_SIGNED) {
+        switch (self->byte_size) {
+            case 1: CASE(int8_t, uint8_t, _noswap8);
+            case 2: CASE(int16_t, uint16_t, _Py_bswap16);
+            case 4: CASE(int32_t, uint32_t, _Py_bswap32);
+            case 8: CASE(int64_t, uint64_t, _Py_bswap64);
+            default: Py_UNREACHABLE();
+        }
+    }
+    else {
+        switch (self->byte_size) {
+            case 1: CASE(uint8_t, uint8_t, _noswap8);
+            case 2: CASE(uint16_t, uint16_t, _Py_bswap16);
+            case 4: CASE(uint32_t, uint32_t, _Py_bswap32);
+            case 8: CASE(uint64_t, uint64_t, _Py_bswap64);
+            default: Py_UNREACHABLE();
+        }
+    }
+#undef CASE
+}
 
 static PyObject *
 PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
@@ -349,6 +422,7 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
     Py_BEGIN_CRITICAL_SECTION(inst);
 
     void *ptr = src->b_ptr + self->byte_offset;
+    // TODO: align this!
     char _buf[BITFIELD_BUFFER_SIZE] = {0};
     if (self->bitfield_size) {
         assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
@@ -675,17 +749,19 @@ fixint_get_unsigned_sw(void *ptr, Py_ssize_t size)
     static PyObject *                                                         \
     TAG ## _set(void *ptr, PyObject *value, Py_ssize_t size_arg)              \
     {                                                                         \
+        assert(!NUM_BITS(size_arg)); \
         assert(NUM_BITS(size_arg) || (size_arg == (NBITS) / 8));              \
-        CTYPE val;                                                            \
         if (PyLong_Check(value)                                               \
             && PyUnstable_Long_IsCompact((PyLongObject *)value))              \
         {                                                                     \
+            CTYPE val;                                                            \
             val = (CTYPE)PyUnstable_Long_CompactValue(                        \
                       (PyLongObject *)value);                                 \
+            memcpy(ptr, &val, (NBITS) / 8);                                       \
         }                                                                     \
         else {                                                                \
             Py_ssize_t res = PyLong_AsNativeBytes(                            \
-                value, &val, (NBITS) / 8,                                     \
+                value, ptr, (NBITS) / 8,                                     \
                 Py_ASNATIVEBYTES_NATIVE_ENDIAN                                \
                 | Py_ASNATIVEBYTES_ALLOW_INDEX);                              \
             if (res < 0) {                                                    \
@@ -693,9 +769,6 @@ fixint_get_unsigned_sw(void *ptr, Py_ssize_t size)
             }                                                                 \
         }                                                                     \
         CTYPE prev;                                                           \
-        memcpy(&prev, ptr, (NBITS) / 8);                                      \
-        val = SET(CTYPE, prev, val, size_arg);                                \
-        memcpy(ptr, &val, (NBITS) / 8);                                       \
         _RET(value);                                                          \
     }                                                                         \
     ///////////////////////////////////////////////////////////////////////////
@@ -706,16 +779,14 @@ fixint_get_unsigned_sw(void *ptr, Py_ssize_t size)
     static PyObject *                                                         \
     TAG ## _set_sw(void *ptr, PyObject *value, Py_ssize_t size_arg)           \
     {                                                                         \
+        assert(!NUM_BITS(size_arg)); \
         CTYPE val;                                                            \
         PyObject *res = TAG ## _set(&val, value, (NBITS) / 8);                \
         if (res == NULL) {                                                    \
             return NULL;                                                      \
         }                                                                     \
         Py_DECREF(res);                                                       \
-        CTYPE field;                                                          \
-        memcpy(&field, ptr, sizeof(field));                                   \
-        inplace_byteswap(&field, (NBITS) / 8);                                \
-        field = SET(CTYPE, field, val, size_arg);                             \
+        CTYPE field = val;                             \
         inplace_byteswap(&field, (NBITS) / 8);                                \
         memcpy(ptr, &field, sizeof(field));                                   \
         _RET(value);                                                          \
