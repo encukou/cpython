@@ -280,47 +280,52 @@ PyCField_set(PyObject *op, PyObject *inst, PyObject *value)
     return res;
 }
 
-static void inplace_byteswap(void *ptr, Py_ssize_t size);
-
-/* This macro CHANGES the first parameter IN PLACE. For proper sign handling,
-   we must first shift left, then right.
-*/
-#define GET_BITFIELD_2(TYPE) \
-    {                                          \
-        TYPE *v = buf;    \
-        *v <<= (sizeof(*v)*8 - self->bit_offset - self->bitfield_size);           \
-        *v >>= (sizeof(*v)*8 - self->bitfield_size);                           \
-        break; \
-    } \
-    ///
+static uint8_t
+_noswap8(uint8_t v)
+{
+    return v;
+}
 
 void
 _extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
 {
-    if (flags & TYPEFLAG_IS_SWAPPED) {
-        inplace_byteswap(buf, self->byte_size);
-    }
+    bool swapped = flags & TYPEFLAG_IS_SWAPPED;
+
+#define CASE(TYPE, UTYPE, SWAPFUNC)                                           \
+    {                                                                         \
+        assert(sizeof(TYPE) == self->byte_size);                              \
+        TYPE *val = buf;                                                      \
+        if (swapped) {                                                        \
+            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+        }                                                                     \
+        *val <<= (sizeof(TYPE)*8 - self->bit_offset - self->bitfield_size);   \
+        *val >>= (sizeof(TYPE)*8 - self->bitfield_size);                      \
+        if (swapped) {                                                        \
+            *val = (TYPE)SWAPFUNC((UTYPE)*val);                               \
+        }                                                                     \
+        break;                                                                \
+    }                                                                         \
+    ///////////////////////////////////////////////////////////////////////////
+
     if (flags & TYPEFLAG_IS_SIGNED) {
         switch (self->byte_size) {
-            case 1: GET_BITFIELD_2(int8_t);
-            case 2: GET_BITFIELD_2(int16_t);
-            case 4: GET_BITFIELD_2(int32_t);
-            case 8: GET_BITFIELD_2(int64_t);
+            case 1: CASE(int8_t, uint8_t, _noswap8);
+            case 2: CASE(int16_t, int16_t, _Py_bswap16);
+            case 4: CASE(int32_t, uint32_t, _Py_bswap32);
+            case 8: CASE(int64_t, uint64_t, _Py_bswap64);
             default: Py_UNREACHABLE();
         }
     }
     else {
         switch (self->byte_size) {
-            case 1: GET_BITFIELD_2(uint8_t);
-            case 2: GET_BITFIELD_2(uint16_t);
-            case 4: GET_BITFIELD_2(uint32_t);
-            case 8: GET_BITFIELD_2(uint64_t);
+            case 1: CASE(uint8_t, uint8_t, _noswap8);
+            case 2: CASE(uint16_t, uint16_t, _Py_bswap16);
+            case 4: CASE(uint32_t, uint32_t, _Py_bswap32);
+            case 8: CASE(uint64_t, uint64_t, _Py_bswap64);
             default: Py_UNREACHABLE();
         }
     }
-    if (flags & TYPEFLAG_IS_SWAPPED) {
-        inplace_byteswap(buf, self->byte_size);
-    }
+#undef CASE
 }
 
 #define BITFIELD_BUFFER_SIZE 8
