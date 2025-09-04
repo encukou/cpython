@@ -426,15 +426,22 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
         assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
         StgInfo *info;
         if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
-            return NULL;
+            ptr = NULL;
         }
-        memcpy(_buf, ptr, self->byte_size);
-        _extract_bitfield(_buf, self, info->flags);
-        ptr = _buf;
+        else {
+            memcpy(_buf, ptr, self->byte_size);
+            _extract_bitfield(_buf, self, info->flags);
+            ptr = _buf;
+        }
     }
 
-    res = PyCData_get(st, self->proto, self->getfunc, inst,
-                      self->index, self->byte_size, ptr);
+    if (ptr) {
+        res = PyCData_get(st, self->proto, self->getfunc, inst,
+                          self->index, self->byte_size, ptr);
+    }
+    else {
+        res = NULL;
+    }
     Py_END_CRITICAL_SECTION();
     return res;
 }
