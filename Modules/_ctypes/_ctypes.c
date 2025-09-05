@@ -80,22 +80,6 @@ bytes(cdata)
 
 */
 
-/*
- * PyCStructType_Type
- * UnionType_Type
- * PyCPointerType_Type
- * PyCArrayType_Type
- * PyCSimpleType_Type
- *
- * PyCData_Type
- * Struct_Type
- * Union_Type
- * PyCArray_Type
- * Simple_Type
- * PyCPointer_Type
- * PyCField_Type
- *
- */
 #ifndef Py_BUILD_CORE_BUILTIN
 #  define Py_BUILD_CORE_MODULE 1
 #endif
