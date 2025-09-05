@@ -1524,46 +1524,56 @@ for nbytes in 8, 16, 32, 64:
         is_signed = sgn == 'i'
         u = 'u' if sgn == 'u' else 's'
         un = 'un' if sgn == 'u' else ''
-        parts = [
-            f"0",
-            f'&ffi_type_{u}int{nbytes}',
-            f'fixint_set',
-            f'fixint_get_{un}signed',
-            f'fixint_set_sw',
-            f'fixint_get_{un}signed_sw',
-        ]
         flags = ['TYPEFLAG_IS_INTEGER']
         if is_signed:
             flags.append('TYPEFLAG_IS_SIGNED')
         print(f'    formattable.fmt_{sgn}{nbytes} = (struct fielddesc){{')
-        print(f'            {", ".join(parts)},')
+        print(f'            0, &ffi_type_{u}int{nbytes},')
+        print(f'            fixint_set, fixint_get_{un}signed,')
+        print(f'            fixint_set_sw, fixint_get_{un}signed_sw,')
         print(f'            .flags = {" | ".join(flags)} }};')
 [python start generated code]*/
     formattable.fmt_i8 = (struct fielddesc){
-            0, &ffi_type_sint8, fixint_set, fixint_get_signed, fixint_set_sw, fixint_get_signed_sw,
+            0, &ffi_type_sint8,
+            fixint_set, fixint_get_signed,
+            fixint_set_sw, fixint_get_signed_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u8 = (struct fielddesc){
-            0, &ffi_type_uint8, fixint_set, fixint_get_unsigned, fixint_set_sw, fixint_get_unsigned_sw,
+            0, &ffi_type_uint8,
+            fixint_set, fixint_get_unsigned,
+            fixint_set_sw, fixint_get_unsigned_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i16 = (struct fielddesc){
-            0, &ffi_type_sint16, fixint_set, fixint_get_signed, fixint_set_sw, fixint_get_signed_sw,
+            0, &ffi_type_sint16,
+            fixint_set, fixint_get_signed,
+            fixint_set_sw, fixint_get_signed_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u16 = (struct fielddesc){
-            0, &ffi_type_uint16, fixint_set, fixint_get_unsigned, fixint_set_sw, fixint_get_unsigned_sw,
+            0, &ffi_type_uint16,
+            fixint_set, fixint_get_unsigned,
+            fixint_set_sw, fixint_get_unsigned_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i32 = (struct fielddesc){
-            0, &ffi_type_sint32, fixint_set, fixint_get_signed, fixint_set_sw, fixint_get_signed_sw,
+            0, &ffi_type_sint32,
+            fixint_set, fixint_get_signed,
+            fixint_set_sw, fixint_get_signed_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u32 = (struct fielddesc){
-            0, &ffi_type_uint32, fixint_set, fixint_get_unsigned, fixint_set_sw, fixint_get_unsigned_sw,
+            0, &ffi_type_uint32,
+            fixint_set, fixint_get_unsigned,
+            fixint_set_sw, fixint_get_unsigned_sw,
             .flags = TYPEFLAG_IS_INTEGER };
     formattable.fmt_i64 = (struct fielddesc){
-            0, &ffi_type_sint64, fixint_set, fixint_get_signed, fixint_set_sw, fixint_get_signed_sw,
+            0, &ffi_type_sint64,
+            fixint_set, fixint_get_signed,
+            fixint_set_sw, fixint_get_signed_sw,
             .flags = TYPEFLAG_IS_INTEGER | TYPEFLAG_IS_SIGNED };
     formattable.fmt_u64 = (struct fielddesc){
-            0, &ffi_type_uint64, fixint_set, fixint_get_unsigned, fixint_set_sw, fixint_get_unsigned_sw,
+            0, &ffi_type_uint64,
+            fixint_set, fixint_get_unsigned,
+            fixint_set_sw, fixint_get_unsigned_sw,
             .flags = TYPEFLAG_IS_INTEGER };
-/*[python end generated code: output=f3bc73dbd6a99eb0 input=f1d17d759b171a87]*/
+/*[python end generated code: output=2321523f50b03857 input=2639e07291e4d682]*/
 
 
     /* Native C integers.
@@ -1673,6 +1683,7 @@ for base_code, base_c_type in [
 #endif
     POINTER_ENTRY(O, &ffi_type_pointer);
 
+#undef POINTER_ENTRY
 #undef TABLE_ENTRY_SW
 #undef TABLE_ENTRY
 #undef _TABLE_ENTRY
