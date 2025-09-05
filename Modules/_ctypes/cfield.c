@@ -54,6 +54,10 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize);
 static inline
 Py_ssize_t LOW_BIT(Py_ssize_t offset);
 
+// Bitfields must "live" in a field defined by a ffi type,
+// so they're limited to about 8 bytes.
+// This lets us use a fixed-size buffer to manipulate them.
+#define BITFIELD_BUFFER_SIZE 8
 
 /*[clinic input]
 @classmethod
@@ -114,52 +118,42 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
     Py_ssize_t bit_offset = 0;
     if (bit_size_obj != Py_None) {
         // It's a bit field!
-        switch(info->ffi_type_pointer.type) {
-            case FFI_TYPE_UINT8:
-            case FFI_TYPE_UINT16:
-            case FFI_TYPE_UINT32:
-            case FFI_TYPE_SINT64:
-            case FFI_TYPE_UINT64:
-                break;
-
-            case FFI_TYPE_SINT8:
-            case FFI_TYPE_SINT16:
-            case FFI_TYPE_SINT32:
-                if (info->getfunc != c_get && info->getfunc != u_get) {
-                    break;
-                }
-                _Py_FALLTHROUGH;  /* else fall through */
-            default:
-                PyErr_Format(PyExc_TypeError,
-                             "bit fields not allowed for type %s",
-                             ((PyTypeObject*)proto)->tp_name);
-                goto error;
+        if (
+            !(info->flags & TYPEFLAG_IS_INTEGER)
+            || info->getfunc == c_get
+            || info->getfunc == u_get
+        ) {
+            PyErr_Format(
+                PyExc_TypeError,
+                "bit fields not allowed for type %s",
+                ((PyTypeObject*)proto)->tp_name);
+            goto error;
         }
 
-        if (byte_size > 100) {
-            // Bitfields must "live" in a field defined by a ffi type,
-            // so they're limited to about 8 bytes.
-            // This check is here to avoid overflow in later checks.
-            PyErr_Format(PyExc_ValueError,
-                         "bit field %R size too large, got %zd",
-                         name, byte_size);
+        if (byte_size > BITFIELD_BUFFER_SIZE) {
+            PyErr_Format(
+                PyExc_ValueError,
+                "bit field %R size too large, got %zd",
+                name, byte_size);
             goto error;
         }
         bitfield_size = PyLong_AsSsize_t(bit_size_obj);
         if ((bitfield_size <= 0) || (bitfield_size > 255)) {
             if (!PyErr_Occurred()) {
-                PyErr_Format(PyExc_ValueError,
-                             "bit size of field %R out of range, got %zd",
-                             name, bitfield_size);
+                PyErr_Format(
+                    PyExc_ValueError,
+                    "bit size of field %R out of range, got %zd",
+                    name, bitfield_size);
             }
             goto error;
         }
         bit_offset = PyLong_AsSsize_t(bit_offset_obj);
         if ((bit_offset < 0) || (bit_offset > 255)) {
             if (!PyErr_Occurred()) {
-                PyErr_Format(PyExc_ValueError,
-                             "bit offset of field %R out of range, got %zd",
-                             name, bit_offset);
+                PyErr_Format(
+                    PyExc_ValueError,
+                    "bit offset of field %R out of range, got %zd",
+                    name, bit_offset);
             }
             goto error;
         }
@@ -247,13 +241,7 @@ _pack_legacy_size(CFieldObject *field)
     return field->byte_size;
 }
 
-#define BITFIELD_BUFFER_SIZE 8
-
-static uint8_t
-_noswap8(uint8_t v)
-{
-    return v;
-}
+static uint8_t _noswap8(uint8_t v) { return v; }
 
 void
 _write_bitfield(void *target, void *buf, CFieldObject *self, uint16_t flags)
