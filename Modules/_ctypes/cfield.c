@@ -801,8 +801,6 @@ d_get(void *ptr, Py_ssize_t size)
     return PyFloat_FromDouble(val);
 }
 
-#if defined(_Py_FFI_SUPPORT_C_COMPLEX)
-
 /* We don't use _Complex types here, using arrays instead, as the C11+
    standard says: "Each complex type has the same representation and alignment
    requirements as an array type containing exactly two elements of the
@@ -883,7 +881,6 @@ G_get(void *ptr, Py_ssize_t size)
     memcpy(&x, ptr, sizeof(x));
     return PyComplex_FromDoubles((double)x[0], (double)x[1]);
 }
-#endif
 
 /* d: double */
 static PyObject *
@@ -1663,7 +1660,13 @@ for base_code, base_c_type in [
         TABLE_ENTRY(F, &ffi_type_complex_float);
         TABLE_ENTRY(G, &ffi_type_complex_longdouble);
     }
+    else
 #endif
+    {
+        TABLE_ENTRY(D, NULL);
+        TABLE_ENTRY(F, NULL);
+        TABLE_ENTRY(G, NULL);
+    }
     TABLE_ENTRY(g, &ffi_type_longdouble);
     TABLE_ENTRY_SW(f, &ffi_type_float);
     TABLE_ENTRY(v, &ffi_type_sshort);    /* vBOOL */
