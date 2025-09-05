@@ -1791,9 +1791,3 @@ for code in 'sbBcdDFGgfhHiIlLqQPzuUZXvO':
     assert(result->getfunc);
     return result;
 }
-
-/*
-  Ideas: Implement VARIANT in this table, using 'V' code.
-*/
-
-/*---------------- EOF ----------------*/
