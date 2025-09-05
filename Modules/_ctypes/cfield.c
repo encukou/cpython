@@ -51,8 +51,6 @@ class _ctypes.CField "PyObject *" "PyObject"
 
 static inline
 Py_ssize_t NUM_BITS(Py_ssize_t bitsize);
-static inline
-Py_ssize_t LOW_BIT(Py_ssize_t offset);
 
 // Bitfields must "live" in a field defined by a ffi type,
 // so they're limited to about 8 bytes.
@@ -620,10 +618,6 @@ PyType_Spec cfield_spec = {
 
 /* how to decode the size field, for integer get/set functions */
 static inline
-Py_ssize_t LOW_BIT(Py_ssize_t offset) {
-    return offset & 0xFFFF;
-}
-static inline
 Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
     return bitsize >> 16;
 }
@@ -657,15 +651,6 @@ void inplace_byteswap(void *ptr, Py_ssize_t size)
         *end = byte;
     }
 }
-
-/* Doesn't work if NUM_BITS(size) == 0, but it never happens in SET() call. */
-#define BIT_MASK(type, size) (((((type)1 << (NUM_BITS(size) - 1)) - 1) << 1) + 1)
-
-/* This macro RETURNS the first parameter with the bit field CHANGED. */
-#define SET(type, x, v, size)                                                 \
-    (NUM_BITS(size) ?                                                   \
-     ( ( (type)(x) & ~(BIT_MASK(type, size) << LOW_BIT(size)) ) | ( ((type)(v) & BIT_MASK(type, size)) << LOW_BIT(size) ) ) \
-     : (type)(v))
 
 /*****************************************************************
  * The setter methods return an object which must be kept alive, to keep the
