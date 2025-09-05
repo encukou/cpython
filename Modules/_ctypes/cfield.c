@@ -1266,11 +1266,9 @@ Z_set(void *ptr, PyObject *value, Py_ssize_t size)
         return Py_NewRef(value);
     }
     if (PyLong_Check(value)) {
-#if SIZEOF_VOID_P == SIZEOF_LONG_LONG
-        *(wchar_t **)ptr = (wchar_t *)PyLong_AsUnsignedLongLongMask(value);
-#else
-        *(wchar_t **)ptr = (wchar_t *)PyLong_AsUnsignedLongMask(value);
-#endif
+        if (PyLong_AsNativeBytes(value, ptr, sizeof(void*), -1) < 0) {
+            return NULL;
+        }
         Py_RETURN_NONE;
     }
     if (!PyUnicode_Check(value)) {
