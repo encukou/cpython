@@ -45,9 +45,9 @@ static PyObject *U_set(void *ptr, PyObject *value, Py_ssize_t length);
   PyCField_Type
 */
 /*[clinic input]
-class _ctypes.CField "PyObject *" "PyObject"
+class _ctypes.CField "CFieldObject *" "CFieldObject"
 [clinic start generated code]*/
-/*[clinic end generated code: output=da39a3ee5e6b4b0d input=602817ea3ffc709c]*/
+/*[clinic end generated code: output=da39a3ee5e6b4b0d input=bd17061b3e4271e1]*/
 
 static inline
 Py_ssize_t NUM_BITS(Py_ssize_t bitsize);
@@ -228,6 +228,59 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
 error:
     Py_XDECREF(self);
     return NULL;
+}
+
+/*[clinic input]
+_ctypes.CField._replace
+
+    self: self(type="CFieldObject *")
+    defining_class: defining_class
+
+    # These arguments are positional, for internal convenience:
+    byte_offset: Py_ssize_t( \
+        c_default="_CFieldObject_CAST(self)->byte_offset") = unchanged
+    index: Py_ssize_t( \
+        c_default="_CFieldObject_CAST(self)->index") = unchanged
+
+    *
+    name: object( \
+        subclass_of='&PyUnicode_Type', \
+        c_default="_CFieldObject_CAST(self)->name") = unchanged
+    type as proto: object(c_default="NULL") = unchanged
+    byte_size: Py_ssize_t( \
+        c_default="_CFieldObject_CAST(self)->byte_size") = unchanged
+    bit_size: Py_ssize_t( \
+        allow_negative=False, accept={int, NoneType}, \
+        c_default="""_CFieldObject_CAST(self)->bitfield_size ? \
+                     _CFieldObject_CAST(self)->bitfield_size : -1""") = None
+    bit_offset: Py_ssize_t( \
+        allow_negative=False, accept={int, NoneType}, \
+        c_default="""_CFieldObject_CAST(self)->bitfield_size ? \
+                     _CFieldObject_CAST(self)->bit_offset : -1""") = None
+
+Create a copy of this field with the given attributes modified.
+[clinic start generated code]*/
+
+static PyObject *
+_ctypes_CField__replace_impl(CFieldObject *self,
+                             PyTypeObject *defining_class,
+                             Py_ssize_t byte_offset, Py_ssize_t index,
+                             PyObject *name, PyObject *proto,
+                             Py_ssize_t byte_size, Py_ssize_t bit_size,
+                             Py_ssize_t bit_offset)
+/*[clinic end generated code: output=ce778c6443200215 input=2049a8a528fdbf02]*/
+{
+    PyObject *new_obj = PyCField_new_impl(
+        defining_class, name,
+        proto ? proto : self->proto,
+        byte_size, byte_offset, index, 1, bit_size, bit_offset);
+    CFieldObject *new_field = _CFieldObject_CAST(new_obj);
+    new_field->anonymous = self->anonymous;
+    if (!proto) {
+        new_field->getfunc = self->getfunc;
+        new_field->setfunc = self->setfunc;
+    }
+    return new_obj;
 }
 
 static inline Py_ssize_t
@@ -601,6 +654,10 @@ static PyType_Slot cfield_slots[] = {
     {Py_tp_members, PyCField_members},
     {Py_tp_descr_get, PyCField_get},
     {Py_tp_descr_set, PyCField_set},
+    {Py_tp_methods, (PyMethodDef[]){
+        _CTYPES_CFIELD__REPLACE_METHODDEF
+        {0},
+    }},
     {0, NULL},
 };
 

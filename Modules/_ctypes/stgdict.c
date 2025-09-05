@@ -127,23 +127,16 @@ MakeFields(PyObject *type, CFieldObject *descr,
             }
             continue;
         }
-        new_descr = (CFieldObject *)cfield_tp->tp_alloc(cfield_tp, 0);
+        new_descr = (CFieldObject *)PyObject_CallMethod(
+            (PyObject*)fdescr, "_replace", "nn",
+            fdescr->byte_offset + offset,
+            fdescr->index + index);
         if (new_descr == NULL) {
             Py_DECREF(fdescr);
             Py_DECREF(fieldlist);
             return -1;
         }
         assert(Py_IS_TYPE(new_descr, cfield_tp));
-        new_descr->byte_size = fdescr->byte_size;
-        new_descr->byte_offset = fdescr->byte_offset + offset;
-        new_descr->bitfield_size = fdescr->bitfield_size;
-        new_descr->bit_offset = fdescr->bit_offset;
-        new_descr->index = fdescr->index + index;
-        new_descr->proto = Py_XNewRef(fdescr->proto);
-        new_descr->getfunc = fdescr->getfunc;
-        new_descr->setfunc = fdescr->setfunc;
-        new_descr->name = Py_NewRef(fdescr->name);
-        new_descr->anonymous = fdescr->anonymous;
 
         Py_DECREF(fdescr);
 
