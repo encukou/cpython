@@ -637,7 +637,7 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
  */
 
 #ifdef _CTYPES_DEBUG_KEEP
-#define _RET(x) Py_INCREF(x); return x
+#define _RET(x) return Py_XNewRef(x);
 #else
 #define _RET(X) Py_RETURN_NONE
 #endif
@@ -718,16 +718,12 @@ static PyObject *
 v_set(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(size == sizeof(short int));
-    switch (PyObject_IsTrue(value)) {
-    case -1:
+    int is_true = PyObject_IsTrue(value);
+    if (is_true < 0) {
         return NULL;
-    case 0:
-        *(short int *)ptr = VARIANT_FALSE;
-        _RET(value);
-    default:
-        *(short int *)ptr = VARIANT_TRUE;
-        _RET(value);
     }
+    *(short int *)ptr = is_true ? VARIANT_TRUE : VARIANT_FALSE;
+    _RET(value);
 }
 
 static PyObject *
@@ -742,16 +738,12 @@ static PyObject *
 bool_set(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(size == sizeof(bool));
-    switch (PyObject_IsTrue(value)) {
-    case -1:
+    int is_true = PyObject_IsTrue(value);
+    if (is_true < 0) {
         return NULL;
-    case 0:
-        *(bool *)ptr = 0;
-        _RET(value);
-    default:
-        *(bool *)ptr = 1;
-        _RET(value);
     }
+    *(bool *)ptr = is_true ? 1 : 0;
+    _RET(value);
 }
 
 static PyObject *
@@ -769,8 +761,9 @@ g_set(void *ptr, PyObject *value, Py_ssize_t size)
     long double x;
 
     x = PyFloat_AsDouble(value);
-    if (x == -1 && PyErr_Occurred())
+    if (x == -1 && PyErr_Occurred()) {
         return NULL;
+    }
     memcpy(ptr, &x, sizeof(long double));
     _RET(value);
 }
@@ -792,8 +785,9 @@ d_set(void *ptr, PyObject *value, Py_ssize_t size)
     double x;
 
     x = PyFloat_AsDouble(value);
-    if (x == -1 && PyErr_Occurred())
+    if (x == -1 && PyErr_Occurred()) {
         return NULL;
+    }
     memcpy(ptr, &x, sizeof(double));
     _RET(value);
 }
@@ -930,8 +924,9 @@ f_set(void *ptr, PyObject *value, Py_ssize_t size)
     float x;
 
     x = (float)PyFloat_AsDouble(value);
-    if (x == -1 && PyErr_Occurred())
+    if (x == -1 && PyErr_Occurred()) {
         return NULL;
+    }
     memcpy(ptr, &x, sizeof(x));
     _RET(value);
 }
@@ -952,8 +947,9 @@ f_set_sw(void *ptr, PyObject *value, Py_ssize_t size)
     float x;
 
     x = (float)PyFloat_AsDouble(value);
-    if (x == -1 && PyErr_Occurred())
+    if (x == -1 && PyErr_Occurred()) {
         return NULL;
+    }
 #ifdef WORDS_BIGENDIAN
     if (PyFloat_Pack4(x, ptr, 1))
         return NULL;
@@ -992,10 +988,11 @@ O_get(void *ptr, Py_ssize_t size)
     assert(size == sizeof(PyObject *));
     PyObject *ob = *(PyObject **)ptr;
     if (ob == NULL) {
-        if (!PyErr_Occurred())
+        if (!PyErr_Occurred()) {
             /* Set an error if not yet set */
             PyErr_SetString(PyExc_ValueError,
                             "PyObject is NULL");
+        }
         return NULL;
     }
     return Py_NewRef(ob);
@@ -1226,14 +1223,16 @@ z_set(void *ptr, PyObject *value, Py_ssize_t size)
         return Py_NewRef(value);
     }
     if (PyBytes_Check(value)) {
-        *(const char **)ptr = PyBytes_AsString(value);
+        void *value_ptr = PyBytes_AsString(value);
+        if (!value_ptr) {
+            return NULL;
+        }
+        *(void **)ptr = value_ptr;
         return Py_NewRef(value);
     } else if (PyLong_Check(value)) {
-#if SIZEOF_VOID_P == SIZEOF_LONG_LONG
-        *(char **)ptr = (char *)PyLong_AsUnsignedLongLongMask(value);
-#else
-        *(char **)ptr = (char *)PyLong_AsUnsignedLongMask(value);
-#endif
+        if (PyLong_AsNativeBytes(value, ptr, sizeof(void*), -1) < 0) {
+            return NULL;
+        }
         _RET(value);
     }
     PyErr_Format(PyExc_TypeError,
@@ -1375,31 +1374,14 @@ static PyObject *
 P_set(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(size == sizeof(void *));
-    void *v;
     if (value == Py_None) {
         *(void **)ptr = NULL;
         _RET(value);
     }
 
-    if (!PyLong_Check(value)) {
-        PyErr_SetString(PyExc_TypeError,
-                        "cannot be converted to pointer");
+    if (PyLong_AsNativeBytes(value, ptr, sizeof(void*), -1) < 0) {
         return NULL;
     }
-
-#if SIZEOF_VOID_P <= SIZEOF_LONG
-    v = (void *)PyLong_AsUnsignedLongMask(value);
-#else
-#if SIZEOF_LONG_LONG < SIZEOF_VOID_P
-#   error "PyLong_AsVoidPtr: sizeof(long long) < sizeof(void*)"
-#endif
-    v = (void *)PyLong_AsUnsignedLongLongMask(value);
-#endif
-
-    if (PyErr_Occurred())
-        return NULL;
-
-    *(void **)ptr = v;
     _RET(value);
 }
 
