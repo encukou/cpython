@@ -12,8 +12,8 @@ preserve
 static PyObject *
 PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                   Py_ssize_t byte_size, Py_ssize_t byte_offset,
-                  Py_ssize_t index, int _internal_use,
-                  PyObject *bit_size_obj, PyObject *bit_offset_obj);
+                  Py_ssize_t index, int _internal_use, Py_ssize_t bit_size,
+                  Py_ssize_t bit_offset);
 
 static PyObject *
 PyCField_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
@@ -56,8 +56,8 @@ PyCField_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     Py_ssize_t byte_offset;
     Py_ssize_t index;
     int _internal_use;
-    PyObject *bit_size_obj = Py_None;
-    PyObject *bit_offset_obj = Py_None;
+    Py_ssize_t bit_size = -1;
+    Py_ssize_t bit_offset = -1;
 
     fastargs = _PyArg_UnpackKeywords(_PyTuple_CAST(args)->ob_item, nargs, kwargs, NULL, &_parser,
             /*minpos*/ 0, /*maxpos*/ 0, /*minkw*/ 6, /*varpos*/ 0, argsbuf);
@@ -114,16 +114,20 @@ PyCField_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         goto skip_optional_kwonly;
     }
     if (fastargs[6]) {
-        bit_size_obj = fastargs[6];
+        if (!_Py_convert_optional_to_non_negative_ssize_t(fastargs[6], &bit_size)) {
+            goto exit;
+        }
         if (!--noptargs) {
             goto skip_optional_kwonly;
         }
     }
-    bit_offset_obj = fastargs[7];
+    if (!_Py_convert_optional_to_non_negative_ssize_t(fastargs[7], &bit_offset)) {
+        goto exit;
+    }
 skip_optional_kwonly:
-    return_value = PyCField_new_impl(type, name, proto, byte_size, byte_offset, index, _internal_use, bit_size_obj, bit_offset_obj);
+    return_value = PyCField_new_impl(type, name, proto, byte_size, byte_offset, index, _internal_use, bit_size, bit_offset);
 
 exit:
     return return_value;
 }
-/*[clinic end generated code: output=7eb1621e22ea2e05 input=a9049054013a1b77]*/
+/*[clinic end generated code: output=b396ae8791f796a7 input=a9049054013a1b77]*/

@@ -68,17 +68,19 @@ _ctypes.CField.__new__ as PyCField_new
     byte_offset: Py_ssize_t
     index: Py_ssize_t
     _internal_use: bool
-    bit_size as bit_size_obj: object = None
-    bit_offset as bit_offset_obj: object = None
+    bit_size: Py_ssize_t( \
+        allow_negative=False, c_default="-1", accept={int, NoneType}) = None
+    bit_offset: Py_ssize_t( \
+        allow_negative=False, c_default="-1", accept={int, NoneType}) = None
 
 [clinic start generated code]*/
 
 static PyObject *
 PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                   Py_ssize_t byte_size, Py_ssize_t byte_offset,
-                  Py_ssize_t index, int _internal_use,
-                  PyObject *bit_size_obj, PyObject *bit_offset_obj)
-/*[clinic end generated code: output=3f2885ee4108b6e2 input=b343436e33c0d782]*/
+                  Py_ssize_t index, int _internal_use, Py_ssize_t bit_size,
+                  Py_ssize_t bit_offset)
+/*[clinic end generated code: output=49e0c3231de452d9 input=f06ad6e625a46b2e]*/
 {
     CFieldObject* self = NULL;
 
@@ -112,10 +114,20 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
         goto error;
     }
 
-    Py_ssize_t bitfield_size = 0;
-    Py_ssize_t bit_offset = 0;
-    if (bit_size_obj != Py_None) {
+    Py_ssize_t bitfield_size;
+    if (bit_size < 0) {
+        if (bit_offset >= 0) {
+            PyErr_Format(
+                PyExc_ValueError,
+                "field %R: bit_offset must be specified if bit_size is",
+                name);
+            goto error;
+        }
+        bitfield_size = bit_offset = 0;
+    }
+    else {
         // It's a bit field!
+        bitfield_size = bit_size;
         if (
             !(info->flags & TYPEFLAG_IS_INTEGER)
             || info->getfunc == c_get
@@ -135,7 +147,6 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                 name, byte_size);
             goto error;
         }
-        bitfield_size = PyLong_AsSsize_t(bit_size_obj);
         if ((bitfield_size <= 0) || (bitfield_size > 255)) {
             if (!PyErr_Occurred()) {
                 PyErr_Format(
@@ -145,7 +156,6 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
             }
             goto error;
         }
-        bit_offset = PyLong_AsSsize_t(bit_offset_obj);
         if ((bit_offset < 0) || (bit_offset > 255)) {
             if (!PyErr_Occurred()) {
                 PyErr_Format(
@@ -160,15 +170,6 @@ PyCField_new_impl(PyTypeObject *type, PyObject *name, PyObject *proto,
                 PyExc_ValueError,
                 "bit field %R overflows its type (%zd + %zd >= %zd)",
                 name, bit_offset, byte_size*8);
-            goto error;
-        }
-    }
-    else {
-        if (bit_offset_obj != Py_None) {
-            PyErr_Format(
-                PyExc_ValueError,
-                "field %R: bit_offset must be specified if bit_size is",
-                name);
             goto error;
         }
     }
