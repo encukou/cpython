@@ -909,6 +909,7 @@ static PyObject *
 d_get_sw(void *ptr, Py_ssize_t size)
 {
     assert(size == sizeof(double));
+    assert(size == 8);
 #ifdef WORDS_BIGENDIAN
     return PyFloat_FromDouble(PyFloat_Unpack8(ptr, 1));
 #else
@@ -944,6 +945,7 @@ static PyObject *
 f_set_sw(void *ptr, PyObject *value, Py_ssize_t size)
 {
     assert(size == sizeof(float));
+    assert(size == 4);
     float x;
 
     x = (float)PyFloat_AsDouble(value);
