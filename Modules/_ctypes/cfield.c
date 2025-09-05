@@ -403,9 +403,31 @@ _extract_bitfield(void *buf, CFieldObject *self, uint16_t flags)
 }
 
 static PyObject *
+PyCField_get_lock_held(ctypes_state *st, CFieldObject *self, PyObject *inst)
+{
+    CDataObject *src = _CDataObject_CAST(inst);
+    void *ptr = src->b_ptr + self->byte_offset;
+    _Alignas(max_align_t) char _buf[BITFIELD_BUFFER_SIZE] = {0};
+    if (self->bitfield_size) {
+        assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
+        StgInfo *info;
+        if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
+            return NULL;
+        }
+        else {
+            memcpy(_buf, ptr, self->byte_size);
+            _extract_bitfield(_buf, self, info->flags);
+            ptr = _buf;
+        }
+    }
+
+    return PyCData_get(st, self->proto, self->getfunc, inst,
+                       self->index, self->byte_size, ptr);
+}
+
+static PyObject *
 PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
 {
-    CDataObject *src;
     CFieldObject *self = _CFieldObject_CAST(op);
     if (inst == NULL) {
         return Py_NewRef(self);
@@ -416,34 +438,12 @@ PyCField_get(PyObject *op, PyObject *inst, PyObject *type)
                         "not a ctype instance");
         return NULL;
     }
-    src = _CDataObject_CAST(inst);
-    PyObject *res;
 
+    PyObject *result;
     Py_BEGIN_CRITICAL_SECTION(inst);
-    void *ptr = src->b_ptr + self->byte_offset;
-    _Alignas(max_align_t) char _buf[BITFIELD_BUFFER_SIZE] = {0};
-    if (self->bitfield_size) {
-        assert(self->byte_size <= BITFIELD_BUFFER_SIZE);
-        StgInfo *info;
-        if (PyStgInfo_FromType(st, self->proto, &info) < 0) {
-            ptr = NULL;
-        }
-        else {
-            memcpy(_buf, ptr, self->byte_size);
-            _extract_bitfield(_buf, self, info->flags);
-            ptr = _buf;
-        }
-    }
-
-    if (ptr) {
-        res = PyCData_get(st, self->proto, self->getfunc, inst,
-                          self->index, self->byte_size, ptr);
-    }
-    else {
-        res = NULL;
-    }
+    result = PyCField_get_lock_held(st, self, inst);
     Py_END_CRITICAL_SECTION();
-    return res;
+    return result;
 }
 
 #undef BITFIELD_BUFFER_SIZE
