@@ -622,36 +622,6 @@ Py_ssize_t NUM_BITS(Py_ssize_t bitsize) {
     return bitsize >> 16;
 }
 
-static inline
-void inplace_byteswap(void *ptr, Py_ssize_t size)
-{
-    switch (size) {
-        case 1:
-            return;
-        case 2: {
-            uint16_t *p = ptr;
-            *p = _Py_bswap16(*p);
-            return;
-        }
-        case 4: {
-            uint32_t *p = ptr;
-            *p = _Py_bswap32(*p);
-            return;
-        }
-        case 8: {
-            uint64_t *p = ptr;
-            *p = _Py_bswap64(*p);
-            return;
-        }
-    }
-    char *p = ptr;
-    for (char *end = p + size - 1; p < end; p++, end--) {
-        char byte = *p;
-        *p = *end;
-        *end = byte;
-    }
-}
-
 /*****************************************************************
  * The setter methods return an object which must be kept alive, to keep the
  * data valid which has been stored in the memory block.  The ctypes object
@@ -709,22 +679,14 @@ static PyObject *
 fixint_get_signed_sw(void *ptr, Py_ssize_t size)
 {
     assert(!NUM_BITS(size));
-    assert(size <= 8);
-    char buf[8];
-    memcpy(buf, ptr, size);
-    inplace_byteswap(buf, size);
-    return PyLong_FromNativeBytes(buf, size, -1);
+    return PyLong_FromNativeBytes(ptr, size, SWAPPED_FLAG);
 }
 
 static PyObject *
 fixint_get_unsigned_sw(void *ptr, Py_ssize_t size)
 {
     assert(!NUM_BITS(size));
-    assert(size <= 8);
-    char buf[8];
-    memcpy(buf, ptr, size);
-    inplace_byteswap(buf, size);
-    return PyLong_FromUnsignedNativeBytes(buf, size, -1);
+    return PyLong_FromUnsignedNativeBytes(ptr, size, SWAPPED_FLAG);
 }
 
 static PyObject *
