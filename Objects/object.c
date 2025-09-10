@@ -3350,24 +3350,6 @@ Py_GetConstantBorrowed(unsigned int constant_id)
     return Py_GetConstant(constant_id);
 }
 
-
-// Py_TYPE() implementation for the stable ABI
-#undef Py_TYPE
-PyTypeObject*
-Py_TYPE(PyObject *ob)
-{
-    return _Py_TYPE(ob);
-}
-
-
-// Py_REFCNT() implementation for the stable ABI
-#undef Py_REFCNT
-Py_ssize_t
-Py_REFCNT(PyObject *ob)
-{
-    return _Py_REFCNT(ob);
-}
-
 int
 PyUnstable_IsImmortal(PyObject *op)
 {
@@ -3394,3 +3376,18 @@ _PyObject_VisitType(PyObject *op, visitproc visit, void *arg)
     Py_VISIT(tp);
     return 0;
 }
+
+// Implementations for the stable ABI
+// Keep these at the end.
+#undef Py_TYPE
+#undef Py_REFCNT
+#undef Py_SIZE
+#undef Py_IS_TYPE
+#undef Py_SET_TYPE
+#undef Py_SET_SIZE
+PyTypeObject* Py_TYPE(PyObject *ob) { return _Py_TYPE(ob); }
+Py_ssize_t Py_REFCNT(PyObject *ob) { return _Py_REFCNT(ob); }
+Py_ssize_t Py_SIZE(PyObject *o) { return _Py_SIZE_impl(o); }
+int Py_IS_TYPE(PyObject *o, PyTypeObject *t) { return _Py_IS_TYPE_impl(o, t); }
+void Py_SET_TYPE(PyObject *o, PyTypeObject *t) { _Py_SET_TYPE_impl(o, t); }
+void Py_SET_SIZE(PyVarObject *o, Py_ssize_t s) { _Py_SET_SIZE_impl(o, s); }
