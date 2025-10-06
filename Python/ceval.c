@@ -438,6 +438,49 @@ int pthread_attr_destroy(pthread_attr_t *a)
 
 #endif
 
+static void
+set_c_stack_limits(PyThreadState *tstate, uintptr_t top, uintptr_t bottom)
+{
+    _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+    _tstate->c_stack_top = top;
+    _tstate->c_stack_hard_limit = bottom;
+    _tstate->c_stack_soft_limit = bottom + _PyOS_STACK_MARGIN_BYTES;
+}
+
+int
+PyUnstable_SetStackLimits(void *_top, void *_bottom)
+{
+    uintptr_t top = (uintptr_t)_top;
+    uintptr_t bottom = (uintptr_t)_bottom;
+    PyThreadState *tstate = _PyThreadState_GET();
+    if (top == 0) {
+        _PyErr_Format(
+            tstate, PyExc_SystemError,
+            "PyUnstable_SetStackLimits: top must not be NULL");
+        return -1;
+    }
+    if (bottom == 0) {
+        _PyErr_Format(
+            tstate, PyExc_SystemError,
+            "PyUnstable_SetStackLimits: bottom must not be NULL");
+    }
+    if (top > bottom) {
+        _PyErr_Format(tstate, PyExc_SystemError,
+                      "PyUnstable_SetStackLimits: Negative stack size");
+        return -1;
+    }
+    if (top - bottom < _PyOS_STACK_MARGIN_BYTES * 3) {
+        _PyErr_Format(
+            tstate, PyExc_SystemError,
+            "PyUnstable_SetStackLimits: Stack too small (%zu bytes, need %zu)",
+            top - bottom,
+            _PyOS_STACK_MARGIN_BYTES * 3);
+        return -1;
+    }
+    set_c_stack_limits(tstate, (uintptr_t)top, (uintptr_t)bottom);
+    return 0;
+}
+
 
 void
 _Py_InitializeRecursionLimits(PyThreadState *tstate)
@@ -449,15 +492,18 @@ _Py_InitializeRecursionLimits(PyThreadState *tstate)
     _tstate->c_stack_top = (uintptr_t)high;
     ULONG guarantee = 0;
     SetThreadStackGuarantee(&guarantee);
-    _tstate->c_stack_hard_limit = ((uintptr_t)low) + guarantee + _PyOS_STACK_MARGIN_BYTES;
-    _tstate->c_stack_soft_limit = _tstate->c_stack_hard_limit + _PyOS_STACK_MARGIN_BYTES;
+    set_c_stack_limits(
+        tstate,
+        (uintptr_t)high,
+        ((uintptr_t)low) + guarantee + _PyOS_STACK_MARGIN_BYTES);
 #elif defined(__APPLE__)
     pthread_t this_thread = pthread_self();
     void *stack_addr = pthread_get_stackaddr_np(this_thread); // top of the stack
     size_t stack_size = pthread_get_stacksize_np(this_thread);
-    _tstate->c_stack_top = (uintptr_t)stack_addr;
-    _tstate->c_stack_hard_limit = _tstate->c_stack_top - stack_size;
-    _tstate->c_stack_soft_limit = _tstate->c_stack_hard_limit + _PyOS_STACK_MARGIN_BYTES;
+    set_c_stack_limits(
+        tstate,
+        (uintptr_t)stack_addr,
+        (uintptr_t)stack_addr - stack_size);
 #else
     uintptr_t here_addr = _Py_get_machine_stack_pointer();
 /// XXX musl supports HAVE_PTHRED_GETATTR_NP, but the resulting stack size
@@ -476,22 +522,24 @@ _Py_InitializeRecursionLimits(PyThreadState *tstate)
     }
     if (err == 0) {
         uintptr_t base = ((uintptr_t)stack_addr) + guard_size;
-        _tstate->c_stack_top = base + stack_size;
+        set_c_stack_limits(
+            tstate,
+            base + stack_size,
+            base + _PyOS_STACK_MARGIN_BYTES);
 #ifdef _Py_THREAD_SANITIZER
         // Thread sanitizer crashes if we use a bit more than half the stack.
         _tstate->c_stack_soft_limit = base + (stack_size / 2);
-#else
-        _tstate->c_stack_soft_limit = base + _PyOS_STACK_MARGIN_BYTES * 2;
 #endif
-        _tstate->c_stack_hard_limit = base + _PyOS_STACK_MARGIN_BYTES;
         assert(_tstate->c_stack_soft_limit < here_addr);
         assert(here_addr < _tstate->c_stack_top);
         return;
     }
 #  endif
-    _tstate->c_stack_top = _Py_SIZE_ROUND_UP(here_addr, 4096);
-    _tstate->c_stack_soft_limit = _tstate->c_stack_top - Py_C_STACK_SIZE;
-    _tstate->c_stack_hard_limit = _tstate->c_stack_top - (Py_C_STACK_SIZE + _PyOS_STACK_MARGIN_BYTES);
+    uintptr_t top = _Py_SIZE_ROUND_UP(here_addr, 4096);
+    set_c_stack_limits(
+        tstate,
+        top,
+        top - (Py_C_STACK_SIZE + _PyOS_STACK_MARGIN_BYTES));
 #endif
 }
 
