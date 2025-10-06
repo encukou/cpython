@@ -438,26 +438,35 @@ int pthread_attr_destroy(pthread_attr_t *a)
 
 #endif
 
-
-void
-_Py_InitializeRecursionLimits(PyThreadState *tstate)
+/* Get values suitable for PyThreadState's c_stack_* fields.
+ * Set *is_stable_p to true if c_stack_top is the top of stack;
+ * false if we're using an approximation.
+ */
+static void
+init_recursion_limits(
+    uintptr_t *c_stack_top_p,
+    uintptr_t *c_stack_soft_limit_p,
+    uintptr_t *c_stack_hard_limit_p,
+    bool is_stable_p)
 {
     _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
 #ifdef WIN32
     ULONG_PTR low, high;
     GetCurrentThreadStackLimits(&low, &high);
-    _tstate->c_stack_top = (uintptr_t)high;
+    *c_stack_top_p = (uintptr_t)high;
     ULONG guarantee = 0;
     SetThreadStackGuarantee(&guarantee);
-    _tstate->c_stack_hard_limit = ((uintptr_t)low) + guarantee + _PyOS_STACK_MARGIN_BYTES;
-    _tstate->c_stack_soft_limit = _tstate->c_stack_hard_limit + _PyOS_STACK_MARGIN_BYTES;
+    *c_stack_hard_limit_p = ((uintptr_t)low) + guarantee + _PyOS_STACK_MARGIN_BYTES;
+    *c_stack_soft_limit_p = *c_stack_hard_limit_p + _PyOS_STACK_MARGIN_BYTES;
+    *is_stable_p = true;
 #elif defined(__APPLE__)
     pthread_t this_thread = pthread_self();
     void *stack_addr = pthread_get_stackaddr_np(this_thread); // top of the stack
     size_t stack_size = pthread_get_stacksize_np(this_thread);
-    _tstate->c_stack_top = (uintptr_t)stack_addr;
-    _tstate->c_stack_hard_limit = _tstate->c_stack_top - stack_size;
-    _tstate->c_stack_soft_limit = _tstate->c_stack_hard_limit + _PyOS_STACK_MARGIN_BYTES;
+    *c_stack_top_p = (uintptr_t)stack_addr;
+    *c_stack_hard_limit_p = *c_stack_top_p - stack_size;
+    *c_stack_soft_limit_p = *c_stack_hard_limit_p + _PyOS_STACK_MARGIN_BYTES;
+    *is_stable_p = true;
 #else
     uintptr_t here_addr = _Py_get_machine_stack_pointer();
 /// XXX musl supports HAVE_PTHRED_GETATTR_NP, but the resulting stack size
@@ -476,23 +485,56 @@ _Py_InitializeRecursionLimits(PyThreadState *tstate)
     }
     if (err == 0) {
         uintptr_t base = ((uintptr_t)stack_addr) + guard_size;
-        _tstate->c_stack_top = base + stack_size;
+        *c_stack_top_p = base + stack_size;
 #ifdef _Py_THREAD_SANITIZER
         // Thread sanitizer crashes if we use a bit more than half the stack.
-        _tstate->c_stack_soft_limit = base + (stack_size / 2);
+        *c_stack_soft_limit_p = base + (stack_size / 2);
 #else
-        _tstate->c_stack_soft_limit = base + _PyOS_STACK_MARGIN_BYTES * 2;
+        *c_stack_soft_limit_p = base + _PyOS_STACK_MARGIN_BYTES * 2;
 #endif
-        _tstate->c_stack_hard_limit = base + _PyOS_STACK_MARGIN_BYTES;
-        assert(_tstate->c_stack_soft_limit < here_addr);
-        assert(here_addr < _tstate->c_stack_top);
+        *c_stack_hard_limit_p = base + _PyOS_STACK_MARGIN_BYTES;
+        assert(*c_stack_soft_limit_p < here_addr);
+        assert(here_addr < *c_stack_top_p);
+        *is_stable_p = true;
         return;
     }
 #  endif
-    _tstate->c_stack_top = _Py_SIZE_ROUND_UP(here_addr, 4096);
-    _tstate->c_stack_soft_limit = _tstate->c_stack_top - Py_C_STACK_SIZE;
-    _tstate->c_stack_hard_limit = _tstate->c_stack_top - (Py_C_STACK_SIZE + _PyOS_STACK_MARGIN_BYTES);
+    *c_stack_top_p = _Py_SIZE_ROUND_UP(here_addr, 4096);
+    *c_stack_soft_limit_p = *c_stack_top_p - Py_C_STACK_SIZE;
+    *c_stack_hard_limit_p = *c_stack_top_p - (Py_C_STACK_SIZE + _PyOS_STACK_MARGIN_BYTES);
+    *is_stable_p = false;
 #endif
+}
+
+void
+_Py_InitializeRecursionLimits(PyThreadState *tstate)
+{
+    _PyThreadStateImpl *_tstate = (_PyThreadStateImpl *)tstate;
+    bool _is_stable;
+    init_recursion_limits(
+        &_tstate->c_stack_top,
+        &_tstate->c_stack_soft_limit,
+        &_tstate->c_stack_hard_limit,
+        &_is_stable);
+}
+
+/* Return true if the stack changed */
+static bool
+stack_changed(_PyThreadStateImpl *_tstate)
+{
+    uintptr_t stack_top, soft_limit, hard_limit;
+    bool is_stable;
+    init_recursion_limits(
+        &stack_top,
+        &stack_soft_limit,
+        &stack_hard_limit,
+        &is_stable);
+    if (is_stable) {
+        return stack_top == _tstate->c_stack_top;
+    }
+    //////////// TODO
+    uintptr_t extra_limit = _tstate->c_stack_hard_limit_p + Py_C_STACK_SIZE;
+
 }
 
 /* The function _Py_EnterRecursiveCallTstate() only calls _Py_CheckRecursiveCall()
@@ -504,7 +546,7 @@ _Py_CheckRecursiveCall(PyThreadState *tstate, const char *where)
     uintptr_t here_addr = _Py_get_machine_stack_pointer();
     assert(_tstate->c_stack_soft_limit != 0);
     assert(_tstate->c_stack_hard_limit != 0);
-    if (here_addr < _tstate->c_stack_hard_limit) {
+    if (here_addr < _tstate->c_stack_hard_limit && !stack_changed(_tstate)) {
         /* Overflowing while handling an overflow. Give up. */
         int kbytes_used = (int)(_tstate->c_stack_top - here_addr)/1024;
         char buffer[80];
