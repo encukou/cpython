@@ -81,21 +81,24 @@ struct PyModuleDef_Slot {
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
 #  define Py_mod_gil 4
 #endif
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
+#  define Py_mod_abi 5
+#endif
 
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 15)
-#define Py_mod_name 5
-#define Py_mod_doc 6
-#define Py_mod_state_size 7
-#define Py_mod_methods 8
-#define Py_mod_state_traverse 9
-#define Py_mod_state_clear 10
-#define Py_mod_state_free 11
-#define Py_mod_token 12
+#define Py_mod_name 6
+#define Py_mod_doc 7
+#define Py_mod_state_size 8
+#define Py_mod_methods 9
+#define Py_mod_state_traverse 10
+#define Py_mod_state_clear 11
+#define Py_mod_state_free 12
+#define Py_mod_token 13
 #endif
 
 
 #ifndef Py_LIMITED_API
-#define _Py_mod_LAST_SLOT 12
+#define _Py_mod_LAST_SLOT 13
 PyAPI_FUNC(int) _PyModule_GetGCHooks(
     PyObject *, traverseproc*, inquiry*, freefunc*);  // For testing
 #endif
