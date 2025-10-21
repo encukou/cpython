@@ -81,7 +81,7 @@ class object "PyObject *" "&PyBaseObject_Type"
 
 #define END_TYPE_DICT_LOCK() Py_END_CRITICAL_SECTION2()
 
-#ifdef Py_DEBUG
+#ifndef NDEBUG
 // Return true if the world is currently stopped.
 static bool
 types_world_is_stopped(void)
@@ -10581,6 +10581,7 @@ slot_tp_hash(PyObject *self)
         return PyObject_HashNotImplemented(self);
     }
     if (!PyLong_Check(res)) {
+        Py_DECREF(res);
         PyErr_SetString(PyExc_TypeError,
                         "__hash__ method should return an integer");
         return -1;
