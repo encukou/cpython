@@ -915,30 +915,53 @@ Attribute references
    pair: attribute; reference
    single: . (dot); attribute reference
 
-An attribute reference is a primary followed by a period and a name:
+An attribute reference is a primary followed by a period and an identifier.
+For example::
 
-.. productionlist:: python-grammar
-   attributeref: `primary` "." `identifier`
+   math.pi
+   'Hello'.upper
 
 .. index::
    pair: exception; AttributeError
    pair: object; module
    pair: object; list
 
-The primary must evaluate to an object of a type that supports attribute
-references, which most objects do.  This object is then asked to produce the
-attribute whose name is the identifier. The type and value produced is
-determined by the object.  Multiple evaluations of the same attribute
-reference may yield different objects.
+At runtime, the interpreter will evaluate the primary and ask the resulting
+object to produce the attribute whose name is the identifier.
 
-This production can be customized by overriding the
-:meth:`~object.__getattribute__` method or the :meth:`~object.__getattr__`
-method.  The :meth:`!__getattribute__` method is called first and either
-returns a value or raises :exc:`AttributeError` if the attribute is not
-available.
+It does this by first calling the :meth:`~object.__getattribute__`
+special method.
+The returned value is used as the result of the attribute reference.
 
-If an :exc:`AttributeError` is raised and the object has a :meth:`!__getattr__`
-method, that method is called as a fallback.
+The :meth:`!__getattribute__` method can indicate that the named attribute
+is not available by raising :exc:`AttributeError`.
+In this case the interpreter calls the :meth:`~object.__getattr__` special
+method as a fallback, if the primary has such a method.
+
+The type and value produced is determined by the object.
+Multiple evaluations of the same attribute reference may result in
+different objects.
+
+.. note::
+
+   The period is also used as part of numeric literal syntax.
+   For example, ``3.e0`` is a single :ref:`number <floating>`,
+   and ``3.some_text`` is treated as an invalid number token.
+   To access an attribute of an integer literal, you can avoid
+   invalid number tokens by using parentheses or a temporary name::
+
+      >>> (3).to_bytes()
+      b'\x03'
+
+      >>> three = 3
+      >>> three.to_bytes
+      b'\x03'
+
+The formal grammar for attribute references is:
+
+.. productionlist:: python-grammar
+   attributeref: `primary` "." `identifier`
+
 
 .. _subscriptions:
 
