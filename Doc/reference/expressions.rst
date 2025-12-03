@@ -889,10 +889,20 @@ Primaries
 
 .. index:: single: primary
 
-Primaries represent the most tightly bound operations of the language. Their
-syntax is:
+Primaries represent the most tightly bound operations of the language -- that
+is, operations with the highest precedence.
+There are four kinds of primaries:
 
-.. productionlist:: python-grammar
+* :ref:`atoms <atoms>`, such as ``'hello'`` or ``[1, 2, 3]``,
+* :ref:`attribute references <attribute-references>`, for example, ``math.pi``,
+* :ref:`subscriptions <subscriptions>`, like ``names[0]``, and
+* :ref:`calls <calls>`, e.g. ``print('hello')``.
+
+The formal syntax for primaries is:
+
+.. grammar-snippet::
+   :group: python-grammar
+
    primary: `atom` | `attributeref` | `subscription` | `call`
 
 
