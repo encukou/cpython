@@ -1076,7 +1076,7 @@ Calls
 A call calls a callable object (e.g., a :term:`function`) with a possibly empty
 series of :term:`arguments <argument>`:
 
-.. productionlist:: python-grammar
+.. productionlist:: old-python-grammar
    call: `primary` "(" [`argument_list` [","] | `comprehension`] ")"
    argument_list: `positional_arguments` ["," `starred_and_keywords`]
                 :   ["," `keywords_arguments`]
@@ -1089,6 +1089,26 @@ series of :term:`arguments <argument>`:
    keywords_arguments: (`keyword_item` | "**" `expression`)
                 : ("," `keyword_item` | "," "**" `expression`)*
    keyword_item: `identifier` "=" `expression`
+
+.. grammar-snippet::
+   :group: python-grammar
+
+   call:
+      | `primary` '(' [`arguments`] ')'
+      | `primary` `generator_expression`
+
+   arguments:
+      | `args` [',']
+   args:
+      | ','.(['*'] `expression` | `assignment_expression` )+ [',' `kwargs` ]
+      | `kwargs`
+   kwargs:
+      | ','.`kwarg_or_starred`+ [',' ','.`kwarg_or_double_starred`+]
+      | ','.`kwarg_or_double_starred`+
+
+   kwarg_or_starred:        `kwarg` | `starred_expression`
+   kwarg_or_double_starred: `kwarg` | '**' `expression`
+   kwarg:                   `NAME` '=' `expression`
 
 An optional trailing comma may be present after the positional and keyword arguments
 but does not affect the semantics.
