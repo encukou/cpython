@@ -915,7 +915,8 @@ Attribute references
    pair: attribute; reference
    single: . (dot); attribute reference
 
-An attribute reference is a primary followed by a period and an identifier.
+An attribute reference is a :ref:`primary <primaries>` followed by a dot
+(``.``) and an :ref:`identifier <identifiers>`.
 For example::
 
    math.pi
@@ -942,15 +943,31 @@ The type and value produced is determined by the object.
 Multiple evaluations of the same attribute reference may result in
 different objects.
 
+.. _int-attribute-reference:
+
 .. note::
 
-   The period is also used as part of numeric literal syntax.
-   For example, ``3.e0`` is a single :ref:`number <floating>`,
-   and ``3.some_text`` is treated as an invalid number token.
-   To access an attribute of an integer literal, you can avoid
-   invalid number tokens by using parentheses or a temporary name::
+   The dot is also used as part of :ref:`numeric literal syntax <numbers>`
+   as a decimal point.
+   For example, ``3.e2`` refers to the number ``300.0`` (3×10²),
+   rather than the attribute ``e2`` of the integer ``3``.
+
+   This means that trying to lookup an attribute on an ``int`` literal
+   in the normal manner gives a :exc:`SyntaxError`::
+
+      >>> 3.to_bytes
+        File "<python-input-1>", line 1
+          3.to_bytes
+           ^
+      SyntaxError: invalid decimal literal
+
+   To avoid the dot being treated as a decimal point, separate it from the
+   literal with a space or parentheses, or use a temporary name::
 
       >>> (3).to_bytes()
+      b'\x03'
+
+      >>> 3 .to_bytes()
       b'\x03'
 
       >>> three = 3

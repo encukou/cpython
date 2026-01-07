@@ -847,22 +847,7 @@ bite.
 How do I get int literal attribute instead of SyntaxError?
 ----------------------------------------------------------
 
-Trying to lookup an ``int`` literal attribute in the normal manner gives
-a :exc:`SyntaxError` because the period is seen as a decimal point::
-
-   >>> 1.__class__
-     File "<stdin>", line 1
-     1.__class__
-      ^
-   SyntaxError: invalid decimal literal
-
-The solution is to separate the literal from the period
-with either a space or parentheses.
-
-   >>> 1 .__class__
-   <class 'int'>
-   >>> (1).__class__
-   <class 'int'>
+See :ref:`attribute reference syntax documentation <int-attribute-reference>`.
 
 
 How do I convert a string to a number?

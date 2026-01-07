@@ -1581,6 +1581,6 @@ is also available in the :mod:`!token` module documentation.
    Some of Python's operators, like ``and``, ``or``, and ``not in``, use
    :ref:`keyword <keywords>` tokens rather than "symbols" (operator tokens).
 
-A sequence of three consecutive periods (``...``) has a special
+A sequence of three consecutive dots (``...``) has a special
 meaning as an :py:data:`Ellipsis` literal.
 
