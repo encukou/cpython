@@ -3,12 +3,14 @@ from pathlib import Path
 import sys
 import _colorize
 import textwrap
+import zlib
 
 SIMPLE_FUNCTION_REGEX = re.compile(r"PyAPI_FUNC(.+) (\w+)\(")
 SIMPLE_MACRO_REGEX = re.compile(r"# *define *(\w+)(\(.+\))? ")
 SIMPLE_INLINE_REGEX = re.compile(r"static inline .+( |\n)(\w+)")
 SIMPLE_DATA_REGEX = re.compile(r"PyAPI_DATA\(.+\) (\w+)")
 API_NAME_REGEX = re.compile(r'\bP[yY][a-zA-Z0-9_]+')
+SPHINX_INV_REGEX = re.compile(r'(?x)(.+?)\s+(\S+)\s+(-?\d+)\s+?(\S*)\s+(.*)')
 
 CPYTHON = Path(__file__).parent.parent.parent
 INCLUDE = CPYTHON / "Include"
@@ -137,14 +139,31 @@ def scan_file_for_docs(
 
     return undocumented, documented_ignored
 
+def gather_defs():
+    # The Intersphinx inventory contains all documented APIs in
+    # a more machine-readable format than the .rst sources.
+    # It's technically undocumented, but since it must be kept compatible
+    # with existing Sphinx deployments, it's unlikely to change.
+    # It contains a header followed by a zlib-compressed lines of
+    # space-separated values (embedded lines)
+    with open('Doc/build/html/objects.inv', 'rb') as inv_file:
+        line = inv_file.readline()
+        assert line == b'# Sphinx inventory version 2\n'
+        for _ in range(3):  # name, version, zlib-notice
+            inv_file.readline()
+        decompressor = zlib.decompressobj()
+        chunks = []
+        while data := inv_file.read(1024*8):
+            chunks.append(decompressor.decompress(data).decode())
+        for lineno, line in enumerate(''.join(chunks).splitlines()):
+            match = SPHINX_INV_REGEX.match(line)
+            name, domain, prio, location, dispname = match.groups()
+            if domain.startswith('c:'):
+                yield name
 
 def main() -> None:
-    print("Gathering C API names from docs...")
-    names = set()
-    for path in C_API_DOCS.glob('**/*.rst'):
-        text = path.read_text(encoding="utf-8")
-        for name in API_NAME_REGEX.findall(text):
-            names.add(name)
+    print("Gathering C API names from Sphinx inventory...")
+    names = set(gather_defs())
     print(f"Got {len(names)} names!")
 
     print("Scanning for undocumented C API functions...")
