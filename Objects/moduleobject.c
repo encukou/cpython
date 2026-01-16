@@ -425,8 +425,7 @@ module_from_def_and_spec(
         /////////////////////////////////////////////////////////////////
 
     _PySlotIterator it;
-    _PySlotIterator_InitWithKind(&it, def_like->m_slots,
-                                 _PySlot_KIND_MOD, _PySlot_KIND_MOD);
+    _PySlotIterator_InitLegacy(&it, def_like->m_slots, _PySlot_KIND_MOD);
     while (_PySlotIterator_Next(&it)) {
         switch (it.current.sl_id) {
             case Py_slot_invalid:
@@ -730,8 +729,7 @@ PyModule_ExecDef(PyObject *module, PyModuleDef *def)
     }
 
     _PySlotIterator it;
-    _PySlotIterator_InitWithKind(&it, def->m_slots,
-                                 _PySlot_KIND_MOD, _PySlot_KIND_MOD);
+    _PySlotIterator_InitLegacy(&it, def->m_slots, _PySlot_KIND_MOD);
     while (_PySlotIterator_Next(&it)) {
         switch (it.current.sl_id) {
             case Py_slot_invalid:
