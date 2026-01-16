@@ -106,6 +106,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
     MSG("next");
     assert(it);
     assert(!it->is_at_end);
+    assert(!PyErr_Occurred());
 
     it->current.sl_id = -1;
 
@@ -273,6 +274,7 @@ _PySlotIterator_Next(_PySlotIterator *it)
         advance(it);
         MSG("result: %d (%s)", (int)result->sl_id, it->info->name);
         assert (result->sl_id > 0);
+        assert (result->sl_id <= _Py_slot_COUNT);
         assert (result->sl_id <= INT_MAX);
         if (it->is_first_run && validate_current_slot(it) < 0) {
             goto error;
