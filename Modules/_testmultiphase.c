@@ -1022,11 +1022,11 @@ PyInit__test_no_multiple_interpreter_slot(void)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport(void)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport"},
-        {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-        {Py_mod_gil, Py_MOD_GIL_NOT_USED},
-        {0},
+    static PySlot slots[] = {
+        PySlot_DATA(Py_mod_name, "_test_from_modexport"),
+        PySlot_DATA(Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED),
+        PySlot_DATA(Py_mod_gil, Py_MOD_GIL_USED),
+        PySlot_END,
     };
     return slots;
 }
@@ -1034,11 +1034,11 @@ PyModExport__test_from_modexport(void)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport_gil_used(void)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_gil_used"},
-        {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-        {Py_mod_gil, Py_MOD_GIL_USED},
-        {0},
+    static PySlot slots[] = {
+        PySlot_DATA(Py_mod_name, "_test_from_modexport_gil_used"),
+        PySlot_DATA(Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED),
+        PySlot_DATA(Py_mod_gil, Py_MOD_GIL_USED),
+        PySlot_END,
     };
     return slots;
 }
@@ -1084,12 +1084,12 @@ modexport_create_string(PyObject *spec, PyModuleDef *def)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport_create_nonmodule(void)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_create_nonmodule"},
-        {Py_mod_create, modexport_create_string},
-        {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-        {Py_mod_gil, Py_MOD_GIL_NOT_USED},
-        {0},
+    static PySlot slots[] = {
+        PySlot_DATA(Py_mod_name, "_test_from_modexport_create_nonmodule"),
+        PySlot_FUNC(Py_mod_create, modexport_create_string),
+        PySlot_DATA(Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED),
+        PySlot_DATA(Py_mod_gil, Py_MOD_GIL_NOT_USED),
+        PySlot_END,
     };
     return slots;
 }
@@ -1097,18 +1097,18 @@ PyModExport__test_from_modexport_create_nonmodule(void)
 PyMODEXPORT_FUNC
 PyModExport__test_from_modexport_create_nonmodule_gil_used(void)
 {
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_create_nonmodule"},
-        {Py_mod_create, modexport_create_string},
-        {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-        {Py_mod_gil, Py_MOD_GIL_USED},
-        {0},
+    static PySlot slots[] = {
+        PySlot_DATA(Py_mod_name, "_test_from_modexport_create_nonmodule"),
+        PySlot_FUNC(Py_mod_create, modexport_create_string),
+        PySlot_DATA(Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED),
+        PySlot_DATA(Py_mod_gil, Py_MOD_GIL_USED),
+        PySlot_END,
     };
     return slots;
 }
 
-static PyModuleDef_Slot modexport_empty_slots[] = {
-    {0},
+static PySlot modexport_empty_slots[] = {
+    PySlot_END,
 };
 
 PyMODEXPORT_FUNC
@@ -1186,17 +1186,17 @@ PyModExport__test_from_modexport_smoke(void)
         {"get_modexport_empty_slots", modexport_get_empty_slots, METH_NOARGS},
         {0},
     };
-    static PyModuleDef_Slot slots[] = {
-        {Py_mod_name, "_test_from_modexport_smoke"},
-        {Py_mod_doc, "the expected docstring"},
-        {Py_mod_exec, modexport_smoke_exec},
-        {Py_mod_state_size, (void*)sizeof(int)},
-        {Py_mod_methods, methods},
-        {Py_mod_state_free, modexport_smoke_free},
-        {Py_mod_token, (void*)&modexport_smoke_test_token},
-        {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
-        {Py_mod_gil, Py_MOD_GIL_NOT_USED},
-        {0},
+    static PySlot slots[] = {
+        PySlot_DATA(Py_mod_name, "_test_from_modexport_smoke"),
+        PySlot_DATA(Py_mod_doc, "the expected docstring"),
+        PySlot_FUNC(Py_mod_exec, modexport_smoke_exec),
+        PySlot_SIZE(Py_mod_state_size, (void*)sizeof(int)),
+        PySlot_FUNC(Py_mod_methods, methods),
+        PySlot_FUNC(Py_mod_state_free, modexport_smoke_free),
+        PySlot_DATA(Py_mod_token, (void*)&modexport_smoke_test_token),
+        PySlot_DATA(Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED),
+        PySlot_DATA(Py_mod_gil, Py_MOD_GIL_NOT_USED),
+        PySlot_END,
     };
     return slots;
 }
