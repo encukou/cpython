@@ -5746,6 +5746,12 @@ type_from_slots(PySlot *slots, PyType_Spec *spec_for_token, PyObject *bases_arg)
 }
 
 PyObject *
+PyType_FromSlots(PySlot *slots)
+{
+    return type_from_slots(slots, NULL, NULL);
+}
+
+PyObject *
 PyType_FromMetaclass(
     PyTypeObject *metaclass, PyObject *module,
     PyType_Spec *spec, PyObject *bases)
