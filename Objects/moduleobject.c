@@ -447,6 +447,13 @@ module_from_slots_and_spec(
                             name);
                         goto error;
                     }
+                    if (!it.current.sl_func) {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "module %s: Py_mod_exec slot must not be NULL",
+                            name);
+                        goto error;
+                    }
                     COPY_COMMON_SLOT(_Py_modexecfunc, sl_func, m_exec);
                 }
                 break;
