@@ -415,6 +415,7 @@ module_from_slots_and_spec(
         def_like = original_def;
          _PySlotIterator_InitLegacy(&it, def_like->m_slots, _PySlot_KIND_MOD);
     }
+    it.name = name;
 
     // Macro to copy a non-NULL, non-repeatable slot that's unusable with
     // PyModuleDef. The destination must be initially NULL.
@@ -423,8 +424,8 @@ module_from_slots_and_spec(
             if (original_def) {                                         \
                 PyErr_Format(                                           \
                     PyExc_SystemError,                                  \
-                    "module %s: Py_%s used with PyModuleDef",           \
-                    name, it.info->name);                               \
+                    "module %s: %s used with PyModuleDef",              \
+                    name, _PySlot_GetName(it.current.sl_id));           \
                 goto error;                                             \
             }                                                           \
             DEST = (TYPE)(it.current.SL_MEMBER);                        \
