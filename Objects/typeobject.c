@@ -5816,7 +5816,7 @@ void *
 PyType_GetSlot(PyTypeObject *type, int slot_in)
 {
     uint16_t slot = _PySlot_resolve_type_slot(slot_in);
-    return _PySlot_type_getslot(type, slot_in);
+    return _PySlot_type_getslot(type, slot);
 }
 
 PyObject *
