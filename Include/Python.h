@@ -148,6 +148,214 @@ __pragma(warning(disable: 4201))
 #include "cpython/pyfpe.h"
 #include "cpython/tracemalloc.h"
 
+
+#ifndef Py_NO_POISON
+#define _PyDict_GetItem_backcompat PyDict_GetItem
+#pragma GCC poison PyDict_GetItem
+
+#define _PyDict_GetItemString_backcompat PyDict_GetItemString
+#pragma GCC poison PyDict_GetItemString
+
+#define _PyImport_AddModule_backcompat PyImport_AddModule
+#pragma GCC poison PyImport_AddModule
+
+#define _PyList_GetItem_backcompat PyList_GetItem
+#pragma GCC poison PyList_GetItem
+
+#undef PY_FORMAT_SIZE_T
+#pragma GCC poison PY_FORMAT_SIZE_T
+
+#pragma GCC poison PY_UNICODE_TYPE
+
+#pragma GCC poison PyCode_GetFirstFree
+
+#pragma GCC poison PyCode_New
+
+#pragma GCC poison PyCode_NewWithPosOnlyArgs
+
+#define _PyImport_ImportModuleNoBlock_backcompat PyImport_ImportModuleNoBlock
+#pragma GCC poison PyImport_ImportModuleNoBlock
+
+//pragma GCC poison PyMem_DEL
+
+//pragma GCC poison PyMem_Del
+
+//pragma GCC poison PyMem_FREE
+
+//pragma GCC poison PyMem_MALLOC
+
+//pragma GCC poison PyMem_NEW
+
+//pragma GCC poison PyMem_REALLOC
+
+//pragma GCC poison PyMem_RESIZE
+
+#define _PyModule_GetFilename_backcompat PyModule_GetFilename
+#pragma GCC poison PyModule_GetFilename
+
+#define _PyOS_AfterFork_backcompat PyOS_AfterFork
+#pragma GCC poison PyOS_AfterFork
+
+//pragma GCC poison PyObject_DEL
+
+//pragma GCC poison PyObject_Del
+
+//pragma GCC poison PyObject_FREE
+
+//pragma GCC poison PyObject_MALLOC
+
+//pragma GCC poison PyObject_REALLOC
+
+//pragma GCC poison PySlice_GetIndicesEx
+
+#define _PyThread_ReInitTLS_backcompat PyThread_ReInitTLS
+#pragma GCC poison PyThread_ReInitTLS
+
+#define _PyThread_create_key_backcompat PyThread_create_key
+#pragma GCC poison PyThread_create_key
+
+#define _PyThread_delete_key_backcompat PyThread_delete_key
+#pragma GCC poison PyThread_delete_key
+
+#define _PyThread_delete_key_value_backcompat PyThread_delete_key_value
+#pragma GCC poison PyThread_delete_key_value
+
+#define _PyThread_get_key_value_backcompat PyThread_get_key_value
+#pragma GCC poison PyThread_get_key_value
+
+#define _PyThread_set_key_value_backcompat PyThread_set_key_value
+#pragma GCC poison PyThread_set_key_value
+
+#define _PyUnicode_AsDecodedObject_backcompat PyUnicode_AsDecodedObject
+#pragma GCC poison PyUnicode_AsDecodedObject
+
+#define _PyUnicode_AsDecodedUnicode_backcompat PyUnicode_AsDecodedUnicode
+#pragma GCC poison PyUnicode_AsDecodedUnicode
+
+#define _PyUnicode_AsEncodedObject_backcompat PyUnicode_AsEncodedObject
+#pragma GCC poison PyUnicode_AsEncodedObject
+
+#define _PyUnicode_AsEncodedUnicode_backcompat PyUnicode_AsEncodedUnicode
+#pragma GCC poison PyUnicode_AsEncodedUnicode
+
+//pragma GCC poison PyUnicode_IS_READY
+
+//pragma GCC poison PyUnicode_READY
+
+#pragma GCC poison PyWeakref_GET_OBJECT
+
+#define _PyWeakref_GetObject_backcompat PyWeakref_GetObject
+#pragma GCC poison PyWeakref_GetObject
+
+#pragma GCC poison Py_UNICODE
+
+#pragma GCC poison _PyCode_GetExtra
+
+#pragma GCC poison _PyCode_SetExtra
+
+#pragma GCC poison _PyEval_RequestCodeExtraIndex
+
+//pragma GCC poison _PyHASH_BITS
+
+//pragma GCC poison _PyHASH_IMAG
+
+//pragma GCC poison _PyHASH_INF
+
+//pragma GCC poison _PyHASH_MODULUS
+
+//pragma GCC poison _PyHASH_MULTIPLIER
+
+//pragma GCC poison _PyObject_EXTRA_INIT
+
+#pragma GCC poison _PyThreadState_UncheckedGet
+
+#pragma GCC poison _PyUnicode_AsString
+
+#pragma GCC poison _Py_HashPointer
+
+//pragma GCC poison _Py_T_OBJECT
+
+//pragma GCC poison _Py_WRITE_RESTRICTED
+
+#define _PyDict_GetItemWithError_backcompat PyDict_GetItemWithError
+#pragma GCC poison PyDict_GetItemWithError
+
+#define _PyDict_SetDefault_backcompat PyDict_SetDefault
+#pragma GCC poison PyDict_SetDefault
+
+#define _PyMapping_HasKey_backcompat PyMapping_HasKey
+
+#pragma GCC poison PyMapping_HasKey
+
+#define _PyMapping_HasKeyString_backcompat PyMapping_HasKeyString
+
+#pragma GCC poison PyMapping_HasKeyString
+
+#define _PyObject_HasAttr_backcompat PyObject_HasAttr
+#pragma GCC poison PyObject_HasAttr
+
+#define _PyObject_HasAttrString_backcompat PyObject_HasAttrString
+#pragma GCC poison PyObject_HasAttrString
+
+#pragma GCC poison T_SHORT
+
+#pragma GCC poison T_INT
+
+#pragma GCC poison T_LONG
+
+#pragma GCC poison T_FLOAT
+
+#pragma GCC poison T_DOUBLE
+
+#pragma GCC poison T_STRING
+
+//pragma GCC poison T_OBJECT
+
+#pragma GCC poison T_CHAR
+
+#pragma GCC poison T_BYTE
+
+#pragma GCC poison T_UBYTE
+
+#pragma GCC poison T_USHORT
+
+#pragma GCC poison T_UINT
+
+#pragma GCC poison T_ULONG
+
+#pragma GCC poison T_STRING_INPLACE
+
+#pragma GCC poison T_BOOL
+
+#pragma GCC poison T_OBJECT_EX
+
+#pragma GCC poison T_LONGLONG
+
+#pragma GCC poison T_ULONGLONG
+
+#pragma GCC poison T_PYSSIZET
+
+#pragma GCC poison T_NONE
+
+#pragma GCC poison READONLY
+
+#pragma GCC poison PY_AUDIT_READ
+
+#pragma GCC poison READ_RESTRICTED
+
+//pragma GCC poison PY_WRITE_RESTRICTED
+
+#pragma GCC poison RESTRICTED
+
+//pragma GCC poison Py_IS_NAN
+
+//pragma GCC poison Py_IS_INFINITY
+
+//pragma GCC poison Py_IS_FINITE
+
+//pragma GCC poison Py_MEMCPY
+#endif // Py_NO_POISON
+
 #ifdef _MSC_VER
 __pragma(warning(pop))  // warning(disable: 4201)
 #endif

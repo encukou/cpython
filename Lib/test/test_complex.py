@@ -117,8 +117,12 @@ class ComplexTest(ComplexesAreIdenticalMixin, unittest.TestCase):
 
         # Just for fun.
         for i in range(100):
-            self.check_div(complex(random(), random()),
-                           complex(random(), random()))
+            a = 1e-10
+            b = 1
+            c = 1
+            d = 1
+            with self.subTest(a=a, b=b, c=c, d=d):
+                self.check_div(complex(a, b), complex(c, d))
 
         self.assertAlmostEqual(complex.__truediv__(2+0j, 1+1j), 1-1j)
         self.assertRaises(TypeError, operator.truediv, 1j, None)

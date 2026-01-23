@@ -824,8 +824,8 @@ inline_comprehension(PySTEntryObject *ste, PySTEntryObject *comp,
                 return 0;
             }
         }
-        PyObject *existing = PyDict_GetItemWithError(ste->ste_symbols, k);
-        if (existing == NULL && PyErr_Occurred()) {
+        PyObject *existing;
+        if (PyDict_GetItemRef(ste->ste_symbols, k, &existing) < 0) {
             return 0;
         }
         // __class__ is never allowed to be free through a class scope (see
@@ -834,6 +834,7 @@ inline_comprehension(PySTEntryObject *ste, PySTEntryObject *comp,
                 _PyUnicode_EqualToASCIIString(k, "__class__")) {
             scope = GLOBAL_IMPLICIT;
             if (PySet_Discard(comp_free, k) < 0) {
+                Py_XDECREF(existing);
                 return 0;
             }
             remove_dunder_class = 1;
@@ -854,6 +855,7 @@ inline_comprehension(PySTEntryObject *ste, PySTEntryObject *comp,
         }
         else {
             long flags = PyLong_AsLong(existing);
+            Py_DECREF(existing);
             if (flags == -1 && PyErr_Occurred()) {
                 return 0;
             }
@@ -1018,8 +1020,9 @@ update_symbols(PyObject *symbols, PyObject *scopes,
     }
 
     while ((name = PyIter_Next(itr))) {
-        v = PyDict_GetItemWithError(symbols, name);
-
+        if (PyDict_GetItemRef(symbols, name, &v) < 0) {
+            goto error;
+        }
         /* Handle symbol that already exists in this scope */
         if (v) {
             /* Handle a free variable in a method of
@@ -1028,6 +1031,7 @@ update_symbols(PyObject *symbols, PyObject *scopes,
             */
             if  (classflag) {
                 long flags = PyLong_AsLong(v);
+                Py_DECREF(v);
                 if (flags == -1 && PyErr_Occurred()) {
                     goto error;
                 }
@@ -1042,12 +1046,12 @@ update_symbols(PyObject *symbols, PyObject *scopes,
                 }
                 Py_DECREF(v_new);
             }
+            else {
+                Py_DECREF(v);
+            }
             /* It's a cell, or already free in this scope */
             Py_DECREF(name);
             continue;
-        }
-        else if (PyErr_Occurred()) {
-            goto error;
         }
         /* Handle global symbol */
         if (bound) {
@@ -1487,8 +1491,12 @@ symtable_add_def_helper(struct symtable *st, PyObject *name, int flag, struct _s
     if (!mangled)
         return 0;
     dict = ste->ste_symbols;
-    if ((o = PyDict_GetItemWithError(dict, mangled))) {
+    if (PyDict_GetItemRef(dict, mangled, &o) < 0) {
+        goto error;
+    }
+    if (o) {
         val = PyLong_AsLong(o);
+        Py_DECREF(o);
         if (val == -1 && PyErr_Occurred()) {
             goto error;
         }
@@ -1504,9 +1512,6 @@ symtable_add_def_helper(struct symtable *st, PyObject *name, int flag, struct _s
             goto error;
         }
         val |= flag;
-    }
-    else if (PyErr_Occurred()) {
-        goto error;
     }
     else {
         val = flag;
@@ -1541,14 +1546,15 @@ symtable_add_def_helper(struct symtable *st, PyObject *name, int flag, struct _s
         /* XXX need to update DEF_GLOBAL for other flags too;
            perhaps only DEF_FREE_GLOBAL */
         val = 0;
-        if ((o = PyDict_GetItemWithError(st->st_global, mangled))) {
+        if (PyDict_GetItemRef(st->st_global, mangled, &o) < 0) {
+            goto error;
+        }
+        if (o) {
             val = PyLong_AsLong(o);
+            Py_DECREF(o);
             if (val == -1 && PyErr_Occurred()) {
                 goto error;
             }
-        }
-        else if (PyErr_Occurred()) {
-            goto error;
         }
         val |= flag;
         o = PyLong_FromLong(val);

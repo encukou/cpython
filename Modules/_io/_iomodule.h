@@ -6,7 +6,6 @@
 
 #include "pycore_moduleobject.h"  // _PyModule_GetState()
 #include "pycore_typeobject.h"    // _PyType_GetModuleState()
-#include "structmember.h"
 
 /* Type specs */
 extern PyType_Spec _Py_bufferediobase_spec;

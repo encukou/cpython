@@ -541,11 +541,10 @@ dictbytype(PyObject *src, int scope_type, int flag, Py_ssize_t offset)
 
     for (key_i = 0; key_i < num_keys; key_i++) {
         k = PyList_GET_ITEM(sorted_keys, key_i);
-        v = PyDict_GetItemWithError(src, k);
+        if (PyDict_GetItemRef(src, k, &v) == 0) {
+            PyErr_SetObject(PyExc_KeyError, k);
+        }
         if (!v) {
-            if (!PyErr_Occurred()) {
-                PyErr_SetObject(PyExc_KeyError, k);
-            }
             Py_DECREF(sorted_keys);
             Py_DECREF(dest);
             return NULL;
@@ -897,11 +896,13 @@ _PyCompile_GetRefType(compiler *c, PyObject *name)
 static int
 dict_lookup_arg(PyObject *dict, PyObject *name)
 {
-    PyObject *v = PyDict_GetItemWithError(dict, name);
-    if (v == NULL) {
+    PyObject *v;
+    if (PyDict_GetItemRef(dict, name, &v) != 1) {
         return ERROR;
     }
-    return PyLong_AsLong(v);
+    int r = PyLong_AsLong(v);
+    Py_DECREF(v);
+    return r;
 }
 
 int

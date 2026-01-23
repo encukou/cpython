@@ -511,8 +511,9 @@ list_as_flags(decimal_state *state, PyObject *list)
     n = PyList_Size(list);
     flags = 0;
     for (j = 0; j < n; j++) {
-        item = PyList_GetItem(list, j);
+        item = PyList_GetItemRef(list, j);
         x = exception_as_flag(state, item);
+        Py_DECREF(item);
         if (x & DEC_ERRORS) {
             return x;
         }
@@ -565,17 +566,17 @@ dict_as_flags(decimal_state *state, PyObject *val)
     }
 
     for (cm = state->signal_map; cm->name != NULL; cm++) {
-        b = PyDict_GetItemWithError(val, cm->ex);
+        if (PyDict_GetItemRef(val, cm->ex, &b) < 0) {
+            return DEC_ERR_OCCURRED;
+        }
         if (b == NULL) {
-            if (PyErr_Occurred()) {
-                return DEC_ERR_OCCURRED;
-            }
             PyErr_SetString(PyExc_KeyError,
                 "invalid signal dict");
             return DEC_INVALID_SIGNALS;
         }
 
         x = PyObject_IsTrue(b);
+        Py_DECREF(b);
         if (x < 0) {
             return DEC_ERR_OCCURRED;
         }
@@ -3666,20 +3667,19 @@ dict_get_item_string(PyObject *dict, const char *key, PyObject **valueobj, const
     if (keyobj == NULL) {
         return -1;
     }
-    PyObject *value = PyDict_GetItemWithError(dict, keyobj);
+    PyObject *str_value;
+    int result_of_get = PyDict_GetItemRef(dict, keyobj, &str_value);
     Py_DECREF(keyobj);
-    if (value == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
-        return 0;
+    if (result_of_get != 1) {
+        return result_of_get;
     }
-    value = PyUnicode_AsUTF8String(value);
-    if (value == NULL) {
+    PyObject *bytes_value = PyUnicode_AsUTF8String(str_value);
+    Py_DECREF(str_value);
+    if (bytes_value == NULL) {
         return -1;
     }
-    *valueobj = value;
-    *valuestr = PyBytes_AS_STRING(value);
+    *valueobj = bytes_value;
+    *valuestr = PyBytes_AS_STRING(bytes_value);
     return 0;
 }
 

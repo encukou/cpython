@@ -805,27 +805,35 @@ pycore_init_builtins(PyThreadState *tstate)
     }
     interp->builtins = Py_NewRef(builtins_dict);
 
-    PyObject *isinstance = PyDict_GetItemWithError(builtins_dict, &_Py_ID(isinstance));
+    PyObject *isinstance;
+    PyDict_GetItemRef(builtins_dict, &_Py_ID(isinstance), &isinstance);
     if (!isinstance) {
         goto error;
     }
     interp->callable_cache.isinstance = isinstance;
+    Py_DECREF(isinstance); // TODO: at shutdown?
 
-    PyObject *len = PyDict_GetItemWithError(builtins_dict, &_Py_ID(len));
+    PyObject *len;
+    PyDict_GetItemRef(builtins_dict, &_Py_ID(len), &len);
     if (!len) {
         goto error;
     }
     interp->callable_cache.len = len;
+    Py_DECREF(len); // TODO: at shutdown?
 
-    PyObject *all = PyDict_GetItemWithError(builtins_dict, &_Py_ID(all));
+    PyObject *all;
+    PyDict_GetItemRef(builtins_dict, &_Py_ID(all), &all);
     if (!all) {
         goto error;
     }
+    Py_DECREF(all); // TODO: at shutdown?
 
-    PyObject *any = PyDict_GetItemWithError(builtins_dict, &_Py_ID(any));
+    PyObject *any;
+    PyDict_GetItemRef(builtins_dict, &_Py_ID(any), &any);
     if (!any) {
         goto error;
     }
+    Py_DECREF(any); // TODO: at shutdown?
 
     interp->common_consts[CONSTANT_ASSERTIONERROR] = PyExc_AssertionError;
     interp->common_consts[CONSTANT_NOTIMPLEMENTEDERROR] = PyExc_NotImplementedError;
@@ -1384,7 +1392,8 @@ init_interp_main(PyThreadState *tstate)
                 Py_DECREF(path0);
                 return _PyStatus_ERR("can't initialize sys.path[0]");
             }
-            PyObject *sys_path = PyDict_GetItemWithError(sysdict, &_Py_ID(path));
+            PyObject *sys_path;
+            PyDict_GetItemRef(sysdict, &_Py_ID(path), &sys_path);
             if (sys_path == NULL) {
                 Py_DECREF(path0);
                 return _PyStatus_ERR("can't initialize sys.path[0]");

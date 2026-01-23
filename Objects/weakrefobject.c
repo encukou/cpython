@@ -966,7 +966,7 @@ PyWeakref_GetRef(PyObject *ref, PyObject **pobj)
 
 /* removed in 3.15, but kept for stable ABI compatibility */
 PyAPI_FUNC(PyObject *)
-PyWeakref_GetObject(PyObject *ref)
+_PyWeakref_GetObject_backcompat(PyObject *ref)
 {
     if (ref == NULL || !PyWeakref_Check(ref)) {
         PyErr_BadInternalCall();

@@ -1232,8 +1232,7 @@ get_source_line(PyInterpreterState *interp, PyObject *module_globals, int lineno
     }
 
     /* Get the source line. */
-    source_line = PyList_GetItem(source_list, lineno-1);
-    Py_XINCREF(source_line);
+    source_line = PyList_GetItemRef(source_list, lineno-1);
     Py_DECREF(source_list);
     return source_line;
 }

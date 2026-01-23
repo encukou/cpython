@@ -499,7 +499,7 @@ _pythread_pthread_set_stacksize(size_t size)
 */
 
 int
-PyThread_create_key(void)
+_PyThread_create_key_backcompat(void)
 {
 #ifdef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT
     pthread_key_t key;
@@ -519,7 +519,7 @@ PyThread_create_key(void)
 }
 
 void
-PyThread_delete_key(int key)
+_PyThread_delete_key_backcompat(int key)
 {
 #ifdef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT
     pthread_key_delete(key);
@@ -527,7 +527,7 @@ PyThread_delete_key(int key)
 }
 
 void
-PyThread_delete_key_value(int key)
+_PyThread_delete_key_value_backcompat(int key)
 {
 #ifdef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT
     pthread_setspecific(key, NULL);
@@ -535,7 +535,7 @@ PyThread_delete_key_value(int key)
 }
 
 int
-PyThread_set_key_value(int key, void *value)
+_PyThread_set_key_value_backcompat(int key, void *value)
 {
 #ifdef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT
     int fail = pthread_setspecific(key, value);
@@ -546,7 +546,7 @@ PyThread_set_key_value(int key, void *value)
 }
 
 void *
-PyThread_get_key_value(int key)
+_PyThread_get_key_value_backcompat(int key)
 {
 #ifdef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT
     return pthread_getspecific(key);
@@ -557,7 +557,7 @@ PyThread_get_key_value(int key)
 
 
 void
-PyThread_ReInitTLS(void)
+_PyThread_ReInitTLS_backcompat(void)
 {
 }
 

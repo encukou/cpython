@@ -2377,7 +2377,7 @@ PyMapping_HasKeyWithError(PyObject *obj, PyObject *key)
 }
 
 int
-PyMapping_HasKeyString(PyObject *obj, const char *key)
+_PyMapping_HasKeyString_backcompat(PyObject *obj, const char *key)
 {
     PyObject *value;
     int rc;
@@ -2402,7 +2402,7 @@ PyMapping_HasKeyString(PyObject *obj, const char *key)
 }
 
 int
-PyMapping_HasKey(PyObject *obj, PyObject *key)
+_PyMapping_HasKey_backcompat(PyObject *obj, PyObject *key)
 {
     PyObject *value;
     int rc;

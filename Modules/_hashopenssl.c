@@ -752,6 +752,7 @@ get_openssl_evp_md_by_utf8name(_hashlibstate *state, const char *name,
 static PY_EVP_MD *
 get_openssl_evp_md(_hashlibstate *state, PyObject *digestmod, Py_hash_type py_ht)
 {
+    PyObject *ref = NULL;
     const char *name;
     if (PyUnicode_Check(digestmod)) {
         name = PyUnicode_AsUTF8(digestmod);
@@ -759,16 +760,24 @@ get_openssl_evp_md(_hashlibstate *state, PyObject *digestmod, Py_hash_type py_ht
     else {
         PyObject *dict = state->constructs;
         assert(dict != NULL);
-        PyObject *borrowed_ref = PyDict_GetItemWithError(dict, digestmod);
-        name = borrowed_ref == NULL ? NULL : PyUnicode_AsUTF8(borrowed_ref);
+        PyDict_GetItemRef(dict, digestmod, &ref);
+        if (ref) {
+            name = PyUnicode_AsUTF8(ref);
+        }
+        else {
+            name = NULL;
+        }
     }
     if (name == NULL) {
+        Py_XDECREF(ref);
         if (!PyErr_Occurred()) {
             raise_unsupported_algorithm_error(state, digestmod);
         }
         return NULL;
     }
-    return get_openssl_evp_md_by_utf8name(state, name, py_ht);
+    PY_EVP_MD *result = get_openssl_evp_md_by_utf8name(state, name, py_ht);
+    Py_DECREF(ref);
+    return result;
 }
 
 #ifdef Py_HAS_OPENSSL3_SUPPORT

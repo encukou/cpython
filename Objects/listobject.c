@@ -388,7 +388,7 @@ list_get_item_ref(PyListObject *op, Py_ssize_t i)
 #endif
 
 PyObject *
-PyList_GetItem(PyObject *op, Py_ssize_t i)
+_PyList_GetItem_backcompat(PyObject *op, Py_ssize_t i)
 {
     if (!PyList_Check(op)) {
         PyErr_BadInternalCall();

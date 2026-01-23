@@ -920,12 +920,10 @@ PyUnstable_Code_New(int argcount, int kwonlyargcount,
            PyObject *linetable,
            PyObject *exceptiontable)
 {
-    return PyCode_NewWithPosOnlyArgs(argcount, 0, kwonlyargcount, nlocals,
-                                     stacksize, flags, code, consts, names,
-                                     varnames, freevars, cellvars, filename,
-                                     name, qualname, firstlineno,
-                                     linetable,
-                                     exceptiontable);
+    return PyUnstable_Code_NewWithPosOnlyArgs(
+        argcount, 0, kwonlyargcount, nlocals, stacksize, flags, code, consts,
+        names, varnames, freevars, cellvars, filename, name, qualname,
+        firstlineno, linetable, exceptiontable);
 }
 
 // NOTE: When modifying the construction of PyCode_NewEmpty, please also change
@@ -2359,16 +2357,10 @@ code_new_impl(PyTypeObject *type, int argcount, int posonlyargcount,
     if (ourcellvars == NULL)
         goto cleanup;
 
-    co = (PyObject *)PyCode_NewWithPosOnlyArgs(argcount, posonlyargcount,
-                                               kwonlyargcount,
-                                               nlocals, stacksize, flags,
-                                               code, consts, ournames,
-                                               ourvarnames, ourfreevars,
-                                               ourcellvars, filename,
-                                               name, qualname, firstlineno,
-                                               linetable,
-                                               exceptiontable
-                                              );
+    co = (PyObject *)PyUnstable_Code_NewWithPosOnlyArgs(
+        argcount, posonlyargcount, kwonlyargcount, nlocals, stacksize, flags,
+        code, consts, ournames, ourvarnames, ourfreevars, ourcellvars,
+        filename, name, qualname, firstlineno, linetable, exceptiontable);
   cleanup:
     Py_XDECREF(ournames);
     Py_XDECREF(ourvarnames);
@@ -2843,7 +2835,7 @@ code_replace_impl(PyCodeObject *self, int co_argcount,
         co_freevars = freevars;
     }
 
-    co = PyCode_NewWithPosOnlyArgs(
+    co = PyUnstable_Code_NewWithPosOnlyArgs(
         co_argcount, co_posonlyargcount, co_kwonlyargcount, co_nlocals,
         co_stacksize, co_flags, co_code, co_consts, co_names,
         co_varnames, co_freevars, co_cellvars, co_filename, co_name,

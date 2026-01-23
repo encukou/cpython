@@ -1438,11 +1438,12 @@ _elementtree_Element_get_impl(ElementObject *self, PyObject *key,
 {
     if (self->extra && self->extra->attrib) {
         PyObject *attrib = Py_NewRef(self->extra->attrib);
-        PyObject *value = Py_XNewRef(PyDict_GetItemWithError(attrib, key));
-        Py_DECREF(attrib);
-        if (value != NULL || PyErr_Occurred()) {
+        PyObject *value;
+        if (PyDict_GetItemRef(attrib, key, &value) != 0) {
+            Py_DECREF(attrib);
             return value;
         }
+        Py_DECREF(attrib);
     }
 
     return Py_NewRef(default_value);
@@ -3136,9 +3137,12 @@ makeuniversal(XMLParserObject* self, const char* string)
     if (!key)
         return NULL;
 
-    value = Py_XNewRef(PyDict_GetItemWithError(self->names, key));
+    if (PyDict_GetItemRef(self->names, key, &value) < 0) {
+        Py_DECREF(key);
+        return NULL;
+    }
 
-    if (value == NULL && !PyErr_Occurred()) {
+    if (value == NULL) {
         /* new name.  convert to universal name, and decode as
            necessary */
 
@@ -3258,7 +3262,7 @@ expat_default_handler(void *op, const XML_Char *data_in, int data_len)
     if (!key)
         return;
 
-    value = PyDict_GetItemWithError(self->entity, key);
+    PyDict_GetItemRef(self->entity, key, &value);
 
     elementtreestate *st = self->state;
     if (value) {
@@ -3270,6 +3274,7 @@ expat_default_handler(void *op, const XML_Char *data_in, int data_len)
             res = PyObject_CallOneArg(self->handle_data, value);
         else
             res = NULL;
+        Py_DECREF(value);
         Py_XDECREF(res);
     } else if (!PyErr_Occurred()) {
         /* Report the first error, not the last */

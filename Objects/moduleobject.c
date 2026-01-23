@@ -937,7 +937,7 @@ PyModule_GetFilenameObject(PyObject *mod)
 }
 
 const char *
-PyModule_GetFilename(PyObject *m)
+_PyModule_GetFilename_backcompat(PyObject *m)
 {
     PyObject *fileobj;
     const char *utf8;
@@ -1474,11 +1474,15 @@ module_dir(PyObject *self, PyObject *args)
 
     if (dict != NULL) {
         if (PyDict_Check(dict)) {
-            PyObject *dirfunc = PyDict_GetItemWithError(dict, &_Py_ID(__dir__));
+            PyObject *dirfunc;
+            if (PyDict_GetItemRef(dict, &_Py_ID(__dir__), &dirfunc) < 0) {
+                result = NULL;
+            }
             if (dirfunc) {
                 result = _PyObject_CallNoArgs(dirfunc);
+                Py_DECREF(dirfunc);
             }
-            else if (!PyErr_Occurred()) {
+            else {
                 result = PyDict_Keys(dict);
             }
         }

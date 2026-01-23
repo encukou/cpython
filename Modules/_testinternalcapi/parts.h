@@ -8,6 +8,7 @@
 #  define Py_BUILD_CORE_MODULE 1
 #endif
 
+#define Py_NO_POISON
 #include "Python.h"
 
 int _PyTestInternalCapi_Init_Lock(PyObject *module);

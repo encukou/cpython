@@ -4856,12 +4856,12 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
     PyObject *attrdict = PyType_GetDict(type);
     assert(attrdict);
 
-    fields = PyDict_GetItemWithError((PyObject *)attrdict, &_Py_ID(_fields_));
+    if (PyDict_GetItemRef((PyObject *)attrdict, &_Py_ID(_fields_), &fields) < 0) {
+        Py_CLEAR(attrdict);
+        return -1;
+    }
     Py_CLEAR(attrdict);
     if (fields == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         return index;
     }
 

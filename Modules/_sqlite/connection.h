@@ -25,7 +25,6 @@
 #define PYSQLITE_CONNECTION_H
 #include "Python.h"
 #include "pythread.h"
-#include "structmember.h"
 
 #include "module.h"
 

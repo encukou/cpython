@@ -6,7 +6,6 @@
 #endif
 
 #include "Python.h"
-#include "structmember.h"
 #include "pythread.h"
 #include "pycore_signal.h"        // _PyOS_IsMainThread()
 
@@ -62,10 +61,10 @@
 
 #if SIZEOF_VOID_P == SIZEOF_LONG
 #  define F_POINTER "k"
-#  define T_POINTER T_ULONG
+#  define T_POINTER Py_T_ULONG
 #elif SIZEOF_VOID_P == SIZEOF_LONG_LONG
 #  define F_POINTER "K"
-#  define T_POINTER T_ULONGLONG
+#  define T_POINTER Py_T_ULONGLONG
 #else
 #  error "can't find format code for unsigned integer of same size as void*"
 #endif
@@ -77,7 +76,7 @@
 #  define T_SEM_HANDLE T_HANDLE
 #else
 #  define F_HANDLE "i"
-#  define T_HANDLE T_INT
+#  define T_HANDLE Py_T_INT
 #  define F_SEM_HANDLE F_POINTER
 #  define T_SEM_HANDLE T_POINTER
 #endif

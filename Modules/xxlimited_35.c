@@ -11,6 +11,7 @@
 #  define Py_LIMITED_API 0x03050000
 #endif
 
+#define Py_NO_POISON
 #include "Python.h"
 
 /* Xxo objects */

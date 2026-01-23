@@ -16,6 +16,7 @@
 #undef Py_BUILD_CORE_MODULE
 #undef Py_BUILD_CORE_BUILTIN
 
+#define Py_NO_POISON
 #include "Python.h"
 
 #ifdef Py_BUILD_CORE

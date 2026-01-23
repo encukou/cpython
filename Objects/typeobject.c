@@ -4520,21 +4520,23 @@ type_new_set_ht_name(PyTypeObject *type, PyObject *dict)
 static int
 type_new_set_doc(PyTypeObject *type, PyObject* dict)
 {
-    PyObject *doc = PyDict_GetItemWithError(dict, &_Py_ID(__doc__));
+    PyObject *doc;
+    if (PyDict_GetItemRef(dict, &_Py_ID(__doc__), &doc) < 0) {
+        return -1;
+    }
     if (doc == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         // no __doc__ key
         return 0;
     }
     if (!PyUnicode_Check(doc)) {
         // ignore non-string __doc__
+        Py_DECREF(doc);
         return 0;
     }
 
     const char *doc_str = PyUnicode_AsUTF8(doc);
     if (doc_str == NULL) {
+        Py_DECREF(doc);
         return -1;
     }
 
@@ -4543,10 +4545,12 @@ type_new_set_doc(PyTypeObject *type, PyObject* dict)
     char *tp_doc = (char *)PyMem_Malloc(size);
     if (tp_doc == NULL) {
         PyErr_NoMemory();
+        Py_DECREF(doc);
         return -1;
     }
 
     memcpy(tp_doc, doc_str, size);
+    Py_DECREF(doc);
     type->tp_doc = tp_doc;
     return 0;
 }
@@ -4555,18 +4559,20 @@ type_new_set_doc(PyTypeObject *type, PyObject* dict)
 static int
 type_new_staticmethod(PyObject *dict, PyObject *attr)
 {
-    PyObject *func = PyDict_GetItemWithError(dict, attr);
+    PyObject *func;
+    if (PyDict_GetItemRef(dict, attr, &func) < 0) {
+        return -1;
+    }
     if (func == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         return 0;
     }
     if (!PyFunction_Check(func)) {
+        Py_DECREF(func);
         return 0;
     }
 
     PyObject *static_func = PyStaticMethod_New(func);
+    Py_DECREF(func);
     if (static_func == NULL) {
         return -1;
     }
@@ -4582,7 +4588,10 @@ type_new_staticmethod(PyObject *dict, PyObject *attr)
 static int
 type_new_classmethod(PyObject *dict, PyObject *attr)
 {
-    PyObject *func = PyDict_GetItemWithError(dict, attr);
+    PyObject *func;
+    if (PyDict_GetItemRef(dict, attr, &func) < 0) {
+        return -1;
+    }
     if (func == NULL) {
         if (PyErr_Occurred()) {
             return -1;
@@ -4590,10 +4599,12 @@ type_new_classmethod(PyObject *dict, PyObject *attr)
         return 0;
     }
     if (!PyFunction_Check(func)) {
+        Py_DECREF(func);
         return 0;
     }
 
     PyObject *method = PyClassMethod_New(func);
+    Py_DECREF(func);
     if (method == NULL) {
         return -1;
     }
@@ -4736,16 +4747,17 @@ type_new_set_slots(const type_new_ctx *ctx, PyTypeObject *type)
 static int
 type_new_set_classcell(PyTypeObject *type, PyObject *dict)
 {
-    PyObject *cell = PyDict_GetItemWithError(dict, &_Py_ID(__classcell__));
+    PyObject *cell;
+    if (PyDict_GetItemRef(dict, &_Py_ID(__classcell__), &cell) < 0) {
+        return -1;
+    }
     if (cell == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         return 0;
     }
 
     /* At least one method requires a reference to its defining class */
     if (!PyCell_Check(cell)) {
+        Py_DECREF(cell);
         PyErr_Format(PyExc_TypeError,
                      "__classcell__ must be a nonlocal cell, not %.200R",
                      Py_TYPE(cell));
@@ -4753,6 +4765,7 @@ type_new_set_classcell(PyTypeObject *type, PyObject *dict)
     }
 
     (void)PyCell_Set(cell, (PyObject *) type);
+    Py_DECREF(cell);
     if (PyDict_DelItem(dict, &_Py_ID(__classcell__)) < 0) {
         return -1;
     }
@@ -4762,16 +4775,17 @@ type_new_set_classcell(PyTypeObject *type, PyObject *dict)
 static int
 type_new_set_classdictcell(PyObject *dict)
 {
-    PyObject *cell = PyDict_GetItemWithError(dict, &_Py_ID(__classdictcell__));
+    PyObject *cell;
+    if (PyDict_GetItemRef(dict, &_Py_ID(__classdictcell__), &cell) < 0) {
+        return -1;
+    }
     if (cell == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         return 0;
     }
 
     /* At least one method requires a reference to the dict of its defining class */
     if (!PyCell_Check(cell)) {
+        Py_DECREF(cell);
         PyErr_Format(PyExc_TypeError,
                      "__classdictcell__ must be a nonlocal cell, not %.200R",
                      Py_TYPE(cell));
@@ -4779,6 +4793,7 @@ type_new_set_classdictcell(PyObject *dict)
     }
 
     (void)PyCell_Set(cell, (PyObject *)dict);
+    Py_DECREF(cell);
     if (PyDict_DelItem(dict, &_Py_ID(__classdictcell__)) < 0) {
         return -1;
     }
@@ -4841,11 +4856,11 @@ type_new_set_attrs(const type_new_ctx *ctx, PyTypeObject *type)
 static int
 type_new_get_slots(type_new_ctx *ctx, PyObject *dict)
 {
-    PyObject *slots = PyDict_GetItemWithError(dict, &_Py_ID(__slots__));
+    PyObject *slots;
+    if (PyDict_GetItemRef(dict, &_Py_ID(__slots__), &slots) < 0) {
+        return -1;
+    }
     if (slots == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         ctx->slots = NULL;
         ctx->nslot = 0;
         return 0;
@@ -4859,6 +4874,7 @@ type_new_get_slots(type_new_ctx *ctx, PyObject *dict)
     else {
         new_slots = PySequence_Tuple(slots);
     }
+    Py_DECREF(slots);
     if (new_slots == NULL) {
         return -1;
     }

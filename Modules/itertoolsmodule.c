@@ -3753,7 +3753,7 @@ zip_longest_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (kwds != NULL && PyDict_CheckExact(kwds) && PyDict_GET_SIZE(kwds) > 0) {
         fillvalue = NULL;
         if (PyDict_GET_SIZE(kwds) == 1) {
-            fillvalue = PyDict_GetItemWithError(kwds, &_Py_ID(fillvalue));
+            PyDict_GetItemRef(kwds, &_Py_ID(fillvalue), &fillvalue);
         }
         if (fillvalue == NULL) {
             if (!PyErr_Occurred()) {
@@ -3796,6 +3796,7 @@ zip_longest_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     /* create ziplongestobject structure */
     lz = (ziplongestobject *)type->tp_alloc(type, 0);
     if (lz == NULL) {
+        Py_DECREF(fillvalue);
         Py_DECREF(ittuple);
         Py_DECREF(result);
         return NULL;
@@ -3804,7 +3805,7 @@ zip_longest_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     lz->tuplesize = tuplesize;
     lz->numactive = tuplesize;
     lz->result = result;
-    lz->fillvalue = Py_NewRef(fillvalue);
+    lz->fillvalue = fillvalue; /* give our reference to lz */
     return (PyObject *)lz;
 }
 

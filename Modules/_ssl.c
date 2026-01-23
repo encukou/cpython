@@ -498,19 +498,19 @@ fill_and_set_sslerror(_sslmodulestate *state,
         key = Py_BuildValue("ii", lib, reason);
         if (key == NULL)
             goto fail;
-        reason_obj = PyDict_GetItemWithError(state->err_codes_to_names, key);
-        Py_DECREF(key);
-        if (reason_obj == NULL && PyErr_Occurred()) {
+        if (PyDict_GetItemRef(state->err_codes_to_names, key, &reason_obj) < 0) {
+            Py_DECREF(key);
             goto fail;
         }
+        Py_DECREF(key);
         key = PyLong_FromLong(lib);
         if (key == NULL)
             goto fail;
-        lib_obj = PyDict_GetItemWithError(state->lib_codes_to_names, key);
-        Py_DECREF(key);
-        if (lib_obj == NULL && PyErr_Occurred()) {
+        if (PyDict_GetItemRef(state->lib_codes_to_names, key, &lib_obj) < 0) {
+            Py_DECREF(key);
             goto fail;
         }
+        Py_DECREF(key);
         if (errstr == NULL) {
             errstr = ERR_reason_error_string(errcode);
         }

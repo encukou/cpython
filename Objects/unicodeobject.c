@@ -3591,9 +3591,8 @@ PyUnicode_Decode(const char *s,
 }
 
 PyAPI_FUNC(PyObject *)
-PyUnicode_AsDecodedObject(PyObject *unicode,
-                          const char *encoding,
-                          const char *errors)
+_PyUnicode_AsDecodedObject_backcompat(
+    PyObject *unicode, const char *encoding, const char *errors)
 {
     if (!PyUnicode_Check(unicode)) {
         PyErr_BadArgument();
@@ -3608,7 +3607,7 @@ PyUnicode_AsDecodedObject(PyObject *unicode,
 }
 
 PyAPI_FUNC(PyObject *)
-PyUnicode_AsDecodedUnicode(PyObject *unicode,
+_PyUnicode_AsDecodedUnicode_backcompat(PyObject *unicode,
                            const char *encoding,
                            const char *errors)
 {
@@ -3642,7 +3641,7 @@ PyUnicode_AsDecodedUnicode(PyObject *unicode,
 }
 
 PyAPI_FUNC(PyObject *)
-PyUnicode_AsEncodedObject(PyObject *unicode,
+_PyUnicode_AsEncodedObject_backcompat(PyObject *unicode,
                           const char *encoding,
                           const char *errors)
 {
@@ -3859,7 +3858,7 @@ PyUnicode_AsEncodedString(PyObject *unicode,
 }
 
 PyAPI_FUNC(PyObject *)
-PyUnicode_AsEncodedUnicode(PyObject *unicode,
+_PyUnicode_AsEncodedUnicode_backcompat(PyObject *unicode,
                            const char *encoding,
                            const char *errors)
 {

@@ -22,6 +22,9 @@
 #  undef Py_BUILD_CORE_BUILTIN
 #endif
 
+// Test old API as well
+#define Py_NO_POISON
+
 #include "Python.h"
 
 #if defined(Py_BUILD_CORE) && !defined(PYTESTCAPI_NEED_INTERNAL_API)

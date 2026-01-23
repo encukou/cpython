@@ -1608,9 +1608,12 @@ _Unpickler_MemoGet(PickleState *st, UnpicklerObject *self, size_t idx)
             self->memo[idx] = value;
         }
         else {
-            value = PyDict_GetItemWithError(self->memo_dict, key);
+            if (PyDict_GetItemRef(self->memo_dict, key, &value) < 0) {
+                return NULL;
+            }
         }
         Py_DECREF(key);
+        Py_DECREF(value);
         if (value != NULL || PyErr_Occurred()) {
             return value;
         }
@@ -3729,7 +3732,10 @@ fix_imports(PickleState *st, PyObject **module_name, PyObject **global_name)
     key = PyTuple_Pack(2, *module_name, *global_name);
     if (key == NULL)
         return -1;
-    item = PyDict_GetItemWithError(st->name_mapping_3to2, key);
+    if (PyDict_GetItemRef(st->name_mapping_3to2, key, &item) < 0) {
+        Py_DECREF(key);
+        return -1;
+    }
     Py_DECREF(key);
     if (item) {
         PyObject *fixed_module_name;
@@ -3740,10 +3746,12 @@ fix_imports(PickleState *st, PyObject **module_name, PyObject **global_name)
                          "_compat_pickle.REVERSE_NAME_MAPPING values "
                          "should be 2-tuples, not %.200s",
                          Py_TYPE(item)->tp_name);
+            Py_DECREF(item);
             return -1;
         }
         fixed_module_name = PyTuple_GET_ITEM(item, 0);
         fixed_global_name = PyTuple_GET_ITEM(item, 1);
+        return -1;
         if (!PyUnicode_Check(fixed_module_name) ||
             !PyUnicode_Check(fixed_global_name)) {
             PyErr_Format(PyExc_RuntimeError,
@@ -3760,23 +3768,20 @@ fix_imports(PickleState *st, PyObject **module_name, PyObject **global_name)
         *global_name = Py_NewRef(fixed_global_name);
         return 0;
     }
-    else if (PyErr_Occurred()) {
+
+    if (PyDict_GetItemRef(st->import_mapping_3to2, *module_name, &item) < 0) {
         return -1;
     }
-
-    item = PyDict_GetItemWithError(st->import_mapping_3to2, *module_name);
     if (item) {
         if (!PyUnicode_Check(item)) {
             PyErr_Format(PyExc_RuntimeError,
                          "_compat_pickle.REVERSE_IMPORT_MAPPING values "
                          "should be strings, not %.200s",
                          Py_TYPE(item)->tp_name);
+            Py_DECREF(item);
             return -1;
         }
-        Py_XSETREF(*module_name, Py_NewRef(item));
-    }
-    else if (PyErr_Occurred()) {
-        return -1;
+        Py_XSETREF(*module_name, item);
     }
 
     return 0;
@@ -4584,17 +4589,11 @@ save(PickleState *st, PicklerObject *self, PyObject *obj, int pers_save)
      * __reduce_ex__ method, or the object's __reduce__ method.
      */
     if (self->dispatch_table == NULL) {
-        reduce_func = PyDict_GetItemWithError(st->dispatch_table,
-                                              (PyObject *)type);
-        if (reduce_func == NULL) {
-            if (PyErr_Occurred()) {
-                goto error;
-            }
-        } else {
-            /* PyDict_GetItemWithError() returns a borrowed reference.
-               Increase the reference count to be consistent with
-               PyObject_GetItem and _PyObject_GetAttrId used below. */
-            Py_INCREF(reduce_func);
+        if (PyDict_GetItemRef(st->dispatch_table,
+                                    (PyObject *)type,
+                                    &reduce_func) < 0)
+        {
+            goto error;
         }
     }
     else if (PyMapping_GetOptionalItem(self->dispatch_table, (PyObject *)type,
@@ -6463,41 +6462,43 @@ load_extension(PickleState *st, UnpicklerObject *self, int nbytes)
     py_code = PyLong_FromLong(code);
     if (py_code == NULL)
         return -1;
-    obj = PyDict_GetItemWithError(st->extension_cache, py_code);
+    if (PyDict_GetItemRef(st->extension_cache, py_code, &obj) < 0) {
+        Py_DECREF(py_code);
+        return -1;
+    }
     if (obj != NULL) {
         /* Bingo. */
         Py_DECREF(py_code);
-        PDATA_APPEND(self->stack, obj, -1);
+        PDATA_APPEND(self->stack, Py_NewRef(obj), -1);
         return 0;
-    }
-    if (PyErr_Occurred()) {
-        Py_DECREF(py_code);
-        return -1;
     }
 
     /* Look up the (module_name, class_name) pair. */
-    pair = PyDict_GetItemWithError(st->inverted_registry, py_code);
-    if (pair == NULL) {
-        Py_DECREF(py_code);
-        if (!PyErr_Occurred()) {
+    switch (PyDict_GetItemRef(st->inverted_registry, py_code, &pair)) {
+        case 0:
             PyErr_Format(PyExc_ValueError, "unregistered extension "
                          "code %ld", code);
-        }
-        return -1;
+            _Py_FALLTHROUGH;
+        case -1:
+            Py_DECREF(py_code);
+            return -1;
     }
     /* Since the extension registry is manipulable via Python code,
      * confirm that pair is really a 2-tuple of strings.
      */
     if (!PyTuple_Check(pair) || PyTuple_Size(pair) != 2) {
+        Py_DECREF(pair);
         goto error;
     }
 
     module_name = PyTuple_GET_ITEM(pair, 0);
     if (!PyUnicode_Check(module_name)) {
+        Py_DECREF(pair);
         goto error;
     }
 
     class_name = PyTuple_GET_ITEM(pair, 1);
+    Py_DECREF(pair);
     if (!PyUnicode_Check(class_name)) {
         goto error;
     }
@@ -7259,9 +7260,9 @@ _pickle_Unpickler_find_class_impl(UnpicklerObject *self, PyTypeObject *cls,
     /* Try to map the old names used in Python 2.x to the new ones used in
        Python 3.x.  We do this only with old pickle protocols and when the
        user has not disabled the feature. */
+    PyObject *item = NULL;
     if (self->proto < 3 && self->fix_imports) {
         PyObject *key;
-        PyObject *item;
         PickleState *st = _Pickle_GetStateByClass(cls);
 
         /* Check if the global (i.e., a function or a class) was renamed
@@ -7269,10 +7270,14 @@ _pickle_Unpickler_find_class_impl(UnpicklerObject *self, PyTypeObject *cls,
         key = PyTuple_Pack(2, module_name, global_name);
         if (key == NULL)
             return NULL;
-        item = PyDict_GetItemWithError(st->name_mapping_2to3, key);
+        if(PyDict_GetItemRef(st->name_mapping_2to3, key, &item) < 0) {
+            Py_DECREF(key);
+            return NULL;
+        }
         Py_DECREF(key);
         if (item) {
             if (!PyTuple_Check(item) || PyTuple_GET_SIZE(item) != 2) {
+                Py_DECREF(item);
                 PyErr_Format(PyExc_RuntimeError,
                              "_compat_pickle.NAME_MAPPING values should be "
                              "2-tuples, not %.200s", Py_TYPE(item)->tp_name);
@@ -7287,26 +7292,24 @@ _pickle_Unpickler_find_class_impl(UnpicklerObject *self, PyTypeObject *cls,
                              "pairs of str, not (%.200s, %.200s)",
                              Py_TYPE(module_name)->tp_name,
                              Py_TYPE(global_name)->tp_name);
+                Py_DECREF(item);
                 return NULL;
             }
         }
-        else if (PyErr_Occurred()) {
-            return NULL;
-        }
         else {
             /* Check if the module was renamed. */
-            item = PyDict_GetItemWithError(st->import_mapping_2to3, module_name);
+            if (PyDict_GetItemRef(st->import_mapping_2to3, module_name, &item) < 0) {
+                return NULL;
+            }
             if (item) {
                 if (!PyUnicode_Check(item)) {
                     PyErr_Format(PyExc_RuntimeError,
                                 "_compat_pickle.IMPORT_MAPPING values should be "
                                 "strings, not %.200s", Py_TYPE(item)->tp_name);
+                    Py_DECREF(item);
                     return NULL;
                 }
                 module_name = item;
-            }
-            else if (PyErr_Occurred()) {
-                return NULL;
             }
         }
     }
@@ -7317,6 +7320,7 @@ _pickle_Unpickler_find_class_impl(UnpicklerObject *self, PyTypeObject *cls,
      */
     module = PyImport_Import(module_name);
     if (module == NULL) {
+        Py_XDECREF(item);
         return NULL;
     }
     if (self->proto >= 4) {
@@ -7339,6 +7343,7 @@ _pickle_Unpickler_find_class_impl(UnpicklerObject *self, PyTypeObject *cls,
     else {
         global = PyObject_GetAttr(module, global_name);
     }
+    Py_XDECREF(item);
     Py_DECREF(module);
     return global;
 }

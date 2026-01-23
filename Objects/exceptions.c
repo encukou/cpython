@@ -1685,7 +1685,7 @@ _PyExc_PrepReraiseStar(PyObject *orig, PyObject *excs)
             result = _PyExc_CreateExceptionGroup("", raised_list);
         }
         else {
-            result = Py_NewRef(PyList_GetItem(raised_list, 0));
+            result = PyList_GetItemRef(raised_list, 0);
         }
         if (result == NULL) {
             goto done;
@@ -2218,7 +2218,7 @@ OSError_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
         if (myerrno && PyLong_Check(myerrno) &&
             state->errnomap && (PyObject *) type == PyExc_OSError) {
             PyObject *newtype;
-            newtype = PyDict_GetItemWithError(state->errnomap, myerrno);
+            newtype = PyDict_GetItem_Borrow(state->errnomap, myerrno);
             if (newtype) {
                 type = _PyType_CAST(newtype);
             }

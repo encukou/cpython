@@ -5,7 +5,6 @@
 #include "pycore_typevarobject.h"
 #include "pycore_unicodeobject.h" // _PyUnicode_EqualToASCIIString()
 #include "pycore_unionobject.h"   // _Py_union_type_or, _Py_union_from_tuple
-#include "structmember.h"
 
 /*[clinic input]
 class typevar "typevarobject *" "&_PyTypeVar_Type"

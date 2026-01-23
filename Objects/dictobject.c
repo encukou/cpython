@@ -2325,7 +2325,7 @@ dict_getitem(PyObject *op, PyObject *key, const char *warnmsg)
 }
 
 PyObject *
-PyDict_GetItem(PyObject *op, PyObject *key)
+_PyDict_GetItem_backcompat(PyObject *op, PyObject *key)
 {
     return dict_getitem(op, key,
             "Exception ignored in PyDict_GetItem(); consider using "
@@ -2502,7 +2502,7 @@ _PyDict_GetItemRef_Unicode_LockHeld(PyDictObject *op, PyObject *key, PyObject **
    It returns NULL *without* an exception set if the key wasn't present.
 */
 PyObject *
-PyDict_GetItemWithError(PyObject *op, PyObject *key)
+PyDict_GetItem_Borrow(PyObject *op, PyObject *key)
 {
     Py_ssize_t ix; (void)ix;
     Py_hash_t hash;
@@ -2530,6 +2530,12 @@ PyDict_GetItemWithError(PyObject *op, PyObject *key)
 }
 
 PyObject *
+_PyDict_GetItemWithError_backcompat(PyObject *op, PyObject *key)
+{
+    return PyDict_GetItem_Borrow(op, key);
+}
+
+PyObject *
 _PyDict_GetItemWithError(PyObject *dp, PyObject *kv)
 {
     assert(PyUnicode_CheckExact(kv));
@@ -2548,7 +2554,7 @@ _PyDict_GetItemStringWithError(PyObject *v, const char *key)
     if (kv == NULL) {
         return NULL;
     }
-    rv = PyDict_GetItemWithError(v, kv);
+    rv = PyDict_GetItem_Borrow(v, kv);
     Py_DECREF(kv);
     return rv;
 }
@@ -4460,7 +4466,7 @@ PyDict_SetDefaultRef(PyObject *d, PyObject *key, PyObject *default_value,
 }
 
 PyObject *
-PyDict_SetDefault(PyObject *d, PyObject *key, PyObject *defaultobj)
+_PyDict_SetDefault_backcompat(PyObject *d, PyObject *key, PyObject *defaultobj)
 {
     PyObject *result;
     Py_BEGIN_CRITICAL_SECTION(d);
@@ -4976,7 +4982,7 @@ PyTypeObject PyDict_Type = {
 /* For backward compatibility with old dictionary interface */
 
 PyObject *
-PyDict_GetItemString(PyObject *v, const char *key)
+_PyDict_GetItemString_backcompat(PyObject *v, const char *key)
 {
     PyObject *kv, *rv;
     kv = PyUnicode_FromString(key);
@@ -6711,7 +6717,13 @@ _PyDict_NewKeysForClass(PyHeapTypeObject *cls)
         keys->dk_kind = DICT_KEYS_SPLIT;
     }
     if (cls->ht_type.tp_dict) {
-        PyObject *attrs = PyDict_GetItem(cls->ht_type.tp_dict, &_Py_ID(__static_attributes__));
+        PyObject *attrs;
+        if (PyDict_GetItemRef(cls->ht_type.tp_dict,
+                              &_Py_ID(__static_attributes__),
+                              &attrs) < 0)
+        {
+            return NULL;
+        }
         if (attrs != NULL && PyTuple_Check(attrs)) {
             for (Py_ssize_t i = 0; i < PyTuple_GET_SIZE(attrs); i++) {
                 PyObject *key = PyTuple_GET_ITEM(attrs, i);
@@ -6723,6 +6735,7 @@ _PyDict_NewKeysForClass(PyHeapTypeObject *cls)
                 }
             }
         }
+        Py_XDECREF(attrs);
     }
     return keys;
 }

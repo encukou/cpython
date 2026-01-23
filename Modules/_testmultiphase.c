@@ -80,12 +80,9 @@ Example_getattro(PyObject *op, PyObject *name)
 {
     ExampleObject *self = ExampleObject_CAST(op);
     if (self->x_attr != NULL) {
-        PyObject *v = PyDict_GetItemWithError(self->x_attr, name);
-        if (v != NULL) {
-            return Py_NewRef(v);
-        }
-        else if (PyErr_Occurred()) {
-            return NULL;
+        PyObject *v;
+        if (PyDict_GetItemRef(self->x_attr, name, &v) != 0) {
+            return v;
         }
     }
     return PyObject_GenericGetAttr((PyObject *)self, name);

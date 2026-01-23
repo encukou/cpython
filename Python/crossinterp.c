@@ -2124,17 +2124,19 @@ _sharednsitem_copy_from_ns(struct _sharednsitem *item, PyObject *ns,
 {
     assert(item->name != NULL);
     assert(item->xidata == NULL);
-    PyObject *value = PyDict_GetItemString(ns, item->name);  // borrowed
+    PyObject *value;
+    if (PyDict_GetItemStringRef(ns, item->name, &value) < 0) {
+        return -1;
+    }
     if (value == NULL) {
-        if (PyErr_Occurred()) {
-            return -1;
-        }
         // When applied, this item will be set to the default (or fail).
         return 0;
     }
     if (_sharednsitem_set_value(item, value, fallback) < 0) {
+        Py_DECREF(value);
         return -1;
     }
+    Py_DECREF(value);
     return 0;
 }
 

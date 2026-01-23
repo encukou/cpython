@@ -809,7 +809,7 @@ register_at_forker(PyObject **lst, PyObject *func)
 
 /* Legacy wrapper */
 void
-PyOS_AfterFork(void)
+_PyOS_AfterFork_backcompat(void)
 {
 #ifdef HAVE_FORK
     PyOS_AfterFork_Child();

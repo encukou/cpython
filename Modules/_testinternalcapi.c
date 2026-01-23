@@ -9,6 +9,7 @@
 /* Always enable assertions */
 #undef NDEBUG
 
+#define Py_NO_POISON
 #include "Python.h"
 #include "pycore_backoff.h"       // JUMP_BACKWARD_INITIAL_VALUE
 #include "pycore_bitutils.h"      // _Py_bswap32()

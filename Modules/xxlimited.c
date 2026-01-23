@@ -175,12 +175,17 @@ Xxo_getattro(PyObject *op, PyObject *name)
 {
     XxoObject *self = XxoObject_CAST(op);
     if (self->x_attr != NULL) {
-        PyObject *v = PyDict_GetItemWithError(self->x_attr, name);
-        if (v != NULL) {
-            return Py_NewRef(v);
-        }
-        else if (PyErr_Occurred()) {
-            return NULL;
+        PyObject *v;
+        switch (PyDict_GetItemRef(self->x_attr, name, &v)) {
+            case -1: // error
+                assert(v == NULL);
+                return NULL;
+            case 0: // not found
+                assert(v == NULL);
+                break;
+            case 1: // found
+                assert(v != NULL);
+                return v;
         }
     }
     // Fall back to generic implementation (this handles special attributes,

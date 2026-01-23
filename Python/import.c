@@ -398,7 +398,7 @@ PyImport_AddModuleObject(PyObject *name)
 
 
 PyObject *
-PyImport_AddModule(const char *name)
+_PyImport_AddModule_backcompat(const char *name)
 {
     PyObject *nameobj = PyUnicode_FromString(name);
     if (nameobj == NULL) {
@@ -3449,10 +3449,12 @@ get_path_importer(PyThreadState *tstate, PyObject *path_importer_cache,
         return NULL;
 
     for (j = 0; j < nhooks; j++) {
-        PyObject *hook = PyList_GetItem(path_hooks, j);
-        if (hook == NULL)
+        PyObject *hook = PyList_GetItemRef(path_hooks, j);
+        if (hook == NULL) {
             return NULL;
+        }
         importer = PyObject_CallOneArg(hook, p);
+        Py_DECREF(hook);
         if (importer != NULL)
             break;
 
@@ -3544,7 +3546,7 @@ PyImport_ImportModule(const char *name)
  * Removed in 3.15, but kept for stable ABI compatibility.
  */
 PyAPI_FUNC(PyObject *)
-PyImport_ImportModuleNoBlock(const char *name)
+_PyImport_ImportModuleNoBlock_backcompat(const char *name)
 {
     if (PyErr_WarnEx(PyExc_DeprecationWarning,
         "PyImport_ImportModuleNoBlock() is deprecated and scheduled for "

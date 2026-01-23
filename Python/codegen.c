@@ -4762,11 +4762,12 @@ restore_inlined_comprehension_locals(compiler *c, location loc,
     // pushed_locals in simple reverse order
     ADDOP_I(c, loc, SWAP, npops + 1);
     for (Py_ssize_t i = npops - 1; i >= 0; --i) {
-        k = PyList_GetItem(state->pushed_locals, i);
+        k = PyList_GetItemRef(state->pushed_locals, i);
         if (k == NULL) {
             return ERROR;
         }
         ADDOP_NAME(c, loc, STORE_FAST_MAYBE_NULL, k, varnames);
+        Py_DECREF(k);
     }
     return SUCCESS;
 }

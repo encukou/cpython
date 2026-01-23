@@ -1196,7 +1196,7 @@ PyObject_HasAttrStringWithError(PyObject *obj, const char *name)
 
 
 int
-PyObject_HasAttrString(PyObject *obj, const char *name)
+_PyObject_HasAttrString_backcompat(PyObject *obj, const char *name)
 {
     int rc = PyObject_HasAttrStringWithError(obj, name);
     if (rc < 0) {
@@ -1437,7 +1437,7 @@ PyObject_HasAttrWithError(PyObject *obj, PyObject *name)
 }
 
 int
-PyObject_HasAttr(PyObject *obj, PyObject *name)
+_PyObject_HasAttr_backcompat(PyObject *obj, PyObject *name)
 {
     int rc = PyObject_HasAttrWithError(obj, name);
     if (rc < 0) {
@@ -2588,8 +2588,10 @@ _PyTypes_InitTypes(PyInterpreterState *interp)
 
     // Cache __reduce__ from PyBaseObject_Type object
     PyObject *baseobj_dict = _PyType_GetDict(&PyBaseObject_Type);
-    PyObject *baseobj_reduce = PyDict_GetItemWithError(baseobj_dict, &_Py_ID(__reduce__));
-    if (baseobj_reduce == NULL && PyErr_Occurred()) {
+    PyObject *baseobj_reduce;
+    if (PyDict_GetItemRef(baseobj_dict, &_Py_ID(__reduce__),
+                          &baseobj_reduce) != 1)
+    {
         return _PyStatus_ERR("Can't get __reduce__ from base object");
     }
     _Py_INTERP_CACHED_OBJECT(interp, objreduce) = baseobj_reduce;
@@ -2612,6 +2614,8 @@ _PyTypes_InitTypes(PyInterpreterState *interp)
 void
 _PyTypes_FiniTypes(PyInterpreterState *interp)
 {
+    Py_DECREF(_Py_INTERP_CACHED_OBJECT(interp, objreduce));
+
     // Deallocate types in the reverse order to deallocate subclasses before
     // their base classes.
     for (Py_ssize_t i=Py_ARRAY_LENGTH(static_types)-1; i>=0; i--) {
@@ -2994,55 +2998,57 @@ _PyObject_DebugTypeStats(FILE *out)
 int
 Py_ReprEnter(PyObject *obj)
 {
-    PyObject *dict;
-    PyObject *list;
-    Py_ssize_t i;
-
-    dict = PyThreadState_GetDict();
+    PyObject *dict = PyThreadState_GetDict();
     /* Ignore a missing thread-state, so that this function can be called
        early on startup. */
-    if (dict == NULL)
+    if (dict == NULL) {
         return 0;
-    list = PyDict_GetItemWithError(dict, &_Py_ID(Py_Repr));
+    }
+    PyObject *list;
+    if (PyDict_GetItemRef(dict, &_Py_ID(Py_Repr), &list) < 0) {
+        return -1;
+    }
     if (list == NULL) {
-        if (PyErr_Occurred()) {
+        list = PyList_New(0);
+        if (list == NULL) {
             return -1;
         }
-        list = PyList_New(0);
-        if (list == NULL)
+        if (PyDict_SetItem(dict, &_Py_ID(Py_Repr), list) < 0) {
             return -1;
-        if (PyDict_SetItem(dict, &_Py_ID(Py_Repr), list) < 0)
-            return -1;
-        Py_DECREF(list);
+        }
     }
-    i = PyList_GET_SIZE(list);
+    Py_ssize_t i = PyList_GET_SIZE(list);
     while (--i >= 0) {
-        if (PyList_GET_ITEM(list, i) == obj)
+        if (PyList_GET_ITEM(list, i) == obj) {
+            Py_DECREF(list);
             return 1;
+        }
     }
-    if (PyList_Append(list, obj) < 0)
+    if (PyList_Append(list, obj) < 0) {
+        Py_DECREF(list);
         return -1;
+    }
+    Py_DECREF(list);
     return 0;
 }
 
 void
 Py_ReprLeave(PyObject *obj)
 {
-    PyObject *dict;
-    PyObject *list;
-    Py_ssize_t i;
-
     PyObject *exc = PyErr_GetRaisedException();
 
+    PyObject *dict;
     dict = PyThreadState_GetDict();
-    if (dict == NULL)
+    if (dict == NULL) {
         goto finally;
+    }
 
-    list = PyDict_GetItemWithError(dict, &_Py_ID(Py_Repr));
-    if (list == NULL || !PyList_Check(list))
+    PyObject *list;
+    if (PyDict_GetItemRef(dict, &_Py_ID(Py_Repr), &list) != 1) {
         goto finally;
+    }
 
-    i = PyList_GET_SIZE(list);
+    Py_ssize_t i = PyList_GET_SIZE(list);
     /* Count backwards because we always expect obj to be list[-1] */
     while (--i >= 0) {
         if (PyList_GET_ITEM(list, i) == obj) {

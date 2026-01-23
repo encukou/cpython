@@ -249,7 +249,9 @@ _pysqlite_get_converter(pysqlite_state *state, const char *keystr,
         return NULL;
     }
 
-    retval = PyDict_GetItemWithError(state->converters, upcase_key);
+    if (PyDict_GetItemRef(state->converters, upcase_key, &retval) == 0) {
+        PyErr_SetObject(PyExc_KeyError, upcase_key);
+    }
     Py_DECREF(upcase_key);
 
     return retval;
@@ -725,8 +727,8 @@ bind_parameters(pysqlite_state *state, pysqlite_Statement *self,
                 PyObject *item = PyTuple_GET_ITEM(parameters, i);
                 current_param = Py_NewRef(item);
             } else if (PyList_CheckExact(parameters)) {
-                PyObject *item = PyList_GetItem(parameters, i);
-                current_param = Py_XNewRef(item);
+                PyObject *item = PyList_GetItemRef(parameters, i);
+                current_param = item;
             } else {
                 current_param = PySequence_GetItem(parameters, i);
             }

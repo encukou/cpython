@@ -2344,10 +2344,14 @@ match_getindex(MatchObject* self, PyObject* index)
         i = -1;
 
         if (self->pattern->groupindex) {
-            index = PyDict_GetItemWithError(self->pattern->groupindex, index);
-            if (index && PyLong_Check(index)) {
-                i = PyLong_AsSsize_t(index);
+            PyObject *new_index;
+            if (PyDict_GetItemRef(self->pattern->groupindex, index, &new_index) < 0) {
+                return -1;
             }
+            if (new_index && PyLong_Check(new_index)) {
+                i = PyLong_AsSsize_t(new_index);
+            }
+            Py_XDECREF(new_index);
         }
     }
     if (i < 0 || i >= self->groups) {

@@ -904,9 +904,12 @@ invoke_progress_callback(PyObject *callback, Py_ssize_t current, uint32_t total)
 Py_ssize_t
 binary_reader_replay(BinaryReader *reader, PyObject *collector, PyObject *progress_callback)
 {
-    if (!PyObject_HasAttrString(collector, "collect")) {
-        PyErr_SetString(PyExc_TypeError, "Collector must have a collect() method");
-        return -1;
+    switch (PyObject_HasAttrStringWithError(collector, "collect")) {
+        case -1:
+            return -1;
+        case 0:
+            PyErr_SetString(PyExc_TypeError, "Collector must have a collect() method");
+            return -1;
     }
 
     /* Get module state for struct sequence types */

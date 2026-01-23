@@ -5285,7 +5285,7 @@ ast_type_init(PyObject *self, PyObject *args, PyObject *kw)
         }
         for (Py_ssize_t i = 0; i < size; i++) {
             PyObject *name = PyList_GET_ITEM(remaining_list, i);
-            PyObject *type = PyDict_GetItemWithError(field_types, name);
+            PyObject *type = PyDict_GetItem_Borrow(field_types, name);
             if (!type) {
                 if (PyErr_Occurred()) {
                     goto set_remaining_cleanup;

@@ -419,14 +419,17 @@ _Py_FindSourceFile(PyObject *filename, char* namebuf, size_t namelen, PyObject *
         goto error;
     }
     for (i = 0; i < npath; i++) {
-        v = PyList_GetItem(syspath, i);
+        v = PyList_GetItemRef(syspath, i);
         if (v == NULL) {
             PyErr_Clear();
             break;
         }
-        if (!PyUnicode_Check(v))
+        if (!PyUnicode_Check(v)) {
+            Py_DECREF(v);
             continue;
+        }
         path = PyUnicode_EncodeFSDefault(v);
+        Py_DECREF(v);
         if (path == NULL) {
             PyErr_Clear();
             continue;
