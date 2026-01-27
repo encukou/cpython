@@ -14,6 +14,7 @@ extern "C" {
 #include "pycore_structs.h"       // PyHamtObject
 #include "pycore_tstate.h"        // _PyThreadStateImpl
 #include "pycore_typedefs.h"      // _PyRuntimeState
+#include "pycore_hashtable.h"     // _Py_hashtable_t
 
 #define CODE_MAX_WATCHERS 8
 #define CONTEXT_MAX_WATCHERS 8
@@ -269,8 +270,6 @@ struct _gc_runtime_state {
 /**** Import ********/
 
 struct _import_runtime_state {
-    /* The builtin modules (defined in config.c). */
-    struct _inittab *inittab;
     /* The most recent value assigned to a PyModuleDef.m_base.m_index.
        This is incremented each time PyModuleDef_Init() is called,
        which is just about every time an extension module is imported.
@@ -289,6 +288,11 @@ struct _import_runtime_state {
     } extensions;
     /* Package context -- the full module name for package imports */
     const char * pkgcontext;
+    /* The builtin modules (copied from inittab). */
+    struct {
+        _PyOnceFlag once;
+        struct _Py_hashtable_t *table;
+    } builtin_modules;
 };
 
 struct _import_state {

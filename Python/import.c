@@ -59,7 +59,6 @@ is_interpreter_isolated(PyInterpreterState *interp)
 extern struct _inittab _PyImport_Inittab[];
 
 // This is not used after Py_Initialize() is called.
-// (See _PyRuntimeState.imports.inittab.)
 struct _inittab *PyImport_Inittab = _PyImport_Inittab;
 // When we dynamically allocate a larger table for PyImport_ExtendInittab(),
 // we track the pointer here so we can deallocate it during finalization.
@@ -70,7 +69,7 @@ static struct _inittab *inittab_copy = NULL;
 /* runtime-global import state */
 /*******************************/
 
-#define INITTAB _PyRuntime.imports.inittab
+#define BUILTIN_MODULES _PyRuntime.imports.builtin_modules
 #define LAST_MODULE_INDEX _PyRuntime.imports.last_module_index
 #define EXTENSIONS _PyRuntime.imports.extensions
 
@@ -2367,6 +2366,52 @@ finally:
 
 /* Helper to test for built-in module */
 
+static Py_uhash_t
+builtintable_hash(const void *key)
+{
+    const unsigned char *byte = key;
+    if (!key) {
+        key = 1;
+    }
+    // DJBX33A for a zero-terminated buffer
+    // (Note that we don't worry about malicious input)
+    Py_uhash_t hash = 5381; /* DJBX33A starts with 5381 */
+    for (const unsigned char *byte = key; *key; key++) {
+        hash = ((hash << 5) + hash) + *byte;
+    }
+    return hash;
+}
+
+static int
+builtintable_compare(const void *key1, const void *key2)
+{
+    return !strcmp(key1, key2);
+}
+
+static int
+_init_builtins_once(void *Py_UNUSED(arg))
+{
+    BUILTIN_MODULES.table = _Py_hashtable_new(
+        builtintable_hash,
+        builtintable_compare);
+    if (!table) {
+        PyErr_SetString(
+            PyExc_MemoryError,
+            "cannot allocate memory for builtin module table");
+        return -1;
+    }
+    for (struct _inittab *entry = _PyImport_Inittab; entry.name; entry++) {
+
+    }
+}
+
+static int
+init_builtins(void)
+{
+    return _PyOnceFlag_CallOnce(
+        BUILTIN_MODULES.once, _init_builtins_once, NULL);
+}
+
 static int
 is_builtin(PyObject *name)
 {
@@ -2577,6 +2622,10 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
     return PyImport_ExtendInittab(newtab);
 }
 
+int
+PyAPI_FUNC(int) PyImport_RegisterBuiltinModules(PyModuleDef_Slot **slot_arrays)
+{
+}
 
 /* the internal table */
 

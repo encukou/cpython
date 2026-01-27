@@ -87,6 +87,8 @@ PyAPI_FUNC(int) PyImport_AppendInittab(
     const char *name,           /* ASCII encoded string */
     PyObject* (*initfunc)(void)
     );
+PyAPI_FUNC(int) PyImport_RegisterBuiltinModules(
+    PyModuleDef_Slot **slot_arrays);
 
 #ifndef Py_LIMITED_API
 #  define Py_CPYTHON_IMPORT_H
