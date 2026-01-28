@@ -2867,9 +2867,20 @@ static PyMethodDef sys_methods[] = {
 static PyObject *
 list_builtin_module_names(void)
 {
-    PyObject *list = _PyImport_GetBuiltinModuleNames();
-    if (list == NULL) {
+    PyObject *seq = _PyImport_GetBuiltinModuleNames();
+    if (seq == NULL) {
         return NULL;
+    }
+    PyObject *list;
+    if (PyList_Check(seq)) {
+        list = seq;
+    }
+    else {
+        list = PySequence_List(seq);
+        Py_DECREF(seq);
+        if (list == NULL) {
+            return NULL;
+        }
     }
     if (PyList_Sort(list) != 0) {
         goto error;

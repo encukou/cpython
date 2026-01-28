@@ -26,6 +26,8 @@ class TestFrozen(unittest.TestCase):
         with captured_stdout() as out:
             __hello__.main()
         self.assertEqual(out.getvalue(), 'Hello world!\n')
+        self.assertIs(__hello__.__spec__.loader,
+                      importlib.machinery.FrozenImporter)
 
     def test_frozen_submodule_in_unfrozen_package(self):
         with import_helper.CleanImport('__phello__', '__phello__.spam'):

@@ -1991,6 +1991,22 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
+import_run_slots(const PyModuleDef_Slot *slots, PyObject *spec)
+{
+    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
+    if (!result) {
+        return NULL;
+    }
+    if (PyModule_Check(result)) {
+        PyModuleObject *mod = (PyModuleObject *)result;
+        if (mod && !mod->md_token) {
+            mod->md_token = (void*)slots;
+        }
+    }
+    return result;
+}
+
+static PyObject *
 import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
                      struct _Py_ext_module_loader_info *info,
                      PyObject *spec)
@@ -2014,17 +2030,7 @@ import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
             "module export hook for module %R raised unreported exception",
             info->name);
     }
-    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
-    if (!result) {
-        return NULL;
-    }
-    if (PyModule_Check(result)) {
-        PyModuleObject *mod = (PyModuleObject *)result;
-        if (mod && !mod->md_token) {
-            mod->md_token = slots;
-        }
-    }
-    return result;
+    return import_run_slots(slots, spec);
 }
 
 static PyObject *
@@ -2367,34 +2373,6 @@ finally:
 
 /* Helper to test for built-in module */
 
-static int
-is_builtin(PyObject *name)
-{
-    int i;
-    struct _inittab *inittab = INITTAB;
-    for (i = 0; inittab[i].name != NULL; i++) {
-        if (_PyUnicode_EqualToASCIIString(name, inittab[i].name)) {
-            if (inittab[i].initfunc == NULL)
-                return -1;
-            else
-                return 1;
-        }
-    }
-    return 0;
-}
-
-static struct _inittab*
-lookup_inittab_entry(const struct _Py_ext_module_loader_info* info)
-{
-    for (struct _inittab *p = INITTAB; p->name != NULL; p++) {
-        if (_PyUnicode_EqualToASCIIString(info->name, p->name)) {
-            return p;
-        }
-    }
-    // not found
-    return NULL;
-}
-
 static PyObject*
 create_builtin(
     PyThreadState *tstate, PyObject *name,
@@ -2432,14 +2410,47 @@ create_builtin(
 
     PyModInitFunction p0 = NULL;
     if (initfunc == NULL) {
-        struct _inittab *entry = lookup_inittab_entry(&info);
-        if (entry == NULL) {
-            mod = NULL;
-            _PyErr_SetModuleNotFoundError(name);
+        const char *name_buf = PyUnicode_AsUTF8(name);
+        if (!name_buf) {
+            if (PyErr_ExceptionMatches(PyExc_UnicodeEncodeError)) {
+                PyErr_Clear();
+                mod = NULL;
+                _PyErr_SetModuleNotFoundError(name);
+            }
             goto finally;
         }
 
-        p0 = (PyModInitFunction)entry->initfunc;
+        PyImportBuiltin_Entry entry;
+        switch(PyImportBuiltin_FindEntry(
+            name_buf, PyImportBuiltin_KIND_BUILTIN, &entry, sizeof(entry)))
+        {
+            case 0:
+                _PyErr_SetModuleNotFoundError(name);
+                _Py_FALLTHROUGH;
+            case -1:
+                mod = NULL;
+                goto finally;
+        }
+        switch (entry.e_meta.m_datatype) {
+            case PyImportBuiltin_TYPE_INITFUNC:
+                p0 = (PyModInitFunction)entry.e_initfunc;
+                break;
+            case PyImportBuiltin_TYPE_SLOTS:
+                mod = import_run_slots(entry.e_slots, spec);
+                // Modules created from slots handle GIL enablement (Py_mod_gil slot)
+                // when they're created.
+                goto finally;
+            case PyImportBuiltin_TYPE_SPECIAL:
+                p0 = NULL;
+                break;
+            default:
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "entry for builtin module %R has unknown type %u",
+                    name, (unsigned)entry.e_meta.m_datatype);
+                goto finally;
+        }
+
     }
     else {
         p0 = initfunc;
@@ -2504,9 +2515,129 @@ PyImport_CreateModuleFromInitfunc(
     return mod;
 }
 
-/*****************************/
-/* the builtin modules table */
-/*****************************/
+/************************************/
+/* the builtin/frozen modules table */
+/************************************/
+
+static bool use_frozen(void);
+
+
+#ifndef PyImportBuiltin_USE_CUSTOM_IMPLEMENTATION
+int
+PyImportBuiltin_FindEntry(
+    const char *name,
+    int kind,
+    struct PyImportBuiltin_Entry *result,
+    Py_ssize_t result_struct_size)
+{
+    return PyUnstable_ImportBuiltin_FindEntry_Default(
+        name, kind, result, result_struct_size);
+}
+PyObject *
+PyImportBuiltin_GetNames(int kinds)
+{
+    return PyUnstable_ImportBuiltin_GetNames_Default(kinds);
+}
+#endif
+
+int
+PyUnstable_ImportBuiltin_FindEntry_Default(
+    const char *name,
+    int kind,
+    struct PyImportBuiltin_Entry *result,
+    Py_ssize_t result_struct_size)
+{
+    if (result_struct_size < (Py_ssize_t)sizeof(PyImportBuiltin_Entry)) {
+        memset(result, 0, result_struct_size);
+        PyErr_SetString(
+            PyExc_SystemError,
+            "PyUnstable_ImportBuiltin_FindEntry_Default: "
+                "result_struct_size too small");
+        return -1;
+    }
+    memset(result, 0, sizeof(PyImportBuiltin_Entry));
+    if (kind & PyImportBuiltin_KIND_BUILTIN) {
+        for (const struct _inittab *p = INITTAB; p->name; p++) {
+            if (strcmp(name, p->name) == 0) {
+                result->e_meta.m_datatype = p->initfunc
+                    ? PyImportBuiltin_TYPE_INITFUNC
+                    : PyImportBuiltin_TYPE_SPECIAL;
+                result->e_initfunc = p->initfunc;
+                return 1;
+            }
+        }
+    }
+    if (kind & PyImportBuiltin_KIND_FROZEN) {
+        bool enabled = use_frozen();
+        const struct _frozen *tables[] = {
+            _PyImport_FrozenBootstrap,
+            PyImport_FrozenModules,
+            enabled ? _PyImport_FrozenStdlib : NULL,
+            enabled ? _PyImport_FrozenTest : NULL,
+            };
+        for (unsigned i = 0; i < Py_ARRAY_LENGTH(tables); i++) {
+            if (tables[i]) {
+                for (const struct _frozen *p = tables[i]; p && p->name; p++) {
+                    if (strcmp(name, p->name) == 0) {
+                        result->e_meta.m_datatype = PyImportBuiltin_TYPE_FROZEN;
+                        result->e_frozen = p;
+                        return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+PyObject *PyUnstable_ImportBuiltin_GetNames_Default(int kinds)
+{
+    PyObject *result = PyList_New(0);
+    if (!result) {
+        return NULL;
+    }
+    PyObject *string;
+    #define ADD(s) do {                                \
+        string = PyUnicode_InternFromString(s);        \
+        if (!string) {                                 \
+            goto error;                                \
+        }                                              \
+        if (PyList_Append(result, string) < 0) {       \
+            goto error;                                \
+        }                                              \
+        Py_CLEAR(string);                              \
+    } while (0);                                       \
+    ////////////////////////////////////////////////////
+    if (kinds & PyImportBuiltin_KIND_BUILTIN) {
+        for (const struct _inittab *p = INITTAB; p->name; p++) {
+            ADD(p->name);
+        }
+    }
+    if (kinds & PyImportBuiltin_KIND_FROZEN) {
+        bool enabled = use_frozen();
+        const struct _frozen *tables[] = {
+            _PyImport_FrozenBootstrap,
+            PyImport_FrozenModules,
+            enabled ? _PyImport_FrozenStdlib : NULL,
+            enabled ? _PyImport_FrozenTest : NULL,
+            };
+        for (unsigned i = 0; i < Py_ARRAY_LENGTH(tables); i++) {
+            if (tables[i]) {
+                for (const struct _frozen *p = tables[i]; p->name; p++) {
+                    ADD(p->name);
+                }
+            }
+        }
+    }
+    #undef ADD
+
+    return result;
+error:
+    Py_XDECREF(result);
+    Py_XDECREF(string);
+    return NULL;
+}
+
 
 /* API for embedding applications that want to add their own entries
    to the table of built-in modules.  This should normally be called
@@ -2609,25 +2740,7 @@ fini_builtin_modules_table(void)
 PyObject *
 _PyImport_GetBuiltinModuleNames(void)
 {
-    PyObject *list = PyList_New(0);
-    if (list == NULL) {
-        return NULL;
-    }
-    struct _inittab *inittab = INITTAB;
-    for (Py_ssize_t i = 0; inittab[i].name != NULL; i++) {
-        PyObject *name = PyUnicode_FromString(inittab[i].name);
-        if (name == NULL) {
-            Py_DECREF(list);
-            return NULL;
-        }
-        if (PyList_Append(list, name) < 0) {
-            Py_DECREF(name);
-            Py_DECREF(list);
-            return NULL;
-        }
-        Py_DECREF(name);
-    }
-    return list;
+    return PyImportBuiltin_GetNames(PyImportBuiltin_KIND_BUILTIN);
 }
 
 
@@ -2893,86 +3006,6 @@ use_frozen(void)
     }
 }
 
-static PyObject *
-list_frozen_module_names(void)
-{
-    PyObject *names = PyList_New(0);
-    if (names == NULL) {
-        return NULL;
-    }
-    bool enabled = use_frozen();
-    const struct _frozen *p;
-#define ADD_MODULE(name) \
-    do { \
-        PyObject *nameobj = PyUnicode_FromString(name); \
-        if (nameobj == NULL) { \
-            goto error; \
-        } \
-        int res = PyList_Append(names, nameobj); \
-        Py_DECREF(nameobj); \
-        if (res != 0) { \
-            goto error; \
-        } \
-    } while(0)
-    // We always use the bootstrap modules.
-    for (p = _PyImport_FrozenBootstrap; ; p++) {
-        if (p->name == NULL) {
-            break;
-        }
-        ADD_MODULE(p->name);
-    }
-    // Frozen stdlib modules may be disabled.
-    for (p = _PyImport_FrozenStdlib; ; p++) {
-        if (p->name == NULL) {
-            break;
-        }
-        if (enabled) {
-            ADD_MODULE(p->name);
-        }
-    }
-    for (p = _PyImport_FrozenTest; ; p++) {
-        if (p->name == NULL) {
-            break;
-        }
-        if (enabled) {
-            ADD_MODULE(p->name);
-        }
-    }
-#undef ADD_MODULE
-    // Add any custom modules.
-    if (PyImport_FrozenModules != NULL) {
-        for (p = PyImport_FrozenModules; ; p++) {
-            if (p->name == NULL) {
-                break;
-            }
-            PyObject *nameobj = PyUnicode_FromString(p->name);
-            if (nameobj == NULL) {
-                goto error;
-            }
-            int found = PySequence_Contains(names, nameobj);
-            if (found < 0) {
-                Py_DECREF(nameobj);
-                goto error;
-            }
-            else if (found) {
-                Py_DECREF(nameobj);
-            }
-            else {
-                int res = PyList_Append(names, nameobj);
-                Py_DECREF(nameobj);
-                if (res != 0) {
-                    goto error;
-                }
-            }
-        }
-    }
-    return names;
-
-error:
-    Py_DECREF(names);
-    return NULL;
-}
-
 typedef enum {
     FROZEN_OKAY,
     FROZEN_BAD_NAME,    // The given module name wasn't valid.
@@ -2982,6 +3015,8 @@ typedef enum {
                            (module is present but marked as unimportable, stops search). */
     FROZEN_INVALID,     /* The PyImport_FrozenModules entry is bogus
                            (eg. does not contain executable code). */
+    FROZEN_EXCEPTION,   /* Error; an exception has been set (e.g. from
+                           user callback). */
 } frozen_status;
 
 static inline void
@@ -3005,6 +3040,9 @@ set_frozen_error(frozen_status status, PyObject *modname)
         case FROZEN_OKAY:
             // There was no error.
             break;
+        case FROZEN_EXCEPTION:
+            // exception is already set
+            return;
         default:
             Py_UNREACHABLE();
     }
@@ -3016,54 +3054,6 @@ set_frozen_error(frozen_status status, PyObject *modname)
         PyErr_SetImportError(msg, modname, NULL);
         Py_XDECREF(msg);
     }
-}
-
-static const struct _frozen *
-look_up_frozen(const char *name)
-{
-    const struct _frozen *p;
-    // We always use the bootstrap modules.
-    for (p = _PyImport_FrozenBootstrap; ; p++) {
-        if (p->name == NULL) {
-            // We hit the end-of-list sentinel value.
-            break;
-        }
-        if (strcmp(name, p->name) == 0) {
-            return p;
-        }
-    }
-    // Prefer custom modules, if any.  Frozen stdlib modules can be
-    // disabled here by setting "code" to NULL in the array entry.
-    if (PyImport_FrozenModules != NULL) {
-        for (p = PyImport_FrozenModules; ; p++) {
-            if (p->name == NULL) {
-                break;
-            }
-            if (strcmp(name, p->name) == 0) {
-                return p;
-            }
-        }
-    }
-    // Frozen stdlib modules may be disabled.
-    if (use_frozen()) {
-        for (p = _PyImport_FrozenStdlib; ; p++) {
-            if (p->name == NULL) {
-                break;
-            }
-            if (strcmp(name, p->name) == 0) {
-                return p;
-            }
-        }
-        for (p = _PyImport_FrozenTest; ; p++) {
-            if (p->name == NULL) {
-                break;
-            }
-            if (strcmp(name, p->name) == 0) {
-                return p;
-            }
-        }
-    }
-    return NULL;
 }
 
 struct frozen_info {
@@ -3095,10 +3085,16 @@ find_frozen(PyObject *nameobj, struct frozen_info *info)
         return FROZEN_BAD_NAME;
     }
 
-    const struct _frozen *p = look_up_frozen(name);
-    if (p == NULL) {
+    PyImportBuiltin_Entry entry;
+    if (PyImportBuiltin_FindEntry(
+        name, PyImportBuiltin_KIND_FROZEN, &entry, sizeof(entry)) < 0)
+    {
+        return FROZEN_EXCEPTION;
+    }
+    if (entry.e_meta.m_datatype != PyImportBuiltin_TYPE_FROZEN) {
         return FROZEN_NOT_FOUND;
     }
+    const struct _frozen *p = entry.e_frozen;
     if (info != NULL) {
         info->nameobj = nameobj;  // borrowed
         info->data = (const char *)p->code;
@@ -4653,7 +4649,27 @@ static PyObject *
 _imp_is_builtin_impl(PyObject *module, PyObject *name)
 /*[clinic end generated code: output=3bfd1162e2d3be82 input=86befdac021dd1c7]*/
 {
-    return PyLong_FromLong(is_builtin(name));
+    const char *name_buf = PyUnicode_AsUTF8(name);
+    if (!name_buf) {
+        if (PyErr_ExceptionMatches(PyExc_UnicodeEncodeError)) {
+            PyErr_Clear();
+            return PyLong_FromLong(0);
+        }
+        return NULL;
+    }
+    PyImportBuiltin_Entry entry;
+    switch (PyImportBuiltin_FindEntry(
+        name_buf, PyImportBuiltin_KIND_BUILTIN, &entry, sizeof(entry)))
+    {
+        case -1:
+            return NULL;
+        case 0:
+            return PyLong_FromLong(0);
+    }
+    if (entry.e_meta.m_datatype == PyImportBuiltin_TYPE_SPECIAL) {
+        return PyLong_FromLong(-1);
+    }
+    return PyLong_FromLong(1);
 }
 
 /*[clinic input]
@@ -4671,6 +4687,9 @@ _imp_is_frozen_impl(PyObject *module, PyObject *name)
 {
     struct frozen_info info;
     frozen_status status = find_frozen(name, &info);
+    if (status == FROZEN_EXCEPTION) {
+        return NULL;
+    }
     if (status != FROZEN_OKAY) {
         Py_RETURN_FALSE;
     }
@@ -4687,7 +4706,22 @@ static PyObject *
 _imp__frozen_module_names_impl(PyObject *module)
 /*[clinic end generated code: output=80609ef6256310a8 input=76237fbfa94460d2]*/
 {
-    return list_frozen_module_names();
+    PyObject *seq = PyImportBuiltin_GetNames(PyImportBuiltin_KIND_FROZEN);
+    if (seq == NULL) {
+        return NULL;
+    }
+    PyObject *list;
+    if (PyList_Check(seq)) {
+        list = seq;
+    }
+    else {
+        list = PySequence_List(seq);
+        Py_DECREF(seq);
+        if (list == NULL) {
+            return NULL;
+        }
+    }
+    return list;
 }
 
 /*[clinic input]
