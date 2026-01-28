@@ -26,6 +26,7 @@
 #include "pycore_importdl.h"      // _PyImport_DynLoadFiletab
 #include "pydtrace.h"             // PyDTrace_IMPORT_FIND_LOAD_START_ENABLED()
 #include <stdbool.h>              // bool
+#include <stdlib.h>               // qsort
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -39,6 +40,8 @@ module _imp
 
 #include "clinic/import.c.h"
 
+PyMODINIT_FUNC PyInit__imp(void);
+static PyModuleDef_Slot imp_slots_all[];
 
 #ifndef NDEBUG
 static bool
@@ -49,6 +52,23 @@ is_interpreter_isolated(PyInterpreterState *interp)
         && interp->ceval.own_gil;
 }
 #endif
+
+typedef enum {
+    // These are returned (as Python ints) by _imp.is_builtin()
+    INITTAB2_TYPE_NOTHING = 0,
+    INITTAB2_TYPE_HARDWIRED = -1,
+    INITTAB2_TYPE_INIT = 1,
+    INITTAB2_TYPE_SLOTS = 2,
+} inittab2_type_t;
+
+typedef struct _inittab2 {
+    const char *name;
+    inittab2_type_t type;
+    union {
+        PyModuleDef_Slot *slots;
+        PyObject* (*initfunc)(void);
+    };
+} _inittab2;
 
 
 /*******************************/
@@ -65,12 +85,12 @@ struct _inittab *PyImport_Inittab = _PyImport_Inittab;
 // we track the pointer here so we can deallocate it during finalization.
 static struct _inittab *inittab_copy = NULL;
 
-
 /*******************************/
 /* runtime-global import state */
 /*******************************/
 
-#define INITTAB _PyRuntime.imports.inittab
+#define INITTAB2 _PyRuntime.imports.inittab2
+#define INITTAB2_SIZE _PyRuntime.imports.inittab2_size
 #define LAST_MODULE_INDEX _PyRuntime.imports.last_module_index
 #define EXTENSIONS _PyRuntime.imports.extensions
 
@@ -1991,6 +2011,22 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
+import_run_slots(PyModuleDef_Slot *slots, PyObject *spec)
+{
+    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
+    if (!result) {
+        return NULL;
+    }
+    if (PyModule_Check(result)) {
+        PyModuleObject *mod = (PyModuleObject *)result;
+        if (mod && !mod->md_token) {
+            mod->md_token = slots;
+        }
+    }
+    return result;
+}
+
+static PyObject *
 import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
                      struct _Py_ext_module_loader_info *info,
                      PyObject *spec)
@@ -2014,17 +2050,7 @@ import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
             "module export hook for module %R raised unreported exception",
             info->name);
     }
-    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
-    if (!result) {
-        return NULL;
-    }
-    if (PyModule_Check(result)) {
-        PyModuleObject *mod = (PyModuleObject *)result;
-        if (mod && !mod->md_token) {
-            mod->md_token = slots;
-        }
-    }
-    return result;
+    return import_run_slots(slots, spec);
 }
 
 static PyObject *
@@ -2367,28 +2393,22 @@ finally:
 
 /* Helper to test for built-in module */
 
-static int
-is_builtin(PyObject *name)
+static struct _inittab2*
+lookup_inittab_entry(const char *name)
 {
-    int i;
-    struct _inittab *inittab = INITTAB;
-    for (i = 0; inittab[i].name != NULL; i++) {
-        if (_PyUnicode_EqualToASCIIString(name, inittab[i].name)) {
-            if (inittab[i].initfunc == NULL)
-                return -1;
-            else
-                return 1;
+    ssize_t start = 0;
+    ssize_t end = INITTAB2_SIZE - 1;
+    while (start <= end) {
+        ssize_t mid = (start + end) / 2;
+        int cmp = strcmp(INITTAB2[mid].name, name);
+        if (cmp == 0) {
+            return &INITTAB2[mid];
         }
-    }
-    return 0;
-}
-
-static struct _inittab*
-lookup_inittab_entry(const struct _Py_ext_module_loader_info* info)
-{
-    for (struct _inittab *p = INITTAB; p->name != NULL; p++) {
-        if (_PyUnicode_EqualToASCIIString(info->name, p->name)) {
-            return p;
+        else if (cmp < 0) {
+            start = mid + 1;
+        }
+        else {
+            end = mid - 1;
         }
     }
     // not found
@@ -2401,6 +2421,11 @@ create_builtin(
     PyObject *spec,
     PyModInitFunction initfunc)
 {
+    const char *name_buf = PyUnicode_AsUTF8(name);
+    if (!name_buf) {
+        return NULL;
+    }
+
     struct _Py_ext_module_loader_info info;
     if (_Py_ext_module_loader_info_init_for_builtin(&info, name) < 0) {
         return NULL;
@@ -2432,14 +2457,24 @@ create_builtin(
 
     PyModInitFunction p0 = NULL;
     if (initfunc == NULL) {
-        struct _inittab *entry = lookup_inittab_entry(&info);
+        struct _inittab2 *entry = lookup_inittab_entry(name_buf);
         if (entry == NULL) {
             mod = NULL;
             _PyErr_SetModuleNotFoundError(name);
             goto finally;
         }
-
-        p0 = (PyModInitFunction)entry->initfunc;
+        switch (entry->type) {
+            case INITTAB2_TYPE_NOTHING:
+                Py_UNREACHABLE();
+                break;
+            case INITTAB2_TYPE_HARDWIRED: _Py_FALLTHROUGH;
+            case INITTAB2_TYPE_INIT:
+                p0 = (PyModInitFunction)entry->initfunc;
+                break;
+            case INITTAB2_TYPE_SLOTS:
+                mod = import_run_slots(entry->slots, spec);
+                goto finally;
+        }
     }
     else {
         p0 = initfunc;
@@ -2522,7 +2557,7 @@ PyImport_ExtendInittab(struct _inittab *newtab)
     size_t i, n;
     int res = 0;
 
-    if (INITTAB != NULL) {
+    if (INITTAB2 != NULL) {
         Py_FatalError("PyImport_ExtendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2565,7 +2600,7 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 {
     struct _inittab newtab[2];
 
-    if (INITTAB != NULL) {
+    if (INITTAB2 != NULL) {
         Py_FatalError("PyImport_AppendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2581,29 +2616,64 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 /* the internal table */
 
 static int
+inittab2_sort_key(const void *p1, const void *p2)
+{
+    const _inittab2 *entry1 = p1;
+    const _inittab2 *entry2 = p2;
+    return strcmp(entry1->name, entry2->name);
+}
+
+static int
 init_builtin_modules_table(void)
 {
-    size_t size;
-    for (size = 0; PyImport_Inittab[size].name != NULL; size++)
-        ;
-    size++;
+    size_t inittab_size;
+    for (inittab_size = 0;
+         PyImport_Inittab[inittab_size].name != NULL;
+         inittab_size++)
+    { /* empty */ }
+
+    size_t total_size = inittab_size;
 
     /* Make the copy. */
-    struct _inittab *copied = _PyMem_DefaultRawMalloc(size * sizeof(struct _inittab));
-    if (copied == NULL) {
+    _inittab2 *new_tab = _PyMem_DefaultRawCalloc(
+        total_size, sizeof(_inittab2));
+    if (new_tab == NULL) {
         return -1;
     }
-    memcpy(copied, PyImport_Inittab, size * sizeof(struct _inittab));
-    INITTAB = copied;
+    size_t pos = 0;
+    for (; pos < inittab_size; pos++) {
+        if ((unsigned char)(PyImport_Inittab[pos].name[0]) == 0xff) {
+            new_tab[pos].name = PyImport_Inittab[pos].name + 1;
+            new_tab[pos].type = INITTAB2_TYPE_SLOTS;
+            new_tab[pos].slots = (PyModuleDef_Slot *)(
+                PyImport_Inittab[pos].initfunc);
+        }
+        else {
+            PyObject* (*initfunc)(void) = PyImport_Inittab[pos].initfunc;
+            new_tab[pos].name = PyImport_Inittab[pos].name;
+            if (initfunc == PyInit__imp) {
+                new_tab[pos].type = INITTAB2_TYPE_SLOTS;
+                new_tab[pos].slots = (PyModuleDef_Slot*)imp_slots_all;
+            }
+            else {
+                new_tab[pos].type = initfunc ? INITTAB2_TYPE_INIT
+                                             : INITTAB2_TYPE_HARDWIRED;
+                new_tab[pos].initfunc = initfunc;
+            }
+        }
+    }
+    qsort(new_tab, total_size, sizeof(struct _inittab2), inittab2_sort_key);
+    INITTAB2_SIZE = total_size;
+    INITTAB2 = new_tab;
     return 0;
 }
 
 static void
 fini_builtin_modules_table(void)
 {
-    struct _inittab *inittab = INITTAB;
-    INITTAB = NULL;
-    _PyMem_DefaultRawFree(inittab);
+    struct _inittab2 *inittab2 = INITTAB2;
+    INITTAB2 = NULL;
+    _PyMem_DefaultRawFree(inittab2);
 }
 
 PyObject *
@@ -2613,8 +2683,8 @@ _PyImport_GetBuiltinModuleNames(void)
     if (list == NULL) {
         return NULL;
     }
-    struct _inittab *inittab = INITTAB;
-    for (Py_ssize_t i = 0; inittab[i].name != NULL; i++) {
+    struct _inittab2 *inittab = INITTAB2;
+    for (Py_ssize_t i = 0; i < INITTAB2_SIZE; i++) {
         PyObject *name = PyUnicode_FromString(inittab[i].name);
         if (name == NULL) {
             Py_DECREF(list);
@@ -4104,7 +4174,7 @@ PyImport_Import(PyObject *module_name)
 PyStatus
 _PyImport_Init(void)
 {
-    if (INITTAB != NULL) {
+    if (INITTAB2 != NULL) {
         return _PyStatus_ERR("global import state already initialized");
     }
     if (init_builtin_modules_table() != 0) {
@@ -4653,7 +4723,19 @@ static PyObject *
 _imp_is_builtin_impl(PyObject *module, PyObject *name)
 /*[clinic end generated code: output=3bfd1162e2d3be82 input=86befdac021dd1c7]*/
 {
-    return PyLong_FromLong(is_builtin(name));
+    const char *buf = PyUnicode_AsUTF8(name);
+    if (!buf) {
+        if (PyErr_ExceptionMatches(PyExc_UnicodeEncodeError)) {
+            PyErr_Clear();
+            return PyLong_FromLong(INITTAB2_TYPE_NOTHING);
+        }
+        return NULL;
+    }
+    struct _inittab2 *entry = lookup_inittab_entry(buf);
+    if (entry) {
+        return PyLong_FromLong(entry->type);
+    }
+    return PyLong_FromLong(INITTAB2_TYPE_NOTHING);
 }
 
 /*[clinic input]
@@ -4959,13 +5041,17 @@ imp_module_exec(PyObject *module)
     return 0;
 }
 
-
-static PyModuleDef_Slot imp_slots[] = {
+static PyModuleDef_Slot imp_slots_all[] = {
+    {Py_mod_name, "_imp"},
+    {Py_mod_doc, (void*)doc_imp},
+    {Py_mod_methods, imp_methods},
+    // imp_slots for the PyModuleDef:
     {Py_mod_exec, imp_module_exec},
     {Py_mod_multiple_interpreters, Py_MOD_PER_INTERPRETER_GIL_SUPPORTED},
     {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
+
 
 static struct PyModuleDef imp_module = {
     PyModuleDef_HEAD_INIT,
@@ -4973,11 +5059,13 @@ static struct PyModuleDef imp_module = {
     .m_doc = doc_imp,
     .m_size = 0,
     .m_methods = imp_methods,
-    .m_slots = imp_slots,
+    /* .m_slots filled below */
 };
 
 PyMODINIT_FUNC
 PyInit__imp(void)
 {
+    imp_module.m_slots = imp_slots_all + 3;
+    assert(imp_module.m_slots[0].slot == Py_mod_exec);
     return PyModuleDef_Init(&imp_module);
 }
