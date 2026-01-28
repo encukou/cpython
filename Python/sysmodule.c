@@ -2871,7 +2871,9 @@ list_builtin_module_names(void)
     if (list == NULL) {
         return NULL;
     }
-    // (the list is already sorted)
+    if (PyList_Sort(list) != 0) {
+        goto error;
+    }
     PyObject *tuple = PyList_AsTuple(list);
     Py_DECREF(list);
     return tuple;

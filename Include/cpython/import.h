@@ -35,3 +35,43 @@ PyAPI_FUNC(PyObject*) PyImport_ImportModuleAttr(
 PyAPI_FUNC(PyObject*) PyImport_ImportModuleAttrString(
     const char *mod_name,
     const char *attr_name);
+
+typedef struct PyInittab2_Entry {
+    const char *m_name;
+    uint16_t m_type;
+    uint16_t m_flags;
+    uint16_t m_reserved;
+    uint16_t m_typeflags;
+    union {
+        PyModuleDef_Slot *m_slots;
+        PyObject* (*m_initfunc)(void);
+        struct {
+            const unsigned char *frz_code;
+            Py_ssize_t frz_size;
+        } m_frozen;
+        struct _frozen *_m_internal_frozen;
+    };
+} PyInittab2_Entry;
+
+#ifdef PyInittab2_USE_CUSTOM_IMPLEMENTATION
+extern int PyInittab2_FindEntry(
+    const char *name, struct PyInittab2_Entry *result);
+extern int PyInittab2_NextEntry(
+    const struct PyInittab2_Entry **entry);
+extern int PyInittab2_FinishIteration(
+    const struct PyInittab2_Entry *entry);
+#else
+PyAPI_FUNC(int) PyInittab2_FindEntry(
+    const char *name, struct PyInittab2_Entry *result);
+PyAPI_FUNC(int) PyInittab2_NextEntry(
+    const struct PyInittab2_Entry **entry);
+PyAPI_FUNC(int) PyInittab2_FinishIteration(
+    const struct PyInittab2_Entry *entry);
+#endif
+
+PyAPI_FUNC(int) PyUnstable_Inittab2_Default_FindEntry(
+    const char *name, struct PyInittab2_Entry *result);
+PyAPI_FUNC(int) PyUnstable_Inittab2_Default_NextEntry(
+    const struct PyInittab2_Entry **entry);
+PyAPI_FUNC(int) PyUnstable_Inittab2_Default_FinishIteration(
+    const struct PyInittab2_Entry *entry);

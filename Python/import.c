@@ -2393,28 +2393,6 @@ finally:
 
 /* Helper to test for built-in module */
 
-static struct _inittab2*
-lookup_inittab_entry(const char *name)
-{
-    ssize_t start = 0;
-    ssize_t end = INITTAB2_SIZE - 1;
-    while (start <= end) {
-        ssize_t mid = (start + end) / 2;
-        int cmp = strcmp(INITTAB2[mid].name, name);
-        if (cmp == 0) {
-            return &INITTAB2[mid];
-        }
-        else if (cmp < 0) {
-            start = mid + 1;
-        }
-        else {
-            end = mid - 1;
-        }
-    }
-    // not found
-    return NULL;
-}
-
 static PyObject*
 create_builtin(
     PyThreadState *tstate, PyObject *name,
@@ -2613,57 +2591,176 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 }
 
 
+/**************************************/
+/* the builtin & frozen modules table */
+/**************************************/
+
+#ifndef PyInittab2_USE_CUSTOM_IMPLEMENTATION
+int PyInittab2_FindEntry(const char *name, struct PyInittab2_Entry *result) {
+    return PyUnstable_Inittab2_Default_FindEntry(name, result);
+}
+int PyInittab2_NextEntry(const PyInittab2_Entry **entry) {
+    return PyUnstable_Inittab2_Default_NextEntry(entry);
+}
+int PyInittab2_FinishIteration(const PyInittab2_Entry *entry) {
+    return PyUnstable_Inittab2_Default_FinishIteration(entry);
+}
+#endif
+
+static struct _inittab2*
+lookup_inittab_entry(const char *name)
+{
+    ssize_t start = 0;
+    ssize_t end = INITTAB2_SIZE - 1;
+    while (start <= end) {
+        ssize_t mid = (start + end) / 2;
+        int cmp = strcmp(INITTAB2[mid].name, name);
+        if (cmp == 0) {
+            return &INITTAB2[mid];
+        }
+        else if (cmp < 0) {
+            start = mid + 1;
+        }
+        else {
+            end = mid - 1;
+        }
+    }
+    // not found
+    return NULL;
+}
+
+int
+PyUnstable_Inittab2_Default_FindEntry(
+    const char *name, PyInittab2_Entry *result)
+{
+    *result = lookup_inittab_entry(name);
+    if (*result) {
+        return 1;
+    }
+    return 0;
+}
+
+// Transition to iterating over PyImport_FrozenModules
+static int
+iter_transition(const PyInittab2_Entry **entry_p)
+{
+    if (PyImport_FrozenModules != NULL) {
+        PyInittab2_Entry *tmp = PyMem_Calloc(sizeof(PyInittab2_Entry), 1);
+        if (!tmp) {
+            PyErr_NoMemory();
+            ENTRY = NULL;
+            return -1;
+        }
+        ENTRY = &tmp;
+        tmp->m_name = PyImport_FrozenModules[0].name;
+        tmp->_m_internal_frozen = PyImport_FrozenModules;
+        return 1;
+    }
+    ENTRY = NULL;
+    return 0;
+}
+
+int
+PyUnstable_Inittab2_Default_NextEntry(const PyInittab2_Entry **entry_p)
+{
+    #define ENTRY (*entry_p)
+    if (!ENTRY) {
+        ENTRY = INITTAB2;
+        if (ENTRY->m_name) {
+            return 1;
+        }
+    }
+    if (ENTRY->m_type) {
+        ENTRY++;
+        if (ENTRY->m_name) {
+            return 1;
+        }
+        int res = iter_transition(entry_p);
+        if (res != 1) {
+            return res;
+        }
+    }
+    // now we are iterating over PyImport_FrozenModules;
+    // ENTRY is dynamically allocated for the iteration
+    ENTRY->_m_internal_frozen++;
+    ENTRY->m_name = ENTRY->_m_internal_frozen->name;
+    if (ENTRY->m_name) {
+        return 1;
+    }
+    PyMem_Free(entry);
+    ENTRY = NULL;
+    return 0;
+    #undef ENTRY
+}
+
+int
+PyUnstable_Inittab2_Default_FinishIteration(
+    const PyInittab2_Entry *entry)
+{
+    if (entry->m_type == 0) {
+        PyMem_Free(entry);
+    }
+    return 0;
+}
+
+
 /* the internal table */
 
 static int
 inittab2_sort_key(const void *p1, const void *p2)
 {
-    const _inittab2 *entry1 = p1;
-    const _inittab2 *entry2 = p2;
-    return strcmp(entry1->name, entry2->name);
+    const PyInittab2_Entry *entry1 = p1;
+    const PyInittab2_Entry *entry2 = p2;
+    return strcmp(entry1->m_name, entry2->m_name);
 }
 
 static int
 init_builtin_modules_table(void)
 {
-    size_t inittab_size;
-    for (inittab_size = 0;
-         PyImport_Inittab[inittab_size].name != NULL;
-         inittab_size++)
-    { /* empty */ }
-
-    size_t total_size = inittab_size;
+    size_t table_size;
+    for (struct _inittab *p = PyImport_Inittab; p->name; p++) {
+        table_size++;
+    }
+    for (struct _frozen *p = _PyImport_FrozenBootstrap; p->name; p++) {
+        table_size++;
+    }
+    for (struct _frozen *p = _PyImport_FrozenStdlib; p->name; p++) {
+        table_size++;
+    }
 
     /* Make the copy. */
-    _inittab2 *new_tab = _PyMem_DefaultRawCalloc(
-        total_size, sizeof(_inittab2));
+    PyInittab2_Entry *new_tab = _PyMem_DefaultRawCalloc(
+        table_size, sizeof(PyInittab2_Entry));
     if (new_tab == NULL) {
         return -1;
     }
     size_t pos = 0;
-    for (; pos < inittab_size; pos++) {
-        if ((unsigned char)(PyImport_Inittab[pos].name[0]) == 0xff) {
-            new_tab[pos].name = PyImport_Inittab[pos].name + 1;
-            new_tab[pos].type = INITTAB2_TYPE_SLOTS;
-            new_tab[pos].slots = (PyModuleDef_Slot *)(
-                PyImport_Inittab[pos].initfunc);
-        }
-        else {
-            PyObject* (*initfunc)(void) = PyImport_Inittab[pos].initfunc;
-            new_tab[pos].name = PyImport_Inittab[pos].name;
-            if (initfunc == PyInit__imp) {
-                new_tab[pos].type = INITTAB2_TYPE_SLOTS;
-                new_tab[pos].slots = (PyModuleDef_Slot*)imp_slots_all;
-            }
-            else {
-                new_tab[pos].type = initfunc ? INITTAB2_TYPE_INIT
-                                             : INITTAB2_TYPE_HARDWIRED;
-                new_tab[pos].initfunc = initfunc;
+    for (struct _inittab *p = PyImport_Inittab; p->name; p++, pos++) {
+        assert(pos < table_size);
+        PyObject* (*initfunc)(void) = p->initfunc;
+        new_tab[pos].name = p->name;
+        new_tab[pos].type = initfunc ? PyInittab2_TYPE_INITFUNC
+                                     : PyInittab2_TYPE_SPECIAL;
+        new_tab[pos].initfunc = initfunc;
+    }
+    const struct _frozen * tables[] = {
+        _PyImport_FrozenBootstrap,
+        _PyImport_FrozenStdlib,
+        NULL};
+    for (const struct _frozen **table = tables; table; table++) {
+        for (const struct _frozen *p = *table; p->name; p++, pos++) {
+            assert(pos < table_size);
+            new_tab[pos].name = p->name;
+            new_tab[pos].m_type = PyInittab2_TYPE_FROZEN;
+            new_tab[pos].m_frozen.frz_code = p->code;
+            new_tab[pos].m_frozen.frz_size = p->size;
+            if (p->is_package) {
+                new_tab[pos].m_typeflags |= PyInittab2_FROZEN_IS_PACKAGE;
             }
         }
     }
-    qsort(new_tab, total_size, sizeof(struct _inittab2), inittab2_sort_key);
-    INITTAB2_SIZE = total_size;
+    qsort(new_tab, table_size, sizeof(PyInittab2_Entry), inittab2_sort_key);
+    INITTAB2_SIZE = table_size;
     INITTAB2 = new_tab;
     return 0;
 }
