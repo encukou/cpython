@@ -7,10 +7,46 @@ import bkfile
 header = """
 #include "Python.h"
 
-static struct _frozen _PyImport_FrozenModules[] = {
+int PyImportBuiltin_FindEntry(
+    const char *name,
+    int kind,
+    PyImportBuiltin_Entry *result,
+    Py_ssize_t result_struct_size)
+{
+    if (kind & PyImportBuiltin_KIND_BUILTIN) {
+        switch (name[0]) {
+"""
+middler = """\
+        }
+    }
+    return PyUnstable_ImportBuiltin_FindEntry_Default(name, kind, result, result_struct_size);
+}
+
+static const char *names[] = {
 """
 trailer = """\
-    {0, 0, 0} /* sentinel */
+    NULL /* sentinel */
+}
+
+PyObject *
+PyImportBuiltin_GetNames(int kinds)
+{
+    PyObject *result = PyUnstable_ImportBuiltin_GetNames_Default(kinds);
+    if (!result) {
+        return NULL;
+    }
+    for (const char **name_p = names; *name_p; name_p++) {
+        PyObject *name_obj = PyUnicode_InternFromString(*name_p);
+        if (!name_obj) {
+            Py_DECREF(result);
+            return NULL;
+        }
+        if (PyList_Append(result, name) < 0) {
+            Py_DECREF(result);
+            return NULL;
+        }
+    }
+    return result;
 };
 """
 
@@ -23,7 +59,6 @@ main(int argc, char **argv)
 """ + ((not __debug__ and """
         Py_OptimizeFlag++;
 """) or "")  + """
-        PyImport_FrozenModules = _PyImport_FrozenModules;
         return Py_FrozenMain(argc, argv);
 }
 
@@ -31,12 +66,21 @@ main(int argc, char **argv)
 
 def makefreeze(base, dict, debug=0, entry_point=None, fail_import=()):
     if entry_point is None: entry_point = default_entry_point
-    done = []
+
+    # Modules in `fail_import` have a NULL code pointer, indicating
+    # that the frozen program should not search for them on the host
+    # system. Importing them will *always* raise an ImportError.
+    # We represent them with a None.
+    done = [(name, None, None, None) for name in fail_import]
+
     files = []
     mods = sorted(dict.keys())
     for mod in mods:
         m = dict[mod]
         mangled = "__".join(mod.split("."))
+        if m is None: continue
+        m.__code__  = compile('print("hi")', mod, 'exec') ####### XXX
+        m.__path__  = repr(m)
         if m.__code__:
             file = 'M_' + mangled + '.c'
             with bkfile.open(base + file, 'w') as outfp:
@@ -52,19 +96,35 @@ def makefreeze(base, dict, debug=0, entry_point=None, fail_import=()):
                 writecode(outfp, mangled, str)
     if debug:
         print("generating table of frozen modules")
+    done.append(('', None, None, None))
     with bkfile.open(base + 'frozen.c', 'w') as outfp:
         for mod, mangled, size, _ in done:
             outfp.write('extern unsigned char M_%s[];\n' % mangled)
         outfp.write(header)
+        prefix = ''
         for mod, mangled, size, is_package in done:
-            outfp.write('\t{"%s", M_%s, %d, %s},\n' % (mod, mangled, size, is_package))
-        outfp.write('\n')
-        # The following modules have a NULL code pointer, indicating
-        # that the frozen program should not search for them on the host
-        # system. Importing them will *always* raise an ImportError.
-        # The zero value size is never used.
-        for mod in fail_import:
-            outfp.write('\t{"%s", NULL, 0},\n' % (mod,))
+            n_braces = 0
+            while prefix != mod[:len(prefix)]:
+                n_braces += 1
+                prefix = prefix[:-1]
+            if n_braces:
+                outfp.write('        %s%s\n' % ('  ' * len(prefix), ' }' * n_braces))
+            while prefix != mod:
+                print((prefix, mod))
+                extra_char = mod[len(prefix)]
+                outfp.write('         %scase %r: switch (name[%d]) {\n' % (
+                    '  ' * len(prefix), extra_char, len(prefix) + 1))
+                prefix += extra_char
+            if mangled is None:
+                sname = 'Emissing'
+            else:
+                sname = 'E_' + mangled
+            outfp.write('         %scase 0: return %s;\n' % ('  ' * len(prefix), sname))
+
+        outfp.write(middler)
+        for mod, mangled, size, is_package in done:
+            outfp.write(f'    "{mod}",\n')
+
         outfp.write(trailer)
         outfp.write(entry_point)
     return files
