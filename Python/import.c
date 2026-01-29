@@ -70,7 +70,7 @@ static struct _inittab *inittab_copy = NULL;
 /* runtime-global import state */
 /*******************************/
 
-#define INITTAB _PyRuntime.imports.inittab
+#define MODULETAB _PyRuntime.imports.moduletab
 #define LAST_MODULE_INDEX _PyRuntime.imports.last_module_index
 #define EXTENSIONS _PyRuntime.imports.extensions
 
@@ -1991,6 +1991,22 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
+import_run_slots(const PyModuleDef_Slot *slots, PyObject *spec)
+{
+    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
+    if (!result) {
+        return NULL;
+    }
+    if (PyModule_Check(result)) {
+        PyModuleObject *mod = (PyModuleObject *)result;
+        if (mod && !mod->md_token) {
+            mod->md_token = (void*)slots;
+        }
+    }
+    return result;
+}
+
+static PyObject *
 import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
                      struct _Py_ext_module_loader_info *info,
                      PyObject *spec)
@@ -2008,23 +2024,7 @@ import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
         }
         return NULL;
     }
-    if (PyErr_Occurred()) {
-        PyErr_Format(
-            PyExc_SystemError,
-            "module export hook for module %R raised unreported exception",
-            info->name);
-    }
-    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
-    if (!result) {
-        return NULL;
-    }
-    if (PyModule_Check(result)) {
-        PyModuleObject *mod = (PyModuleObject *)result;
-        if (mod && !mod->md_token) {
-            mod->md_token = slots;
-        }
-    }
-    return result;
+    return import_run_slots((const PyModuleDef_Slot *)slots, spec);
 }
 
 static PyObject *
@@ -2370,25 +2370,26 @@ finally:
 static int
 is_builtin(PyObject *name)
 {
-    int i;
-    struct _inittab *inittab = INITTAB;
-    for (i = 0; inittab[i].name != NULL; i++) {
-        if (_PyUnicode_EqualToASCIIString(name, inittab[i].name)) {
-            if (inittab[i].initfunc == NULL)
-                return -1;
-            else
-                return 1;
+    for (PyModuleTab_Entry *entry = MODULETAB; entry->mt_name; entry++) {
+        if (_PyUnicode_EqualToASCIIString(name, entry->mt_name)) {
+            switch (entry->mt_type) {
+                case PyModuleTab_TYPE_SLOTS:
+                case PyModuleTab_TYPE_INITFUNC:
+                    return 1;
+                case _PyModuleTab_TYPE_SPECIAL:
+                    return -1;
+            }
         }
     }
     return 0;
 }
 
-static struct _inittab*
-lookup_inittab_entry(const struct _Py_ext_module_loader_info* info)
+static PyModuleTab_Entry*
+lookup_modulettab_entry(const struct _Py_ext_module_loader_info* info)
 {
-    for (struct _inittab *p = INITTAB; p->name != NULL; p++) {
-        if (_PyUnicode_EqualToASCIIString(info->name, p->name)) {
-            return p;
+    for (PyModuleTab_Entry *entry = MODULETAB; entry->mt_name; entry++) {
+        if (_PyUnicode_EqualToASCIIString(info->name, entry->mt_name)) {
+            return entry;
         }
     }
     // not found
@@ -2432,14 +2433,29 @@ create_builtin(
 
     PyModInitFunction p0 = NULL;
     if (initfunc == NULL) {
-        struct _inittab *entry = lookup_inittab_entry(&info);
+        PyModuleTab_Entry *entry = lookup_modulettab_entry(&info);
         if (entry == NULL) {
             mod = NULL;
             _PyErr_SetModuleNotFoundError(name);
             goto finally;
         }
-
-        p0 = (PyModInitFunction)entry->initfunc;
+        switch (entry->mt_type) {
+            case PyModuleTab_TYPE_SLOTS:
+                mod = import_run_slots(entry->mt_slots, spec);
+                goto finally;
+            case PyModuleTab_TYPE_INITFUNC:
+                p0 = (PyModInitFunction)entry->mt_initfunc;
+                break;
+            case _PyModuleTab_TYPE_SPECIAL:
+                p0 = NULL;
+            default:
+                mod = NULL;
+                PyErr_Format(
+                    PyExc_SystemError,
+                    "moduletab entry for %R uses unknown data type %d",
+                    name, entry->mt_type);
+                goto finally;
+        }
     }
     else {
         p0 = initfunc;
@@ -2522,7 +2538,7 @@ PyImport_ExtendInittab(struct _inittab *newtab)
     size_t i, n;
     int res = 0;
 
-    if (INITTAB != NULL) {
+    if (MODULETAB != NULL) {
         Py_FatalError("PyImport_ExtendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2565,7 +2581,7 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 {
     struct _inittab newtab[2];
 
-    if (INITTAB != NULL) {
+    if (MODULETAB != NULL) {
         Py_FatalError("PyImport_AppendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2581,29 +2597,55 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 /* the internal table */
 
 static int
-init_builtin_modules_table(void)
+init_builtin_modules_table(const PyConfig *config)
 {
-    size_t size;
-    for (size = 0; PyImport_Inittab[size].name != NULL; size++)
-        ;
+    size_t size = 0;
+    for (struct _inittab *entry = PyImport_Inittab; entry->name; entry++) {
+        size++;
+    }
+    const PyModuleTab_Entry *moduletab = config->moduletab;
+    const PyModuleTab_Entry *entry;
+    if (moduletab) {
+        for (entry = moduletab; entry->mt_name; entry++) {
+            size++;
+        }
+    }
     size++;
 
     /* Make the copy. */
-    struct _inittab *copied = _PyMem_DefaultRawMalloc(size * sizeof(struct _inittab));
+    PyModuleTab_Entry *copied = _PyMem_DefaultRawCalloc(
+        size, sizeof(PyModuleTab_Entry));
     if (copied == NULL) {
         return -1;
     }
-    memcpy(copied, PyImport_Inittab, size * sizeof(struct _inittab));
-    INITTAB = copied;
+    PyModuleTab_Entry *to_fill = copied;
+    for (struct _inittab *entry = PyImport_Inittab; entry->name; entry++) {
+        to_fill->mt_name = entry->name;
+        to_fill->mt_type = entry->initfunc
+            ? PyModuleTab_TYPE_INITFUNC : _PyModuleTab_TYPE_SPECIAL;
+        to_fill->mt_initfunc = entry->initfunc;
+        to_fill++;
+    }
+    /*
+    if (moduletab) {
+        for (entry = moduletab; entry->mt_name; entry++) {
+            memcpy(to_fill, entry, sizeof(struct _inittab));
+            to_fill++;
+        }
+    }
+    */
+    to_fill++; // null terminator
+    assert(to_fill == copied + size);
+    MODULETAB = copied;
     return 0;
 }
 
 static void
 fini_builtin_modules_table(void)
 {
-    struct _inittab *inittab = INITTAB;
-    INITTAB = NULL;
-    _PyMem_DefaultRawFree(inittab);
+    PyModuleTab_Entry *tab = MODULETAB;
+    MODULETAB = NULL;
+    _PyMem_DefaultRawFree(tab);
 }
 
 PyObject *
@@ -2613,9 +2655,8 @@ _PyImport_GetBuiltinModuleNames(void)
     if (list == NULL) {
         return NULL;
     }
-    struct _inittab *inittab = INITTAB;
-    for (Py_ssize_t i = 0; inittab[i].name != NULL; i++) {
-        PyObject *name = PyUnicode_FromString(inittab[i].name);
+    for (PyModuleTab_Entry *entry = MODULETAB; entry->mt_name; entry++) {
+        PyObject *name = PyUnicode_FromString(entry->mt_name);
         if (name == NULL) {
             Py_DECREF(list);
             return NULL;
@@ -4102,12 +4143,12 @@ PyImport_Import(PyObject *module_name)
 /*********************/
 
 PyStatus
-_PyImport_Init(void)
+_PyImport_Init(const PyConfig *config)
 {
-    if (INITTAB != NULL) {
+    if (MODULETAB != NULL) {
         return _PyStatus_ERR("global import state already initialized");
     }
-    if (init_builtin_modules_table() != 0) {
+    if (init_builtin_modules_table(config) != 0) {
         return PyStatus_NoMemory();
     }
     return _PyStatus_OK();

@@ -240,6 +240,8 @@ typedef struct PyConfig {
     // PYTHON_PRESITE=package.module or -X presite=package.module
     wchar_t *run_presite;
 #endif
+
+    const PyModuleTab_Entry *moduletab;
 } PyConfig;
 
 PyAPI_FUNC(void) PyConfig_InitPythonConfig(PyConfig *config);

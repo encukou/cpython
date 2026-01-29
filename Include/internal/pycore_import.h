@@ -88,7 +88,7 @@ extern PyObject * _PyImport_ImportlibModuleRepr(
         PyObject *module);
 
 
-extern PyStatus _PyImport_Init(void);
+extern PyStatus _PyImport_Init(const PyConfig *config);
 extern void _PyImport_Fini(void);
 extern void _PyImport_Fini2(void);
 

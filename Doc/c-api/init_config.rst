@@ -541,6 +541,10 @@ Configuration Options
      - :c:member:`_pystats <PyConfig._pystats>`
      - ``bool``
      - Read-only
+   * - (Not available)
+     - :c:member:`moduletab <PyConfig.moduletab>`
+     - ``struct PyModuleTab_Entry``
+     - Public
 
 Visibility:
 
@@ -2019,6 +2023,98 @@ PyConfig
       see :option:`--enable-pystats`.
 
       Default: ``0``.
+
+   .. c:member:: PyModuleTab_Entry *moduletab
+
+      A table of additional built-in modules, terminated by an entry with
+      ``NULL`` :c:member:`~PyModuleTab_Entry.mt_name`
+
+      Names of the entries are added to :py:data:`sys.builtin_module_names`.
+
+      Python's default import machinery (specifically,
+      :py:class:`importlib.machinery.BuiltinImporter`) will search this array
+      for built-in modules to import.
+
+      .. note:: Relationship with :c:func:`PyImport_AppendInittab`
+
+         Setting :c:member:`!moduletab` is similar to calling the soft-deprecated
+         :c:func:`PyImport_AppendInittab`, except ``moduletab`` allows
+         modules defined via slots, not just initialization function.
+
+         The :c:member:`!moduletab` array is empty by default.
+         CPython does not provide APIs to extend it.
+
+         Modules added via :c:func:`!PyImport_AppendInittab` take precedence
+         over :c:member:`!moduletab`.
+
+      The entries in this array, and all data the entries point to,
+      must remain valid and constant until shutdown (:c:func:`Py_Finalize`)
+      of the last runtime initialized with them.
+      (Typically, they use ``static`` storage.)
+
+      Default: ``NULL``.
+
+      .. c:namespace:: NULL
+
+      .. c:struct:: PyModuleTab_Entry
+
+         .. c:member:: const char *mt_name;
+
+            The module name.
+
+            A ``NULL`` value marks the end of a :c:struct:`PyModuleTab_Entry`
+            array.
+
+         .. c:member:: const char *mt_type;
+
+            Set to one of the following values, determining how the module
+            is initialized and which member contains the relevant data:
+
+            .. c:namespace-push:: NULL
+
+            .. list-table::
+               :header-rows: 1
+               :align: left
+
+               * - Macro
+                 - Member
+               * - .. c:macro:: PyModuleTab_TYPE_SLOTS
+                 - :c:member:`mt_slots <PyModuleTab_Entry.mt_slots>`
+               * - .. c:macro:: PyModuleTab_TYPE_INITFUNC
+                 - :c:member:`mt_initfunc <PyModuleTab_Entry.mt_initfunc>`
+
+         The next members are part of an anonymous union:
+
+            .. c:member:: const PyModuleDef_Slot *mt_slots;
+
+               A slots array.
+               Only valid if :c:member:`mt_type` is
+               :c:macro:`PyModuleTab_TYPE_SLOTS`.
+
+               The module will be initialized as if an
+               :ref:`extension export hook <extension-export-hook>` returned
+               this slots array. In particular:
+
+            .. c:member:: PyObject* (*mt_initfunc)(void);
+
+               An :ref:`older-style initialization function <extension-pyinit>`.
+               Only valid if :c:member:`mt_type` is
+               :c:macro:`PyModuleTab_TYPE_INITFUNC`.
+
+               The module will be initialized by calling the function,
+               as if it was the :c:func:`PyInit_modulename` function of
+               an extension module.
+
+            .. c:member:: void *mt_ptr;
+
+               Generic pointer that works as either :c:member:`mt_slots` or
+               :c:member:`mt_initfunc` cast to ``void *``.
+               Prefer the typed members instead.
+
+               ``mt_ptr`` is defined as the first variant of the union.
+               It is provided for cases where working with anonymous
+               unions is cumbersome, like code compatible with C++11 or lower.
+
 
 If :c:member:`~PyConfig.parse_argv` is non-zero, :c:member:`~PyConfig.argv`
 arguments are parsed the same way the regular Python parses :ref:`command line
