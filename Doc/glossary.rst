@@ -198,16 +198,18 @@ Glossary
 
    borrowed reference
       In Python's C API, a borrowed reference is a reference to an object,
-      where the code using the object does not own the reference.
-      It becomes a dangling
-      pointer if the object is destroyed. For example, a garbage collection can
-      remove the last :term:`strong reference` to the object and so destroy it.
+      where the code using the object does not *own* the reference.
+      See :term:`ownership` for more details.
 
-      Calling :c:func:`Py_INCREF` on the :term:`borrowed reference` is
-      recommended to convert it to a :term:`strong reference` in-place, except
-      when the object cannot be destroyed before the last usage of the borrowed
-      reference. The :c:func:`Py_NewRef` function can be used to create a new
-      :term:`strong reference`.
+      Use of a borrowed reference is limited.
+
+      Borrowed referenced are typically used for function arguments,
+      where the reference is only valid until the end of a function call.
+      Other kinds of borrowing are possuble; see :c:func:`PyTuple_GetItem` or
+      :c:func:`Py_GetConstantBorrowed` for examples.
+
+      A borrowed reference may be converted to a :term:`strong reference`
+      using API like :c:func:`Py_INCREF` or :c:func:`Py_NewRef`.
 
    bytes-like object
       An object that supports the :ref:`bufferobjects` and can
@@ -1147,6 +1149,34 @@ Glossary
       See :ref:`optional-module-requirements` for a list of optional modules
       that require third-party libraries.
 
+   ownership
+      In the C API, the :dfn:`owner` of a resource is responsible for
+      destroying that resource.
+      Most often, the "resource" is a :term:`strong reference` to a Python
+      object, but it may be anything that needs cleanup, such as an allocated
+      area of memory.
+
+      Note that Python objects are not owned; they are managed by references,
+      each of which has an owner.
+      See :ref:`api-refcountdetails` for details.
+
+      Ownership is an abstract concept: "owner" may refer to a function, object,
+      library, programmer, and so on.
+
+      To temporarily allow non-owners to use the resource, the owner may
+      promise to not clean the resource while some conditions hold.
+      This is known as :dfn:`borrowing`.
+      For example, function arguments are typically borrowed for the duration
+      of the function call.
+      See :term:`borrowed reference` for details on borrowing Python objects.
+
+      Ownership may be :dfn:`transferred`, which means a new owner assumes
+      the cleanup responsibility.
+      After ownership is transferred, the old owner may no longer use the
+      resource (unless it borrows it back from the new owner).
+      See ":term:`steal`" for details on transferring ownership of function
+      arguments.
+
    package
       A Python :term:`module` which can contain submodules or recursively,
       subpackages.  Technically, a package is a Python module with a
@@ -1482,26 +1512,32 @@ Glossary
       An abbreviation of :term:`standard library`.
 
    steal
-      In Python's C API, "*stealing*" an argument means that ownership of the
-      argument is transferred to the called function.
-      The caller must not use that reference after the call.
+      In Python's C API, to "*stealing*" means transferring :term:`ownership`
+      of a function argument to the called function.
+      This is an informal but widely used term.
+
+      As with any transfer of ownership, after calling a function that "steals"
+      a reference, the caller may not use the reference again.
+      APIs like :c:func:`Py_NewRef` may be used *before* the call to create a
+      new reference, which may be given to a "stealing" function while
+      the original reference remains usable.
+
       Generally, functions that "steal" an argument do so even if they fail.
 
-      See :ref:`api-refcountdetails` for a full explanation.
-
    strong reference
-      In Python's C API, a strong reference is a reference to an object
-      which is owned by the code holding the reference.  The strong
-      reference is taken by calling :c:func:`Py_INCREF` when the
-      reference is created and released with :c:func:`Py_DECREF`
-      when the reference is deleted.
+      In Python's C API, a :dfn:`strong reference` is an *owned* reference to
+      a Python object.
+      The owner is responsible for releasing the reference by using
+      :c:func:`Py_DECREF` or similar.
+      See :term:`ownership` for more details.
 
-      The :c:func:`Py_NewRef` function can be used to create a strong reference
-      to an object. Usually, the :c:func:`Py_DECREF` function must be called on
-      the strong reference before exiting the scope of the strong reference, to
-      avoid leaking one reference.
+      Most functions that return :c:type:`PyObject` pointers return strong
+      references.
+      That is, they transfer :term:`ownership` of the result to their caller.
 
-      See also :term:`borrowed reference`.
+      A reference that is not strong is a :term:`borrowed reference`.
+      To create strong reference from a borrowed one, you can use
+      APIs like :c:func:`Py_INCREF` and :c:func:`Py_NewRef`.
 
    subscript
       The expression in square brackets of a

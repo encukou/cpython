@@ -527,13 +527,14 @@ assignments, scope rules, and argument passing), it is only fitting that they
 should be represented by a single C type.  Almost all Python objects live on the
 heap: you never declare an automatic or static variable of type
 :c:type:`PyObject`, only pointer variables of type :c:expr:`PyObject*` can  be
-declared.  The sole exception are the type objects; since these must never be
-deallocated, they are typically static :c:type:`PyTypeObject` objects.
+declared.
+The sole exception are :ref:`static type objects <static-types>`.
 
 All Python objects (even Python integers) have a :dfn:`type` and a
 :dfn:`reference count`.  An object's type determines what kind of object it is
-(e.g., an integer, a list, or a user-defined function; there are many more as
-explained in :ref:`types`).  For each of the well-known types there is a macro
+(for example, an integer, a list, or a user-defined function; there are many
+more as explained in :ref:`types`).
+For each of the well-known types there is a macro
 to check whether an object is of that type; for instance, ``PyList_Check(a)`` is
 true if (and only if) the object pointed to by *a* is a Python list.
 
@@ -587,12 +588,18 @@ deallocated as  long as our variable is pointing to it.  If we know that there
 is at  least one other reference to the object that lives at least as long as
 our variable, there is no need to take a new :term:`strong reference`
 (i.e. increment the reference count) temporarily.
+This concept is known as :term:`borrowed reference`: the "real" owner,
+which holds a strong reference, allows usage of that reference (and guarantees
+that it will stay valid) for some period of time.
 An important situation where this arises is in objects  that are passed as
-arguments to C functions in an extension module  that are called from Python;
-the call mechanism guarantees to hold a  reference to every argument for the
+arguments to C functions in an extension module  that are called from Python.
+The caller guarantees to hold a reference to every argument for the
 duration of the call.
+In other words, ``PyObject+`` arguments are *borrowed* unless
+documented otherwise.
 
-However, a common pitfall is to extract an object from a list and hold on to it
+However, a common pitfall is to extract an object from a list (using,
+for example, :c:func:`PyList_GetItem`) and hold on to it
 for a while without taking a new reference.  Some other operation might
 conceivably remove the object from the list, releasing that reference,
 and possibly deallocating it. The real danger is that innocent-looking
@@ -600,8 +607,10 @@ operations may invoke arbitrary Python code which could do this; there is a code
 path which allows control to flow back to the user from a :c:func:`Py_DECREF`, so
 almost any operation is potentially dangerous.
 
-A safe approach is to always use the generic operations (functions  whose name
-begins with ``PyObject_``, ``PyNumber_``, ``PySequence_`` or ``PyMapping_``).
+A safe approach is to always use a function that returns a strong reference,
+such as :c:func:`PyList_GetItemRef` or one of the generic operations (functions
+whose name begins with ``PyObject_``, ``PyNumber_``, ``PySequence_`` or
+``PyMapping_``, such as :c:func:`PySequence_GetItem`).
 These operations always create a new :term:`strong reference`
 (i.e. increment the reference count) of the object they return.
 This leaves the caller with the responsibility to call :c:func:`Py_DECREF` when
@@ -614,21 +623,32 @@ Reference Count Details
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The reference count behavior of functions in the Python/C API is best  explained
-in terms of *ownership of references*.  Ownership pertains to references, never
+in terms of :term:`ownership` of references.  Ownership pertains to references, never
 to objects (objects are not owned: they are always shared).  "Owning a
 reference" means being responsible for calling Py_DECREF on it when the
 reference is no longer needed.  Ownership can also be transferred, meaning that
 the code that receives ownership of the reference then becomes responsible for
 eventually releasing it by calling :c:func:`Py_DECREF` or :c:func:`Py_XDECREF`
 when it's no longer needed---or passing on this responsibility (usually to its
-caller). When a function passes ownership of a reference on to its caller, the
-caller is said to receive a *new* reference.  When no ownership is transferred,
-the caller is said to *borrow* the reference. Nothing needs to be done for a
-:term:`borrowed reference`.
+caller). When a function :dfn:`transfers ownership` of a reference on to its
+caller, the caller is said to receive a *new* reference.
+
+When no ownership is transferred, the caller is said to *borrow* the reference.
+The caller then must only use the borrowed reference as long as the callee
+(that is, the reference's "real" owner) guarantees for it to be valid.
+
+.. note::
+
+   For historical reasons, Python provides some widely used APIs that return
+   borrowed references but *make no guarantees* on when the reference is valid.
+   Using these functions can lead to crashes when unrelated code invalidates
+   the reference.
+   One example is :c:func:`PyList_GetItem`.
+   (Compare with :c:func:`PyTuple_GetItem` which *does* make a guarantee.)
 
 Conversely, when a calling function passes in a reference to an  object, there
-are two possibilities: the function *steals* a  reference to the object, or it
-does not.
+are two possibilities: the function ":term:`steals <steal>`" a  reference to
+the object, or it does not.
 
 *Stealing a reference* means that when you pass a reference to a
 function, that function assumes that it now owns that reference.
@@ -662,7 +682,9 @@ another reference before calling the reference-stealing function.
 Incidentally, :c:func:`PyTuple_SetItem` is the *only* way to set tuple items;
 :c:func:`PySequence_SetItem` and :c:func:`PyObject_SetItem` refuse to do this
 since tuples are an immutable data type.  You should only use
-:c:func:`PyTuple_SetItem` for tuples that you are creating yourself.
+:c:func:`PyTuple_SetItem` for tuples that you are creating yourself,
+and when it's not feasible to create the fully initialized tuple at once
+(using :c:func:`PyTuple_FromArray`, :c:func:`Py_BuildValue`, or similar).
 
 Equivalent code for populating a list can be written using :c:func:`PyList_New`
 and :c:func:`PyList_SetItem`.
