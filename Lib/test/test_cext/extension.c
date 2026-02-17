@@ -46,9 +46,11 @@ static PyObject *
 _testcext_add(PyObject *Py_UNUSED(module), PyObject *args)
 {
     long i, j, res;
+    Py_BEGIN_CRITICAL_SECTION(args);
     if (!PyArg_ParseTuple(args, "ll:foo", &i, &j)) {
         return NULL;
     }
+    Py_END_CRITICAL_SECTION();
     res = i + j;
     return PyLong_FromLong(res);
 }

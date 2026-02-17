@@ -148,9 +148,8 @@ _PyCriticalSection_Resume(PyThreadState *tstate)
 #endif
 }
 
-#undef PyCriticalSection_Begin
 void
-PyCriticalSection_Begin(PyCriticalSection *c, PyObject *op)
+PyCriticalSection_Begin_v1(struct PyCriticalSection_v1 *c, PyObject *op)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection_Begin(_PyThreadState_GET(), c, op);
@@ -159,25 +158,23 @@ PyCriticalSection_Begin(PyCriticalSection *c, PyObject *op)
 
 #undef PyCriticalSection_BeginMutex
 void
-PyCriticalSection_BeginMutex(PyCriticalSection *c, PyMutex *m)
+PyCriticalSection_BeginMutex(struct PyCriticalSection_v1 *c, PyMutex *m)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection_BeginMutex(_PyThreadState_GET(), c, m);
 #endif
 }
 
-#undef PyCriticalSection_End
 void
-PyCriticalSection_End(PyCriticalSection *c)
+PyCriticalSection_End_v1(struct PyCriticalSection_v1 *c)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection_End(_PyThreadState_GET(), c);
 #endif
 }
 
-#undef PyCriticalSection2_Begin
 void
-PyCriticalSection2_Begin(PyCriticalSection2 *c, PyObject *a, PyObject *b)
+PyCriticalSection2_Begin_v1(struct PyCriticalSection2_v1 *c, PyObject *a, PyObject *b)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection2_Begin(_PyThreadState_GET(), c, a, b);
@@ -186,18 +183,54 @@ PyCriticalSection2_Begin(PyCriticalSection2 *c, PyObject *a, PyObject *b)
 
 #undef PyCriticalSection2_BeginMutex
 void
-PyCriticalSection2_BeginMutex(PyCriticalSection2 *c, PyMutex *m1, PyMutex *m2)
+PyCriticalSection2_BeginMutex(struct PyCriticalSection2_v1 *c, PyMutex *m1, PyMutex *m2)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection2_BeginMutex(_PyThreadState_GET(), c, m1, m2);
 #endif
 }
 
-#undef PyCriticalSection2_End
 void
-PyCriticalSection2_End(PyCriticalSection2 *c)
+PyCriticalSection2_End_v1(struct PyCriticalSection2_v1 *c)
 {
 #ifdef Py_GIL_DISABLED
     _PyCriticalSection2_End(_PyThreadState_GET(), c);
 #endif
+}
+
+
+void
+PyCriticalSection_Begin_v0(struct PyCriticalSection_v0 *c, PyObject *op)
+{
+    c->_cs = PyMem_Malloc(sizeof(struct PyCriticalSection_v1));
+    if (!c->_cs) {
+        Py_FatalError("out of memory allocating critical section");
+    }
+    PyCriticalSection_Begin_v1(c->_cs, op);
+}
+
+void
+PyCriticalSection_End_v0(struct PyCriticalSection_v0 *c)
+{
+    PyCriticalSection_End_v1(c->_cs);
+    PyMem_Free(c->_cs);
+    c->_cs = NULL;
+}
+
+void
+PyCriticalSection2_Begin_v0(struct PyCriticalSection2_v0 *c, PyObject *a, PyObject *b)
+{
+    c->_cs2 = PyMem_Malloc(sizeof(struct PyCriticalSection2_v1));
+    if (!c->_cs2) {
+        Py_FatalError("out of memory allocating critical section");
+    }
+    PyCriticalSection2_Begin_v1(c->_cs2, a, b);
+}
+
+void
+PyCriticalSection2_End_v0(struct PyCriticalSection2_v0 *c)
+{
+    PyCriticalSection2_End_v1(c->_cs2);
+    PyMem_Free(c->_cs2);
+    c->_cs2 = NULL;
 }

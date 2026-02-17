@@ -3,6 +3,7 @@
 #endif
 
 // Python critical sections
+// TODO: Move this to docs or a public header.
 //
 // Conceptually, critical sections are a deadlock avoidance layer on top of
 // per-object locks. These helpers, in combination with those locks, replace
@@ -67,88 +68,36 @@
 //  ...
 //  Py_END_CRITICAL_SECTION2();
 
-typedef struct PyCriticalSection PyCriticalSection;
-typedef struct PyCriticalSection2 PyCriticalSection2;
 
-PyAPI_FUNC(void)
-PyCriticalSection_Begin(PyCriticalSection *c, PyObject *op);
 
+// PyMutex variants are only available in non-limited free-threaded API;
+// no versioning here (yet)
+#ifdef Py_GIL_DISABLED
 PyAPI_FUNC(void)
 PyCriticalSection_BeginMutex(PyCriticalSection *c, PyMutex *m);
 
 PyAPI_FUNC(void)
-PyCriticalSection_End(PyCriticalSection *c);
-
-PyAPI_FUNC(void)
-PyCriticalSection2_Begin(PyCriticalSection2 *c, PyObject *a, PyObject *b);
-
-PyAPI_FUNC(void)
 PyCriticalSection2_BeginMutex(PyCriticalSection2 *c, PyMutex *m1, PyMutex *m2);
+#endif
 
-PyAPI_FUNC(void)
-PyCriticalSection2_End(PyCriticalSection2 *c);
 
-#ifndef Py_GIL_DISABLED
-# define Py_BEGIN_CRITICAL_SECTION(op)      \
-    {
+#ifdef _Py_CS_NOOPS
+
 # define Py_BEGIN_CRITICAL_SECTION_MUTEX(mutex)    \
-    {
-# define Py_END_CRITICAL_SECTION()          \
-    }
-# define Py_BEGIN_CRITICAL_SECTION2(a, b)   \
     {
 # define Py_BEGIN_CRITICAL_SECTION2_MUTEX(m1, m2)  \
     {
-# define Py_END_CRITICAL_SECTION2()         \
-    }
-#else /* !Py_GIL_DISABLED */
 
-// NOTE: the contents of this struct are private and may change betweeen
-// Python releases without a deprecation period.
-struct PyCriticalSection {
-    // Tagged pointer to an outer active critical section (or 0).
-    uintptr_t _cs_prev;
-
-    // Mutex used to protect critical section
-    PyMutex *_cs_mutex;
-};
-
-// A critical section protected by two mutexes. Use
-// Py_BEGIN_CRITICAL_SECTION2 and Py_END_CRITICAL_SECTION2.
-// NOTE: the contents of this struct are private and may change betweeen
-// Python releases without a deprecation period.
-struct PyCriticalSection2 {
-    PyCriticalSection _cs_base;
-
-    PyMutex *_cs_mutex2;
-};
-
-# define Py_BEGIN_CRITICAL_SECTION(op)                                  \
-    {                                                                   \
-        PyCriticalSection _py_cs;                                       \
-        PyCriticalSection_Begin(&_py_cs, _PyObject_CAST(op))
+#else /* _Py_CS_NOOPS */
 
 # define Py_BEGIN_CRITICAL_SECTION_MUTEX(mutex)                         \
     {                                                                   \
         PyCriticalSection _py_cs;                                       \
         PyCriticalSection_BeginMutex(&_py_cs, mutex)
 
-# define Py_END_CRITICAL_SECTION()                                      \
-        PyCriticalSection_End(&_py_cs);                                 \
-    }
-
-# define Py_BEGIN_CRITICAL_SECTION2(a, b)                               \
-    {                                                                   \
-        PyCriticalSection2 _py_cs2;                                     \
-        PyCriticalSection2_Begin(&_py_cs2, _PyObject_CAST(a), _PyObject_CAST(b))
-
 # define Py_BEGIN_CRITICAL_SECTION2_MUTEX(m1, m2)                       \
     {                                                                   \
         PyCriticalSection2 _py_cs2;                                     \
         PyCriticalSection2_BeginMutex(&_py_cs2, m1, m2)
 
-# define Py_END_CRITICAL_SECTION2()                                     \
-        PyCriticalSection2_End(&_py_cs2);                               \
-    }
-
-#endif
+#endif /* _Py_CS_NOOPS */
