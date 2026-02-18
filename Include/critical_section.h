@@ -83,8 +83,8 @@ _Py_CS_TYPEDEF(PyCriticalSection2, _Py_CRITICAL_SECTION_VERSION);
 
 #define PyCriticalSection_Begin _Py_CS_FUNCNAME(PyCriticalSection_Begin)
 #define PyCriticalSection_End _Py_CS_FUNCNAME(PyCriticalSection_End)
-#define PyCriticalSection_Begin2 _Py_CS_FUNCNAME(PyCriticalSection_Begin2)
-#define PyCriticalSection_End2 _Py_CS_FUNCNAME(PyCriticalSection_End2)
+#define PyCriticalSection2_Begin _Py_CS_FUNCNAME(PyCriticalSection2_Begin)
+#define PyCriticalSection2_End _Py_CS_FUNCNAME(PyCriticalSection2_End)
 
 
 #ifdef _Py_CS_NOOPS
