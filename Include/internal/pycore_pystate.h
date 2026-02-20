@@ -168,8 +168,8 @@ extern void _PyEval_StartTheWorldAll(_PyRuntimeState *runtime);
 // Perform a stop-the-world pause for threads in the specified interpreter.
 //
 // NOTE: This is a no-op outside of Py_GIL_DISABLED builds.
-extern PyAPI_FUNC(void) _PyEval_StopTheWorld(PyInterpreterState *interp);
-extern PyAPI_FUNC(void) _PyEval_StartTheWorld(PyInterpreterState *interp);
+PyAPI_FUNC(void) _PyEval_StopTheWorld(PyInterpreterState *interp);
+PyAPI_FUNC(void) _PyEval_StartTheWorld(PyInterpreterState *interp);
 
 
 static inline void
