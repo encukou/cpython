@@ -299,7 +299,7 @@ extern "C" {
  *    Py_DEPRECATED(3.8) PyAPI_FUNC(int) Py_OldFunction(void);
  */
 #if _Py__has_c_cpp_attribute(deprecated)
-#define Py_DEPRECATED(VERSION) [[deprecated("deprecated in Python" #VERSION)]]
+#define Py_DEPRECATED(VERSION) [[deprecated("deprecated in " #VERSION)]]
 #elif defined(_MSC_VER)
 #define Py_DEPRECATED(VERSION) __declspec(deprecated( \
                                           "deprecated in " #VERSION))
