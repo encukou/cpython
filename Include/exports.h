@@ -48,16 +48,17 @@
  * we may still need to support gcc >= 4, as some Ubuntu LTS and Centos versions
  * have 4 < gcc < 5.
  */
-    #if (defined(__GNUC__) && (__GNUC__ >= 4)) ||\
+    #if _Py__has_c_cpp_attribute(gnu::visibility)
+        #define _Py_VISIBILITY(X) [[gnu::visibility (X)]]
+    #elif (defined(__GNUC__) && (__GNUC__ >= 4)) ||\
         (defined(__clang__) && _Py__has_attribute(visibility))
-        #define Py_IMPORTED_SYMBOL __attribute__ ((visibility ("default")))
-        #define Py_EXPORTED_SYMBOL __attribute__ ((visibility ("default")))
-        #define Py_LOCAL_SYMBOL  __attribute__ ((visibility ("hidden")))
+        #define _Py_VISIBILITY(X) __attribute__ ((visibility (X)))
     #else
-        #define Py_IMPORTED_SYMBOL
-        #define Py_EXPORTED_SYMBOL
-        #define Py_LOCAL_SYMBOL
+        #define _Py_VISIBILITY(X)
     #endif
+    #define Py_IMPORTED_SYMBOL _Py_VISIBILITY("default")
+    #define Py_EXPORTED_SYMBOL _Py_VISIBILITY("default")
+    #define Py_LOCAL_SYMBOL  _Py_VISIBILITY("hidden")
     #define _PyINIT_EXPORTED_SYMBOL Py_EXPORTED_SYMBOL
 #endif
 
@@ -89,7 +90,7 @@
 #       define PyAPI_FUNC(RTYPE) Py_EXPORTED_SYMBOL RTYPE
 #endif
 #ifndef PyAPI_DATA
-#       define PyAPI_DATA(RTYPE) extern Py_EXPORTED_SYMBOL RTYPE
+#       define PyAPI_DATA(RTYPE) Py_EXPORTED_SYMBOL extern  RTYPE
 #endif
 #ifndef _PyINIT_FUNC_DECLSPEC
 #       if defined(__cplusplus)

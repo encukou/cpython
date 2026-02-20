@@ -80,19 +80,18 @@
 #endif
 
 #if _Py_TAIL_CALL_INTERP
-#   if defined(__clang__) || defined(__GNUC__)
-#       if !_Py__has_attribute(preserve_none) || !_Py__has_attribute(musttail)
-#           error "This compiler does not have support for efficient tail calling."
-#       endif
-#   elif defined(_MSC_VER) && (_MSC_VER < 1950)
+#   if defined(_MSC_VER) && (_MSC_VER < 1950)
 #       error "You need at least VS 2026 / PlatformToolset v145 for tail calling."
 #   endif
 #   if defined(_MSC_VER) && !defined(__clang__)
 #      define Py_MUSTTAIL [[msvc::musttail]]
 #      define Py_PRESERVE_NONE_CC __preserve_none
+#   elif _Py__has_c_cpp_attribute(clang::mustail) && \
+         _Py__has_c_cpp_attribute(clang::preserve_none)
+#      define Py_MUSTTAIL [[gnu::mustail]]
+#      define Py_PRESERVE_NONE_CC [[clang::preserve_none]]
 #   else
-#       define Py_MUSTTAIL __attribute__((musttail))
-#       define Py_PRESERVE_NONE_CC __attribute__((preserve_none))
+#      error "This compiler does not have support for efficient tail calling."
 #   endif
     typedef PyObject *(Py_PRESERVE_NONE_CC *py_tail_call_funcptr)(TAIL_CALL_PARAMS);
 

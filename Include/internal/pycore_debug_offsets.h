@@ -41,10 +41,9 @@ extern "C" {
 #define _GENERATE_DEBUG_SECTION_APPLE(name)
 #endif
 
-#if defined(__linux__) && (defined(__GNUC__) || defined(__clang__))
+#if _Py__has_c_cpp_attribute(gnu::section) && _Py__has_c_cpp_attribute(gnu::used)
 #define _GENERATE_DEBUG_SECTION_LINUX(name) \
-   __attribute__((section("." Py_STRINGIFY(name))))               \
-   __attribute__((used))
+   [[gnu::section("." Py_STRINGIFY(name))]] [[gnu::used]]
 #else
 #define _GENERATE_DEBUG_SECTION_LINUX(name)
 #endif

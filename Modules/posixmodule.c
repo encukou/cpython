@@ -15123,17 +15123,20 @@ This function 'dumps core' or otherwise fails in the hardest way possible
 on the hosting operating system.  This function never returns.
 [clinic start generated code]*/
 
+#if _Py__has_c_cpp_attribute(noreturn)
+[[noreturn]]
+#endif
 static PyObject *
 os_abort_impl(PyObject *module)
 /*[clinic end generated code: output=dcf52586dad2467c input=cf2c7d98bc504047]*/
 {
     abort();
-    /*NOTREACHED*/
-#ifndef __clang__
+    Py_UNREACHABLE();
     /* Issue #28152: abort() is declared with __attribute__((__noreturn__)).
        GCC emits a warning without "return NULL;" (compiler bug?), but Clang
        is smarter and emits a warning on the return. */
     Py_FatalError("abort() called from Python code didn't abort!");
+#if !_Py__has_c_cpp_attribute(noreturn)
     return NULL;
 #endif
 }

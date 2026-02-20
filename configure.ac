@@ -7314,45 +7314,6 @@ if test "$have_glibc_memmove_bug" = yes; then
      for memmove and bcopy.])
 fi
 
-if test "$ac_cv_gcc_asm_for_x87" = yes; then
-    # Some versions of gcc miscompile inline asm:
-    # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=46491
-    # http://gcc.gnu.org/ml/gcc/2010-11/msg00366.html
-    case $ac_cv_cc_name in
-        gcc)
-            AC_MSG_CHECKING([for gcc ipa-pure-const bug])
-            saved_cflags="$CFLAGS"
-            CFLAGS="-O2"
-            AC_RUN_IFELSE([AC_LANG_SOURCE([[
-            __attribute__((noinline)) int
-            foo(int *p) {
-              int r;
-              asm ( "movl \$6, (%1)\n\t"
-                    "xorl %0, %0\n\t"
-                    : "=r" (r) : "r" (p) : "memory"
-              );
-              return r;
-            }
-            int main(void) {
-              int p = 8;
-              if ((foo(&p) ? : p) != 6)
-                return 1;
-              return 0;
-            }
-            ]])],
-            [have_ipa_pure_const_bug=no],
-            [have_ipa_pure_const_bug=yes],
-            [have_ipa_pure_const_bug=undefined])
-            CFLAGS="$saved_cflags"
-            AC_MSG_RESULT([$have_ipa_pure_const_bug])
-            if test "$have_ipa_pure_const_bug" = yes; then
-                AC_DEFINE([HAVE_IPA_PURE_CONST_BUG], [1],
-                          [Define if gcc has the ipa-pure-const bug.])
-            fi
-        ;;
-    esac
-fi
-
 # ensurepip option
 AC_MSG_CHECKING([for ensurepip])
 AC_ARG_WITH([ensurepip],

@@ -27,6 +27,28 @@
 #  define _Py__has_attribute(x) 0
 #endif
 
+// Same for C23 [[attribute]].
+#ifdef __has_c_attribute
+#  define _Py__has_c_attribute(X) __has_c_attribute(X)
+#else
+#  define _Py__has_c_attribute(X) 0
+#endif
+
+// Same for C++ [[attribute]].
+#ifdef __has_cpp_attribute
+#  define _Py__has_cpp_attribute(X) __has_cpp_attribute(X)
+#else
+#  define _Py__has_cpp_attribute(X) 0
+#endif
+
+// Combined C & C++ [[attribute]]. Only use if attribute works the same way
+// in both languages.
+#ifdef __cplusplus
+#  define _Py__has_c_cpp_attribute(X) _Py__has_cpp_attribute(X)
+#else
+#  define _Py__has_c_cpp_attribute(X) _Py__has_c_attribute(X)
+#endif
+
 // Macro to use C++ static_cast<> in the Python C API.
 #ifdef __cplusplus
 #  define _Py_STATIC_CAST(type, expr) static_cast<type>(expr)
@@ -276,12 +298,14 @@ extern "C" {
  *    Py_DEPRECATED(3.4) typedef int T1;
  *    Py_DEPRECATED(3.8) PyAPI_FUNC(int) Py_OldFunction(void);
  */
-#if defined(__GNUC__) \
-    && ((__GNUC__ >= 4) || (__GNUC__ == 3) && (__GNUC_MINOR__ >= 1))
-#define Py_DEPRECATED(VERSION_UNUSED) __attribute__((__deprecated__))
+#if _Py__has_c_cpp_attribute(deprecated)
+#define Py_DEPRECATED(VERSION) [[deprecated("deprecated in Python" #VERSION)]]
 #elif defined(_MSC_VER)
 #define Py_DEPRECATED(VERSION) __declspec(deprecated( \
                                           "deprecated in " #VERSION))
+#elif defined(__GNUC__) \
+    && ((__GNUC__ >= 4) || (__GNUC__ == 3) && (__GNUC_MINOR__ >= 1))
+#define Py_DEPRECATED(VERSION_UNUSED) __attribute__((__deprecated__))
 #else
 #define Py_DEPRECATED(VERSION_UNUSED)
 #endif
@@ -331,7 +355,9 @@ extern "C" {
  * its time must use it. Use a profiler when running performance benchmark
  * suite to find these functions.
  */
-#if defined(__GNUC__) \
+#if _Py__has_c_cpp_attribute(gcc::hot)
+#  define _Py_HOT_FUNCTION [[gcc::hot]]
+#elif defined(__GNUC__) \
     && ((__GNUC__ >= 5) || (__GNUC__ == 4) && (__GNUC_MINOR__ >= 3))
 #define _Py_HOT_FUNCTION __attribute__((hot))
 #else
@@ -361,6 +387,8 @@ extern "C" {
    // memory usage. For example, forcing inlining using gcc -O0 increases the
    // stack usage from 6 KB to 15 KB per Python function call.
 #  define Py_ALWAYS_INLINE
+#elif _Py__has_c_cpp_attribute(gcc::always_inline)
+#  define _Py_HOT_FUNCTION [[gcc::always_inline]]
 #elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 #  define Py_ALWAYS_INLINE __attribute__((always_inline))
 #elif defined(_MSC_VER)
@@ -377,7 +405,9 @@ extern "C" {
 // Usage:
 //
 //    Py_NO_INLINE static int random(void) { return 4; }
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
+#if _Py__has_c_cpp_attribute(gcc::noinline)
+#  define Py_NO_INLINE [[gcc::noinline]]
+#elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER)
 #  define Py_NO_INLINE __attribute__ ((noinline))
 #elif defined(_MSC_VER)
 #  define Py_NO_INLINE __declspec(noinline)
@@ -454,6 +484,22 @@ extern "C" {
 #define Py_ALIGNED(x) __attribute__((aligned(x)))
 #else
 #define Py_ALIGNED(x)
+#endif
+
+/*
+ * Hide `gnu::` attributes from compilers that don't support them.
+ * _Py_GNU_ATTRIBUTE is similar to Py_GCC_ATTRIBUTE, but needs *single*
+ * parentheses rather than double ones.
+ */
+#if defined(__has_c_attribute)
+#  define _Py_HAS_GNU_ATTRIBUTE(X) __has_c_attribute(gnu::X)
+#  define _Py_GNU_ATTRIBUTE(X) [[gnu::X]]
+#elif (defined(__GNUC__) || defined(__clang__)) && defined(__has_attribute)
+#  define _Py_HAS_GNU_ATTRIBUTE(X) __has_attribute(X)
+#  define _Py_GNU_ATTRIBUTE(X) __attribute__((X))
+#else
+#  define _Py_HAS_GNU_ATTRIBUTE(X) 0
+#  define _Py_GNU_ATTRIBUTE(X) Py_GCC_ATTRIBUTE((X))
 #endif
 
 /* Eliminate end-of-loop code not reached warnings from SunPro C
@@ -663,13 +709,12 @@ extern "C" {
 //     case 2: code; break;
 //     }
 //
+#if _Py__has_c_cpp_attribute(fallthrough)
+#  define _Py_FALLTHROUGH [[fallthrough]]
+#elif _Py__has_attribute(fallthrough)
 // __attribute__((fallthrough)) was introduced in GCC 7 and Clang 10 /
 // Apple Clang 12.0. Earlier Clang versions support only the C++11
-// style fallthrough attribute, not the GCC extension syntax used here,
-// and __has_attribute(fallthrough) evaluates to 1.
-#if _Py__has_attribute(fallthrough) && (!defined(__clang__) || \
-    (!defined(__apple_build_version__) && __clang_major__ >= 10) || \
-    (defined(__apple_build_version__) && __clang_major__ >= 12))
+// style fallthrough attribute above.
 #  define _Py_FALLTHROUGH __attribute__((fallthrough))
 #else
 #  define _Py_FALLTHROUGH do { } while (0)
@@ -684,7 +729,9 @@ extern "C" {
 // Usage:
 //
 //   char name [8] _Py_NONSTRING;
-#if _Py__has_attribute(nonstring)
+#if _Py__has_c_cpp_attribute(gcc::nonstring)
+#  define _Py_NONSTRING [[gcc::nonstring]]
+#elif _Py__has_attribute(nonstring)
 #  define _Py_NONSTRING __attribute__((nonstring))
 #else
 #  define _Py_NONSTRING

@@ -78,7 +78,7 @@ do {                                                                       \
     OPT_STAT_INC(traces_executed);                                         \
     _PyExecutorObject *_executor = (EXECUTOR);                             \
     jit_func_preserve_none jitted = _executor->jit_code;                   \
-    __attribute__((musttail)) return jitted(_executor, frame, stack_pointer, tstate,  \
+    [[clang::musttail]] return jitted(_executor, frame, stack_pointer, tstate,  \
     _tos_cache0, _tos_cache1, _tos_cache2); \
 } while (0)
 
@@ -102,7 +102,7 @@ do {                                                                       \
 #define PATCH_JUMP(ALIAS)                                                 \
 do {                                                                      \
     DECLARE_TARGET(ALIAS);                                                \
-    __attribute__((musttail)) return ALIAS(current_executor, frame, stack_pointer, tstate,  \
+    [[clang::musttail]] return ALIAS(current_executor, frame, stack_pointer, tstate,  \
     _tos_cache0, _tos_cache1, _tos_cache2); \
 } while (0)
 
@@ -120,7 +120,7 @@ do {                                                                      \
 #define ASSERT_WITHIN_STACK_BOUNDS(F, L) (void)0
 #endif
 
-__attribute__((preserve_none)) _Py_CODEUNIT *
+[[clang::preserve_none]] _Py_CODEUNIT *
 _JIT_ENTRY(
     _PyExecutorObject *executor, _PyInterpreterFrame *frame, _PyStackRef *stack_pointer, PyThreadState *tstate,
     _PyStackRef _tos_cache0, _PyStackRef _tos_cache1, _PyStackRef _tos_cache2

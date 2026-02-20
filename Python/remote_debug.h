@@ -13,9 +13,18 @@ If you need to add a new function ensure that is declared 'static'.
 extern "C" {
 #endif
 
-#ifdef __clang__
-    #define UNUSED __attribute__((unused))
-#elif defined(__GNUC__)
+#ifdef __has_c_attribute
+#   if __has_c_attribute(maybe_unused)
+#       define UNUSED [[maybe_unused]]
+#   endif
+#elif defined(__has_cpp_attribute)
+#   if __has_cpp_attribute(maybe_unused)
+#       define UNUSED [[maybe_unused]]
+#   endif
+#endif
+#if defined(UNUSED)
+    /* defined above */
+#elif defined(__clang__) || defined(__GNUC__)
     #define UNUSED __attribute__((unused))
 #elif defined(_MSC_VER)
     #define UNUSED __pragma(warning(suppress: 4505))
