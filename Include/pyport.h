@@ -540,7 +540,7 @@ extern "C" {
 #endif
 
 /* Maximum value of the Windows DWORD type */
-#define PY_DWORD_MAX 4294967295U
+#define PY_DWORD_MAX 0xffffffffU
 
 /* This macro used to tell whether Python was built with multithreading
  * enabled.  Now multithreading is always enabled, but keep the macro

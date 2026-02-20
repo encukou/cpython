@@ -178,17 +178,18 @@
 
    This does not work on pointers, or arrays declared as [], or function
    parameters. With correct compiler support, such usage will cause a build
-   error (see Py_BUILD_ASSERT_EXPR).
+   error.
 
-   Written by Rusty Russell, public domain, http://ccodearchive.net/
+   Based on code by Rusty Russell, CC0 (public domain):
+   https://ccodearchive.net/info/array_size.html
 
     */
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__) && (0 + __GNUC__ > 4)
-/* Two GCC extensions: builtin & statement expression. Tested on GCC 5.1. */
+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) && (0 + __GNUC__ >= 4)
+/* Two GCC extensions: builtin & statement expression. Tested on GCC 4.6. */
 /* &a[0] degrades to a pointer: a different type from an array */
 #define Py_ARRAY_LENGTH(array)                                  \
     ({                                                          \
-        static_assert(!__builtin_types_compatible_p(            \
+        Py_BUILD_ASSERT(!__builtin_types_compatible_p(          \
             typeof(array),                                      \
             typeof(&(array)[0])));                              \
         (sizeof(array) / sizeof((array)[0]))                    \
