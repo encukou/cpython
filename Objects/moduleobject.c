@@ -245,6 +245,35 @@ new_module(PyTypeObject *mt, PyObject *args, PyObject *kws)
 PyObject *
 PyModule_NewObject(PyObject *name)
 {
+    const char *name_utf8 = PyUnicode_AsUTF8(name);
+    if (name_utf8 == NULL) {
+        return NULL;
+    }
+    if (
+        (strcmp(name_utf8, "sys") != 0)
+        && (strcmp(name_utf8, "sys.monitoring") != 0)
+        && (strcmp(name_utf8, "sys._jit") != 0)
+        && (strcmp(name_utf8, "builtins") != 0)
+        && (strcmp(name_utf8, "__main__") != 0)
+    ) {
+        PyObject *_checked_modules = PySys_GetAttrString("_checked_modules");
+        if (_checked_modules == NULL) {
+            printf("no _checked_modules: %s\n", name_utf8);
+            return NULL;
+        }
+        assert(PyDict_Check(_checked_modules));
+        switch (PyDict_ContainsString(_checked_modules, name_utf8)) {
+            case 1:
+                break;
+            case 0:
+                printf("failed ABI check: %s\n", name_utf8);
+                PyErr_Format(PyExc_SystemError, "module ABI was not checked: %s", name_utf8);
+                _Py_FALLTHROUGH;
+            default:
+                return NULL;
+        }
+    }
+
     PyModuleObject *m = new_module_notrack(&PyModule_Type);
     if (m == NULL)
         return NULL;

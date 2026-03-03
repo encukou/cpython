@@ -706,6 +706,28 @@ int PyABIInfo_Check(PyABIInfo *info, const char *module_name)
         return _abiinfo_raise(module_name, "NULL PyABIInfo");
     }
 
+    PyObject *_checked_modules = NULL;
+    if (PySys_GetOptionalAttrString("_checked_modules", &_checked_modules) < 0) {
+        return -1;
+    }
+    if (_checked_modules == NULL) {
+        _checked_modules = PyDict_New();
+        if (_checked_modules == NULL) {
+            return -1;
+        }
+        if (PySys_SetObject("_checked_modules", _checked_modules) < 0) {
+            Py_DECREF(_checked_modules);
+            return -1;
+        }
+    }
+    assert(_checked_modules != NULL);
+    assert(PyDict_Check(_checked_modules));
+    if (PyDict_SetItemString(_checked_modules, module_name, Py_True) < 0) {
+        Py_DECREF(_checked_modules);
+        return -1;
+    }
+    Py_DECREF(_checked_modules);
+
     /* abiinfo_major_version */
     if (info->abiinfo_major_version == 0) {
         return 0;
