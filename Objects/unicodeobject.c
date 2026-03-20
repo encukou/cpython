@@ -14188,7 +14188,9 @@ immortalize_interned(PyObject *s)
         _Py_DecRefTotal(_PyThreadState_GET());
     }
 #endif
-    _Py_SetImmortal(s);
+    // Use _Py_SetImmortal_Unchecked to avoid the check against immortalizing
+    // non-interned strings.
+    _Py_SetImmortalUntracked(s);
     // The switch to SSTATE_INTERNED_IMMORTAL must be the last thing done here
     // to synchronize with the check in intern_common() that avoids locking if
     // the string is already immortal.

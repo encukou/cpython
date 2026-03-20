@@ -2748,6 +2748,14 @@ _Py_SetImmortalUntracked(PyObject *op)
 void
 _Py_SetImmortal(PyObject *op)
 {
+#ifdef Py_DEBUG
+    // For strings, use _PyUnicode_InternImmortal instead to avoid
+    // immortalizaing a redundant copy.
+    if (PyUnicode_CheckExact(op)) {
+        assert(PyUnicode_CHECK_INTERNED(op) == SSTATE_INTERNED_IMMORTAL
+            || PyUnicode_CHECK_INTERNED(op) == SSTATE_INTERNED_IMMORTAL_STATIC);
+    }
+#endif
     if (PyObject_IS_GC(op) && _PyObject_GC_IS_TRACKED(op)) {
         _PyObject_GC_UNTRACK(op);
     }

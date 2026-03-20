@@ -55,6 +55,9 @@ The key and value of each entry in this dict reference the same object.
 In the GIL-enabled build interned strings may be mortal or immortal. In the
 free-threaded build, interned strings are always immortal.
 
+You must not use `_Py_SetImmortal` on a string directly; always use
+`_PyUnicode_InternImmortal` instead to avoid immortalizing a redundant copy.
+
 For mortal interned strings:
 
 - the 2 references from the interned dict (key & value) are excluded from
