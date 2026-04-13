@@ -549,7 +549,7 @@ module_from_def_and_spec(
                        name);
                     goto error;
                 }
-                requires_gil = (cur_slot->value != Py_MOD_GIL_NOT_USED);
+                requires_gil = !((intptr_t)cur_slot->value & 1);
                 has_gil_slot = 1;
                 break;
             case Py_mod_abi:
