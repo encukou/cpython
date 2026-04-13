@@ -44,9 +44,6 @@ typedef struct PyCriticalSection {
 
     // Mutex used to protect critical section
     struct PyMutex *_cs_mutex;
-
-    // Space for Stable ABI additions
-    void *_cs_reserved;
 } PyCriticalSection;
 
 // A critical section protected by two mutexes. Use
