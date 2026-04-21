@@ -244,6 +244,9 @@
     <!-- The name of the resulting pythonX.dll (without the extension) -->
     <Py3DllName Condition="$(DisableGil) == 'true'">python3t</Py3DllName>
     <Py3DllName Condition="$(Py3DllName) == ''">python3</Py3DllName>
+    <!-- The directory & name (without extension) of abi3t-compat\pythonXt.dll -->
+    <PyAbi3tCompat3DllDir>abi3t-compat</PyAbi3tCompat3DllDir>
+    <PyAbi3tCompat3DllName>python3t</PyAbi3tCompat3DllName>
 
     <!-- The version and platform tag to include in .pyd filenames -->
     <PydTag Condition="$(ArchName) == 'win32'">.cp$(MajorVersionNumber)$(MinorVersionNumber)-win32</PydTag>
