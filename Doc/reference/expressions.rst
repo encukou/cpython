@@ -1002,21 +1002,67 @@ which is an asynchronous iterator (see :ref:`async-iterators`).
    ``yield`` and ``yield from`` prohibited in the implicitly nested scope.
 
 
-.. _yieldexpr:
-
-Yield expressions
------------------
-
 .. index::
    pair: keyword; yield
    pair: keyword; from
    pair: yield; expression
    pair: generator; function
 
-.. productionlist:: python-grammar
+.. _yieldexpr:
+
+Yield expressions
+-----------------
+
+The yield expression can only be used directly in a function definition block.
+
+.. note::
+
+   *Blocks* include function bodies and class definitions;
+   see :ref:`prog_structure` for a full definition.
+
+   Yield expressions can appear in a class only as part of a function,
+   for example::
+
+      class C:
+          # yield is not allowed here
+
+          def foo(self):
+              yield 1  # this makes `foo` a generator
+
+              class NestedClass:
+                  # yield is not allowed here
+                  pass
+
+              def nested_function():
+                  # this function is *not* a generator
+
+                  def double_nested_func():
+                      yield 2  # this makes `double_nested_func` a generator
+
+
+Using a yield expression causes the enclosing function to be
+a generator function.
+If the function is defined using ``async def``, it becomes an asynchronous
+generator function instead.
+
+
+The yield expression is used to define a :term:`generator` function
+or an :term:`asynchronous generator` function and
+thus can only be used in the body of a function definition.  Using a yield
+
+.. grammar-snippet::
+   :group: python-grammar
+
    yield_atom: "(" `yield_expression` ")"
-   yield_from: "yield" "from" `expression`
-   yield_expression: "yield" `yield_list` | `yield_from`
+
+   yield_expression:
+      | 'yield' 'from' `expression`
+      | 'yield' [`yield_list`]
+
+   yield_list:
+      | `expression_list`
+      | `starred_expression` "," [`starred_expression_list`]
+
 
 The yield expression is used when defining a :term:`generator` function
 or an :term:`asynchronous generator` function and
@@ -1063,6 +1109,7 @@ the result will be the value passed in to that method.
 
 .. index:: single: coroutine
 
+REMOVE -- MISLEADING
 All of this makes generator functions quite similar to coroutines; they yield
 multiple times, they have more than one entry point and their execution can be
 suspended.  The only difference is that a generator function cannot control
@@ -2585,7 +2632,6 @@ Expression lists
    flexible_expression_list: `flexible_expression` ("," `flexible_expression`)* [","]
    starred_expression_list: `starred_expression` ("," `starred_expression`)* [","]
    expression_list: `expression` ("," `expression`)* [","]
-   yield_list: `expression_list` | `starred_expression` "," [`starred_expression_list`]
 
 .. index:: pair: object; tuple
 
