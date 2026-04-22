@@ -956,6 +956,32 @@ Generator expressions
    pair: object; generator
    single: () (parentheses); generator expression
 
+The syntax for generator expressions is the same as for comprehensions, except
+that they are enclosed in parentheses instead of brackets or curly braces.
+For example::
+
+   >>> (x ** 2 for x in range(10))
+   <generator object <genexpr> at ...>
+
+Thus, the example above is roughly equivalent to defining and calling
+the following generator function::
+
+   def make_generator_of_squares(iterable):
+       for x in iterable:
+           yield x**2
+
+   make_generator_of_squares(range(10))
+
+The parentheses can be omitted on calls with only one argument.
+See section :ref:`calls` for details.
+For example::
+
+   >>> tuple(x ** 2 for x in range(10))
+   (0, 1, 4, 9, 16, 25, 36, 49, 64, 81)
+
+
+
+
 A generator expression is a compact generator notation in parentheses:
 
 .. productionlist:: python-grammar
@@ -977,8 +1003,6 @@ Subsequent :keyword:`!for` clauses and any filter condition in the leftmost
 depend on the values obtained from the leftmost iterable. For example:
 ``(x*y for x in range(10) for y in range(x, x+10))``.
 
-The parentheses can be omitted on calls with only one argument.  See section
-:ref:`calls` for details.
 
 To avoid interfering with the expected operation of the generator expression
 itself, ``yield`` and ``yield from`` expressions are prohibited in the
