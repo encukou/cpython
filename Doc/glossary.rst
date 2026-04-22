@@ -506,12 +506,10 @@ Glossary
       statement.
 
    exhausted
-      An :term:`iterator` that has produced all of its values is said to be
-      :dfn:`exhausted`.
-      Further attempts to get the next value (for example, calls to
-      :py:func:`next`) raise :py:exc:`StopIteration`
-      (or :py:exc:`StopAsyncIteration` in the case of an :term:`asynchronous
-      iterator`).
+      An :term:`iterator` or :term:`asynchronous iterator` that has produced
+      all of its values is said to be :dfn:`exhausted`.
+      Further attempts to get the next value raise :py:exc:`StopIteration` or
+      :py:exc:`StopAsyncIteration`, respectively.
 
    expression
       A piece of syntax which can be evaluated to some value.  In other words,
@@ -649,7 +647,7 @@ Glossary
       collector that is able to detect and break reference cycles.  The
       garbage collector can be controlled using the :mod:`gc` module.
 
-      .. index:: single: generator
+   .. index:: single: generator
 
    generator
       Informally used to mean either a :term:`generator function` or a
@@ -657,7 +655,7 @@ Glossary
       :term:`generator function` and :term:`generator iterator` are uncommon
       in practice; "generator" alone is almost always sufficient.
 
-      .. index:: single: generator function
+   .. index:: single: generator function
 
    generator function
       A function which returns a :term:`generator` object.  It looks like a
@@ -680,7 +678,7 @@ Glossary
       :meth:`~generator.throw` method to raise an exception at the point
       where the generator was paused.  See :ref:`generator-methods`.
 
-      .. index:: single: generator expression
+   .. index:: single: generator expression
 
    generator expression
       An :term:`expression` that returns an :term:`iterator`.  It looks like a normal expression
