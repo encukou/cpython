@@ -961,11 +961,15 @@ list :ref:`comprehensions <comprehensions>`, except that they are enclosed in
 parentheses instead of brackets.
 For example::
 
-   >>> (x ** 2 for x in range(10))
+   >>> iterator = (x ** 2 for x in range(10))
+   >>> iterator
    <generator object <genexpr> at ...>
 
 At runtime, a generator expression evaluates to a :term:`generator iterator`
-which yields the same values as the corresponding list comprehension.
+which yields the same values as the corresponding list comprehension::
+
+   >>> list(iterator)
+   [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 
 Thus, the example above is roughly equivalent to defining and calling
 the following generator function::
@@ -976,12 +980,18 @@ the following generator function::
 
    make_generator_of_squares(range(10))
 
-The parentheses can be omitted in calls  with only one argument.
+The enclosing parentheses can be omitted in calls with only one
+positional argument.
 See the :ref:`Calls section <calls>` for details.
 For example::
 
-   >>> tuple(x ** 2 for x in range(10))
-   (0, 1, 4, 9, 16, 25, 36, 49, 64, 81)
+   # The parentheses after `sum` are part of the call syntax:
+   >>> sum(x ** 2 for x in range(10))
+   285
+
+   # The generator needs its own parentheses if it's not the only argument:
+   >>> sum((x ** 2 for x in range(10)), start=1000)
+   1285
 
 The iterable expression in the leftmost :keyword:`!for` clause is
 evaluated immediately, so that an error raised by this expression will be
@@ -995,7 +1005,7 @@ rather than at the point where the first value is retrieved::
    NameError: name 'nonexistent_iterable' is not defined
 
 All other expressions are evaluated lazily, in the same fashion as normal
-generators (that is, when the :meth:`~generator.__next__` method is called)::
+generators (that is, when the iterator is asked to yield a value)::
 
    >>> iterator = (nonexistent_value for x in range(10))
    >>> iterator
