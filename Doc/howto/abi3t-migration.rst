@@ -244,17 +244,25 @@ and replace them with the following::
 
    PyABIInfo_VAR(abi_info);
 
-   static PySlot my_slots[] = {
+   static PySlot my_slot_array[] = {
       PySlot_STATIC_DATA(Py_mod_abi, &abi_info),
       PySlot_STATIC_DATA(Py_mod_name, "my_module"),
       PySlot_STATIC_DATA(Py_mod_doc, "my docstring"),
       PySlot_SIZE(Py_mod_state_size, sizeof(my_state_struct)),
-       .m_methods = my_methods,
-       .m_slots = my_slots,
-       .m_traverse = my_traverse,
-       .m_clear = my_clear,
-       .m_free = my_free,
+      PySlot_STATIC_DATA(Py_mod_methods, my_methods),
+      PySlot_STATIC_DATA(Py_mod_slots, my_slots),
+      PySlot_FUNC(Py_mod_traverse, my_traverse),
+      PySlot_FUNC(Py_mod_clear, my_clear),
+      PySlot_FUNC(Py_mod_free, my_free),
       PySlot_END
+   }
+
+   PyMODEXPORT_FUNC
+   PyModExport_<modname>(void)
+   {
+       return my_slot_array;
+   }
+
 
 
 
