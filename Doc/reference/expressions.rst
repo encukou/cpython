@@ -956,7 +956,7 @@ Generator expressions
    pair: object; generator
    single: () (parentheses); generator expression
 
-The syntax for generator expressions is the same as for
+The syntax for :dfn:`generator expressions` is the same as for
 list :ref:`comprehensions <comprehensions>`, except that they are enclosed in
 parentheses instead of brackets.
 For example::
