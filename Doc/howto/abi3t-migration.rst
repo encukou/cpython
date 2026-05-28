@@ -20,8 +20,8 @@ you need to build and distribute for each version of your library.
 Without the Stable ABI, you must build a separate shared library, and typically
 a *wheel* distribution, for each feature version of CPython you wish
 to support.
-For example, each "tag" in the following table represents a separate
-built artifacts:
+For example, each tag in the following table represents a separate
+library/wheel:
 
 +-----------------+-------------------+------------------+
 | CPython version | Non-free-threaded | Free-threaded    |
@@ -39,13 +39,11 @@ built artifacts:
 | Future versions | (etc.)            | (etc.)           |
 +-----------------+-------------------+------------------+
 
-The number of artifacts is multiplied by the number of supported platforms.
-For example, the there are `88 wheels <https://pypi.org/project/MarkupSafe/3.0.3/#files>`_
-for a single version of the ``markupsafe`` extension,
-all built from the same source.
+That's a lot of builds, especially when multiplied by the number
+of supported platforms.
 
 With the Stable ABI (``abi3``, introduced in CPython 3.2), a single extension
-(per platform) for *all* non-free-threaded builds of CPython:
+(per platform) can cover all *non-free-threaded* builds of CPython:
 
 +-----------------+-------------------+------------------+
 | CPython version | Non-free-threaded | Free-threaded    |
@@ -63,8 +61,9 @@ With the Stable ABI (``abi3``, introduced in CPython 3.2), a single extension
 | Future versions |                   | (etc.)           |
 +-----------------+-------------------+------------------+
 
-The Stable ABI for free-threaded builds (``abi3t``), introduced in CPython 3.15
-does the same for free-threaded builds:
+The Stable ABI for free-threaded builds (``abi3t``), introduced in
+CPython 3.15, does the same for free-threaded builds.
+And it's compatible with non-free-threaded ones as well:
 
 +-----------------+-------------------+------------------+
 | CPython version | Non-free-threaded | Free-threaded    |
@@ -83,7 +82,7 @@ does the same for free-threaded builds:
 +-----------------+-------------------+------------------+
 
 \* (As above, the ``abi3`` extension is compatible with all non-free-threaded
-builds; in this table, 3.15+ are "covered" by ``abi3t``.)
+builds; even the 3.15+ ones that this table "attributes" to ``abi3t``.)
 
 Why *not* do this
 -----------------
@@ -93,28 +92,27 @@ There are two main downsides to Stable ABI.
 First, you extension may become slower, since Stable ABI prioritizes
 compatibility over performance.
 The difference is usually not noticeable, and often can be mitigated by
-building version-specific extensions *in addition* to the Stable ABI one,
-from the same source.
+using the same source to build both a Stable ABI build and a few
+version-specific ones for "tier 1" CPython versions.
 
 Second, not all of the C API is available.
 Extensions need to be ported to build for Stable ABI, which may be difficult
 or, in rare cases, impossible.
 
-Specifically, ``abi3t`` relies on API added in CPython 3.15.
-If your extension supports older versions of CPython, you have two main
-options:
+Specifically, ``abi3t`` requires on API added in CPython 3.15.
+If you want to build your extension for older versions of CPython from the
+same source, you have two main options:
 
 - Use preprocessor conditionals.
 
   When following this guide, use ``#ifdef Py_TARGET_ABI3T`` blocks whenever
   you are told to do a change that breaks the build on CPython versions you
-  care about, and keep the pre-existing code in ``#else`` blocks.
+  care about. Keep the pre-existing code in ``#else`` blocks.
 
-  For hand-written C extensions, this approach is reasonable if you support
-  CPython 3.12 and above. If you need to support 3.11 and below,
-  it will likely be a frustrating experience.
-
-  For code generators like Cython, 3.13
+  For hand-written C extensions, this approach is reasonable down to
+  CPython 3.12 and above.
+  Keeping compatibility with 3.11 and below is likely only worth it for code
+  generators (like Cython, for example).
 
 - Do not port to ``abi3t``, and continue building separate extensions for
   each version of CPython, until you can drop support for the older versions.
