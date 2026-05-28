@@ -263,9 +263,26 @@ and replace them with the following::
        return my_slot_array;
    }
 
+Leave out any fields that were missing, and substitute your own values.
 
+See :c:type:`PySlot` and :c:ref:`export hook <extension-export-hook>`
+documentation for details on this API.
 
+When using the new API, a ``PyModuleDef`` structure will not be associated
+with the resulting module -- we're not using that structure any more.
+Check your code for any of the following functions:
 
+- :c:func:`PyModule_GetDef`
+- :c:func:`PyType_GetModuleByDef`
+- :c:func:`PyType_GetModuleByToken`
+
+If you use any of these, add an additional entry to your ``PySlot`` array::
+
+   static PySlot my_slot_array[] = {
+      ...
+      PySlot_STATIC_DATA(Py_mod_token, &mod_token),
+      PySlot_END
+   }
 
 
 
