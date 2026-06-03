@@ -972,7 +972,7 @@ which yields the same values as the corresponding list comprehension::
    [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 
 Thus, the example above is roughly equivalent to defining and calling
-the following generator function::
+the following :term:`generator function`::
 
    def make_generator_of_squares(iterable):
        for x in iterable:
@@ -1031,8 +1031,9 @@ the implicitly nested scope.
 If a generator expression contains either :keyword:`!async for`
 clauses or :keyword:`await` expressions it is called an
 :dfn:`asynchronous generator expression`.
-An asynchronous generator expression returns a new asynchronous generator
-object, which is an asynchronous iterator (see :ref:`async-iterators`).
+An asynchronous generator expression returns a new
+:term:`asynchronous generator iterator`, which is an
+:ref:`asynchronous iterator <async-iterators>`.
 
 The formal grammar for generator expressions is:
 
@@ -1064,42 +1065,257 @@ The formal grammar for generator expressions is:
 Yield expressions
 -----------------
 
-The yield expression can only be used directly in a function definition block.
-
-.. note::
-
-   *Blocks* include function bodies and class definitions;
-   see :ref:`prog_structure` for a full definition.
-
-   Yield expressions can appear in a class only as part of a function,
-   for example::
-
-      class C:
-          # yield is not allowed here
-
-          def foo(self):
-              yield 1  # this makes `foo` a generator
-
-              class NestedClass:
-                  # yield is not allowed here
-                  pass
-
-              def nested_function():
-                  # this function is *not* a generator
-
-                  def double_nested_func():
-                      yield 2  # this makes `double_nested_func` a generator
-
-
 Using a yield expression causes the enclosing function to be
-a generator function.
-If the function is defined using ``async def``, it becomes an asynchronous
-generator function instead.
+a :term:`generator function`.
+Each yield expression denotes a suspension point where control is handed over
+to the generator's *consumer*.
+For example::
+
+   >>> def generator_function():
+   ...     print("generator starting")
+   ...     yield 123
+   ...     print("generator at line 4")
+   ...     yield 456
+   ...     print("generator ending")
+
+At runtime, when a generator function is called, it returns
+a :term:`generator iterator`::
+
+   >>> generator_iterator = generator_function()
+
+That iterator then allows control over the execution of the generator function.
+Initially, execution is *suspended*.
+It starts when a :dfn:`consumer` asks the iterator to produce the next value,
+for example using the :func:`next` function: ``next(generator_iterator)``.
+At that time, the execution starts at the beginning of the function body
+and proceeds to the first :keyword:`!yield` expression.
+The expression after the :keyword:`!yield` keyword is evaluated and returned
+to the consumer (here, the caller of ``next``)::
+
+   >>> first_value = next(generator_iterator)
+   generator starting
+   >>> print(first_value)
+   123
+
+At this point, execution of the generator function is *suspended* again.
+By *suspended*, we mean that all local state is retained, including the
+current bindings of local variables, the "instruction pointer" (index of
+the :keyword:`!yield` expression at which execution is suspended),
+the internal evaluation stack, and the state of any exception handling.
+
+When the iterator is asked to produce another value, execution is *resumed*:
+the function proceeds from the :keyword:`!yield` expression where it was
+suspended until the next :keyword:`!yield` expression is encountered::
+
+   >>> second_value = next(generator_iterator)
+   generator at line 4
+   >>> print(second_value)
+   456
+
+If the function returns before a :keyword:`!yield` expression is encountered
+(either with a :keyword:`return` statement, or implicitly at the end of the
+function), the generator raises a :exc:`StopIteration` exception::
+
+   >>> third_value = next(generator_iterator)
+   Traceback (most recent call last):
+     ...
+       third_value = next(generator_iterator)
+   StopIteration
+
+Commonly, iterators are consumed via :keyword:`for` loop, which implicitly
+calls :func:`next` at the start of each iteration, and handles
+:exc:`StopIteration`::
+
+   >>> for value in generator_function():
+   ...     print("value from generator:", value)
+   generator starting
+   value from generator: 123
+   generator at line 4
+   value from generator: 456
+   generator ending
+
+Note the call to ``generator_function()``.
+This creates a *new* iterator, which yields TODO
 
 
-The yield expression is used to define a :term:`generator` function
-or an :term:`asynchronous generator` function and
-thus can only be used in the body of a function definition.  Using a yield
+
+:keyword:`yield` without a value
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the value after a :keyword:`yield` keyword is omitted, the generator
+iterator produces ``None``::
+
+   >>> def generator_function():
+   ...     yield 123
+   ...     yield
+
+   >>> for value in generator_function():
+   ...     print("value from generator:", value)
+   value from generator: 123
+   value from generator: None
+
+Value of the :keyword:`yield` expression
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using the basic iteration protocol (:keyword:`for` or :func:`next`),
+the value of a :keyword:`yield` expression is ``None``::
+
+   >>> def generator_function():
+   ...     value = yield 123
+   ...     print("value of yield is", value)
+   ...     yield
+
+   >>> for value in generator_function():
+   ...     pass
+   value of yield is: None
+
+A different value can be given by using the generator iterator's
+:meth:`~generator.send` method instead of :keyword:`for` or :func:`!next`::
+
+   >>> generator_iterator = generator_function()
+   >>> next(generator_iterator)
+   123
+   >>> generator_iterator.send("different")
+   value of yield is: different
+
+Note that :meth:`~generator.send` with a non-``None`` argument can only
+be used when the generator is suspended at a :keyword:`yield` expression,
+not with a freshly created iterator that is suspended at the beginning of the
+function::
+
+   >>> generator_iterator = generator_function()
+   >>> generator_iterator.send("different")
+   Traceback (most recent call last):
+     ...
+      generator_iterator.send("different")
+      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+   TypeError: can't send non-None value to a just-started generator
+
+
+---
+
+
+The value of the :keyword:`!yield` expression after resuming depends on the
+method which resumed the execution.
+If :meth:`~generator.send` is used, then the result will be the value passed
+in to that method.
+Otherwise (if :meth:`~generator.__next__` is used, typically implicitly via
+a :keyword:`for` loop) then the result is :const:`None`.
+
+
+If the expression is omitted, ``None`` is returned instead
+
+(either implicitly, like in a :keyword:`for` loop, or explicitly when one
+of the iterator's methods is called).
+
+
+
+If the function is defined using ``async def``, it becomes an
+:term:`asynchronous generator function` instead.
+For example::
+
+    async def agen(): # defines an asynchronous generator function
+        yield 123
+
+Yield expressions must be enclosed in parentheses except if they are:
+
+- the :ref:`yield statement <yield>`'s only expression, as in the
+  example above, or
+- the only expression on the right-hand side of an
+  :ref:`assignment statement <assignment>`.
+
+For example::
+
+   def gen():
+      yield 123  # yield statement: parentheses not required
+
+      print("first value:", (yield 456))  # parentheses are required
+
+      value = yield 789  # yield statement: parentheses not required
+      print("second value:", value)
+
+
+
+Generator functions are described below, while asynchronous generator
+functions are described separately in section
+:ref:`asynchronous-generator-functions`.
+
+At runtime, when a generator function is called, it returns
+a :term:`generator iterator`.
+That iterator then controls the execution of the generator function.
+Initially, execution of the generator function is *suspended*;
+it starts when the iterator is asked to produce the next value
+(either implicitly, like in a :keyword:`for` loop, or explicitly when one
+of the iterator's methods is called).
+At that time, the execution proceeds to the first :keyword:`!yield` expression.
+The expression after the :keyword:`!yield` keyword is evaluated and returned
+to the generator's caller, and execution of the generator function
+is *suspended* again.
+If the expression is omitted, ``None`` is returned instead.
+By *suspended*, we mean that all local state is retained, including the
+current bindings of local variables, the index of the instruction
+that's currently being executed, the internal evaluation stack, and the
+state of any exception handling.
+When the iterator is asked to produce another value, the execution is
+*resumed*: the function proceeds exactly as if no suspension happened.
+The value of the :keyword:`!yield` expression after resuming depends on the
+method which resumed the execution.
+If :meth:`~generator.send` is used, then the result will be the value passed
+in to that method.
+Otherwise (if :meth:`~generator.__next__` is used, typically implicitly via
+a :keyword:`for` loop) then the result is :const:`None`.
+
+Yield expressions are allowed anywhere in a :keyword:`try` construct.  If the
+generator iterator is not resumed before it is destroyed (garbage collected),
+its :meth:`~generator.close` method will be called,
+allowing any pending :keyword:`finally` clauses to execute.
+
+When ``yield from <expr>`` is used, the supplied expression must be an
+iterable. The values produced by iterating that iterable are passed directly
+to the caller of the current generator's methods. Any values passed in with
+:meth:`~generator.send` and any exceptions passed in with
+:meth:`~generator.throw` are passed to the underlying iterator if it has the
+appropriate methods.  If this is not the case, then :meth:`~generator.send`
+will raise :exc:`AttributeError` or :exc:`TypeError`, while
+:meth:`~generator.throw` will raise the passed in exception immediately.
+
+When the underlying iterator is complete, the :attr:`~StopIteration.value`
+attribute of the raised :exc:`StopIteration` instance becomes the value of
+the ``yield from`` expression. It can be either set explicitly when raising
+:exc:`StopIteration`, or automatically when the subiterator is a generator
+(by returning a value from the subgenerator).
+
+
+
+
+The yield expression can only be used in the body of a function definition.
+More precisely, it can only be used when the closest enclosing *block*
+is a function definition, not a module-level or class block.
+(See :ref:`prog_structure` for an explanation of blocks.)
+For example::
+
+   class C:
+       # yield is not allowed here
+
+       def foo(self):
+           yield 1  # this makes `foo` a generator function
+
+           class NestedClass:
+               # yield is not allowed here
+               pass
+
+           def nested_function():
+               # this function is *not* a generator
+
+               def double_nested():
+                   yield 2  # this makes `double_nested` a generator function
+
+Due to their side effects on the containing scope, ``yield`` expressions
+are not permitted as part of the implicitly defined scopes used to
+implement comprehensions and generator expressions.
+
+
+
 
 .. grammar-snippet::
    :group: python-grammar
@@ -1115,81 +1331,16 @@ thus can only be used in the body of a function definition.  Using a yield
       | `starred_expression` "," [`starred_expression_list`]
 
 
-The yield expression is used when defining a :term:`generator` function
-or an :term:`asynchronous generator` function and
-thus can only be used in the body of a function definition.  Using a yield
-expression in a function's body causes that function to be a generator function,
-and using it in an :keyword:`async def` function's body causes that
-coroutine function to be an asynchronous generator function. For example::
-
-    def gen():  # defines a generator function
-        yield 123
-
-    async def agen(): # defines an asynchronous generator function
-        yield 123
-
-Due to their side effects on the containing scope, ``yield`` expressions
-are not permitted as part of the implicitly defined scopes used to
-implement comprehensions and generator expressions.
 
 .. versionchanged:: 3.8
    Yield expressions prohibited in the implicitly nested scopes used to
    implement comprehensions and generator expressions.
 
-Generator functions are described below, while asynchronous generator
-functions are described separately in section
-:ref:`asynchronous-generator-functions`.
-
-When a generator function is called, it returns an iterator known as a
-generator.  That generator then controls the execution of the generator
-function.  The execution starts when one of the generator's methods is called.
-At that time, the execution proceeds to the first yield expression, where it is
-suspended again, returning the value of :token:`~python-grammar:yield_list`
-to the generator's caller,
-or ``None`` if :token:`~python-grammar:yield_list` is omitted.
-By suspended, we mean that all local state is
-retained, including the current bindings of local variables, the instruction
-pointer, the internal evaluation stack, and the state of any exception handling.
-When the execution is resumed by calling one of the generator's methods, the
-function can proceed exactly as if the yield expression were just another
-external call.  The value of the yield expression after resuming depends on the
-method which resumed the execution.  If :meth:`~generator.__next__` is used
-(typically via either a :keyword:`for` or the :func:`next` builtin) then the
-result is :const:`None`.  Otherwise, if :meth:`~generator.send` is used, then
-the result will be the value passed in to that method.
 
 .. index:: single: coroutine
 
-REMOVE -- MISLEADING
-All of this makes generator functions quite similar to coroutines; they yield
-multiple times, they have more than one entry point and their execution can be
-suspended.  The only difference is that a generator function cannot control
-where the execution should continue after it yields; the control is always
-transferred to the generator's caller.
-
-Yield expressions are allowed anywhere in a :keyword:`try` construct.  If the
-generator is not resumed before it is
-finalized (by reaching a zero reference count or by being garbage collected),
-the generator-iterator's :meth:`~generator.close` method will be called,
-allowing any pending :keyword:`finally` clauses to execute.
-
 .. index::
    single: from; yield from expression
-
-When ``yield from <expr>`` is used, the supplied expression must be an
-iterable. The values produced by iterating that iterable are passed directly
-to the caller of the current generator's methods. Any values passed in with
-:meth:`~generator.send` and any exceptions passed in with
-:meth:`~generator.throw` are passed to the underlying iterator if it has the
-appropriate methods.  If this is not the case, then :meth:`~generator.send`
-will raise :exc:`AttributeError` or :exc:`TypeError`, while
-:meth:`~generator.throw` will just raise the passed in exception immediately.
-
-When the underlying iterator is complete, the :attr:`~StopIteration.value`
-attribute of the raised :exc:`StopIteration` instance becomes the value of
-the yield expression. It can be either set explicitly when raising
-:exc:`StopIteration`, or automatically when the subiterator is a generator
-(by returning a value from the subgenerator).
 
 .. versionchanged:: 3.3
    Added ``yield from <expr>`` to delegate control flow to a subiterator.

@@ -96,14 +96,17 @@ Glossary
       :meth:`~object.__aexit__` methods.  Introduced by :pep:`492`.
 
    asynchronous generator
-      A function which returns an :term:`asynchronous generator iterator`.  It
-      looks like a coroutine function defined with :keyword:`async def` except
-      that it contains :keyword:`yield` expressions for producing a series of
-      values usable in an :keyword:`async for` loop.
+      Usually refers to an :term:`asynchronous generator function`,
+      but may refer to an :term:`asynchronous generator iterator` in
+      some contexts.  In cases where the intended meaning isn't clear,
+      using the full terms avoids ambiguity.
 
-      Usually refers to an asynchronous generator function, but may refer to an
-      *asynchronous generator iterator* in some contexts.  In cases where the
-      intended meaning isn't clear, using the full terms avoids ambiguity.
+   asynchronous generator function
+      A function which returns an :term:`asynchronous generator iterator`.  It
+      looks like a :term:`coroutine function` defined with
+      :keyword:`async def` except that it contains :keyword:`yield`
+      expressions for producing a series of values usable in an
+      :keyword:`async for` loop.
 
       An asynchronous generator function may contain :keyword:`await`
       expressions as well as :keyword:`async for`, and :keyword:`async with`
@@ -641,14 +644,15 @@ Glossary
       .. index:: single: generator
 
    generator
+      Usually refers to a :term:`generator function`, but may refer to a
+      :term:`generator iterator` in some contexts.  In cases where the intended
+      meaning isn't clear, using the full terms avoids ambiguity.
+
+   generator function
       A function which returns a :term:`generator iterator`.  It looks like a
       normal function except that it contains :keyword:`yield` expressions
       for producing a series of values usable in a for-loop or that can be
       retrieved one at a time with the :func:`next` function.
-
-      Usually refers to a generator function, but may refer to a
-      *generator iterator* in some contexts.  In cases where the intended
-      meaning isn't clear, using the full terms avoids ambiguity.
 
    generator iterator
       An object created by a :term:`generator` function.
