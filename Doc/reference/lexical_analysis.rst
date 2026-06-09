@@ -758,7 +758,7 @@ to indicate that an ending quote ends the literal.
    stringitem:      `stringchar` | `stringescapeseq`
    stringchar:      <any `source_character`, except backslash and newline>
    longstringitem:  `stringitem` | newline
-   stringescapeseq: "\" <any `source_character`>
+   stringescapeseq: "\\" <any `source_character`>
 
 Note that as in all lexical definitions, whitespace is significant.
 In particular, the prefix (if any) must be immediately followed by the starting

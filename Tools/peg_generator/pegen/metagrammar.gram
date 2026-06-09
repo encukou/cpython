@@ -3,11 +3,13 @@ from ast import literal_eval
 
 from pegen.grammar import (
     Alt,
+    CharacterRange,
     Cut,
     Forced,
     Gather,
     Group,
     Item,
+    LexicalForm,
     Lookahead,
     LookaheadOrCut,
     MetaTuple,
@@ -87,6 +89,7 @@ items[NamedItemList]:
 named_item[NamedItem]:
     | NAME annotation '=' ~ item {NamedItem(name.string, item, annotation)}
     | NAME '=' ~ item {NamedItem(name.string, item)}
+    | a=item '...' b=item {CharacterRange(a, b)}
     | item {NamedItem(None, item)}
     | forced=forced_atom {NamedItem(None, forced)}
     | it=lookahead {NamedItem(None, it)}
@@ -111,6 +114,7 @@ atom[Plain]:
     | '(' ~ alts ')' {Group(alts)}
     | NAME {NameLeaf(name.string) }
     | STRING {StringLeaf(string.string)}
+    | '<' target_atoms_lex '>' {LexicalForm(target_atoms)}
 
 # Mini-grammar for the actions and annotations
 
@@ -121,7 +125,15 @@ target_atoms[str]:
     | target_atom target_atoms { target_atom + " " + target_atoms }
     | target_atom { target_atom }
 
+target_atoms_lex[str]:
+    | target_atom_lex target_atoms_lex { target_atom_lex + " " + target_atoms_lex }
+    | target_atoms_lex { target_atoms_lex }
+
 target_atom[str]:
+    | target_atom_lex
+    | ">"
+
+target_atom_lex[str]:
     | "{" ~ atoms=target_atoms? "}" { "{" + (atoms or "") + "}" }
     | "[" ~ atoms=target_atoms? "]" { "[" + (atoms or "") + "]" }
     | NAME "*" { name.string + "*" }
@@ -133,4 +145,4 @@ target_atom[str]:
     | FSTRING_END { fstring_end.string }
     | "?" { "?" }
     | ":" { ":" }
-    | !"}" !"]" OP { op.string }
+    | !"}" !"]" !">" OP { op.string }
