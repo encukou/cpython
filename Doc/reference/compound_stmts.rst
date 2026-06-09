@@ -786,7 +786,7 @@ The top-level syntax for ``patterns`` is:
 .. productionlist:: python-grammar
    patterns: `open_sequence_pattern` | `pattern`
    pattern: `as_pattern` | `or_pattern`
-   closed_pattern: | `literal_pattern`
+   closed_pattern:  `literal_pattern`
                  : | `capture_pattern`
                  : | `wildcard_pattern`
                  : | `value_pattern`

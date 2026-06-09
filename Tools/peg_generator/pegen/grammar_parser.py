@@ -12,11 +12,13 @@ from ast import literal_eval
 
 from pegen.grammar import (
     Alt,
+    CharacterRange,
     Cut,
     Forced,
     Gather,
     Group,
     Item,
+    LexicalForm,
     Lookahead,
     LookaheadOrCut,
     MetaTuple,
@@ -344,7 +346,7 @@ class GeneratedParser(Parser):
 
     @memoize
     def named_item(self) -> Optional[NamedItem]:
-        # named_item: NAME annotation '=' ~ item | NAME '=' ~ item | item | forced_atom | lookahead
+        # named_item: NAME annotation '=' ~ item | NAME '=' ~ item | item '...' item | item | forced_atom | lookahead
         mark = self._mark()
         cut = False
         if (
@@ -374,6 +376,15 @@ class GeneratedParser(Parser):
             return NamedItem ( name . string , item )
         self._reset(mark)
         if cut: return None
+        if (
+            (a := self.item())
+            and
+            (literal := self.expect('...'))
+            and
+            (b := self.item())
+        ):
+            return CharacterRange ( a , b )
+        self._reset(mark)
         if (
             (item := self.item())
         ):
@@ -501,7 +512,7 @@ class GeneratedParser(Parser):
 
     @memoize
     def atom(self) -> Optional[Plain]:
-        # atom: '(' ~ alts ')' | NAME | STRING
+        # atom: '(' ~ alts ')' | NAME | STRING | '<' target_atoms '>'
         mark = self._mark()
         cut = False
         if (
@@ -525,6 +536,15 @@ class GeneratedParser(Parser):
             (string := self.string())
         ):
             return StringLeaf ( string . string )
+        self._reset(mark)
+        if (
+            (literal := self.expect('<'))
+            and
+            (target_atoms := self.target_atoms())
+            and
+            (literal_1 := self.expect('>'))
+        ):
+            return LexicalForm ( target_atoms )
         self._reset(mark)
         return None
 
@@ -586,7 +606,7 @@ class GeneratedParser(Parser):
 
     @memoize
     def target_atom(self) -> Optional[str]:
-        # target_atom: "{" ~ target_atoms? "}" | "[" ~ target_atoms? "]" | NAME "*" | NAME | NUMBER | STRING | FSTRING_START | FSTRING_MIDDLE | FSTRING_END | "?" | ":" | !"}" !"]" OP
+        # target_atom: "{" ~ target_atoms? "}" | "[" ~ target_atoms? "]" | NAME "*" | NAME | NUMBER | STRING | FSTRING_START | FSTRING_MIDDLE | FSTRING_END | "?" | ":" | !"}" !"]" !">" OP
         mark = self._mark()
         cut = False
         if (
@@ -665,6 +685,8 @@ class GeneratedParser(Parser):
             self.negative_lookahead(self.expect, "}")
             and
             self.negative_lookahead(self.expect, "]")
+            and
+            self.negative_lookahead(self.expect, ">")
             and
             (op := self.op())
         ):

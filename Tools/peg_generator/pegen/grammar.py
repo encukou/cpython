@@ -341,6 +341,35 @@ class Cut:
         return set()
 
 
+class CharacterRange:
+    """Used for lexical analysis only"""
+    def __init__(self, start: Plain, end: Plain):
+        self.start = start
+        self.end = end
+
+    def __str__(self) -> str:
+        return f"({self.start}) ... ({self.end})"
+
+    def __repr__(self) -> str:
+        return f"CharacterRange({self.start!r}, {self.end!r})"
+
+    def __iter__(self) -> Iterator[Rhs]:
+        yield self.start
+        yield self.end
+
+
+class LexicalForm:
+    """Used for lexical analysis only"""
+    def __init__(self, text: str):
+        self.text = text
+
+    def __str__(self) -> str:
+        return f"<{self.text}>"
+
+    def __repr__(self) -> str:
+        return f"LexicalForm({self.text!r})"
+
+
 Plain = Leaf | Group
 Item = Plain | Opt | Repeat | Forced | Lookahead | Rhs | Cut
 RuleName = tuple[str, str | None]
