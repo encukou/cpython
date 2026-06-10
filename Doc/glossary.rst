@@ -506,12 +506,10 @@ Glossary
       statement.
 
    exhausted
-      An :term:`iterator` that has produced all of its values is said to be
-      :dfn:`exhausted`.
-      Further attempts to get the next value (for example, calls to
-      :py:func:`next`) raise :py:exc:`StopIteration`
-      (or :py:exc:`StopAsyncIteration` in the case of an :term:`asynchronous
-      iterator`).
+      An :term:`iterator` or :term:`asynchronous iterator` that has produced
+      all of its values is said to be :dfn:`exhausted`.
+      Further attempts to get the next value raise :py:exc:`StopIteration` or
+      :py:exc:`StopAsyncIteration`, respectively.
 
    expression
       A piece of syntax which can be evaluated to some value.  In other words,
