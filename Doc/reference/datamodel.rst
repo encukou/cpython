@@ -1042,7 +1042,7 @@ this approach.
       Raise :exc:`DeprecationWarning` instead of :exc:`ImportWarning` when
       falling back to :attr:`!__package__` during import resolution.
 
-   .. deprecated-removed:: 3.13 3.15
+   .. deprecated-removed:: 3.13 3.16
       :attr:`!__package__` will cease to be set or taken into consideration
       by the import system or standard library.
 
@@ -2230,12 +2230,12 @@ Basic customization
       pair: built-in function; hash
 
    Called by built-in function :func:`hash` and for operations on members of
-   hashed collections including :class:`set`, :class:`frozenset`, and
-   :class:`dict`.  The ``__hash__()`` method should return an integer. The only required
-   property is that objects which compare equal have the same hash value; it is
-   advised to mix together the hash values of the components of the object that
-   also play a part in comparison of objects by packing them into a tuple and
-   hashing the tuple. Example::
+   hashed collections including :class:`set`, :class:`frozenset`, :class:`dict`,
+   and :class:`frozendict`. The ``__hash__()`` method should return an integer.
+   The only required property is that objects which compare equal have the same
+   hash value; it is advised to mix together the hash values of the components
+   of the object that also play a part in comparison of objects by packing them
+   into a tuple and hashing the tuple. Example::
 
        def __hash__(self):
            return hash((self.name, self.nick, self.color))
