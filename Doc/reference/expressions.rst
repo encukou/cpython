@@ -15,7 +15,7 @@ not lexical analysis.
 
 When (one alternative of) a syntax rule has the form:
 
-.. productionlist:: python-grammar
+.. productionlist:: example
    name: othername
 
 and no semantics are given, the semantics of this form of ``name`` are the same
