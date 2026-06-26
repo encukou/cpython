@@ -36,6 +36,8 @@ from pegen.grammar import (
     RuleName,
     Grammar,
     StringLeaf,
+    CharacterRange,
+    LexicalForm,
 )
 
 # Keywords and soft keywords are listed at the end of the parser definition.
@@ -445,7 +447,7 @@ class GeneratedParser(Parser):
 
     @memoize
     def item(self) -> Optional[Item]:
-        # item: '[' ~ alts ']' | atom '?' | atom '*' | atom '+' | atom '.' atom '+' | atom
+        # item: '[' ~ alts ']' | atom '...' atom | atom '?' | atom '*' | atom '+' | atom '.' atom '+' | atom | '<' ~ lex_atoms '>'
         mark = self._mark()
         cut = False
         if (
@@ -460,6 +462,15 @@ class GeneratedParser(Parser):
             return Opt ( alts )
         self._reset(mark)
         if cut: return None
+        if (
+            (a := self.atom())
+            and
+            (literal := self.expect('...'))
+            and
+            (b := self.atom())
+        ):
+            return CharacterRange ( a , b )
+        self._reset(mark)
         if (
             (atom := self.atom())
             and
@@ -497,6 +508,19 @@ class GeneratedParser(Parser):
         ):
             return atom
         self._reset(mark)
+        cut = False
+        if (
+            (literal := self.expect('<'))
+            and
+            (cut := True)
+            and
+            (lex_atoms := self.lex_atoms())
+            and
+            (literal_1 := self.expect('>'))
+        ):
+            return LexicalForm ( lex_atoms )
+        self._reset(mark)
+        if cut: return None
         return None
 
     @memoize
@@ -586,7 +610,52 @@ class GeneratedParser(Parser):
 
     @memoize
     def target_atom(self) -> Optional[str]:
-        # target_atom: "{" ~ target_atoms? "}" | "[" ~ target_atoms? "]" | NAME "*" | NAME | NUMBER | STRING | FSTRING_START | FSTRING_MIDDLE | FSTRING_END | "?" | ":" | !"}" !"]" OP
+        # target_atom: common_atom | ">"
+        mark = self._mark()
+        if (
+            (common_atom := self.common_atom())
+        ):
+            return common_atom
+        self._reset(mark)
+        if (
+            (op := self.expect(">"))
+        ):
+            return op . string
+        self._reset(mark)
+        return None
+
+    @memoize
+    def lex_atoms(self) -> Optional[str]:
+        # lex_atoms: lex_atom lex_atoms | lex_atom
+        mark = self._mark()
+        if (
+            (lex_atom := self.lex_atom())
+            and
+            (lex_atoms := self.lex_atoms())
+        ):
+            return lex_atom + " " + lex_atoms
+        self._reset(mark)
+        if (
+            (lex_atom := self.lex_atom())
+        ):
+            return lex_atom
+        self._reset(mark)
+        return None
+
+    @memoize
+    def lex_atom(self) -> Optional[str]:
+        # lex_atom: common_atom
+        mark = self._mark()
+        if (
+            (common_atom := self.common_atom())
+        ):
+            return common_atom
+        self._reset(mark)
+        return None
+
+    @memoize
+    def common_atom(self) -> Optional[str]:
+        # common_atom: "{" ~ target_atoms? "}" | "[" ~ target_atoms? "]" | NAME "*" | NAME | NUMBER | STRING | FSTRING_START | FSTRING_MIDDLE | FSTRING_END | "?" | ":" | !"}" !"]" !">" OP
         mark = self._mark()
         cut = False
         if (
@@ -665,6 +734,8 @@ class GeneratedParser(Parser):
             self.negative_lookahead(self.expect, "}")
             and
             self.negative_lookahead(self.expect, "]")
+            and
+            self.negative_lookahead(self.expect, ">")
             and
             (op := self.op())
         ):

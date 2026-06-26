@@ -132,6 +132,14 @@ class StringLeaf(Leaf):
         return f"StringLeaf({self.value!r})"
 
 
+class LexicalForm:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __repr__(self) -> str:
+        return f"LexicalForm({self.text!r})"
+
+
 class Rhs:
     def __init__(self, alts: list[Alt]):
         self.alts = alts
@@ -303,6 +311,18 @@ class Gather(Repeat):
 
     def __repr__(self) -> str:
         return f"Gather({self.separator!r}, {self.node!r})"
+
+
+class CharacterRange:
+    def __init__(self, start: Plain, end: Plain):
+        self.start = start
+        self.end = end
+
+    def __str__(self) -> str:
+        return f"({self.start!s}...{self.end!s})"
+
+    def __repr__(self) -> str:
+        return f"CharacterRange({self.start!r}, {self.end!r})"
 
 
 class Group:

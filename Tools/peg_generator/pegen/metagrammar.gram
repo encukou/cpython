@@ -27,6 +27,8 @@ from pegen.grammar import (
     RuleName,
     Grammar,
     StringLeaf,
+    CharacterRange,
+    LexicalForm,
 )
 """
 
@@ -101,11 +103,13 @@ lookahead[LookaheadOrCut]:
 
 item[Item]:
     | '[' ~ alts ']' {Opt(alts)}
+    |  a=atom '...' b=atom {CharacterRange(a, b)}
     |  atom '?' {Opt(atom)}
     |  atom '*' {Repeat0(atom)}
     |  atom '+' {Repeat1(atom)}
     |  sep=atom '.' node=atom '+' {Gather(sep, node)}
     |  atom {atom}
+    | '<' ~ lex_atoms '>' {LexicalForm(lex_atoms)}
 
 atom[Plain]:
     | '(' ~ alts ')' {Group(alts)}
@@ -122,6 +126,17 @@ target_atoms[str]:
     | target_atom { target_atom }
 
 target_atom[str]:
+    | common_atom
+    | op=">" { op.string }
+
+lex_atoms[str]:
+    | lex_atom lex_atoms { lex_atom + " " + lex_atoms }
+    | lex_atom { lex_atom }
+
+lex_atom[str]:
+    | common_atom
+
+common_atom[str]:
     | "{" ~ atoms=target_atoms? "}" { "{" + (atoms or "") + "}" }
     | "[" ~ atoms=target_atoms? "]" { "[" + (atoms or "") + "]" }
     | NAME "*" { name.string + "*" }
@@ -133,4 +148,4 @@ target_atom[str]:
     | FSTRING_END { fstring_end.string }
     | "?" { "?" }
     | ":" { ":" }
-    | !"}" !"]" OP { op.string }
+    | !"}" !"]" !">" OP { op.string }
