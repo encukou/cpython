@@ -1075,6 +1075,10 @@ The formal grammar for generator expressions is:
 Yield expressions
 -----------------
 
+The yield expression may only occur syntactically nested in a function
+definition, not within a nested class definition.
+See :ref:`yield-expression-placement` for details.
+
 Using a yield expression causes the enclosing function to be
 a :term:`generator function`.
 Each yield expression denotes a suspension point where control is handed over
@@ -1165,6 +1169,10 @@ Note that instead of reusing the exhausted ``generator_iterator``,
 this example calls ``generator_function()`` again to create a new iterator
 with its own local execution state.
 
+.. seealso::
+
+   :pep:`255` - Simple Generators
+      The proposal for adding generators and the :keyword:`yield` statement to Python.
 
 :keyword:`yield` without a value
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1220,6 +1228,12 @@ generator function::
       generator_iterator.send("different")
       ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
    TypeError: can't send non-None value to a just-started generator
+
+.. seealso::
+
+   :pep:`342` - Coroutines via Enhanced Generators
+      The proposal to enhance the API and syntax of generators, making them
+      usable as simple coroutines.
 
 
 Throwing exceptions into generators
@@ -1281,14 +1295,18 @@ allowing any pending :keyword:`finally` clauses to execute.
    garbage collection (and thus printing the message) may happen at any
    later point, or even not at all.
 
+.. index::
+   single: from; yield from expression
 
-:keyword:`yield from` expressions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:keyword:`yield` :keyword:`from` expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When ``yield from <expr>`` is used, the supplied expression must be an iterable.
+When :samp:`yield from {expr}` is used, *expr* must be an iterable.
 The values produced by that iterable are passed directly
 to the consumer of the current generator.
-For example::
+
+For simple iterators, :samp:`yield from {iterable}` is essentially a shortened
+form of :samp:`for item in {iterable}: yield item`::
 
    >>> def move_hands():
    ...     yield 'put hands up'
@@ -1307,37 +1325,15 @@ For example::
    put hands up
    put hands down
 
-As with :keyword:`yield` expressions, ``yield from`` expressions must be
-enclosed in parentheses except as the sole expression of a :keyword:`yield`
-statement or the sole value of an assignment statement.
+However, unlike an ordinary loop, ``yield from`` allows subgenerators to
+receive sent and thrown values directly from the calling scope, and
+return a final value to the outer generator.
 
 When the underlying iterator is complete, the :attr:`~StopIteration.value`
 attribute of the raised :exc:`StopIteration` instance becomes the value of
 the ``yield from`` expression. It can be either set explicitly when raising
 :exc:`StopIteration`, or automatically when the subiterator is a generator
 (by returning a value from the subgenerator).
-For example::
-
-   >>> from random import random
-   >>> def find_partner():
-   ...     yield 'look around'
-   ...     if random() < 1/4:
-   ...         # found a person on the right
-   ...         yield 'turn right'
-   ...         return True
-   ...     if random() < 1/4:
-   ...         # found a person on the left
-   ...         yield 'turn left'
-   ...         return True
-   ...     yield 'shrug'
-   ...     return False
-
-   >>> def dance():
-   ...     if (yield from find_partner()):  # parentheses required here
-   ...         yield 'high five!'
-   ...     else:
-   ...         yield 'do a lonely jump'
-
 
 Any values passed in with :meth:`~generator.send` and any exceptions passed
 in with :meth:`~generator.throw` are passed to the underlying iterator if it
@@ -1346,18 +1342,19 @@ If this is not the case, then :meth:`~generator.send` will raise
 :exc:`AttributeError` or :exc:`TypeError`, while :meth:`~generator.throw`
 will raise the passed in exception immediately.
 
+.. versionchanged:: 3.3
+   Added ``yield from <expr>`` to delegate control flow to a subiterator.
 
+.. seealso::
 
+   :pep:`380` - Syntax for Delegating to a Subgenerator
+      The proposal to introduce the :token:`~python-grammar:yield_from` syntax,
+      making delegation to subgenerators easy.
 
----
+.. _yield-expression-placement:
 
-
-
-
-
-
-
-
+Where :keyword:`yield` expressions are allowed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The yield expression can only be used in the body of a function definition.
 More precisely, it can only be used when the closest enclosing *block*
@@ -1366,27 +1363,32 @@ is a function definition, not a module-level or class block.
 For example::
 
    class C:
-       # yield is not allowed here
+      # yield is not allowed here
 
-       def foo(self):
-           yield 1  # this makes `foo` a generator function
+      def foo(self):
+            yield 1  # this makes `foo` a generator function
 
-           class NestedClass:
+            class NestedClass:
                # yield is not allowed here
                pass
 
-           def nested_function():
+            def nested_function():
                # this function is *not* a generator
 
                def double_nested():
-                   yield 2  # this makes `double_nested` a generator function
+                  yield 2  # this makes `double_nested` a generator function
 
 Due to their side effects on the containing scope, ``yield`` expressions
 are not permitted as part of the implicitly defined scopes used to
 implement comprehensions and generator expressions.
 
+.. versionchanged:: 3.8
+   Yield expressions prohibited in the implicitly nested scopes used to
+   implement comprehensions and generator expressions.
 
 
+Formal grammar of :keyword:`yield` expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. grammar-snippet::
    :group: python-grammar
@@ -1402,35 +1404,7 @@ implement comprehensions and generator expressions.
       | `starred_expression` "," [`starred_expression_list`]
 
 
-
-.. versionchanged:: 3.8
-   Yield expressions prohibited in the implicitly nested scopes used to
-   implement comprehensions and generator expressions.
-
-
-.. index:: single: coroutine
-
-.. index::
-   single: from; yield from expression
-
-.. versionchanged:: 3.3
-   Added ``yield from <expr>`` to delegate control flow to a subiterator.
-
-The parentheses may be omitted when the yield expression is the sole expression
-on the right hand side of an assignment statement.
-
 .. seealso::
-
-   :pep:`255` - Simple Generators
-      The proposal for adding generators and the :keyword:`yield` statement to Python.
-
-   :pep:`342` - Coroutines via Enhanced Generators
-      The proposal to enhance the API and syntax of generators, making them
-      usable as simple coroutines.
-
-   :pep:`380` - Syntax for Delegating to a Subgenerator
-      The proposal to introduce the :token:`~python-grammar:yield_from` syntax,
-      making delegation to subgenerators easy.
 
    :pep:`525` - Asynchronous Generators
       The proposal that expanded on :pep:`492` by adding generator capabilities to
