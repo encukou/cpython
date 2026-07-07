@@ -1261,13 +1261,13 @@ sequences (``f_quote``).
       | `fstring_replacement_field`
       | `FSTRING_MIDDLE`
    FSTRING_MIDDLE:
-      | (!"\" !`newline` !'{' !'}' !`f_quote`) `source_character`
+      | (!"\\" !`newline` !'{' !'}' !`f_quote`) `source_character`
       | `stringescapeseq`
       | "{{"
       | "}}"
       | <newline, in triple-quoted f-strings only>
    fstring_replacement_field:
-      | '{' `f_expression` [`f_debug_specifier`] [`fstring_conversion`]
+      | '{' `f_expression` [`f_debug_specifier`] [`fstring_conversion`] \
             [`fstring_full_format_spec`] '}'
    fstring_conversion:
       | "!" ("s" | "r" | "a")
@@ -1296,8 +1296,6 @@ instead of *f* at the beginning of rule and token names and in the prefix.
    :group: python-grammar
 
    tstring:    TSTRING_START tstring_middle* TSTRING_END
-
-   <rest of the t-string grammar is omitted; see above>
 
 
 .. _numbers:
@@ -1558,7 +1556,7 @@ is also available in the :mod:`!token` module documentation.
       | "..."
       | other_op
 
-   assignment_operator:   "+=" | "-=" | "*=" | "**=" | "/="  | "//=" | "%=" |
+   assignment_operator:   "+=" | "-=" | "*=" | "**=" | "/="  | "//=" | "%=" | \
                           "&=" | "|=" | "^=" | "<<=" | ">>=" | "@="  | ":="
    bitwise_operator:      "&"  | "|"  | "^"  | "~"   | "<<"  | ">>"
    comparison_operator:   "<=" | ">=" | "<"  | ">"   | "=="  | "!="
