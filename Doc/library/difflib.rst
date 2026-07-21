@@ -18,21 +18,39 @@ can be used for example, for comparing files, and can produce information
 about file differences in various formats, including HTML and context and unified
 diffs. For comparing directories and files, see also, the :mod:`filecmp` module.
 
+All functionality in this module uses the algorithm implemented in
+:class:`SequenceMatcher`, a flexible class for comparing pairs
+of sequences.
+For line-based comparisons (default in tools like Git), the sequences can be
+lists of strings.
+For more fine-grained diffs, the sequences can be strings; in this case
+:mod:`!difflib` operates on single characters.
+Generally, the item in the sequences can be of any :term:`hashable` type.
 
-.. class:: SequenceMatcher
-   :noindex:
+The basic algorithm predates, and is a little fancier than, an algorithm
+published in the late 1980's by Ratcliff and Obershelp under the hyperbolic
+name "gestalt pattern matching."
+The idea is to find the longest contiguous subsequence common to both inputs,
+then recursively handle the pieces of the sequences to the left and to the
+right of the matching subsequence.
 
-   This is a flexible class for comparing pairs of sequences of any type, so long
-   as the sequence elements are :term:`hashable`.  The basic algorithm predates, and is a
-   little fancier than, an algorithm published in the late 1980's by Ratcliff and
-   Obershelp under the hyperbolic name "gestalt pattern matching."  The idea is to
-   find the longest contiguous matching subsequence that contains no "junk"
-   elements; these "junk" elements are ones that are uninteresting in some
-   sense, such as blank lines or whitespace.  (Handling junk is an
-   extension to the Ratcliff and Obershelp algorithm.) The same
-   idea is then applied recursively to the pieces of the sequences to the left and
-   to the right of the matching subsequence.  This does not yield minimal edit
-   sequences, but does tend to yield matches that "look right" to people.
+As an extension to the basic algorithm, :mod:`!difflib` adds the concept of
+:dfn:`junk`: items that are
+
+
+
+
+Handling junk is an extension to the Ratcliff and Obershelp algorithm.
+
+The idea is to find the longest contiguous matching subsequence that contains
+no "junk" elements; these "junk" elements are ones that are uninteresting
+in some sense, such as blank lines or whitespace.
+The same idea is then applied recursively to the pieces of the sequences to the
+left and to the right of the matching subsequence.
+This does not yield minimal edit sequences, but does tend to yield matches
+that "look right" to people.
+
+
 
    **Timing:** The basic Ratcliff-Obershelp algorithm is cubic time in the worst
    case and quadratic time in the expected case. :class:`SequenceMatcher` is
