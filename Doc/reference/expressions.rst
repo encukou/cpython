@@ -1256,25 +1256,24 @@ Note that yielding a value after :meth:`~generator.close` raises
 .. index::
    single: from; yield from expression
 
-:keyword:`yield` :keyword:`from` expressions
+:keyword:`yield from` expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When :samp:`yield from {expr}` is used, *expr* must evaluate to an iterable.
-At runtime, the current generator's operations are :dfn:`delegated` to that
-iterable: the values produced by that iterable are passed directly
+When :samp:`yield from {subiterable}` is used, *subiterable* must evaluate to
+an iterable.
+At runtime, the current generator's operations are :dfn:`delegated` to the
+subiterable: the values produced by the subiterable are passed directly
 to the consumer of the current generator.
 
-For simple generators, :samp:`yield from {iterable}` is essentially a shortened
-form of :samp:`for item in {iterable}: yield item`::
+For simple iterables, :samp:`yield from {subiterable}` is essentially
+a shortened form of :samp:`for item in {subiterable}: yield item`::
 
-   >>> def move_hands():
-   ...     yield 'put hands up'
-   ...     yield 'put hands down'
+   >>> hand_movements = ['put hands up', 'put hands down']
 
    >>> def dance():
-   ...     yield from move_hands()
+   ...     yield from hand_movements
    ...     yield 'turn around'
-   ...     yield from move_hands()
+   ...     yield from hand_movements
 
    >>> for move in dance():
    ...     print(move)
@@ -1284,21 +1283,34 @@ form of :samp:`for item in {iterable}: yield item`::
    put hands up
    put hands down
 
-However, unlike an ordinary loop, ``yield from`` allows subgenerators to
-receive sent and thrown values directly from the calling scope, and
-return a final value to the outer generator.
+However, unlike an ordinary loop, ``yield from`` delegates the entire generator
+protocol: it allows the subiterable to receive sent and thrown values directly
+from the consumer, and return a final value to the delegating function.
 
-TODO: "underlying iterator" is not a good term
-
-When the underlying iterator is complete, the :attr:`~StopIteration.value`
+When the subiterable is complete, the :attr:`~StopIteration.value`
 attribute of the raised :exc:`StopIteration` instance becomes the value of
 the ``yield from`` expression.
 The value can be either set explicitly when raising
 :exc:`StopIteration`, or, when the subiterator is a generator,
-by returning a value from the subgenerator's underlying function.
+by returning a value from the subgenerator's underlying function::
+
+   TODO: find a good example
+
+   >>> def subgen():
+   ...     yield 1
+   ...     yield 2
+   ...     return 3
+
+   >>> def maingen():
+   ...     result = yield from subgen()
+   ...     yield result
+   ...     yield from subgen()
+
+   >>> list(maingen())
+   [1, 2, 3, 1, 2]
 
 Any values passed in with :meth:`~generator.send` and any exceptions passed
-in with :meth:`~generator.throw` are passed to the underlying iterator if it
+in with :meth:`~generator.throw` are passed to the subiterator if it
 has the appropriate methods.
 If this is not the case, then :meth:`~generator.send` will raise
 :exc:`AttributeError` or :exc:`TypeError`, while :meth:`~generator.throw`
@@ -1343,6 +1355,8 @@ For example::
 Due to their side effects on the containing scope, ``yield`` expressions
 are not permitted as part of the implicitly defined scopes used to
 implement comprehensions and generator expressions.
+
+For :keyword:`yield from` expressions, the same restrictions apply.
 
 .. versionchanged:: 3.8
    Yield expressions prohibited in the implicitly nested scopes used to
@@ -1404,8 +1418,36 @@ generator functions::
    >>> generator.close()
    Don't forget to clean up when 'close()' is called.
 
-For examples using ``yield from``, see :ref:`pep-380` in "What's New in
-Python."
+Here is a more complex example that demonstrates ``yield from``, including
+delegation of sent values and receiving the value returned by
+a subgenerator function::
+
+    >>> def accumulate():
+    ...     tally = 0
+    ...     while True:
+    ...         next = yield
+    ...         if next is None:
+    ...             return tally
+    ...         tally += next
+    ...
+    >>> def gather_tallies(tallies):
+    ...     while True:
+    ...         tally = yield from accumulate()
+    ...         tallies.append(tally)
+    ...
+    >>> tallies = []
+    >>> acc = gather_tallies(tallies)
+    >>> next(acc)  # Ensure the accumulator is ready to accept values
+    >>> for i in range(4):
+    ...     acc.send(i)
+    ...
+    >>> acc.send(None)  # Finish the first tally
+    >>> for i in range(5):
+    ...     acc.send(i)
+    ...
+    >>> acc.send(None)  # Finish the second tally
+    >>> tallies
+    [6, 10]
 
 .. _asynchronous-generator-functions:
 
