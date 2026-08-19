@@ -2535,9 +2535,6 @@ codegen_try_except(compiler *c, stmt_ty s)
         excepthandler_ty handler = (excepthandler_ty)asdl_seq_GET(
             s->v.Try.handlers, i);
         location loc = LOC(handler);
-        if (!handler->v.ExceptHandler.type && i < n-1) {
-            return _PyCompile_Error(c, loc, "default 'except:' must be last");
-        }
         NEW_JUMP_TARGET_LABEL(c, next_except);
         except = next_except;
         if (handler->v.ExceptHandler.type) {
