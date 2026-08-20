@@ -118,7 +118,6 @@ def itemclass(kind):
 @itemclass('function')
 @itemclass('macro')
 @itemclass('data')
-@itemclass('const')
 @itemclass('typedef')
 @dataclasses.dataclass
 class ABIItem:
@@ -143,6 +142,12 @@ class FeatureMacro(ABIItem):
 class Struct(ABIItem):
     struct_abi_kind: str
     members: list = None
+
+@itemclass('const')
+@dataclasses.dataclass(kw_only=True)
+class Const(ABIItem):
+    value: str | int = None
+    legacy_constant: str = None
 
 
 def parse_manifest(file):
@@ -245,11 +250,27 @@ def gen_doc_annotations(manifest, args, outfile):
     """
     writer = csv.DictWriter(
         outfile,
-        ['role', 'name', 'added', 'ifdef_note', 'struct_abi_kind'],
+        [
+            'role', 'name', 'added', 'ifdef_note', 'struct_abi_kind',
+            'getconstant_id',
+        ],
         lineterminator='\n')
     writer.writeheader()
     kinds = set(ITEM_KIND_TO_DOC_ROLE)
     for item in manifest.select(kinds, include_abi_only=False):
+        getconstant_id = None
+
+        if item.kind == 'const' and item.legacy_constant:
+            getconstant_id = item.name
+            if item.added != '3.16':
+                raise ValueError(
+                    f"{item.name}: The auto-generated documentation notes "
+                    "assume that IDs for legacy constants were all added in "
+                    "3.16. If that's not the case, adjust stable_abi.py and "
+                    "c_annotations.py."
+                )
+            item = manifest.contents[item.legacy_constant]
+
         if item.ifdef:
             ifdef_note = manifest.contents[item.ifdef].doc
         else:
@@ -269,6 +290,8 @@ def gen_doc_annotations(manifest, args, outfile):
                     'name': f'{item.name}.{member_name}',
                     'added': item.added,
                 })
+        if getconstant_id:
+            row['getconstant_id'] = getconstant_id
         writer.writerows(rows)
 
 @generator("ctypes_test", 'Lib/test/test_stable_abi_ctypes.py')

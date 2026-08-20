@@ -76,6 +76,9 @@ class StableABIEntry:
     # Defines how much of the struct is exposed. Only relevant for structs.
     # Source: [<item_kind>.*.struct_abi_kind] in stable_abi.toml.
     struct_abi_kind: str
+    # The argument for Py_GetConstant() used to get the object.
+    # Source: inverse of [const.*.legacy_constant] in stable_abi.toml.
+    getconstant_id: str
 
 
 def read_refcount_data(refcount_filename: Path) -> dict[str, RefCountEntry]:
@@ -183,8 +186,20 @@ def add_annotations(app: Sphinx, doctree: nodes.document) -> None:
                     f"{ROLE_TO_OBJECT_TYPE[record.role]!r} != {objtype!r}"
                 )
                 raise ValueError(msg)
-            annotation = _stable_abi_annotation(record)
-            node.insert(0, annotation)
+
+            # Skip the note if any ancestor has 'omit-stable-abi-note'
+            # in a 'c_annotations' attribute.
+            ancestor = node
+            while ancestor:
+                if 'omit-stable-abi-note' not in ancestor.get(
+                    'c_annotations', [],
+                ):
+                    break
+                ancestor = node.parent
+            else:
+                annotation = _stable_abi_annotation(record)
+                node.insert(0, annotation)
+                node.setdefault("classes", []).append('ADDED-HERE')
 
         # Unstable API annotation.
         if name.startswith("PyUnstable"):
@@ -201,6 +216,18 @@ def add_annotations(app: Sphinx, doctree: nodes.document) -> None:
             continue
         annotation = _return_value_annotation(entry.result_refs)
         node.insert(0, annotation)
+
+
+def _stable_abi_link():
+    ref_node = addnodes.pending_xref(
+        "Stable ABI",
+        refdomain="std",
+        reftarget="stable",
+        reftype="ref",
+        refexplicit="False",
+    )
+    ref_node += nodes.Text(sphinx_gettext("Stable ABI"))
+    return ref_node
 
 
 def _stable_abi_annotation(
@@ -220,37 +247,33 @@ def _stable_abi_annotation(
     ... all of which can have "since version X.Y" appended.
     """
     stable_added = record.added
+
+    ref_node = _stable_abi_link()
+
     emph_node = nodes.emphasis('', '', classes=["stableabi"])
     if is_corresponding_slot:
-        # See "Type slot annotations" in add_annotations
-        ref_node = addnodes.pending_xref(
+        # See CorrespondingTypeSlot below
+        id_ref_node = addnodes.pending_xref(
             "slot ID",
             refdomain="c",
             reftarget="PyType_Slot",
             reftype="type",
             refexplicit="True",
         )
-        ref_node += nodes.Text(sphinx_gettext("slot ID"))
+        id_ref_node += nodes.Text(sphinx_gettext("slot ID"))
 
         message = sphinx_gettext("The corresponding")
         emph_node += nodes.Text(" " + message + " ")
-        emph_node += ref_node
+        emph_node += id_ref_node
         emph_node += nodes.Text(" ")
         emph_node += nodes.literal(record.name, record.name)
         message = sphinx_gettext("is part of the")
         emph_node += nodes.Text(" " + message + " ")
+        emph_node += ref_node
     else:
         message = sphinx_gettext("Part of the")
         emph_node += nodes.Text(" " + message + " ")
-    ref_node = addnodes.pending_xref(
-        "Stable ABI",
-        refdomain="std",
-        reftarget="stable",
-        reftype="ref",
-        refexplicit="False",
-    )
-    ref_node += nodes.Text(sphinx_gettext("Stable ABI"))
-    emph_node += ref_node
+        emph_node += ref_node
     struct_abi_kind = record.struct_abi_kind
     if struct_abi_kind == "opaque":
         emph_node += nodes.Text(" " + sphinx_gettext("(as an opaque struct)"))
@@ -270,6 +293,53 @@ def _stable_abi_annotation(
             " " + sphinx_gettext("since version %s") % stable_added
         )
     emph_node += nodes.Text(".")
+
+    if record.getconstant_id:
+        # Add a note like:
+        #     When compiling for the Stable ABI 3.16 and above, defined as
+        #     Py_GetConstantBorrowed(Py_CONSTANT_xyz).
+        gcb_ref_node = addnodes.pending_xref(
+            "Py_GetConstantBorrowed",
+            refdomain="c",
+            reftarget="Py_GetConstantBorrowed",
+            reftype="type",
+            refexplicit="True",
+        )
+        gcb_ref_node += nodes.literal(
+            "Py_GetConstantBorrowed",
+            "Py_GetConstantBorrowed",
+        )
+        macro_ref_node = addnodes.pending_xref(
+            record.getconstant_id,
+            refdomain="c",
+            reftarget=record.getconstant_id,
+            reftype="data",
+            refexplicit="True",
+        )
+        macro_ref_node += nodes.literal(
+            record.getconstant_id,
+            record.getconstant_id,
+        )
+
+        message = sphinx_gettext("When compiling for the")
+        emph_node += nodes.Text(" " + message + " ")
+        emph_node += _stable_abi_link()
+        message = sphinx_gettext(" 3.16 and above,")
+        emph_node += nodes.Text(message + " ")
+        if not record.name.endswith('Type'):
+            message = sphinx_gettext("defined as")
+        else:
+            # Type constant definition include a cast and a dereference,
+            # which aren't interesting enough to spell out.
+            message = sphinx_gettext("defined using")
+        emph_node += nodes.Text(" " + message + " ")
+        lit_node = nodes.literal("", "")
+        lit_node += gcb_ref_node
+        lit_node += nodes.Text("(")
+        lit_node += macro_ref_node
+        lit_node += nodes.Text(")")
+        emph_node += lit_node
+        emph_node += nodes.Text(".")
 
     return emph_node
 
@@ -360,7 +430,7 @@ class LimitedAPIList(SphinxDirective):
     has_content = False
     required_arguments = 0
     optional_arguments = 0
-    final_argument_whitespace = True
+    final_argument_whitespace = False
 
     def run(self) -> list[nodes.Node]:
         state = self.env.domaindata["c_annotations"]
@@ -368,9 +438,10 @@ class LimitedAPIList(SphinxDirective):
             f"* :c:{record.role}:`{record.name}`"
             for record in state["stable_abi_data"].values()
         ]
-        node = nodes.paragraph()
+        node = nodes.Element()
+        node.document = self.state.document
         self.state.nested_parse(StringList(content), 0, node)
-        return [node]
+        return node.children
 
 
 class VersionHexCheatsheet(SphinxDirective):
@@ -445,6 +516,32 @@ class CorrespondingTypeSlot(SphinxDirective):
         return [node]
 
 
+class StableABINote(SphinxDirective):
+    has_content = True
+
+    def run(self) -> list[nodes.Node]:
+        node = nodes.Element()  # Anonymous container for parsing
+        node.rawsource = '\n'.join(self.content)
+        self.state.nested_parse(self.content, self.content_offset, node)
+        for child in node.children:
+            child.setdefault("classes", []).append('stableabi')
+        return node.children
+
+
+class OmitStableABINotes(SphinxDirective):
+    has_content = True
+
+    def run(self) -> list[nodes.Node]:
+        node = nodes.Element()  # Anonymous container for parsing
+        node.rawsource = '\n'.join(self.content)
+        self.state.nested_parse(self.content, self.content_offset, node)
+        for child in node.children:
+            child.setdefault("c_annotations", []).append(
+                'omit-stable-abi-notes',
+            )
+        return node.children
+
+
 def init_annotations(app: Sphinx) -> None:
     # Using domaindata is a bit hack-ish,
     # but allows storing state without a global variable or closure.
@@ -467,6 +564,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("limited-api-list", LimitedAPIList)
     app.add_directive("version-hex-cheatsheet", VersionHexCheatsheet)
     app.add_directive("corresponding-type-slot", CorrespondingTypeSlot)
+    app.add_directive("omit-stable-abi-notes", OmitStableABINotes)
+    app.add_directive("stable-abi-note", StableABINote)
     app.connect("builder-inited", init_annotations)
     app.connect("doctree-read", add_annotations)
 

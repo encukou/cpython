@@ -3449,6 +3449,109 @@ static PyObject* constants[] = {
     NULL,  // Py_CONSTANT_EMPTY_STR
     NULL,  // Py_CONSTANT_EMPTY_BYTES
     NULL,  // Py_CONSTANT_EMPTY_TUPLE
+    NULL,  // Py_CONSTANT_Exc_ArithmeticError
+    NULL,  // Py_CONSTANT_Exc_AssertionError
+    NULL,  // Py_CONSTANT_Exc_AttributeError
+    NULL,  // Py_CONSTANT_Exc_BaseException
+    NULL,  // Py_CONSTANT_Exc_BaseExceptionGroup
+    NULL,  // Py_CONSTANT_Exc_BlockingIOError
+    NULL,  // Py_CONSTANT_Exc_BrokenPipeError
+    NULL,  // Py_CONSTANT_Exc_BufferError
+    NULL,  // Py_CONSTANT_Exc_BytesWarning
+    NULL,  // Py_CONSTANT_Exc_ChildProcessError
+    NULL,  // Py_CONSTANT_Exc_ConnectionAbortedError
+    NULL,  // Py_CONSTANT_Exc_ConnectionError
+    NULL,  // Py_CONSTANT_Exc_ConnectionRefusedError
+    NULL,  // Py_CONSTANT_Exc_ConnectionResetError
+    NULL,  // Py_CONSTANT_Exc_DeprecationWarning
+    NULL,  // Py_CONSTANT_Exc_EOFError
+    NULL,  // Py_CONSTANT_Exc_EncodingWarning
+    NULL,  // Py_CONSTANT_Exc_Exception
+    NULL,  // Py_CONSTANT_Exc_FileExistsError
+    NULL,  // Py_CONSTANT_Exc_FileNotFoundError
+    NULL,  // Py_CONSTANT_Exc_FloatingPointError
+    NULL,  // Py_CONSTANT_Exc_FutureWarning
+    NULL,  // Py_CONSTANT_Exc_GeneratorExit
+    NULL,  // Py_CONSTANT_Exc_ImportError
+    NULL,  // Py_CONSTANT_Exc_ImportWarning
+    NULL,  // Py_CONSTANT_Exc_IndentationError
+    NULL,  // Py_CONSTANT_Exc_IndexError
+    NULL,  // Py_CONSTANT_Exc_InterruptedError
+    NULL,  // Py_CONSTANT_Exc_IsADirectoryError
+    NULL,  // Py_CONSTANT_Exc_KeyError
+    NULL,  // Py_CONSTANT_Exc_KeyboardInterrupt
+    NULL,  // Py_CONSTANT_Exc_LookupError
+    NULL,  // Py_CONSTANT_Exc_MemoryError
+    NULL,  // Py_CONSTANT_Exc_ModuleNotFoundError
+    NULL,  // Py_CONSTANT_Exc_NameError
+    NULL,  // Py_CONSTANT_Exc_NotADirectoryError
+    NULL,  // Py_CONSTANT_Exc_NotImplementedError
+    NULL,  // Py_CONSTANT_Exc_OSError
+    NULL,  // Py_CONSTANT_Exc_OverflowError
+    NULL,  // Py_CONSTANT_Exc_PendingDeprecationWarning
+    NULL,  // Py_CONSTANT_Exc_PermissionError
+    NULL,  // Py_CONSTANT_Exc_ProcessLookupError
+    NULL,  // Py_CONSTANT_Exc_RecursionError
+    NULL,  // Py_CONSTANT_Exc_ReferenceError
+    NULL,  // Py_CONSTANT_Exc_ResourceWarning
+    NULL,  // Py_CONSTANT_Exc_RuntimeError
+    NULL,  // Py_CONSTANT_Exc_RuntimeWarning
+    NULL,  // Py_CONSTANT_Exc_StopAsyncIteration
+    NULL,  // Py_CONSTANT_Exc_StopIteration
+    NULL,  // Py_CONSTANT_Exc_SyntaxError
+    NULL,  // Py_CONSTANT_Exc_SyntaxWarning
+    NULL,  // Py_CONSTANT_Exc_SystemError
+    NULL,  // Py_CONSTANT_Exc_SystemExit
+    NULL,  // Py_CONSTANT_Exc_TabError
+    NULL,  // Py_CONSTANT_Exc_TimeoutError
+    NULL,  // Py_CONSTANT_Exc_TypeError
+    NULL,  // Py_CONSTANT_Exc_UnboundLocalError
+    NULL,  // Py_CONSTANT_Exc_UnicodeDecodeError
+    NULL,  // Py_CONSTANT_Exc_UnicodeEncodeError
+    NULL,  // Py_CONSTANT_Exc_UnicodeError
+    NULL,  // Py_CONSTANT_Exc_UnicodeTranslateError
+    NULL,  // Py_CONSTANT_Exc_UnicodeWarning
+    NULL,  // Py_CONSTANT_Exc_UserWarning
+    NULL,  // Py_CONSTANT_Exc_ValueError
+    NULL,  // Py_CONSTANT_Exc_Warning
+    NULL,  // Py_CONSTANT_Exc_ZeroDivisionError
+    (PyObject*)(&PyBaseObject_Type),
+    (PyObject*)(&PyBool_Type),
+    (PyObject*)(&PyByteArray_Type),
+    (PyObject*)(&PyBytes_Type),
+    (PyObject*)(&PyCFunction_Type),
+    (PyObject*)(&PyCapsule_Type),
+    (PyObject*)(&PyClassMethodDescr_Type),
+    (PyObject*)(&PyComplex_Type),
+    (PyObject*)(&PyDictProxy_Type),
+    (PyObject*)(&PyDict_Type),
+    (PyObject*)(&PyEllipsis_Type),
+    (PyObject*)(&PyEnum_Type),
+    (PyObject*)(&PyFilter_Type),
+    (PyObject*)(&PyFloat_Type),
+    (PyObject*)(&PyFrozenSet_Type),
+    (PyObject*)(&PyGetSetDescr_Type),
+    (PyObject*)(&PyList_Type),
+    (PyObject*)(&PyLong_Type),
+    (PyObject*)(&PyMap_Type),
+    (PyObject*)(&PyMemberDescr_Type),
+    (PyObject*)(&PyMemoryView_Type),
+    (PyObject*)(&PyMethodDescr_Type),
+    (PyObject*)(&PyModule_Type),
+    (PyObject*)(&PyProperty_Type),
+    (PyObject*)(&PyRange_Type),
+    (PyObject*)(&PyReversed_Type),
+    (PyObject*)(&PySet_Type),
+    (PyObject*)(&PySlice_Type),
+    (PyObject*)(&PySuper_Type),
+    (PyObject*)(&PyTraceBack_Type),
+    (PyObject*)(&PyTuple_Type),
+    (PyObject*)(&PyType_Type),
+    (PyObject*)(&PyUnicode_Type),
+    (PyObject*)(&PyWrapperDescr_Type),
+    (PyObject*)(&PyZip_Type),
+    (PyObject*)(&Py_GenericAliasType),
+    (PyObject*)(&PyMethod_Type),
 };
 
 void
@@ -3459,6 +3562,72 @@ _Py_GetConstant_Init(void)
     constants[Py_CONSTANT_EMPTY_STR] = PyUnicode_New(0, 0);
     constants[Py_CONSTANT_EMPTY_BYTES] = PyBytes_FromStringAndSize(NULL, 0);
     constants[Py_CONSTANT_EMPTY_TUPLE] = PyTuple_New(0);
+    constants[Py_CONSTANT_Exc_ArithmeticError] = PyExc_ArithmeticError;
+    constants[Py_CONSTANT_Exc_AssertionError] = PyExc_AssertionError;
+    constants[Py_CONSTANT_Exc_AttributeError] = PyExc_AttributeError;
+    constants[Py_CONSTANT_Exc_BaseException] = PyExc_BaseException;
+    constants[Py_CONSTANT_Exc_BaseExceptionGroup] = PyExc_BaseExceptionGroup;
+    constants[Py_CONSTANT_Exc_BlockingIOError] = PyExc_BlockingIOError;
+    constants[Py_CONSTANT_Exc_BrokenPipeError] = PyExc_BrokenPipeError;
+    constants[Py_CONSTANT_Exc_BufferError] = PyExc_BufferError;
+    constants[Py_CONSTANT_Exc_BytesWarning] = PyExc_BytesWarning;
+    constants[Py_CONSTANT_Exc_ChildProcessError] = PyExc_ChildProcessError;
+    constants[Py_CONSTANT_Exc_ConnectionAbortedError] = PyExc_ConnectionAbortedError;
+    constants[Py_CONSTANT_Exc_ConnectionError] = PyExc_ConnectionError;
+    constants[Py_CONSTANT_Exc_ConnectionRefusedError] = PyExc_ConnectionRefusedError;
+    constants[Py_CONSTANT_Exc_ConnectionResetError] = PyExc_ConnectionResetError;
+    constants[Py_CONSTANT_Exc_DeprecationWarning] = PyExc_DeprecationWarning;
+    constants[Py_CONSTANT_Exc_EOFError] = PyExc_EOFError;
+    constants[Py_CONSTANT_Exc_EncodingWarning] = PyExc_EncodingWarning;
+    constants[Py_CONSTANT_Exc_Exception] = PyExc_Exception;
+    constants[Py_CONSTANT_Exc_FileExistsError] = PyExc_FileExistsError;
+    constants[Py_CONSTANT_Exc_FileNotFoundError] = PyExc_FileNotFoundError;
+    constants[Py_CONSTANT_Exc_FloatingPointError] = PyExc_FloatingPointError;
+    constants[Py_CONSTANT_Exc_FutureWarning] = PyExc_FutureWarning;
+    constants[Py_CONSTANT_Exc_GeneratorExit] = PyExc_GeneratorExit;
+    constants[Py_CONSTANT_Exc_ImportError] = PyExc_ImportError;
+    constants[Py_CONSTANT_Exc_ImportWarning] = PyExc_ImportWarning;
+    constants[Py_CONSTANT_Exc_IndentationError] = PyExc_IndentationError;
+    constants[Py_CONSTANT_Exc_IndexError] = PyExc_IndexError;
+    constants[Py_CONSTANT_Exc_InterruptedError] = PyExc_InterruptedError;
+    constants[Py_CONSTANT_Exc_IsADirectoryError] = PyExc_IsADirectoryError;
+    constants[Py_CONSTANT_Exc_KeyError] = PyExc_KeyError;
+    constants[Py_CONSTANT_Exc_KeyboardInterrupt] = PyExc_KeyboardInterrupt;
+    constants[Py_CONSTANT_Exc_LookupError] = PyExc_LookupError;
+    constants[Py_CONSTANT_Exc_MemoryError] = PyExc_MemoryError;
+    constants[Py_CONSTANT_Exc_ModuleNotFoundError] = PyExc_ModuleNotFoundError;
+    constants[Py_CONSTANT_Exc_NameError] = PyExc_NameError;
+    constants[Py_CONSTANT_Exc_NotADirectoryError] = PyExc_NotADirectoryError;
+    constants[Py_CONSTANT_Exc_NotImplementedError] = PyExc_NotImplementedError;
+    constants[Py_CONSTANT_Exc_OSError] = PyExc_OSError;
+    constants[Py_CONSTANT_Exc_OverflowError] = PyExc_OverflowError;
+    constants[Py_CONSTANT_Exc_PendingDeprecationWarning] = PyExc_PendingDeprecationWarning;
+    constants[Py_CONSTANT_Exc_PermissionError] = PyExc_PermissionError;
+    constants[Py_CONSTANT_Exc_ProcessLookupError] = PyExc_ProcessLookupError;
+    constants[Py_CONSTANT_Exc_RecursionError] = PyExc_RecursionError;
+    constants[Py_CONSTANT_Exc_ReferenceError] = PyExc_ReferenceError;
+    constants[Py_CONSTANT_Exc_ResourceWarning] = PyExc_ResourceWarning;
+    constants[Py_CONSTANT_Exc_RuntimeError] = PyExc_RuntimeError;
+    constants[Py_CONSTANT_Exc_RuntimeWarning] = PyExc_RuntimeWarning;
+    constants[Py_CONSTANT_Exc_StopAsyncIteration] = PyExc_StopAsyncIteration;
+    constants[Py_CONSTANT_Exc_StopIteration] = PyExc_StopIteration;
+    constants[Py_CONSTANT_Exc_SyntaxError] = PyExc_SyntaxError;
+    constants[Py_CONSTANT_Exc_SyntaxWarning] = PyExc_SyntaxWarning;
+    constants[Py_CONSTANT_Exc_SystemError] = PyExc_SystemError;
+    constants[Py_CONSTANT_Exc_SystemExit] = PyExc_SystemExit;
+    constants[Py_CONSTANT_Exc_TabError] = PyExc_TabError;
+    constants[Py_CONSTANT_Exc_TimeoutError] = PyExc_TimeoutError;
+    constants[Py_CONSTANT_Exc_TypeError] = PyExc_TypeError;
+    constants[Py_CONSTANT_Exc_UnboundLocalError] = PyExc_UnboundLocalError;
+    constants[Py_CONSTANT_Exc_UnicodeDecodeError] = PyExc_UnicodeDecodeError;
+    constants[Py_CONSTANT_Exc_UnicodeEncodeError] = PyExc_UnicodeEncodeError;
+    constants[Py_CONSTANT_Exc_UnicodeError] = PyExc_UnicodeError;
+    constants[Py_CONSTANT_Exc_UnicodeTranslateError] = PyExc_UnicodeTranslateError;
+    constants[Py_CONSTANT_Exc_UnicodeWarning] = PyExc_UnicodeWarning;
+    constants[Py_CONSTANT_Exc_UserWarning] = PyExc_UserWarning;
+    constants[Py_CONSTANT_Exc_ValueError] = PyExc_ValueError;
+    constants[Py_CONSTANT_Exc_Warning] = PyExc_Warning;
+    constants[Py_CONSTANT_Exc_ZeroDivisionError] = PyExc_ZeroDivisionError;
 #ifndef NDEBUG
     for (size_t i=0; i < Py_ARRAY_LENGTH(constants); i++) {
         assert(constants[i] != NULL);

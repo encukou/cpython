@@ -346,6 +346,7 @@
     <ClInclude Include="..\Include\internal\pycore_weakref.h" />
     <ClInclude Include="..\Include\intrcheck.h" />
     <ClInclude Include="..\Include\iterobject.h" />
+    <ClInclude Include="..\Include\limited_api_redefinitions.h" />
     <ClInclude Include="..\Include\listobject.h" />
     <ClInclude Include="..\Include\longobject.h" />
     <ClInclude Include="..\Include\marshal.h" />

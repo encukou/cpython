@@ -12,28 +12,60 @@ Object Protocol
 
    Set an exception and return ``NULL`` if *constant_id* is invalid.
 
-   *constant_id* must be one of these constant identifiers:
+   *constant_id* can be one of these constant identifiers:
 
    .. c:namespace:: NULL
 
-   ========================================  =====  =========================
-   Constant Identifier                       Value  Returned object
-   ========================================  =====  =========================
-   .. c:macro:: Py_CONSTANT_NONE             ``0``  :py:data:`None`
-   .. c:macro:: Py_CONSTANT_FALSE            ``1``  :py:data:`False`
-   .. c:macro:: Py_CONSTANT_TRUE             ``2``  :py:data:`True`
-   .. c:macro:: Py_CONSTANT_ELLIPSIS         ``3``  :py:data:`Ellipsis`
-   .. c:macro:: Py_CONSTANT_NOT_IMPLEMENTED  ``4``  :py:data:`NotImplemented`
-   .. c:macro:: Py_CONSTANT_ZERO             ``5``  ``0``
-   .. c:macro:: Py_CONSTANT_ONE              ``6``  ``1``
-   .. c:macro:: Py_CONSTANT_EMPTY_STR        ``7``  ``''``
-   .. c:macro:: Py_CONSTANT_EMPTY_BYTES      ``8``  ``b''``
-   .. c:macro:: Py_CONSTANT_EMPTY_TUPLE      ``9``  ``()``
-   ========================================  =====  =========================
+   .. list-table::
+      :header-rows: 1
 
-   Numeric values are only given for projects which cannot use the constant
-   identifiers.
+      - * Constant Identifier
+        * Added in
+        * Returned object
+      - * :c:macro:`Py_CONSTANT_NONE`
+        * 3.13
+        * :py:data:`None`
+      - * :c:macro:`Py_CONSTANT_FALSE`
+        * 3.13
+        * :py:data:`False`
+      - * :c:macro:`Py_CONSTANT_TRUE`
+        * 3.13
+        * :py:data:`True`
+      - * :c:macro:`Py_CONSTANT_ELLIPSIS`
+        * 3.13
+        * :py:data:`Ellipsis`
+      - * :c:macro:`Py_CONSTANT_NOT_IMPLEMENTED`
+        * 3.13
+        * :py:data:`NotImplemented`
+      - * :c:macro:`Py_CONSTANT_ZERO`
+        * 3.13
+        * ``0``
+      - * :c:macro:`Py_CONSTANT_ONE`
+        * 3.13
+        * ``1``
+      - * :c:macro:`Py_CONSTANT_EMPTY_STR`
+        * 3.13
+        * ``''``
+      - * :c:macro:`Py_CONSTANT_EMPTY_BYTES`
+        * 3.13
+        * ``b''``
+      - * :c:macro:`Py_CONSTANT_EMPTY_TUPLE`
+        * 3.13
+        * ``()``
+      - * :samp:`Py_CONSTANT_Exc_{name}`
+        *
+        * (see below)
+      - * :samp:`Py_CONSTANT_{name}_Type`
+        *
+        * (see below)
 
+   Additional identifiers are defined for the following, with a complete list
+   available on :ref:`a separate page <py_getconstant-full-list>`.:
+
+   * builtin exceptions, such as
+     :c:macro:`Py_CONSTANT_Exc_ValueError` for :py:exc:`ValueError`, and
+   * other builtin types, such as :c:macro:`Py_CONSTANT_Dict_Type`
+     for the :py:type:`dict` class.
 
    .. versionadded:: 3.13
 

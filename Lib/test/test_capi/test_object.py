@@ -31,7 +31,16 @@ class Constant(enum.IntEnum):
     Py_CONSTANT_EMPTY_BYTES = 8
     Py_CONSTANT_EMPTY_TUPLE = 9
 
-    INVALID_CONSTANT = Py_CONSTANT_EMPTY_TUPLE + 1
+    # Lots of exceptions & other types were added in 3.16;
+    # we check them en masse.
+    # These are arguments for range(); 'stop' is exclusive.
+    mass_exc_start = 10
+    mass_exc_stop = 76
+    mass_type_start = mass_exc_stop
+    mass_type_stop = 113
+    # (When adding new ones, use individual entries again.)
+
+    INVALID_CONSTANT = mass_type_stop
 
 
 class GetConstantTest(unittest.TestCase):
@@ -54,8 +63,26 @@ class GetConstantTest(unittest.TestCase):
                 self.assertEqual(type(obj), constant_type, obj)
                 self.assertEqual(obj, value)
 
+        _seen=set()
+        def check_unique(constant):
+            self.assertNotIn(constant, _seen)
+            _seen.add(constant)
+
+        for n in range(Constant.mass_exc_start, Constant.mass_exc_stop):
+            with self.subTest(n=n):
+                constant = get_constant(n)
+                self.assertIsSubclass(constant, BaseException)
+                check_unique(constant)
+        for n in range(Constant.mass_type_start, Constant.mass_type_stop):
+            with self.subTest(n=n):
+                constant = get_constant(n)
+                self.assertIsInstance(constant, type)
+                check_unique(constant)
+
         with self.assertRaises(SystemError):
-            get_constant(Constant.INVALID_CONSTANT)
+            get_constant(-1)
+        with self.assertRaises(SystemError):
+            print(get_constant(Constant.INVALID_CONSTANT))
 
     def test_get_constant(self):
         self.check_get_constant(_testlimitedcapi.get_constant)

@@ -73,6 +73,8 @@ PyAPI_FUNC(const char *) PyExceptionClass_Name(PyObject *);
 
 /* Predefined exceptions */
 
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 < _Py_PACK_VERSION(3, 16)
+
 PyAPI_DATA(PyObject *) PyExc_BaseException;
 PyAPI_DATA(PyObject *) PyExc_Exception;
 PyAPI_DATA(PyObject *) PyExc_BaseExceptionGroup;
@@ -141,7 +143,6 @@ PyAPI_DATA(PyObject *) PyExc_ProcessLookupError;
 PyAPI_DATA(PyObject *) PyExc_TimeoutError;
 #endif
 
-
 /* Compatibility aliases */
 PyAPI_DATA(PyObject *) PyExc_EnvironmentError;
 PyAPI_DATA(PyObject *) PyExc_IOError;
@@ -163,6 +164,7 @@ PyAPI_DATA(PyObject *) PyExc_BytesWarning;
 PyAPI_DATA(PyObject *) PyExc_EncodingWarning;
 PyAPI_DATA(PyObject *) PyExc_ResourceWarning;
 
+#endif  // limited API < 3.16
 
 /* Convenience functions */
 
