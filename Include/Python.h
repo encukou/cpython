@@ -145,6 +145,7 @@ __pragma(warning(disable: 4201))
 #include "fileutils.h"
 #include "cpython/pyfpe.h"
 #include "cpython/tracemalloc.h"
+#include "limited_api_redefinitions.h"
 
 #ifdef _MSC_VER
 __pragma(warning(pop))  // warning(disable: 4201)

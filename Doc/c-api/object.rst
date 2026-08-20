@@ -12,7 +12,7 @@ Object Protocol
 
    Set an exception and return ``NULL`` if *constant_id* is invalid.
 
-   *constant_id* must be one of these constant identifiers:
+   *constant_id* can be one of these constant identifiers:
 
    .. c:namespace:: NULL
 
@@ -30,6 +30,12 @@ Object Protocol
    .. c:macro:: Py_CONSTANT_EMPTY_BYTES      ``8``  ``b''``
    .. c:macro:: Py_CONSTANT_EMPTY_TUPLE      ``9``  ``()``
    ========================================  =====  =========================
+
+   Additional identifiers are defined for exceptions, such as
+   :c:macro:`Py_CONSTANT_EXC_VALUEERROR` for the :py:exc:`ValueError` exception
+   class, and other types, such as :c:macro:`Py_CONSTANT_TYPE_DICT` for the
+   :py:type:`dict` class object.
+   A complete list is currently available at :ref:`contents-of-limited-api`.
 
    Numeric values are only given for projects which cannot use the constant
    identifiers.

@@ -587,22 +587,6 @@ given type object has a specified feature.
 #  endif
 #endif
 
-#define Py_CONSTANT_NONE 0
-#define Py_CONSTANT_FALSE 1
-#define Py_CONSTANT_TRUE 2
-#define Py_CONSTANT_ELLIPSIS 3
-#define Py_CONSTANT_NOT_IMPLEMENTED 4
-#define Py_CONSTANT_ZERO 5
-#define Py_CONSTANT_ONE 6
-#define Py_CONSTANT_EMPTY_STR 7
-#define Py_CONSTANT_EMPTY_BYTES 8
-#define Py_CONSTANT_EMPTY_TUPLE 9
-
-#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
-PyAPI_FUNC(PyObject*) Py_GetConstant(unsigned int constant_id);
-PyAPI_FUNC(PyObject*) Py_GetConstantBorrowed(unsigned int constant_id);
-#endif
-
 
 /*
 _Py_NoneStruct is an object of undefined type which can be used in contexts
@@ -796,6 +780,129 @@ PyAPI_FUNC(int) PyType_GetBaseByToken_DuringGC(PyTypeObject *,
 PyAPI_FUNC(PyObject *) PyType_GetModule_DuringGC(PyTypeObject *);
 PyAPI_FUNC(PyObject *) PyType_GetModuleByToken_DuringGC(PyTypeObject *type,
                                                         const void *token);
+#endif
+
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x030d0000
+PyAPI_FUNC(PyObject*) Py_GetConstant(unsigned int constant_id);
+PyAPI_FUNC(PyObject*) Py_GetConstantBorrowed(unsigned int constant_id);
+#endif
+
+#define Py_CONSTANT_NONE 0
+#define Py_CONSTANT_FALSE 1
+#define Py_CONSTANT_TRUE 2
+#define Py_CONSTANT_ELLIPSIS 3
+#define Py_CONSTANT_NOT_IMPLEMENTED 4
+#define Py_CONSTANT_ZERO 5
+#define Py_CONSTANT_ONE 6
+#define Py_CONSTANT_EMPTY_STR 7
+#define Py_CONSTANT_EMPTY_BYTES 8
+#define Py_CONSTANT_EMPTY_TUPLE 9
+
+#if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= _Py_PACK_VERSION(3, 16)
+#define Py_CONSTANT_Exc_ArithmeticError 10
+#define Py_CONSTANT_Exc_AssertionError 11
+#define Py_CONSTANT_Exc_AttributeError 12
+#define Py_CONSTANT_Exc_BaseException 13
+#define Py_CONSTANT_Exc_BaseExceptionGroup 14
+#define Py_CONSTANT_Exc_BlockingIOError 15
+#define Py_CONSTANT_Exc_BrokenPipeError 16
+#define Py_CONSTANT_Exc_BufferError 17
+#define Py_CONSTANT_Exc_BytesWarning 18
+#define Py_CONSTANT_Exc_ChildProcessError 19
+#define Py_CONSTANT_Exc_ConnectionAbortedError 20
+#define Py_CONSTANT_Exc_ConnectionError 21
+#define Py_CONSTANT_Exc_ConnectionRefusedError 22
+#define Py_CONSTANT_Exc_ConnectionResetError 23
+#define Py_CONSTANT_Exc_DeprecationWarning 24
+#define Py_CONSTANT_Exc_EOFError 25
+#define Py_CONSTANT_Exc_EncodingWarning 26
+#define Py_CONSTANT_Exc_Exception 27
+#define Py_CONSTANT_Exc_FileExistsError 28
+#define Py_CONSTANT_Exc_FileNotFoundError 29
+#define Py_CONSTANT_Exc_FloatingPointError 30
+#define Py_CONSTANT_Exc_FutureWarning 31
+#define Py_CONSTANT_Exc_GeneratorExit 32
+#define Py_CONSTANT_Exc_ImportError 33
+#define Py_CONSTANT_Exc_ImportWarning 34
+#define Py_CONSTANT_Exc_IndentationError 35
+#define Py_CONSTANT_Exc_IndexError 36
+#define Py_CONSTANT_Exc_InterruptedError 37
+#define Py_CONSTANT_Exc_IsADirectoryError 38
+#define Py_CONSTANT_Exc_KeyError 39
+#define Py_CONSTANT_Exc_KeyboardInterrupt 40
+#define Py_CONSTANT_Exc_LookupError 41
+#define Py_CONSTANT_Exc_MemoryError 42
+#define Py_CONSTANT_Exc_ModuleNotFoundError 43
+#define Py_CONSTANT_Exc_NameError 44
+#define Py_CONSTANT_Exc_NotADirectoryError 45
+#define Py_CONSTANT_Exc_NotImplementedError 46
+#define Py_CONSTANT_Exc_OSError 47
+#define Py_CONSTANT_Exc_OverflowError 48
+#define Py_CONSTANT_Exc_PendingDeprecationWarning 49
+#define Py_CONSTANT_Exc_PermissionError 50
+#define Py_CONSTANT_Exc_ProcessLookupError 51
+#define Py_CONSTANT_Exc_RecursionError 52
+#define Py_CONSTANT_Exc_ReferenceError 53
+#define Py_CONSTANT_Exc_ResourceWarning 54
+#define Py_CONSTANT_Exc_RuntimeError 55
+#define Py_CONSTANT_Exc_RuntimeWarning 56
+#define Py_CONSTANT_Exc_StopAsyncIteration 57
+#define Py_CONSTANT_Exc_StopIteration 58
+#define Py_CONSTANT_Exc_SyntaxError 59
+#define Py_CONSTANT_Exc_SyntaxWarning 60
+#define Py_CONSTANT_Exc_SystemError 61
+#define Py_CONSTANT_Exc_SystemExit 62
+#define Py_CONSTANT_Exc_TabError 63
+#define Py_CONSTANT_Exc_TimeoutError 64
+#define Py_CONSTANT_Exc_TypeError 65
+#define Py_CONSTANT_Exc_UnboundLocalError 66
+#define Py_CONSTANT_Exc_UnicodeDecodeError 67
+#define Py_CONSTANT_Exc_UnicodeEncodeError 68
+#define Py_CONSTANT_Exc_UnicodeError 69
+#define Py_CONSTANT_Exc_UnicodeTranslateError 70
+#define Py_CONSTANT_Exc_UnicodeWarning 71
+#define Py_CONSTANT_Exc_UserWarning 72
+#define Py_CONSTANT_Exc_ValueError 73
+#define Py_CONSTANT_Exc_Warning 74
+#define Py_CONSTANT_Exc_ZeroDivisionError 75
+#define Py_CONSTANT_BaseObject_Type 76
+#define Py_CONSTANT_Bool_Type 77
+#define Py_CONSTANT_ByteArray_Type 78
+#define Py_CONSTANT_Bytes_Type 79
+#define Py_CONSTANT_CFunction_Type 80
+#define Py_CONSTANT_Capsule_Type 81
+#define Py_CONSTANT_ClassMethodDescr_Type 82
+#define Py_CONSTANT_Complex_Type 83
+#define Py_CONSTANT_DictProxy_Type 84
+#define Py_CONSTANT_Dict_Type 85
+#define Py_CONSTANT_Ellipsis_Type 86
+#define Py_CONSTANT_Enum_Type 87
+#define Py_CONSTANT_Filter_Type 88
+#define Py_CONSTANT_Float_Type 89
+#define Py_CONSTANT_FrozenSet_Type 90
+#define Py_CONSTANT_GetSetDescr_Type 91
+#define Py_CONSTANT_List_Type 92
+#define Py_CONSTANT_Long_Type 93
+#define Py_CONSTANT_Map_Type 94
+#define Py_CONSTANT_MemberDescr_Type 95
+#define Py_CONSTANT_MemoryView_Type 96
+#define Py_CONSTANT_MethodDescr_Type 97
+#define Py_CONSTANT_ModuleDef_Type 98
+#define Py_CONSTANT_Module_Type 99
+#define Py_CONSTANT_Property_Type 100
+#define Py_CONSTANT_Range_Type 101
+#define Py_CONSTANT_Reversed_Type 102
+#define Py_CONSTANT_Set_Type 103
+#define Py_CONSTANT_Slice_Type 104
+#define Py_CONSTANT_Super_Type 105
+#define Py_CONSTANT_TraceBack_Type 106
+#define Py_CONSTANT_Tuple_Type 107
+#define Py_CONSTANT_Type_Type 108
+#define Py_CONSTANT_Unicode_Type 109
+#define Py_CONSTANT_WrapperDescr_Type 110
+#define Py_CONSTANT_Zip_Type 111
+#define Py_CONSTANT_GenericAliasType 112
+#define Py_CONSTANT_Method_Type 113
 #endif
 
 #ifdef __cplusplus

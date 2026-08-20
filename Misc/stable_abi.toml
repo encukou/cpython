@@ -64,6 +64,9 @@
 #   on all platforms.)
 # - abi3t_opaque: In abi3t, this struct is opaque (as if `struct_abi_kind`
 #   was 'opaque' and `members` was missing).
+# - value: For `const`, the defined value. Not always set.
+# - legacy_constant: For constant IDs used with Py_GetConstant to retrieve
+#   an abi-only "data" entry: C name of the associated constant.
 
 # Removing items from this file is generally not allowed, and additions should
 # be considered with that in mind. See the devguide for exact rules:
