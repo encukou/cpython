@@ -417,6 +417,7 @@
     added = '3.2'
 [data.PyBaseObject_Type]
     added = '3.2'
+    abi_only = true
 [function.PyBool_FromLong]
     added = '3.2'
 [data.PyBool_Type]

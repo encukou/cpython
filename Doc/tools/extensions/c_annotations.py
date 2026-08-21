@@ -76,6 +76,8 @@ class StableABIEntry:
     # Defines how much of the struct is exposed. Only relevant for structs.
     # Source: [<item_kind>.*.struct_abi_kind] in stable_abi.toml.
     struct_abi_kind: str
+    # Source: [data.[const.*.got_constant].added] in stable_abi.toml.
+    constant_added: str
 
 
 def read_refcount_data(refcount_filename: Path) -> dict[str, RefCountEntry]:
@@ -203,9 +205,22 @@ def add_annotations(app: Sphinx, doctree: nodes.document) -> None:
         node.insert(0, annotation)
 
 
+def _stable_abi_link():
+    ref_node = addnodes.pending_xref(
+        "Stable ABI",
+        refdomain="std",
+        reftarget="stable",
+        reftype="ref",
+        refexplicit="False",
+    )
+    ref_node += nodes.Text(sphinx_gettext("Stable ABI"))
+    return ref_node
+
+
 def _stable_abi_annotation(
     record: StableABIEntry,
     is_corresponding_slot: bool = False,
+    until: str = None,
 ) -> nodes.emphasis:
     """Create the Stable ABI annotation.
 
@@ -220,37 +235,35 @@ def _stable_abi_annotation(
     ... all of which can have "since version X.Y" appended.
     """
     stable_added = record.added
+    if record.constant_added:
+        stable_added = record.constant_added
+
+    ref_node = _stable_abi_link()
+
     emph_node = nodes.emphasis('', '', classes=["stableabi"])
     if is_corresponding_slot:
-        # See "Type slot annotations" in add_annotations
-        ref_node = addnodes.pending_xref(
+        # See CorrespondingTypeSlot below
+        id_ref_node = addnodes.pending_xref(
             "slot ID",
             refdomain="c",
             reftarget="PyType_Slot",
             reftype="type",
             refexplicit="True",
         )
-        ref_node += nodes.Text(sphinx_gettext("slot ID"))
+        id_ref_node += nodes.Text(sphinx_gettext("slot ID"))
 
         message = sphinx_gettext("The corresponding")
         emph_node += nodes.Text(" " + message + " ")
-        emph_node += ref_node
+        emph_node += id_ref_node
         emph_node += nodes.Text(" ")
         emph_node += nodes.literal(record.name, record.name)
         message = sphinx_gettext("is part of the")
         emph_node += nodes.Text(" " + message + " ")
+        emph_node += ref_node
     else:
         message = sphinx_gettext("Part of the")
         emph_node += nodes.Text(" " + message + " ")
-    ref_node = addnodes.pending_xref(
-        "Stable ABI",
-        refdomain="std",
-        reftarget="stable",
-        reftype="ref",
-        refexplicit="False",
-    )
-    ref_node += nodes.Text(sphinx_gettext("Stable ABI"))
-    emph_node += ref_node
+        emph_node += ref_node
     struct_abi_kind = record.struct_abi_kind
     if struct_abi_kind == "opaque":
         emph_node += nodes.Text(" " + sphinx_gettext("(as an opaque struct)"))
@@ -264,11 +277,20 @@ def _stable_abi_annotation(
         emph_node += nodes.Text(f" {record.ifdef_note}")
     if stable_added == "3.2":
         # Stable ABI was introduced in 3.2.
-        pass
+        if until:
+            emph_node += nodes.Text(
+                " " + sphinx_gettext("until version %s") % until
+            )
+
     else:
-        emph_node += nodes.Text(
-            " " + sphinx_gettext("since version %s") % stable_added
-        )
+        if until:
+            emph_node += nodes.Text(
+                " " + sphinx_gettext("in versions %s--%s") % (stable_added, until)
+            )
+        else:
+            emph_node += nodes.Text(
+                " " + sphinx_gettext("since version %s") % stable_added
+            )
     emph_node += nodes.Text(".")
 
     return emph_node
@@ -445,6 +467,78 @@ class CorrespondingTypeSlot(SphinxDirective):
         return [node]
 
 
+class CorrespondingGetConstantID(SphinxDirective):
+    """ID for Py_GetConstant()
+
+    Docs for these are sometimes with the corresponding constant, for example,
+    "Py_CONSTANT_Bool_Type" is documented under "PyBool_Type", with
+    only a stable ABI note mentioning "Py_CONSTANT_Bool_Type" (and linking to
+    docs on how this works).
+
+    These can also documented as normal macros.
+    """
+
+    has_content = False
+
+    required_arguments = 1
+    optional_arguments = 0
+
+    def run(self) -> list[nodes.Node]:
+        name = self.arguments[0]
+        state = self.env.domaindata["c_annotations"]
+        stable_abi_data = state["stable_abi_data"]
+
+        try:
+            record = stable_abi_data[name]
+        except LookupError as err:
+            raise LookupError(
+                f"{name} is not part of stable ABI. "
+                + "Document it as `c:macro::` rather than "
+                + "`corresponding-getconstant-id::`."
+            ) from err
+
+        annotation = _stable_abi_annotation(record, until="3.15")
+
+        # See CorrespondingGetConstantID below
+        id_ref_node = addnodes.pending_xref(
+            "slot ID",
+            refdomain="c",
+            reftarget="Py_GetConstantBorrowed",
+            reftype="type",
+            refexplicit="True",
+        )
+        id_ref_node += nodes.literal("Py_GetConstantBorrowed", "Py_GetConstantBorrowed")
+
+        message = sphinx_gettext("When compiling for the")
+        annotation += nodes.Text(" " + message + " ")
+        annotation += _stable_abi_link()
+        message = sphinx_gettext(" 3.16 and above,")
+        annotation += nodes.Text(message + " ")
+        if name.endswith('Type'):
+            message = sphinx_gettext("defined using")
+        else:
+            message = sphinx_gettext("defined as")
+        annotation += nodes.Text(" " + message + " ")
+        lit_node = nodes.literal("", "")
+        lit_node += id_ref_node
+        lit_node += nodes.Text("(")
+        lit_node += nodes.literal(record.name, record.name)
+        lit_node += nodes.Text(")")
+        annotation += lit_node
+        annotation += nodes.Text(".")
+
+        node = nodes.paragraph()
+        content = [
+            ".. c:namespace:: NULL",
+            "",
+            ".. c:macro:: " + name,
+            "   :no-typesetting:",
+        ]
+        self.state.nested_parse(StringList(content), 0, node)
+        node.insert(0, annotation)
+        return [node]
+
+
 def init_annotations(app: Sphinx) -> None:
     # Using domaindata is a bit hack-ish,
     # but allows storing state without a global variable or closure.
@@ -467,6 +561,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("limited-api-list", LimitedAPIList)
     app.add_directive("version-hex-cheatsheet", VersionHexCheatsheet)
     app.add_directive("corresponding-type-slot", CorrespondingTypeSlot)
+    app.add_directive("corresponding-getconstant-id", CorrespondingGetConstantID)
     app.connect("builder-inited", init_annotations)
     app.connect("doctree-read", add_annotations)
 

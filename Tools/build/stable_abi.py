@@ -118,7 +118,6 @@ def itemclass(kind):
 @itemclass('function')
 @itemclass('macro')
 @itemclass('data')
-@itemclass('const')
 @itemclass('typedef')
 @dataclasses.dataclass
 class ABIItem:
@@ -143,6 +142,12 @@ class FeatureMacro(ABIItem):
 class Struct(ABIItem):
     struct_abi_kind: str
     members: list = None
+
+@itemclass('const')
+@dataclasses.dataclass(kw_only=True)
+class Const(ABIItem):
+    value: str | int = None
+    got_constant: str = None
 
 
 def parse_manifest(file):
@@ -245,7 +250,10 @@ def gen_doc_annotations(manifest, args, outfile):
     """
     writer = csv.DictWriter(
         outfile,
-        ['role', 'name', 'added', 'ifdef_note', 'struct_abi_kind'],
+        [
+            'role', 'name', 'added', 'ifdef_note', 'struct_abi_kind',
+            'constant_added',
+        ],
         lineterminator='\n')
     writer.writeheader()
     kinds = set(ITEM_KIND_TO_DOC_ROLE)
@@ -269,6 +277,12 @@ def gen_doc_annotations(manifest, args, outfile):
                     'name': f'{item.name}.{member_name}',
                     'added': item.added,
                 })
+        if item.kind == 'const' and item.got_constant:
+            data_item = manifest.contents.get(item.got_constant)
+            if data_item:
+                assert data_item.kind == 'data'
+                # assert data_item.abi_only
+                row['constant_added'] = data_item.added
         writer.writerows(rows)
 
 @generator("ctypes_test", 'Lib/test/test_stable_abi_ctypes.py')
