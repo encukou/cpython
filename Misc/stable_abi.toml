@@ -2862,6 +2862,38 @@
 
 [function.PyObject_CallFinalizerFromDealloc]
     added = '3.15'
+
+[const.Py_CONSTANT_NONE]
+    added = "3.13"
+    value = 0
+[const.Py_CONSTANT_FALSE]
+    added = "3.13"
+    value = 1
+[const.Py_CONSTANT_TRUE]
+    added = "3.13"
+    value = 2
+[const.Py_CONSTANT_ELLIPSIS]
+    added = "3.13"
+    value = 3
+[const.Py_CONSTANT_NOT_IMPLEMENTED]
+    added = "3.13"
+    value = 4
+[const.Py_CONSTANT_ZERO]
+    added = "3.13"
+    value = 5
+[const.Py_CONSTANT_ONE]
+    added = "3.13"
+    value = 6
+[const.Py_CONSTANT_EMPTY_STR]
+    added = "3.13"
+    value = 7
+[const.Py_CONSTANT_EMPTY_BYTES]
+    added = "3.13"
+    value = 8
+[const.Py_CONSTANT_EMPTY_TUPLE]
+    added = "3.13"
+    value = 9
+
 [const.Py_CONSTANT_Exc_ArithmeticError]
     added = "3.16"
     value = 10
