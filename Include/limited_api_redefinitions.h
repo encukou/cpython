@@ -108,5 +108,9 @@
 #define Py_GenericAliasType (*Py_GetConstantBorrowed(Py_CONSTANT_GenericAliasType))
 #define PyMethod_Type (*Py_GetConstantBorrowed(Py_CONSTANT_Method_Type))
 
+#define PyExc_EnvironmentError PyExc_OSError
+#define PyExc_IOError PyExc_OSError
+#define PyExc_WindowsError PyExc_OSError
+
 #endif  // limited API >= 3.16
 #endif  // !_Py_LIMITED_API_REDEFINITIONS_H
