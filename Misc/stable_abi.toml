@@ -423,6 +423,7 @@
     added = '3.2'
 [data.PyByteArrayIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyByteArray_AsString]
     added = '3.2'
 [function.PyByteArray_Concat]
@@ -439,6 +440,7 @@
     added = '3.2'
 [data.PyBytesIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyBytes_AsString]
     added = '3.2'
 [function.PyBytes_AsStringAndSize]
@@ -482,6 +484,7 @@
     added = '3.2'
 [data.PyCallIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyCallable_Check]
     added = '3.2'
 [function.PyCapsule_GetContext]
@@ -562,20 +565,26 @@
     added = '3.2'
 [data.PyDictItems_Type]
     added = '3.2'
+    abi_only = true
 [data.PyDictIterItem_Type]
     added = '3.2'
+    abi_only = true
 [data.PyDictIterKey_Type]
     added = '3.2'
+    abi_only = true
 [data.PyDictIterValue_Type]
     added = '3.2'
+    abi_only = true
 [data.PyDictKeys_Type]
     added = '3.2'
+    abi_only = true
 [function.PyDictProxy_New]
     added = '3.2'
 [data.PyDictProxy_Type]
     added = '3.2'
 [data.PyDictValues_Type]
     added = '3.2'
+    abi_only = true
 [function.PyDict_Clear]
     added = '3.2'
 [function.PyDict_Contains]
@@ -917,8 +926,10 @@
     added = '3.2'
 [data.PyListIter_Type]
     added = '3.2'
+    abi_only = true
 [data.PyListRevIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyList_Append]
     added = '3.2'
 [function.PyList_AsTuple]
@@ -945,6 +956,7 @@
     added = '3.2'
 [data.PyLongRangeIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyLong_AsDouble]
     added = '3.2'
 [function.PyLong_AsLong]
@@ -1128,6 +1140,7 @@
     ifdef = 'HAVE_FORK'
 [data.PyOS_InputHook]
     added = '3.2'
+    abi_only = true
 [function.PyOS_InterruptOccurred]
     added = '3.2'
 [function.PyOS_double_to_string]
@@ -1248,6 +1261,7 @@
     added = '3.2'
 [data.PyRangeIter_Type]
     added = '3.2'
+    abi_only = true
 [data.PyRange_Type]
     added = '3.2'
 [data.PyReversed_Type]
@@ -1256,6 +1270,7 @@
     added = '3.2'
 [data.PySeqIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PySequence_Check]
     added = '3.2'
 [function.PySequence_Concat]
@@ -1298,6 +1313,7 @@
     added = '3.2'
 [data.PySetIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PySet_Add]
     added = '3.2'
 [function.PySet_Clear]
@@ -1390,6 +1406,7 @@
     added = '3.2'
 [data.PyTupleIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyTuple_GetItem]
     added = '3.2'
 [function.PyTuple_GetSlice]
@@ -1456,6 +1473,7 @@
     added = '3.2'
 [data.PyUnicodeIter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyUnicodeTranslateError_GetEnd]
     added = '3.2'
 [function.PyUnicodeTranslateError_GetObject]
@@ -1645,6 +1663,7 @@
     added = '3.2'
 [data.Py_FileSystemDefaultEncoding]
     added = '3.2'
+    abi_only = true
 [function.Py_Finalize]
     added = '3.2'
 [function.Py_GetBuildInfo]
@@ -1679,6 +1698,7 @@
     added = '3.2'
 [data.Py_HasFileSystemDefaultEncoding]
     added = '3.2'
+    abi_only = true
 [function.Py_IncRef]
     added = '3.2'
 [function.Py_Initialize]
@@ -2160,6 +2180,7 @@
     added = '3.8'
 [data.Py_UTF8Mode]
     added = '3.8'
+    abi_only = true
 [function.PyExceptionClass_Name]
     added = '3.8'
 [function.PyIndex_Check]
@@ -2168,10 +2189,13 @@
     added = '3.8'
 [data.PyDictRevIterItem_Type]
     added = '3.8'
+    abi_only = true
 [data.PyDictRevIterKey_Type]
     added = '3.8'
+    abi_only = true
 [data.PyDictRevIterValue_Type]
     added = '3.8'
+    abi_only = true
 [function.PyInterpreterState_GetDict]
     added = '3.8'
 [function.Py_BytesMain]
@@ -2240,6 +2264,7 @@
     added = '3.10'
 [data.Py_FileSystemDefaultEncodeErrors]
     added = '3.10'
+    abi_only = true
 [function.PyCodec_Unregister]
     added = '3.10'
 [function.PyErr_SetInterruptEx]
@@ -2301,6 +2326,7 @@
     added = '3.11'
 
 # Added in 3.7 but in the Stable ABI from 3.10
+    abi_only = true
 [const.METH_FASTCALL]
     added = '3.10'
 
@@ -2388,6 +2414,7 @@
 
 [data.Py_Version]
     added = '3.11'
+    abi_only = true
 [function.PyErr_GetHandledException]
     added = '3.11'
 [function.PyErr_SetHandledException]
@@ -2835,3 +2862,419 @@
 
 [function.PyObject_CallFinalizerFromDealloc]
     added = '3.15'
+[const.Py_CONSTANT_Exc_ArithmeticError]
+    added = "3.16"
+    value = 10
+    legacy_constant = "PyExc_ArithmeticError"
+[const.Py_CONSTANT_Exc_AssertionError]
+    added = "3.16"
+    value = 11
+    legacy_constant = "PyExc_AssertionError"
+[const.Py_CONSTANT_Exc_AttributeError]
+    added = "3.16"
+    value = 12
+    legacy_constant = "PyExc_AttributeError"
+[const.Py_CONSTANT_Exc_BaseException]
+    added = "3.16"
+    value = 13
+    legacy_constant = "PyExc_BaseException"
+[const.Py_CONSTANT_Exc_BaseExceptionGroup]
+    added = "3.16"
+    value = 14
+    legacy_constant = "PyExc_BaseExceptionGroup"
+[const.Py_CONSTANT_Exc_BlockingIOError]
+    added = "3.16"
+    value = 15
+    legacy_constant = "PyExc_BlockingIOError"
+[const.Py_CONSTANT_Exc_BrokenPipeError]
+    added = "3.16"
+    value = 16
+    legacy_constant = "PyExc_BrokenPipeError"
+[const.Py_CONSTANT_Exc_BufferError]
+    added = "3.16"
+    value = 17
+    legacy_constant = "PyExc_BufferError"
+[const.Py_CONSTANT_Exc_BytesWarning]
+    added = "3.16"
+    value = 18
+    legacy_constant = "PyExc_BytesWarning"
+[const.Py_CONSTANT_Exc_ChildProcessError]
+    added = "3.16"
+    value = 19
+    legacy_constant = "PyExc_ChildProcessError"
+[const.Py_CONSTANT_Exc_ConnectionAbortedError]
+    added = "3.16"
+    value = 20
+    legacy_constant = "PyExc_ConnectionAbortedError"
+[const.Py_CONSTANT_Exc_ConnectionError]
+    added = "3.16"
+    value = 21
+    legacy_constant = "PyExc_ConnectionError"
+[const.Py_CONSTANT_Exc_ConnectionRefusedError]
+    added = "3.16"
+    value = 22
+    legacy_constant = "PyExc_ConnectionRefusedError"
+[const.Py_CONSTANT_Exc_ConnectionResetError]
+    added = "3.16"
+    value = 23
+    legacy_constant = "PyExc_ConnectionResetError"
+[const.Py_CONSTANT_Exc_DeprecationWarning]
+    added = "3.16"
+    value = 24
+    legacy_constant = "PyExc_DeprecationWarning"
+[const.Py_CONSTANT_Exc_EOFError]
+    added = "3.16"
+    value = 25
+    legacy_constant = "PyExc_EOFError"
+[const.Py_CONSTANT_Exc_EncodingWarning]
+    added = "3.16"
+    value = 26
+    legacy_constant = "PyExc_EncodingWarning"
+[const.Py_CONSTANT_Exc_Exception]
+    added = "3.16"
+    value = 27
+    legacy_constant = "PyExc_Exception"
+[const.Py_CONSTANT_Exc_FileExistsError]
+    added = "3.16"
+    value = 28
+    legacy_constant = "PyExc_FileExistsError"
+[const.Py_CONSTANT_Exc_FileNotFoundError]
+    added = "3.16"
+    value = 29
+    legacy_constant = "PyExc_FileNotFoundError"
+[const.Py_CONSTANT_Exc_FloatingPointError]
+    added = "3.16"
+    value = 30
+    legacy_constant = "PyExc_FloatingPointError"
+[const.Py_CONSTANT_Exc_FutureWarning]
+    added = "3.16"
+    value = 31
+    legacy_constant = "PyExc_FutureWarning"
+[const.Py_CONSTANT_Exc_GeneratorExit]
+    added = "3.16"
+    value = 32
+    legacy_constant = "PyExc_GeneratorExit"
+[const.Py_CONSTANT_Exc_ImportError]
+    added = "3.16"
+    value = 33
+    legacy_constant = "PyExc_ImportError"
+[const.Py_CONSTANT_Exc_ImportWarning]
+    added = "3.16"
+    value = 34
+    legacy_constant = "PyExc_ImportWarning"
+[const.Py_CONSTANT_Exc_IndentationError]
+    added = "3.16"
+    value = 35
+    legacy_constant = "PyExc_IndentationError"
+[const.Py_CONSTANT_Exc_IndexError]
+    added = "3.16"
+    value = 36
+    legacy_constant = "PyExc_IndexError"
+[const.Py_CONSTANT_Exc_InterruptedError]
+    added = "3.16"
+    value = 37
+    legacy_constant = "PyExc_InterruptedError"
+[const.Py_CONSTANT_Exc_IsADirectoryError]
+    added = "3.16"
+    value = 38
+    legacy_constant = "PyExc_IsADirectoryError"
+[const.Py_CONSTANT_Exc_KeyError]
+    added = "3.16"
+    value = 39
+    legacy_constant = "PyExc_KeyError"
+[const.Py_CONSTANT_Exc_KeyboardInterrupt]
+    added = "3.16"
+    value = 40
+    legacy_constant = "PyExc_KeyboardInterrupt"
+[const.Py_CONSTANT_Exc_LookupError]
+    added = "3.16"
+    value = 41
+    legacy_constant = "PyExc_LookupError"
+[const.Py_CONSTANT_Exc_MemoryError]
+    added = "3.16"
+    value = 42
+    legacy_constant = "PyExc_MemoryError"
+[const.Py_CONSTANT_Exc_ModuleNotFoundError]
+    added = "3.16"
+    value = 43
+    legacy_constant = "PyExc_ModuleNotFoundError"
+[const.Py_CONSTANT_Exc_NameError]
+    added = "3.16"
+    value = 44
+    legacy_constant = "PyExc_NameError"
+[const.Py_CONSTANT_Exc_NotADirectoryError]
+    added = "3.16"
+    value = 45
+    legacy_constant = "PyExc_NotADirectoryError"
+[const.Py_CONSTANT_Exc_NotImplementedError]
+    added = "3.16"
+    value = 46
+    legacy_constant = "PyExc_NotImplementedError"
+[const.Py_CONSTANT_Exc_OSError]
+    added = "3.16"
+    value = 47
+    legacy_constant = "PyExc_OSError"
+[const.Py_CONSTANT_Exc_OverflowError]
+    added = "3.16"
+    value = 48
+    legacy_constant = "PyExc_OverflowError"
+[const.Py_CONSTANT_Exc_PendingDeprecationWarning]
+    added = "3.16"
+    value = 49
+    legacy_constant = "PyExc_PendingDeprecationWarning"
+[const.Py_CONSTANT_Exc_PermissionError]
+    added = "3.16"
+    value = 50
+    legacy_constant = "PyExc_PermissionError"
+[const.Py_CONSTANT_Exc_ProcessLookupError]
+    added = "3.16"
+    value = 51
+    legacy_constant = "PyExc_ProcessLookupError"
+[const.Py_CONSTANT_Exc_RecursionError]
+    added = "3.16"
+    value = 52
+    legacy_constant = "PyExc_RecursionError"
+[const.Py_CONSTANT_Exc_ReferenceError]
+    added = "3.16"
+    value = 53
+    legacy_constant = "PyExc_ReferenceError"
+[const.Py_CONSTANT_Exc_ResourceWarning]
+    added = "3.16"
+    value = 54
+    legacy_constant = "PyExc_ResourceWarning"
+[const.Py_CONSTANT_Exc_RuntimeError]
+    added = "3.16"
+    value = 55
+    legacy_constant = "PyExc_RuntimeError"
+[const.Py_CONSTANT_Exc_RuntimeWarning]
+    added = "3.16"
+    value = 56
+    legacy_constant = "PyExc_RuntimeWarning"
+[const.Py_CONSTANT_Exc_StopAsyncIteration]
+    added = "3.16"
+    value = 57
+    legacy_constant = "PyExc_StopAsyncIteration"
+[const.Py_CONSTANT_Exc_StopIteration]
+    added = "3.16"
+    value = 58
+    legacy_constant = "PyExc_StopIteration"
+[const.Py_CONSTANT_Exc_SyntaxError]
+    added = "3.16"
+    value = 59
+    legacy_constant = "PyExc_SyntaxError"
+[const.Py_CONSTANT_Exc_SyntaxWarning]
+    added = "3.16"
+    value = 60
+    legacy_constant = "PyExc_SyntaxWarning"
+[const.Py_CONSTANT_Exc_SystemError]
+    added = "3.16"
+    value = 61
+    legacy_constant = "PyExc_SystemError"
+[const.Py_CONSTANT_Exc_SystemExit]
+    added = "3.16"
+    value = 62
+    legacy_constant = "PyExc_SystemExit"
+[const.Py_CONSTANT_Exc_TabError]
+    added = "3.16"
+    value = 63
+    legacy_constant = "PyExc_TabError"
+[const.Py_CONSTANT_Exc_TimeoutError]
+    added = "3.16"
+    value = 64
+    legacy_constant = "PyExc_TimeoutError"
+[const.Py_CONSTANT_Exc_TypeError]
+    added = "3.16"
+    value = 65
+    legacy_constant = "PyExc_TypeError"
+[const.Py_CONSTANT_Exc_UnboundLocalError]
+    added = "3.16"
+    value = 66
+    legacy_constant = "PyExc_UnboundLocalError"
+[const.Py_CONSTANT_Exc_UnicodeDecodeError]
+    added = "3.16"
+    value = 67
+    legacy_constant = "PyExc_UnicodeDecodeError"
+[const.Py_CONSTANT_Exc_UnicodeEncodeError]
+    added = "3.16"
+    value = 68
+    legacy_constant = "PyExc_UnicodeEncodeError"
+[const.Py_CONSTANT_Exc_UnicodeError]
+    added = "3.16"
+    value = 69
+    legacy_constant = "PyExc_UnicodeError"
+[const.Py_CONSTANT_Exc_UnicodeTranslateError]
+    added = "3.16"
+    value = 70
+    legacy_constant = "PyExc_UnicodeTranslateError"
+[const.Py_CONSTANT_Exc_UnicodeWarning]
+    added = "3.16"
+    value = 71
+    legacy_constant = "PyExc_UnicodeWarning"
+[const.Py_CONSTANT_Exc_UserWarning]
+    added = "3.16"
+    value = 72
+    legacy_constant = "PyExc_UserWarning"
+[const.Py_CONSTANT_Exc_ValueError]
+    added = "3.16"
+    value = 73
+    legacy_constant = "PyExc_ValueError"
+[const.Py_CONSTANT_Exc_Warning]
+    added = "3.16"
+    value = 74
+    legacy_constant = "PyExc_Warning"
+[const.Py_CONSTANT_Exc_ZeroDivisionError]
+    added = "3.16"
+    value = 75
+    legacy_constant = "PyExc_ZeroDivisionError"
+[const.Py_CONSTANT_BaseObject_Type]
+    added = "3.16"
+    value = 76
+    legacy_constant = "PyBaseObject_Type"
+[const.Py_CONSTANT_Bool_Type]
+    added = "3.16"
+    value = 77
+    legacy_constant = "PyBool_Type"
+[const.Py_CONSTANT_ByteArray_Type]
+    added = "3.16"
+    value = 78
+    legacy_constant = "PyByteArray_Type"
+[const.Py_CONSTANT_Bytes_Type]
+    added = "3.16"
+    value = 79
+    legacy_constant = "PyBytes_Type"
+[const.Py_CONSTANT_CFunction_Type]
+    added = "3.16"
+    value = 80
+    legacy_constant = "PyCFunction_Type"
+[const.Py_CONSTANT_Capsule_Type]
+    added = "3.16"
+    value = 81
+    legacy_constant = "PyCapsule_Type"
+[const.Py_CONSTANT_ClassMethodDescr_Type]
+    added = "3.16"
+    value = 82
+    legacy_constant = "PyClassMethodDescr_Type"
+[const.Py_CONSTANT_Complex_Type]
+    added = "3.16"
+    value = 83
+    legacy_constant = "PyComplex_Type"
+[const.Py_CONSTANT_DictProxy_Type]
+    added = "3.16"
+    value = 84
+    legacy_constant = "PyDictProxy_Type"
+[const.Py_CONSTANT_Dict_Type]
+    added = "3.16"
+    value = 85
+    legacy_constant = "PyDict_Type"
+[const.Py_CONSTANT_Ellipsis_Type]
+    added = "3.16"
+    value = 86
+    legacy_constant = "PyEllipsis_Type"
+[const.Py_CONSTANT_Enum_Type]
+    added = "3.16"
+    value = 87
+    legacy_constant = "PyEnum_Type"
+[const.Py_CONSTANT_Filter_Type]
+    added = "3.16"
+    value = 88
+    legacy_constant = "PyFilter_Type"
+[const.Py_CONSTANT_Float_Type]
+    added = "3.16"
+    value = 89
+    legacy_constant = "PyFloat_Type"
+[const.Py_CONSTANT_FrozenSet_Type]
+    added = "3.16"
+    value = 90
+    legacy_constant = "PyFrozenSet_Type"
+[const.Py_CONSTANT_GetSetDescr_Type]
+    added = "3.16"
+    value = 91
+    legacy_constant = "PyGetSetDescr_Type"
+[const.Py_CONSTANT_List_Type]
+    added = "3.16"
+    value = 92
+    legacy_constant = "PyList_Type"
+[const.Py_CONSTANT_Long_Type]
+    added = "3.16"
+    value = 93
+    legacy_constant = "PyLong_Type"
+[const.Py_CONSTANT_Map_Type]
+    added = "3.16"
+    value = 94
+    legacy_constant = "PyMap_Type"
+[const.Py_CONSTANT_MemberDescr_Type]
+    added = "3.16"
+    value = 95
+    legacy_constant = "PyMemberDescr_Type"
+[const.Py_CONSTANT_MemoryView_Type]
+    added = "3.16"
+    value = 96
+    legacy_constant = "PyMemoryView_Type"
+[const.Py_CONSTANT_MethodDescr_Type]
+    added = "3.16"
+    value = 97
+    legacy_constant = "PyMethodDescr_Type"
+[const.Py_CONSTANT_ModuleDef_Type]
+    added = "3.16"
+    value = 98
+    legacy_constant = "PyModuleDef_Type"
+[const.Py_CONSTANT_Module_Type]
+    added = "3.16"
+    value = 99
+    legacy_constant = "PyModule_Type"
+[const.Py_CONSTANT_Property_Type]
+    added = "3.16"
+    value = 100
+    legacy_constant = "PyProperty_Type"
+[const.Py_CONSTANT_Range_Type]
+    added = "3.16"
+    value = 101
+    legacy_constant = "PyRange_Type"
+[const.Py_CONSTANT_Reversed_Type]
+    added = "3.16"
+    value = 102
+    legacy_constant = "PyReversed_Type"
+[const.Py_CONSTANT_Set_Type]
+    added = "3.16"
+    value = 103
+    legacy_constant = "PySet_Type"
+[const.Py_CONSTANT_Slice_Type]
+    added = "3.16"
+    value = 104
+    legacy_constant = "PySlice_Type"
+[const.Py_CONSTANT_Super_Type]
+    added = "3.16"
+    value = 105
+    legacy_constant = "PySuper_Type"
+[const.Py_CONSTANT_TraceBack_Type]
+    added = "3.16"
+    value = 106
+    legacy_constant = "PyTraceBack_Type"
+[const.Py_CONSTANT_Tuple_Type]
+    added = "3.16"
+    value = 107
+    legacy_constant = "PyTuple_Type"
+[const.Py_CONSTANT_Type_Type]
+    added = "3.16"
+    value = 108
+    legacy_constant = "PyType_Type"
+[const.Py_CONSTANT_Unicode_Type]
+    added = "3.16"
+    value = 109
+    legacy_constant = "PyUnicode_Type"
+[const.Py_CONSTANT_WrapperDescr_Type]
+    added = "3.16"
+    value = 110
+    legacy_constant = "PyWrapperDescr_Type"
+[const.Py_CONSTANT_Zip_Type]
+    added = "3.16"
+    value = 111
+    legacy_constant = "PyZip_Type"
+[const.Py_CONSTANT_GenericAliasType]
+    added = "3.16"
+    value = 112
+    legacy_constant = "Py_GenericAliasType"
+[const.Py_CONSTANT_Method_Type]
+    added = "3.16"
+    value = 113
+    legacy_constant = "PyMethod_Type"
