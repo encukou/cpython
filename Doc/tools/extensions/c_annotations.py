@@ -220,7 +220,6 @@ def _stable_abi_link():
 def _stable_abi_annotation(
     record: StableABIEntry,
     is_corresponding_slot: bool = False,
-    until: str = None,
 ) -> nodes.emphasis:
     """Create the Stable ABI annotation.
 
@@ -277,20 +276,11 @@ def _stable_abi_annotation(
         emph_node += nodes.Text(f" {record.ifdef_note}")
     if stable_added == "3.2":
         # Stable ABI was introduced in 3.2.
-        if until:
-            emph_node += nodes.Text(
-                " " + sphinx_gettext("until version %s") % until
-            )
-
+        pass
     else:
-        if until:
-            emph_node += nodes.Text(
-                " " + sphinx_gettext("in versions %s--%s") % (stable_added, until)
-            )
-        else:
-            emph_node += nodes.Text(
-                " " + sphinx_gettext("since version %s") % stable_added
-            )
+        emph_node += nodes.Text(
+            " " + sphinx_gettext("since version %s") % stable_added
+        )
     emph_node += nodes.Text(".")
 
     return emph_node
@@ -497,7 +487,7 @@ class CorrespondingGetConstantID(SphinxDirective):
                 + "`corresponding-getconstant-id::`."
             ) from err
 
-        annotation = _stable_abi_annotation(record, until="3.15")
+        annotation = _stable_abi_annotation(record)
 
         # See CorrespondingGetConstantID below
         id_ref_node = addnodes.pending_xref(
