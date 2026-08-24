@@ -250,10 +250,7 @@ def gen_doc_annotations(manifest, args, outfile):
     """
     writer = csv.DictWriter(
         outfile,
-        [
-            'role', 'name', 'added', 'ifdef_note', 'struct_abi_kind',
-            'constant_added',
-        ],
+        ['role', 'name', 'added', 'ifdef_note', 'struct_abi_kind'],
         lineterminator='\n')
     writer.writeheader()
     kinds = set(ITEM_KIND_TO_DOC_ROLE)
@@ -282,7 +279,7 @@ def gen_doc_annotations(manifest, args, outfile):
             if data_item:
                 assert data_item.kind == 'data'
                 # assert data_item.abi_only
-                row['constant_added'] = data_item.added
+                row['added'] = data_item.added
         writer.writerows(rows)
 
 @generator("ctypes_test", 'Lib/test/test_stable_abi_ctypes.py')

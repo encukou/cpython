@@ -76,8 +76,6 @@ class StableABIEntry:
     # Defines how much of the struct is exposed. Only relevant for structs.
     # Source: [<item_kind>.*.struct_abi_kind] in stable_abi.toml.
     struct_abi_kind: str
-    # Source: [data.[const.*.got_constant].added] in stable_abi.toml.
-    constant_added: str
 
 
 def read_refcount_data(refcount_filename: Path) -> dict[str, RefCountEntry]:
@@ -234,8 +232,6 @@ def _stable_abi_annotation(
     ... all of which can have "since version X.Y" appended.
     """
     stable_added = record.added
-    if record.constant_added:
-        stable_added = record.constant_added
 
     ref_node = _stable_abi_link()
 
