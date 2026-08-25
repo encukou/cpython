@@ -3310,4 +3310,3 @@
 [const.Py_CONSTANT_Method_Type]
     added = "3.16"
     value = 113
-    legacy_constant = "PyMethod_Type"

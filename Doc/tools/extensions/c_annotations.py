@@ -76,6 +76,8 @@ class StableABIEntry:
     # Defines how much of the struct is exposed. Only relevant for structs.
     # Source: [<item_kind>.*.struct_abi_kind] in stable_abi.toml.
     struct_abi_kind: str
+    # ...
+    getconstant_id: str
 
 
 def read_refcount_data(refcount_filename: Path) -> dict[str, RefCountEntry]:
@@ -278,6 +280,42 @@ def _stable_abi_annotation(
             " " + sphinx_gettext("since version %s") % stable_added
         )
     emph_node += nodes.Text(".")
+
+    if record.getconstant_id:
+        # Add a note like:
+        #     When compiling for the Stable ABI 3.16 and above, defined as
+        #     Py_GetConstantBorrowed(Py_CONSTANT_xyz).
+        gcb_ref_node = addnodes.pending_xref(
+            "slot ID",
+            refdomain="c",
+            reftarget="Py_GetConstantBorrowed",
+            reftype="type",
+            refexplicit="True",
+        )
+        gcb_ref_node += nodes.literal(
+            "Py_GetConstantBorrowed",
+            "Py_GetConstantBorrowed",
+        )
+
+        message = sphinx_gettext("When compiling for the")
+        emph_node += nodes.Text(" " + message + " ")
+        emph_node += _stable_abi_link()
+        message = sphinx_gettext(" 3.16 and above,")
+        emph_node += nodes.Text(message + " ")
+        if not record.name.endswith('Type'):
+            message = sphinx_gettext("defined as")
+        else:
+            # Type constant definition include a cast and a dereference,
+            # which aren't interesting enough to spell out.
+            message = sphinx_gettext("defined using")
+        emph_node += nodes.Text(" " + message + " ")
+        lit_node = nodes.literal("", "")
+        lit_node += gcb_ref_node
+        lit_node += nodes.Text("(")
+        lit_node += nodes.literal(record.getconstant_id, record.getconstant_id)
+        lit_node += nodes.Text(")")
+        emph_node += lit_node
+        emph_node += nodes.Text(".")
 
     return emph_node
 

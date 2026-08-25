@@ -34,7 +34,7 @@ Object Protocol
    Additional identifiers are defined for exceptions, such as
    :c:macro:`Py_CONSTANT_EXC_VALUEERROR` for the :py:exc:`ValueError` exception
    class, and other types, such as :c:macro:`Py_CONSTANT_TYPE_DICT` for the
-   :py:type:`dict` class object.
+   :py:type:`dict` class.
    A complete list is currently available at :ref:`limited-api-list`.
 
    Numeric values are only given for projects which cannot use the constant

@@ -130,9 +130,13 @@ under :ref:`reference counting <countingrefs>`.
    See documentation of :c:type:`PyVarObject` above.
 
 
-.. c:var:: PyTypeObject PyBaseObject_Type
+.. c:macro:: Py_CONSTANT_BaseObject_Type
+   :no-typesetting:
 
-   .. corresponding-getconstant-id:: Py_CONSTANT_BaseObject_Type
+   .. value for Py_GetConstantBorrowed to get PyBaseObject_Type.
+      Included in auto-generated note for the type.
+
+.. c:var:: PyTypeObject PyBaseObject_Type
 
    The base class of all other objects, the same as :class:`object` in Python.
 
