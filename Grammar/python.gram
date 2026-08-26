@@ -42,6 +42,11 @@ _PyPegen_parse(Parser *p)
 #     - The order of the alternatives involving invalid rules matter
 #       (like any rule in PEG).
 #
+# Comments starting with DEFERRED refer to limitations that are not present
+# in the grammar file, but are checked in later stages of compilation.
+# (Not all limitations are necessarily documented this way.)
+#
+#
 # Grammar Syntax (see PEP 617 for more information):
 #
 # rule_name: expression
@@ -438,6 +443,11 @@ with_item[withitem_ty]:
 # Try statement
 # -------------
 
+# DEFERRED: In `except_block+` below, if an `except_block` without
+# `expressions` appears, it must be last.
+# (This implies that there may only be zero or one such "bare" except clause.)
+# This is checked in the code generation step.
+
 try_stmt[stmt_ty]:
     | invalid_try_stmt
     | 'try' &&':' b=block f=finally_block { _PyAST_Try(b, NULL, NULL, f, EXTRA) }
@@ -445,7 +455,6 @@ try_stmt[stmt_ty]:
     | 'try' &&':' b=block ex[asdl_excepthandler_seq*]=except_star_block+ el=[else_block] f=[finally_block] {
         CHECK_VERSION(stmt_ty, 11, "Exception groups are",
                       _PyAST_TryStar(b, ex, el, f, EXTRA)) }
-
 
 # Except statement
 # ----------------
