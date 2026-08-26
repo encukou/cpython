@@ -152,6 +152,10 @@ compound_stmt[stmt_ty]:
 # SIMPLE STATEMENTS
 # =================
 
+# DEFERRED: `star_targets` on the left-hand side of an assignment
+# may only contain zero or more starred targets.
+# Similar for nested `star_targets_tuple_seq`.
+
 # NOTE: annotated_rhs may start with 'yield'; yield_expr must start with 'yield'
 assignment[stmt_ty]:
     | a=NAME ':' b=expression c=['=' d=annotated_rhs { d }] {
@@ -187,6 +191,10 @@ augassign[AugOperator*]:
     | '**=' { _PyPegen_augoperator(p, Pow) }
     | '//=' { _PyPegen_augoperator(p, FloorDiv) }
 
+# DEFERRED: `return` can only appear inside a function.
+# DEFERRED: `return` with `star_expressions` cannot appear in
+# an async generator.
+
 return_stmt[stmt_ty]:
     | 'return' a=[star_expressions] { _PyAST_Return(a, EXTRA) }
 
@@ -198,6 +206,8 @@ raise_stmt[stmt_ty]:
 
 pass_stmt[stmt_ty]:
     | 'pass' { _PyAST_Pass(EXTRA) }
+
+# DEFERRED: `break` and `continue` must be properly in a loop.
 
 break_stmt[stmt_ty]:
     | 'break' { _PyAST_Break(EXTRA) }
@@ -228,6 +238,9 @@ import_stmt[stmt_ty](memo):
 
 # Import statements
 # -----------------
+
+# DEFERRED: `lazy` imports are only allowed in module scope.
+# DEFERRED: `*` cannot be used in a `lazy` import
 
 import_name[stmt_ty]:
     | lazy="lazy"? 'import' a=dotted_as_names { _PyAST_Import(a, lazy ? 1 : 0, EXTRA) }
@@ -315,6 +328,8 @@ function_def_raw[stmt_ty]:
 
 # Function parameters
 # -------------------
+
+# DEFERRED: Keyword argument names may not be repeated.
 
 params[arguments_ty]:
     | invalid_parameters
@@ -473,6 +488,9 @@ except_block[excepthandler_ty]:
             _PyAST_ExceptHandler(e, NULL, b, EXTRA)) }
     | 'except' ':' b=block { _PyAST_ExceptHandler(NULL, NULL, b, EXTRA) }
     | invalid_except_stmt
+
+# DEFERRED: `break`, `continue` and `return` cannot appear in an except* block
+
 except_star_block[excepthandler_ty]:
     | invalid_except_star_stmt_indent
     | 'except' '*' e=expression ':' b=block {
@@ -524,9 +542,17 @@ as_pattern[pattern_ty]:
         _PyAST_MatchAs(pattern, target->v.Name.id, EXTRA) }
     | invalid_as_pattern
 
+# DEFERRED: All alternatives must bind to the same set of names.
+
 or_pattern[pattern_ty]:
     | patterns[asdl_pattern_seq*]='|'.closed_pattern+ {
         asdl_seq_LEN(patterns) == 1 ? asdl_seq_GET(patterns, 0) : _PyAST_MatchOr(patterns, EXTRA) }
+
+# DEFERRED: multiple assignments to the same name are not allowed
+# DEFERRED: `capture_pattern` and `wildcard_pattern` make would make any
+# subsequent patterns (either in `closed_pattern` or subsequent `case` clauses)
+# unreachable.
+# Python reports unreachable patterns as SyntaxError when it detects them.
 
 closed_pattern[pattern_ty] (memo):
     | literal_pattern
@@ -617,11 +643,15 @@ maybe_star_pattern[pattern_ty]:
     | star_pattern
     | pattern
 
+# DEFERRED: Only one `star_pattern` is allowed in a `maybe_sequence_pattern`.
+
 star_pattern[pattern_ty] (memo):
     | '*' target=pattern_capture_target {
         _PyAST_MatchStar(target->v.Name.id, EXTRA) }
     | '*' wildcard_pattern {
         _PyAST_MatchStar(NULL, EXTRA) }
+
+# DEFERRED: All keys in a mapping pattern must be unique.
 
 mapping_pattern[pattern_ty]:
     | '{' '}' {
@@ -694,6 +724,9 @@ type_alias[stmt_ty]:
 # Type parameter declaration
 # --------------------------
 
+# DEFERRED: A non-default type parameter cannot follow a default type parameter
+# DEFERRED: Keyword argument names may not be repeated.
+
 type_params[asdl_type_param_seq*]:
     | invalid_type_params
     | '[' t=type_param_seq ']' {
@@ -732,6 +765,9 @@ expression[expr_ty] (memo):
 
 if_expression[expr_ty]:
     | a=disjunction 'if' b=disjunction 'else' c=expression { _PyAST_IfExp(b, a, c, EXTRA) }
+
+# DEFERRED: `yield` (including `yield from`) must be used inside a function
+# DEFERRED: `yield from` must not be used in an async function
 
 yield_expr[expr_ty]:
     | 'yield' 'from' a=expression { _PyAST_YieldFrom(a, EXTRA) }
@@ -920,6 +956,8 @@ group[expr_ty]:
 # Lambda functions
 # ----------------
 
+# DEFERRED: Keyword argument names may not be repeated.
+
 lambdef[expr_ty]:
     | 'lambda' a=[lambda_params] ':' b=expression {
         _PyAST_Lambda((a) ? a : CHECK(arguments_ty, _PyPegen_empty_arguments(p)), b, EXTRA) }
@@ -1083,6 +1121,8 @@ dictcomp[expr_ty]:
 
 # FUNCTION CALL ARGUMENTS
 # =======================
+
+# DEFERRED: Keyword argument names may not be repeated.
 
 arguments[expr_ty] (memo):
     | a=args [','] &')' { a }
