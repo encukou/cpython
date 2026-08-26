@@ -16,20 +16,42 @@ Object Protocol
 
    .. c:namespace:: NULL
 
-   ========================================  =====  =========================
-   Constant Identifier                       Value  Returned object
-   ========================================  =====  =========================
-   .. c:macro:: Py_CONSTANT_NONE             ``0``  :py:data:`None`
-   .. c:macro:: Py_CONSTANT_FALSE            ``1``  :py:data:`False`
-   .. c:macro:: Py_CONSTANT_TRUE             ``2``  :py:data:`True`
-   .. c:macro:: Py_CONSTANT_ELLIPSIS         ``3``  :py:data:`Ellipsis`
-   .. c:macro:: Py_CONSTANT_NOT_IMPLEMENTED  ``4``  :py:data:`NotImplemented`
-   .. c:macro:: Py_CONSTANT_ZERO             ``5``  ``0``
-   .. c:macro:: Py_CONSTANT_ONE              ``6``  ``1``
-   .. c:macro:: Py_CONSTANT_EMPTY_STR        ``7``  ``''``
-   .. c:macro:: Py_CONSTANT_EMPTY_BYTES      ``8``  ``b''``
-   .. c:macro:: Py_CONSTANT_EMPTY_TUPLE      ``9``  ``()``
-   ========================================  =====  =========================
+   .. list-table::
+      :header-rows: 1
+
+      - * Constant Identifier
+        * Value
+        * Returned object
+      - * .. c:macro:: Py_CONSTANT_NONE
+        * ``0``
+        * :py:data:`None`
+      - * .. c:macro:: Py_CONSTANT_FALSE
+        * ``1``
+        * :py:data:`False`
+      - * .. c:macro:: Py_CONSTANT_TRUE
+        * ``2``
+        * :py:data:`True`
+      - * .. c:macro:: Py_CONSTANT_ELLIPSIS
+        * ``3``
+        * :py:data:`Ellipsis`
+      - * .. c:macro:: Py_CONSTANT_NOT_IMPLEMENTED
+        * ``4``
+        * :py:data:`NotImplemented`
+      - * .. c:macro:: Py_CONSTANT_ZERO
+        * ``5``
+        * ``0``
+      - * .. c:macro:: Py_CONSTANT_ONE
+        * ``6``
+        * ``1``
+      - * .. c:macro:: Py_CONSTANT_EMPTY_STR
+        * ``7``
+        * ``''``
+      - * .. c:macro:: Py_CONSTANT_EMPTY_BYTES
+        * ``8``
+        * ``b''``
+      - * .. c:macro:: Py_CONSTANT_EMPTY_TUPLE
+        * ``9``
+        * ``()``
 
    Additional identifiers are defined for exceptions, such as
    :c:macro:`Py_CONSTANT_EXC_VALUEERROR` for the :py:exc:`ValueError` exception

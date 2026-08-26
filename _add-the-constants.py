@@ -1,4 +1,4 @@
-import ctypes
+import subprocess
 
 import tomlkit
 
@@ -7,8 +7,8 @@ import tomlkit
 # dependencies = ["tomlkit"]
 # ///
 
-with open('Misc/stable_abi.toml', 'rb') as f:
-    manifest = tomlkit.load(f)
+toml_content = subprocess.check_output(['git', 'show', 'main:Misc/stable_abi.toml'])
+manifest = tomlkit.loads(toml_content)
 
 print(manifest)
 
@@ -107,3 +107,13 @@ with open('_redefinitions.txt', 'w') as f:
         else:
             star = '*'
         print(f'#define {entry['legacy_constant']} ({star}Py_GetConstantBorrowed({name}))', file=f)
+
+with open('_doc.txt', 'w') as f:
+    for name, entry in new_entries.items():
+        print(f'   - * .. c:macro:: {name}', file=f)
+        print(f'     * .. ``{entry['value']}``', file=f)
+        data_name = entry['legacy_constant']
+        val = f':c:data:`{data_name}`'
+        if data_name.startswith('PyExc_'):
+            val = f':py:type:`{data_name.removeprefix('PyExc_')}`'
+        print('     *', val, file=f)
