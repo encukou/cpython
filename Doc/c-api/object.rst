@@ -14,42 +14,59 @@ Object Protocol
 
    *constant_id* can be one of these constant identifiers:
 
+   .. rst-class:: stableabi
+
+   All of the constant identifiers can be used when compiling for the
+   :ref:`stable ABI`
+
    .. c:namespace:: NULL
 
    .. list-table::
       :header-rows: 1
 
       - * Constant Identifier
+        * Added in
         * Value
         * Returned object
-      - * .. c:macro:: Py_CONSTANT_NONE
+      - * .. rst-class:: no-f
+          .. c:macro:: Py_CONSTANT_NONE
+        * 3.13
         * ``0``
         * :py:data:`None`
       - * .. c:macro:: Py_CONSTANT_FALSE
+        * 3.13
         * ``1``
         * :py:data:`False`
       - * .. c:macro:: Py_CONSTANT_TRUE
+        * 3.13
         * ``2``
         * :py:data:`True`
       - * .. c:macro:: Py_CONSTANT_ELLIPSIS
+        * 3.13
         * ``3``
         * :py:data:`Ellipsis`
       - * .. c:macro:: Py_CONSTANT_NOT_IMPLEMENTED
+        * 3.13
         * ``4``
         * :py:data:`NotImplemented`
       - * .. c:macro:: Py_CONSTANT_ZERO
+        * 3.13
         * ``5``
         * ``0``
       - * .. c:macro:: Py_CONSTANT_ONE
+        * 3.13
         * ``6``
         * ``1``
       - * .. c:macro:: Py_CONSTANT_EMPTY_STR
+        * 3.13
         * ``7``
         * ``''``
       - * .. c:macro:: Py_CONSTANT_EMPTY_BYTES
+        * 3.13
         * ``8``
         * ``b''``
       - * .. c:macro:: Py_CONSTANT_EMPTY_TUPLE
+        * 3.13
         * ``9``
         * ``()``
 
