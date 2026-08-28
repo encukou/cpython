@@ -901,7 +901,11 @@ C API changes
 New features
 ------------
 
-* TODO
+* Defined identifiers for getting built-in types (including exceptions)
+  with :c:func:`Py_GetConstant`.
+  All have the form :samp:`Py_CONSTANT_Exc_{name}` and
+  :samp:`Py_CONSTANT_{name}_Type`; a full list is available at
+  :ref:`a dedicated page <py_getconstant-full-list>`.
 
 Porting to Python 3.16
 ----------------------

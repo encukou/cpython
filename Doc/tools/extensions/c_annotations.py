@@ -419,17 +419,17 @@ class LimitedAPIList(SphinxDirective):
     has_content = False
     required_arguments = 0
     optional_arguments = 0
-    final_argument_whitespace = True
+    final_argument_whitespace = False
 
     def run(self) -> list[nodes.Node]:
         state = self.env.domaindata["c_annotations"]
-        content = [
-            f"* :c:{record.role}:`{record.name}`"
-            for record in state["stable_abi_data"].values()
-        ]
-        node = nodes.paragraph()
+        content = []
+        for record in state["stable_abi_data"].values():
+            content.append(f"* :c:{record.role}:`{record.name}`")
+        node = nodes.Element()
+        node.document = self.state.document
         self.state.nested_parse(StringList(content), 0, node)
-        return [node]
+        return node.children
 
 
 class VersionHexCheatsheet(SphinxDirective):

@@ -72,6 +72,11 @@ Builtin Iterator Types
 These are built-in iteration types that are included in Python's C API, but
 provide no additional functions. They are here for completeness.
 
+.. stable-abi-note::
+
+   These objects are part of the :ref:`Stable ABI <stable>`.
+   When compiling for Stable ABI 3.16 and above, they are defined as
+   calls to :c:func:`Py_GetConstant`.
 
 .. list-table::
    :widths: auto
@@ -79,15 +84,20 @@ provide no additional functions. They are here for completeness.
 
    * * C type
      * Python type
-   * * .. c:var:: PyTypeObject PyEnum_Type
+   * * .. rst-class:: omit-stable-abi-note
+       .. c:var:: PyTypeObject PyEnum_Type
      * :py:class:`enumerate`
-   * * .. c:var:: PyTypeObject PyFilter_Type
+   * * .. rst-class:: omit-stable-abi-note
+       .. c:var:: PyTypeObject PyFilter_Type
      * :py:class:`filter`
-   * * .. c:var:: PyTypeObject PyMap_Type
+   * * .. rst-class:: omit-stable-abi-note
+       .. c:var:: PyTypeObject PyMap_Type
      * :py:class:`map`
-   * * .. c:var:: PyTypeObject PyReversed_Type
+   * * .. rst-class:: omit-stable-abi-note
+       .. c:var:: PyTypeObject PyReversed_Type
      * :py:class:`reversed`
-   * * .. c:var:: PyTypeObject PyZip_Type
+   * * .. rst-class:: omit-stable-abi-note
+       .. c:var:: PyTypeObject PyZip_Type
      * :py:class:`zip`
 
 
