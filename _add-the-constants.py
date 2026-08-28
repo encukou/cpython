@@ -110,10 +110,12 @@ with open('_redefinitions.txt', 'w') as f:
 
 with open('_doc.txt', 'w') as f:
     for name, entry in new_entries.items():
-        print(f'   - * .. c:macro:: {name}', file=f)
-        print(f'     * .. ``{entry['value']}``', file=f)
+        print(f'      - * .. rst-class:: omit-stable-abi-note', file=f)
+        print(f'          .. c:macro:: {name}', file=f)
+        print(f'        * 3.16', file=f)
+        print(f'        * ``{entry['value']}``', file=f)
         data_name = entry['legacy_constant']
         val = f':c:data:`{data_name}`'
         if data_name.startswith('PyExc_'):
             val = f':py:type:`{data_name.removeprefix('PyExc_')}`'
-        print('     *', val, file=f)
+        print('        *', val, file=f)

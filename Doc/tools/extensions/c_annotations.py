@@ -288,7 +288,7 @@ def _stable_abi_annotation(
         #     When compiling for the Stable ABI 3.16 and above, defined as
         #     Py_GetConstantBorrowed(Py_CONSTANT_xyz).
         gcb_ref_node = addnodes.pending_xref(
-            "slot ID",
+            "Py_GetConstantBorrowed",
             refdomain="c",
             reftarget="Py_GetConstantBorrowed",
             reftype="type",
@@ -297,6 +297,17 @@ def _stable_abi_annotation(
         gcb_ref_node += nodes.literal(
             "Py_GetConstantBorrowed",
             "Py_GetConstantBorrowed",
+        )
+        macro_ref_node = addnodes.pending_xref(
+            record.getconstant_id,
+            refdomain="c",
+            reftarget=record.getconstant_id,
+            reftype="data",
+            refexplicit="True",
+        )
+        macro_ref_node += nodes.literal(
+            record.getconstant_id,
+            record.getconstant_id,
         )
 
         message = sphinx_gettext("When compiling for the")
@@ -314,7 +325,7 @@ def _stable_abi_annotation(
         lit_node = nodes.literal("", "")
         lit_node += gcb_ref_node
         lit_node += nodes.Text("(")
-        lit_node += nodes.literal(record.getconstant_id, record.getconstant_id)
+        lit_node += macro_ref_node
         lit_node += nodes.Text(")")
         emph_node += lit_node
         emph_node += nodes.Text(".")
