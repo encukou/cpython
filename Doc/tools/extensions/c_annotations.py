@@ -504,77 +504,6 @@ class CorrespondingTypeSlot(SphinxDirective):
         return [node]
 
 
-class CorrespondingGetConstantID(SphinxDirective):
-    """ID for Py_GetConstant()
-
-    Docs for these are sometimes with the corresponding constant, for example,
-    "Py_CONSTANT_Bool_Type" is documented under "PyBool_Type", with
-    only a stable ABI note mentioning "Py_CONSTANT_Bool_Type" (and linking to
-    docs on how this works).
-
-    These can also documented as normal macros.
-    """
-
-    has_content = False
-
-    required_arguments = 1
-    optional_arguments = 0
-
-    def run(self) -> list[nodes.Node]:
-        name = self.arguments[0]
-        state = self.env.domaindata["c_annotations"]
-        stable_abi_data = state["stable_abi_data"]
-
-        try:
-            record = stable_abi_data[name]
-        except LookupError as err:
-            raise LookupError(
-                f"{name} is not part of stable ABI. "
-                + "Document it as `c:macro::` rather than "
-                + "`corresponding-getconstant-id::`."
-            ) from err
-
-        annotation = _stable_abi_annotation(record)
-
-        # See CorrespondingGetConstantID below
-        id_ref_node = addnodes.pending_xref(
-            "slot ID",
-            refdomain="c",
-            reftarget="Py_GetConstantBorrowed",
-            reftype="type",
-            refexplicit="True",
-        )
-        id_ref_node += nodes.literal("Py_GetConstantBorrowed", "Py_GetConstantBorrowed")
-
-        message = sphinx_gettext("When compiling for the")
-        annotation += nodes.Text(" " + message + " ")
-        annotation += _stable_abi_link()
-        message = sphinx_gettext(" 3.16 and above,")
-        annotation += nodes.Text(message + " ")
-        if name.endswith('Type'):
-            message = sphinx_gettext("defined using")
-        else:
-            message = sphinx_gettext("defined as")
-        annotation += nodes.Text(" " + message + " ")
-        lit_node = nodes.literal("", "")
-        lit_node += id_ref_node
-        lit_node += nodes.Text("(")
-        lit_node += nodes.literal(record.name, record.name)
-        lit_node += nodes.Text(")")
-        annotation += lit_node
-        annotation += nodes.Text(".")
-
-        node = nodes.paragraph()
-        content = [
-            ".. c:namespace:: NULL",
-            "",
-            ".. c:macro:: " + name,
-            "   :no-typesetting:",
-        ]
-        self.state.nested_parse(StringList(content), 0, node)
-        node.insert(0, annotation)
-        return [node]
-
 class StableABINote(SphinxDirective):
     has_content = True
 
@@ -609,7 +538,6 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("limited-api-list", LimitedAPIList)
     app.add_directive("version-hex-cheatsheet", VersionHexCheatsheet)
     app.add_directive("corresponding-type-slot", CorrespondingTypeSlot)
-    app.add_directive("corresponding-getconstant-id", CorrespondingGetConstantID)
     app.add_directive("stable-abi-note", StableABINote)
     app.connect("builder-inited", init_annotations)
     app.connect("doctree-read", add_annotations)
