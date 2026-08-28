@@ -185,8 +185,10 @@ def add_annotations(app: Sphinx, doctree: nodes.document) -> None:
                     f"{ROLE_TO_OBJECT_TYPE[record.role]!r} != {objtype!r}"
                 )
                 raise ValueError(msg)
-            annotation = _stable_abi_annotation(record)
-            node.insert(0, annotation)
+            if 'omit-stable-abi-note' not in node.parent.get('classes', []):
+                annotation = _stable_abi_annotation(record)
+                node.insert(0, annotation)
+                node.setdefault("classes", []).append('ADDED-HERE')
 
         # Unstable API annotation.
         if name.startswith("PyUnstable"):
@@ -562,6 +564,17 @@ class CorrespondingGetConstantID(SphinxDirective):
         node.insert(0, annotation)
         return [node]
 
+class StableABINote(SphinxDirective):
+    has_content = True
+
+    def run(self) -> list[nodes.Node]:
+        node = nodes.Element() # Anonymous container for parsing
+        node.rawsource = '\n'.join(self.content)
+        self.state.nested_parse(self.content, self.content_offset, node)
+        for child in node.children:
+            child.setdefault("classes", []).append('stableabi')
+        return node.children
+
 
 def init_annotations(app: Sphinx) -> None:
     # Using domaindata is a bit hack-ish,
@@ -586,6 +599,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("version-hex-cheatsheet", VersionHexCheatsheet)
     app.add_directive("corresponding-type-slot", CorrespondingTypeSlot)
     app.add_directive("corresponding-getconstant-id", CorrespondingGetConstantID)
+    app.add_directive("stable-abi-note", StableABINote)
     app.connect("builder-inited", init_annotations)
     app.connect("doctree-read", add_annotations)
 
