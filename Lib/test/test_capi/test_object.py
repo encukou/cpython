@@ -33,6 +33,7 @@ class Constant(enum.IntEnum):
 
     # Lots of exceptions & other types were added in 3.16;
     # we check them en masse.
+    # These are arguments for range(); 'stop' is exclusive.
     mass_exc_start = 10
     mass_exc_stop = 76
     mass_type_start = mass_exc_stop
@@ -62,7 +63,8 @@ class GetConstantTest(unittest.TestCase):
                 self.assertEqual(type(obj), constant_type, obj)
                 self.assertEqual(obj, value)
 
-        def check_unique(constant, _seen=set()):
+        _seen=set()
+        def check_unique(constant):
             self.assertNotIn(constant, _seen)
             _seen.add(constant)
 
