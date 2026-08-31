@@ -76,7 +76,8 @@ class StableABIEntry:
     # Defines how much of the struct is exposed. Only relevant for structs.
     # Source: [<item_kind>.*.struct_abi_kind] in stable_abi.toml.
     struct_abi_kind: str
-    # ...
+    # The argument for Py_GetConstant() used to get the object.
+    # Source: inverse of [const.*.legacy_constant] in stable_abi.toml.
     getconstant_id: str
 
 
@@ -185,7 +186,17 @@ def add_annotations(app: Sphinx, doctree: nodes.document) -> None:
                     f"{ROLE_TO_OBJECT_TYPE[record.role]!r} != {objtype!r}"
                 )
                 raise ValueError(msg)
-            if 'omit-stable-abi-note' not in node.parent.get('classes', []):
+
+            # Skip the note if any ancestor has 'omit-stable-abi-note'
+            # in a 'c_annotations' attribute.
+            ancestor = node
+            while ancestor:
+                if 'omit-stable-abi-note' not in ancestor.get(
+                    'c_annotations', [],
+                ):
+                    break
+                ancestor = node.parent
+            else:
                 annotation = _stable_abi_annotation(record)
                 node.insert(0, annotation)
                 node.setdefault("classes", []).append('ADDED-HERE')
@@ -423,9 +434,10 @@ class LimitedAPIList(SphinxDirective):
 
     def run(self) -> list[nodes.Node]:
         state = self.env.domaindata["c_annotations"]
-        content = []
-        for record in state["stable_abi_data"].values():
-            content.append(f"* :c:{record.role}:`{record.name}`")
+        content = [
+            f"* :c:{record.role}:`{record.name}`"
+            for record in state["stable_abi_data"].values()
+        ]
         node = nodes.Element()
         node.document = self.state.document
         self.state.nested_parse(StringList(content), 0, node)
@@ -508,11 +520,25 @@ class StableABINote(SphinxDirective):
     has_content = True
 
     def run(self) -> list[nodes.Node]:
-        node = nodes.Element() # Anonymous container for parsing
+        node = nodes.Element()  # Anonymous container for parsing
         node.rawsource = '\n'.join(self.content)
         self.state.nested_parse(self.content, self.content_offset, node)
         for child in node.children:
             child.setdefault("classes", []).append('stableabi')
+        return node.children
+
+
+class OmitStableABINotes(SphinxDirective):
+    has_content = True
+
+    def run(self) -> list[nodes.Node]:
+        node = nodes.Element()  # Anonymous container for parsing
+        node.rawsource = '\n'.join(self.content)
+        self.state.nested_parse(self.content, self.content_offset, node)
+        for child in node.children:
+            child.setdefault("c_annotations", []).append(
+                'omit-stable-abi-notes',
+            )
         return node.children
 
 
@@ -538,6 +564,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_directive("limited-api-list", LimitedAPIList)
     app.add_directive("version-hex-cheatsheet", VersionHexCheatsheet)
     app.add_directive("corresponding-type-slot", CorrespondingTypeSlot)
+    app.add_directive("omit-stable-abi-notes", OmitStableABINotes)
     app.add_directive("stable-abi-note", StableABINote)
     app.connect("builder-inited", init_annotations)
     app.connect("doctree-read", add_annotations)

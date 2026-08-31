@@ -110,8 +110,7 @@ with open('_redefinitions.txt', 'w') as f:
 
 with open('_doc.txt', 'w') as f:
     for name, entry in new_entries.items():
-        print(f'      - * .. rst-class:: omit-stable-abi-note', file=f)
-        print(f'          .. c:macro:: {name}', file=f)
+        print(f'      - * .. c:macro:: {name}', file=f)
         print(f'        * 3.16', file=f)
         print(f'        * ``{entry['value']}``', file=f)
         data_name = entry['legacy_constant']
