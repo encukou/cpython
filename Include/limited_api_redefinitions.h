@@ -91,7 +91,6 @@
 #define PyMemberDescr_Type (*Py_GetConstantBorrowed(Py_CONSTANT_MemberDescr_Type))
 #define PyMemoryView_Type (*Py_GetConstantBorrowed(Py_CONSTANT_MemoryView_Type))
 #define PyMethodDescr_Type (*Py_GetConstantBorrowed(Py_CONSTANT_MethodDescr_Type))
-#define PyModuleDef_Type (*Py_GetConstantBorrowed(Py_CONSTANT_ModuleDef_Type))
 #define PyModule_Type (*Py_GetConstantBorrowed(Py_CONSTANT_Module_Type))
 #define PyProperty_Type (*Py_GetConstantBorrowed(Py_CONSTANT_Property_Type))
 #define PyRange_Type (*Py_GetConstantBorrowed(Py_CONSTANT_Range_Type))

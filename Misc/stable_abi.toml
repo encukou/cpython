@@ -422,6 +422,7 @@
     added = '3.2'
 [data.PyBool_Type]
     added = '3.2'
+    abi_only = true
 [data.PyByteArrayIter_Type]
     added = '3.2'
     abi_only = true
@@ -439,6 +440,7 @@
     added = '3.2'
 [data.PyByteArray_Type]
     added = '3.2'
+    abi_only = true
 [data.PyBytesIter_Type]
     added = '3.2'
     abi_only = true
@@ -468,6 +470,7 @@
     added = '3.2'
 [data.PyBytes_Type]
     added = '3.2'
+    abi_only = true
 [function.PyCFunction_Call]
     added = '3.2'
     abi_only = true
@@ -481,6 +484,7 @@
     added = '3.2'
 [data.PyCFunction_Type]
     added = '3.2'
+    abi_only = true
 [function.PyCallIter_New]
     added = '3.2'
 [data.PyCallIter_Type]
@@ -512,8 +516,10 @@
     added = '3.2'
 [data.PyCapsule_Type]
     added = '3.2'
+    abi_only = true
 [data.PyClassMethodDescr_Type]
     added = '3.2'
+    abi_only = true
 [function.PyCodec_BackslashReplaceErrors]
     added = '3.2'
 [function.PyCodec_Decode]
@@ -556,6 +562,7 @@
     added = '3.2'
 [data.PyComplex_Type]
     added = '3.2'
+    abi_only = true
 [function.PyDescr_NewClassMethod]
     added = '3.2'
 [function.PyDescr_NewGetSet]
@@ -583,6 +590,7 @@
     added = '3.2'
 [data.PyDictProxy_Type]
     added = '3.2'
+    abi_only = true
 [data.PyDictValues_Type]
     added = '3.2'
     abi_only = true
@@ -622,14 +630,17 @@
     added = '3.2'
 [data.PyDict_Type]
     added = '3.2'
+    abi_only = true
 [function.PyDict_Update]
     added = '3.2'
 [function.PyDict_Values]
     added = '3.2'
 [data.PyEllipsis_Type]
     added = '3.2'
+    abi_only = true
 [data.PyEnum_Type]
     added = '3.2'
+    abi_only = true
 [function.PyErr_BadArgument]
     added = '3.2'
 [function.PyErr_BadInternalCall]
@@ -742,100 +753,146 @@
     abi_only = true
 [data.PyExc_ArithmeticError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_AssertionError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_AttributeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_BaseException]
     added = '3.2'
+    abi_only = true
 [data.PyExc_BaseExceptionGroup]
     added = '3.11'
+    abi_only = true
 [data.PyExc_BufferError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_BytesWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_DeprecationWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_EOFError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_EnvironmentError]
     added = '3.2'
 [data.PyExc_Exception]
     added = '3.2'
+    abi_only = true
 [data.PyExc_FloatingPointError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_FutureWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_GeneratorExit]
     added = '3.2'
+    abi_only = true
 [data.PyExc_IOError]
     added = '3.2'
 [data.PyExc_ImportError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_ImportWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_IndentationError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_IndexError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_KeyError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_KeyboardInterrupt]
     added = '3.2'
+    abi_only = true
 [data.PyExc_LookupError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_MemoryError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_NameError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_NotImplementedError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_OSError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_OverflowError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_PendingDeprecationWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_ReferenceError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_RuntimeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_RuntimeWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_StopIteration]
     added = '3.2'
+    abi_only = true
 [data.PyExc_SyntaxError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_SyntaxWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_SystemError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_SystemExit]
     added = '3.2'
+    abi_only = true
 [data.PyExc_TabError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_TypeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnboundLocalError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnicodeDecodeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnicodeEncodeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnicodeError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnicodeTranslateError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UnicodeWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_UserWarning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_ValueError]
     added = '3.2'
+    abi_only = true
 [data.PyExc_Warning]
     added = '3.2'
+    abi_only = true
 [data.PyExc_ZeroDivisionError]
     added = '3.2'
+    abi_only = true
 [function.PyException_GetCause]
     added = '3.2'
 [function.PyException_GetContext]
@@ -858,6 +915,7 @@
     added = '3.2'
 [data.PyFilter_Type]
     added = '3.2'
+    abi_only = true
 [function.PyFloat_AsDouble]
     added = '3.2'
 [function.PyFloat_FromDouble]
@@ -872,10 +930,12 @@
     added = '3.2'
 [data.PyFloat_Type]
     added = '3.2'
+    abi_only = true
 [function.PyFrozenSet_New]
     added = '3.2'
 [data.PyFrozenSet_Type]
     added = '3.2'
+    abi_only = true
 [function.PyGC_Collect]
     added = '3.2'
 [function.PyGILState_Ensure]
@@ -886,6 +946,7 @@
     added = '3.2'
 [data.PyGetSetDescr_Type]
     added = '3.2'
+    abi_only = true
 [function.PyImport_AddModule]
     added = '3.2'
 [function.PyImport_AppendInittab]
@@ -955,6 +1016,7 @@
     added = '3.2'
 [data.PyList_Type]
     added = '3.2'
+    abi_only = true
 [data.PyLongRangeIter_Type]
     added = '3.2'
     abi_only = true
@@ -1004,8 +1066,10 @@
     added = '3.2'
 [data.PyLong_Type]
     added = '3.2'
+    abi_only = true
 [data.PyMap_Type]
     added = '3.2'
+    abi_only = true
 [function.PyMapping_Check]
     added = '3.2'
 [function.PyMapping_GetItemString]
@@ -1034,14 +1098,17 @@
     added = '3.2'
 [data.PyMemberDescr_Type]
     added = '3.2'
+    abi_only = true
 [function.PyMemoryView_FromObject]
     added = '3.2'
 [function.PyMemoryView_GetContiguous]
     added = '3.2'
 [data.PyMemoryView_Type]
     added = '3.2'
+    abi_only = true
 [data.PyMethodDescr_Type]
     added = '3.2'
+    abi_only = true
 [function.PyModule_AddIntConstant]
     added = '3.2'
 [function.PyModule_AddObject]
@@ -1066,6 +1133,7 @@
     added = '3.2'
 [data.PyModule_Type]
     added = '3.2'
+    abi_only = true
 [function.PyNumber_Absolute]
     added = '3.2'
 [function.PyNumber_Add]
@@ -1260,13 +1328,16 @@
     added = '3.2'
 [data.PyProperty_Type]
     added = '3.2'
+    abi_only = true
 [data.PyRangeIter_Type]
     added = '3.2'
     abi_only = true
 [data.PyRange_Type]
     added = '3.2'
+    abi_only = true
 [data.PyReversed_Type]
     added = '3.2'
+    abi_only = true
 [function.PySeqIter_New]
     added = '3.2'
 [data.PySeqIter_Type]
@@ -1331,6 +1402,7 @@
     added = '3.2'
 [data.PySet_Type]
     added = '3.2'
+    abi_only = true
 [function.PySlice_GetIndices]
     added = '3.2'
 [function.PySlice_GetIndicesEx]
@@ -1339,6 +1411,7 @@
     added = '3.2'
 [data.PySlice_Type]
     added = '3.2'
+    abi_only = true
 [function.PyState_FindModule]
     added = '3.2'
 [function.PyStructSequence_GetItem]
@@ -1351,6 +1424,7 @@
     added = '3.2'
 [data.PySuper_Type]
     added = '3.2'
+    abi_only = true
 [function.PySys_AddWarnOption]
     added = '3.2'
     abi_only = true
@@ -1405,6 +1479,7 @@
     added = '3.2'
 [data.PyTraceBack_Type]
     added = '3.2'
+    abi_only = true
 [data.PyTupleIter_Type]
     added = '3.2'
     abi_only = true
@@ -1422,6 +1497,7 @@
     added = '3.2'
 [data.PyTuple_Type]
     added = '3.2'
+    abi_only = true
 [function.PyType_ClearCache]
     added = '3.2'
 [function.PyType_GenericAlloc]
@@ -1438,6 +1514,7 @@
     added = '3.2'
 [data.PyType_Type]
     added = '3.2'
+    abi_only = true
 [function.PyUnicodeDecodeError_Create]
     added = '3.2'
 [function.PyUnicodeDecodeError_GetEncoding]
@@ -1633,6 +1710,7 @@
     added = '3.2'
 [data.PyUnicode_Type]
     added = '3.2'
+    abi_only = true
 [function.PyWeakref_GetObject]
     added = '3.2'
     abi_only = true
@@ -1642,10 +1720,12 @@
     added = '3.2'
 [data.PyWrapperDescr_Type]
     added = '3.2'
+    abi_only = true
 [function.PyWrapper_New]
     added = '3.2'
 [data.PyZip_Type]
     added = '3.2'
+    abi_only = true
 [function.Py_AddPendingCall]
     added = '3.2'
 [function.Py_AtExit]
@@ -1979,9 +2059,9 @@
     added = '3.6'
 [data.PyExc_ModuleNotFoundError]
     added = '3.6'
+    abi_only = true
 
 # The following were added in PC/python3.def in Python 3.6.1 and 3.5.3/3.5.4:
-
 [function.PyCodec_NameReplaceErrors]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
 [function.PyErr_GetExcInfo]
@@ -1996,40 +2076,58 @@
     added = '3.7'  # (and 3.6.1 and 3.5.3)
 [data.PyExc_BlockingIOError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_BrokenPipeError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ChildProcessError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ConnectionAbortedError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ConnectionError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ConnectionRefusedError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ConnectionResetError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_FileExistsError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_FileNotFoundError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_InterruptedError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_IsADirectoryError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_NotADirectoryError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_PermissionError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ProcessLookupError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_RecursionError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_ResourceWarning]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_StopAsyncIteration]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [data.PyExc_TimeoutError]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
+    abi_only = true
 [function.PyImport_AddModuleObject]
     added = '3.7'  # (and 3.6.1 and 3.5.3)
 [function.PyImport_ExecCodeModuleObject]
@@ -2217,6 +2315,7 @@
     added = '3.9'
 [data.Py_GenericAliasType]
     added = '3.9'
+    abi_only = true
 [function.PyCMethod_New]
     added = '3.9'
 [function.PyInterpreterState_Get]
@@ -2290,9 +2389,9 @@
     added = '3.10'
 [data.PyExc_EncodingWarning]
     added = '3.10'
+    abi_only = true
 
 # Support for Stable ABI in debug builds
-
 [data._Py_RefTotal]
     added = '3.10'
     ifdef = 'Py_REF_DEBUG'
@@ -3247,66 +3346,62 @@
     added = "3.16"
     value = 97
     legacy_constant = "PyMethodDescr_Type"
-[const.Py_CONSTANT_ModuleDef_Type]
-    added = "3.16"
-    value = 98
-    legacy_constant = "PyModuleDef_Type"
 [const.Py_CONSTANT_Module_Type]
     added = "3.16"
-    value = 99
+    value = 98
     legacy_constant = "PyModule_Type"
 [const.Py_CONSTANT_Property_Type]
     added = "3.16"
-    value = 100
+    value = 99
     legacy_constant = "PyProperty_Type"
 [const.Py_CONSTANT_Range_Type]
     added = "3.16"
-    value = 101
+    value = 100
     legacy_constant = "PyRange_Type"
 [const.Py_CONSTANT_Reversed_Type]
     added = "3.16"
-    value = 102
+    value = 101
     legacy_constant = "PyReversed_Type"
 [const.Py_CONSTANT_Set_Type]
     added = "3.16"
-    value = 103
+    value = 102
     legacy_constant = "PySet_Type"
 [const.Py_CONSTANT_Slice_Type]
     added = "3.16"
-    value = 104
+    value = 103
     legacy_constant = "PySlice_Type"
 [const.Py_CONSTANT_Super_Type]
     added = "3.16"
-    value = 105
+    value = 104
     legacy_constant = "PySuper_Type"
 [const.Py_CONSTANT_TraceBack_Type]
     added = "3.16"
-    value = 106
+    value = 105
     legacy_constant = "PyTraceBack_Type"
 [const.Py_CONSTANT_Tuple_Type]
     added = "3.16"
-    value = 107
+    value = 106
     legacy_constant = "PyTuple_Type"
 [const.Py_CONSTANT_Type_Type]
     added = "3.16"
-    value = 108
+    value = 107
     legacy_constant = "PyType_Type"
 [const.Py_CONSTANT_Unicode_Type]
     added = "3.16"
-    value = 109
+    value = 108
     legacy_constant = "PyUnicode_Type"
 [const.Py_CONSTANT_WrapperDescr_Type]
     added = "3.16"
-    value = 110
+    value = 109
     legacy_constant = "PyWrapperDescr_Type"
 [const.Py_CONSTANT_Zip_Type]
     added = "3.16"
-    value = 111
+    value = 110
     legacy_constant = "PyZip_Type"
 [const.Py_CONSTANT_GenericAliasType]
     added = "3.16"
-    value = 112
+    value = 111
     legacy_constant = "Py_GenericAliasType"
 [const.Py_CONSTANT_Method_Type]
     added = "3.16"
-    value = 113
+    value = 112

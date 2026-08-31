@@ -429,67 +429,63 @@ identifiers.
         * 3.16
         * ``97``
         * :c:data:`PyMethodDescr_Type`
-      - * .. c:macro:: Py_CONSTANT_ModuleDef_Type
-        * 3.16
-        * ``98``
-        * :c:data:`PyModuleDef_Type`
       - * .. c:macro:: Py_CONSTANT_Module_Type
         * 3.16
-        * ``99``
+        * ``98``
         * :c:data:`PyModule_Type`
       - * .. c:macro:: Py_CONSTANT_Property_Type
         * 3.16
-        * ``100``
+        * ``99``
         * :c:data:`PyProperty_Type`
       - * .. c:macro:: Py_CONSTANT_Range_Type
         * 3.16
-        * ``101``
+        * ``100``
         * :c:data:`PyRange_Type`
       - * .. c:macro:: Py_CONSTANT_Reversed_Type
         * 3.16
-        * ``102``
+        * ``101``
         * :c:data:`PyReversed_Type`
       - * .. c:macro:: Py_CONSTANT_Set_Type
         * 3.16
-        * ``103``
+        * ``102``
         * :c:data:`PySet_Type`
       - * .. c:macro:: Py_CONSTANT_Slice_Type
         * 3.16
-        * ``104``
+        * ``103``
         * :c:data:`PySlice_Type`
       - * .. c:macro:: Py_CONSTANT_Super_Type
         * 3.16
-        * ``105``
+        * ``104``
         * :c:data:`PySuper_Type`
       - * .. c:macro:: Py_CONSTANT_TraceBack_Type
         * 3.16
-        * ``106``
+        * ``105``
         * :c:data:`PyTraceBack_Type`
       - * .. c:macro:: Py_CONSTANT_Tuple_Type
         * 3.16
-        * ``107``
+        * ``106``
         * :c:data:`PyTuple_Type`
       - * .. c:macro:: Py_CONSTANT_Type_Type
         * 3.16
-        * ``108``
+        * ``107``
         * :c:data:`PyType_Type`
       - * .. c:macro:: Py_CONSTANT_Unicode_Type
         * 3.16
-        * ``109``
+        * ``108``
         * :c:data:`PyUnicode_Type`
       - * .. c:macro:: Py_CONSTANT_WrapperDescr_Type
         * 3.16
-        * ``110``
+        * ``109``
         * :c:data:`PyWrapperDescr_Type`
       - * .. c:macro:: Py_CONSTANT_Zip_Type
         * 3.16
-        * ``111``
+        * ``110``
         * :c:data:`PyZip_Type`
       - * .. c:macro:: Py_CONSTANT_GenericAliasType
         * 3.16
-        * ``112``
+        * ``111``
         * :c:data:`Py_GenericAliasType`
       - * .. c:macro:: Py_CONSTANT_Method_Type
         * 3.16
-        * ``113``
+        * ``112``
         * :c:data:`PyMethod_Type`

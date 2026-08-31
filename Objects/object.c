@@ -3537,7 +3537,6 @@ static PyObject* constants[] = {
     (PyObject*)(&PyMemberDescr_Type),
     (PyObject*)(&PyMemoryView_Type),
     (PyObject*)(&PyMethodDescr_Type),
-    (PyObject*)(&PyModuleDef_Type),
     (PyObject*)(&PyModule_Type),
     (PyObject*)(&PyProperty_Type),
     (PyObject*)(&PyRange_Type),

@@ -887,22 +887,21 @@ PyAPI_FUNC(PyObject*) Py_GetConstantBorrowed(unsigned int constant_id);
 #define Py_CONSTANT_MemberDescr_Type 95
 #define Py_CONSTANT_MemoryView_Type 96
 #define Py_CONSTANT_MethodDescr_Type 97
-#define Py_CONSTANT_ModuleDef_Type 98
-#define Py_CONSTANT_Module_Type 99
-#define Py_CONSTANT_Property_Type 100
-#define Py_CONSTANT_Range_Type 101
-#define Py_CONSTANT_Reversed_Type 102
-#define Py_CONSTANT_Set_Type 103
-#define Py_CONSTANT_Slice_Type 104
-#define Py_CONSTANT_Super_Type 105
-#define Py_CONSTANT_TraceBack_Type 106
-#define Py_CONSTANT_Tuple_Type 107
-#define Py_CONSTANT_Type_Type 108
-#define Py_CONSTANT_Unicode_Type 109
-#define Py_CONSTANT_WrapperDescr_Type 110
-#define Py_CONSTANT_Zip_Type 111
-#define Py_CONSTANT_GenericAliasType 112
-#define Py_CONSTANT_Method_Type 113
+#define Py_CONSTANT_Module_Type 98
+#define Py_CONSTANT_Property_Type 99
+#define Py_CONSTANT_Range_Type 100
+#define Py_CONSTANT_Reversed_Type 101
+#define Py_CONSTANT_Set_Type 102
+#define Py_CONSTANT_Slice_Type 103
+#define Py_CONSTANT_Super_Type 104
+#define Py_CONSTANT_TraceBack_Type 105
+#define Py_CONSTANT_Tuple_Type 106
+#define Py_CONSTANT_Type_Type 107
+#define Py_CONSTANT_Unicode_Type 108
+#define Py_CONSTANT_WrapperDescr_Type 109
+#define Py_CONSTANT_Zip_Type 110
+#define Py_CONSTANT_GenericAliasType 111
+#define Py_CONSTANT_Method_Type 112
 #endif
 
 #ifdef __cplusplus

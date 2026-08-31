@@ -50,6 +50,11 @@ for name in sorted(manifest['data'], key=sort_key) + ['PyMethod_Type']:
         print(f'ignoring OSError alias {name}')
         continue
     if name in {
+        'PyModuleDef_Type',
+    }:
+        print(f'ignoring deprecated type {name}')
+        continue
+    if name in {
         'PyOS_InputHook',
         'PyStructSequence_UnnamedField',
         'Py_FileSystemDefaultEncodeErrors',
@@ -72,9 +77,15 @@ for name in sorted(manifest['data'], key=sort_key) + ['PyMethod_Type']:
     entry = tomlkit.table()
     entry.raw_append('added', item('3.16'))
     entry.raw_append('value', item(10 + len(new_entries)))
-    entry.raw_append('legacy_constant', item(name))
+
+    if name in manifest['data']:
+        entry.raw_append('legacy_constant', item(name))
+        mark_abi_only(name)
+
     entry.invalidate_display_name()
     new_entries.raw_append(const_name, entry)
+
+
 
 for name, entry in new_entries.items():
     print(name, entry)

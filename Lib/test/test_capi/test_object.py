@@ -36,7 +36,7 @@ class Constant(enum.IntEnum):
     mass_exc_start = 10
     mass_exc_stop = 76
     mass_type_start = mass_exc_stop
-    mass_type_stop = 114
+    mass_type_stop = 113
     # (When adding new ones, use individual entries again.)
 
     INVALID_CONSTANT = mass_type_stop
