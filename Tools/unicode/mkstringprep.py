@@ -12,7 +12,7 @@ for i in range(0, 0x110000):
 categories = frozendict(categories)
 bidirectional = frozendict(bidirectional)
 
-def compact_set(elements):
+def compact_set(elements, line_length=0):
     """Return the representation of a set with the given integer elements"""
     elements = sorted(elements)
     if not elements:
@@ -22,7 +22,8 @@ def compact_set(elements):
         r = range(first, last + 1)
         if len(r) <= 3:
             # 3 or fewer items are listed individually
-            entries.append(', '.join(str(e) for e in r))
+            for e in r:
+                entries.append(str(e))
         else:
             entries.append(f'*{r}')
     first = last = None
@@ -35,7 +36,17 @@ def compact_set(elements):
             add_range(first, last)
             first = last = element
     add_range(first, last)
-    return "{" + ', '.join(entries) + "}"
+    result = ["{"]
+    line_length += 1
+    for entry in entries:
+        if line_length + len(entry) >= 79:
+            result[-1] = result[-1].strip()
+            result.append('\n    ')
+            line_length = 4
+        result.append(entry + ', ')
+        line_length += len(entry) + 2
+    result[-1] = result[-1].strip(', ') + '}'
+    return ''.join(result)
 
 ############## Read the tables in the RFC #######################
 
@@ -203,7 +214,7 @@ for i, kv in enumerate(b3):
 print("}")
 
 print("""
-b3_exceptions.update({cp: chr(cp) for cp in """ + compact_set(b3_identities) + "})")
+b3_exceptions.update({cp: chr(cp) for cp in """ + compact_set(b3_identities, 40) + "})")
 
 print("""
 def map_table_b3(code):
