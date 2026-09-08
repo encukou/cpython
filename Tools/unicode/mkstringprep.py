@@ -1,11 +1,12 @@
 import re
+from collections import defaultdict
 import unicodedata as unicodedata_current
 from unicodedata import ucd_3_2_0 as unicodedata_320
 
-def gen_category(cats):
-    for i in range(0, 0x110000):
-        if unicodedata_320.category(chr(i)) in cats:
-            yield i
+categories = defaultdict(set)
+for i in range(0, 0x110000):
+    categories[unicodedata_320.category(chr(i))].add(i)
+categories = frozendict(categories)
 
 def gen_bidirectional(cats):
     for i in range(0, 0x110000):
@@ -127,7 +128,7 @@ name, table = tables[0]
 del tables[0]
 assert name == "A.1"
 table = set(table.keys())
-Cn = set(gen_category(["Cn"]))
+Cn = set(categories["Cn"])
 
 # FDD0..FDEF are process internal codes
 Cn -= set(range(0xFDD0, 0xFDF0))
@@ -264,7 +265,7 @@ del tables[0]
 assert name == "C.1.2"
 
 table = set(table.keys())
-Zs = set(gen_category(["Zs"])) - {0x20}
+Zs = categories["Zs"] - {0x20}
 assert Zs == table
 
 print("""
@@ -280,7 +281,7 @@ name, table_c21 = tables[0]
 del tables[0]
 assert name == "C.2.1"
 
-Cc = set(gen_category(["Cc"]))
+Cc = categories["Cc"]
 Cc_ascii = Cc & set(range(128))
 table_c21 = set(table_c21.keys())
 assert Cc_ascii == table_c21
@@ -320,7 +321,7 @@ name, table = tables[0]
 del tables[0]
 assert name == "C.3"
 
-Co = set(gen_category(["Co"]))
+Co = categories["Co"]
 assert set(table.keys()) == Co
 
 print("""
@@ -353,7 +354,7 @@ name, table = tables[0]
 del tables[0]
 assert name == "C.5"
 
-Cs = set(gen_category(["Cs"]))
+Cs = categories["Cs"]
 assert set(table.keys()) == Cs
 
 print("""
