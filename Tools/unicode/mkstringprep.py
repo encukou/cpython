@@ -412,3 +412,7 @@ print("""
 def in_table_d2(code):
     return unicodedata_320.bidirectional(code) == "L"
 """, end="")
+
+
+# All tables should be included now
+assert not tables
