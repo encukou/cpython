@@ -36,16 +36,18 @@ def compact_set(elements, line_length=0):
             add_range(first, last)
             first = last = element
     add_range(first, last)
-    result = ["{"]
-    line_length += 1
-    for entry in entries:
-        if line_length + len(entry) >= 79:
+    return '{' + line_wrap_items(entries, line_length+1) + '}'
+
+def line_wrap_items(items, line_length):
+    result = ['']
+    for item in items:
+        if line_length + len(item) >= 79:
             result[-1] = result[-1].strip()
             result.append('\n    ')
             line_length = 4
-        result.append(entry + ', ')
-        line_length += len(entry) + 2
-    result[-1] = result[-1].strip(', ') + '}'
+        result.append(item + ', ')
+        line_length += len(item) + 2
+    result[-1] = result[-1].strip(', ')
     return ''.join(result)
 
 ############## Read the tables in the RFC #######################
@@ -208,9 +210,7 @@ for cp in range(0x110000):
 b3 = sorted(b3_exceptions.items())
 
 print("""
-b3_exceptions = {""")
-for i, kv in enumerate(b3):
-    print("0x%x:%a," % kv, end='\n' if i % 4 == 3 else ' ')
+b3_exceptions = {""" + line_wrap_items((f"{k:#x}:{v!a}" for k, v in b3), 18))
 print("}")
 
 print("""
