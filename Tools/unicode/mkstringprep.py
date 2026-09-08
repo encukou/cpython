@@ -178,6 +178,7 @@ table_b3 = pop_table("B.3")
 # the exception map, too.
 
 b3_exceptions = {}
+b3_identities = []
 
 for k,v in table_b2.items():
     if list(map(ord, chr(k).lower())) != v:
@@ -191,7 +192,7 @@ for cp in range(0x110000):
             and ch.lower() != ch
             and cp not in table_b2
             and cp not in table_b3):
-        b3_exceptions[cp] = ch  # Identity.
+        b3_identities.append(cp)
 
 b3 = sorted(b3_exceptions.items())
 
@@ -200,6 +201,9 @@ b3_exceptions = {""")
 for i, kv in enumerate(b3):
     print("0x%x:%a," % kv, end='\n' if i % 4 == 3 else ' ')
 print("}")
+
+print("""
+b3_exceptions.update({cp: chr(cp) for cp in """ + compact_set(b3_identities) + "})")
 
 print("""
 def map_table_b3(code):
