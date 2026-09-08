@@ -12,39 +12,30 @@ def gen_bidirectional(cats):
         if unicodedata_320.bidirectional(chr(i)) in cats:
             yield i
 
-def compact_set(l):
-    single = []
-    tuple = []
-    prev = None
-    span = 0
-    for e in l:
-        if prev is None:
-            prev = e
-            span = 0
-            continue
-        if prev+span+1 != e:
-            if span > 2:
-                tuple.append((prev,prev+span+1))
-            else:
-                for i in range(prev, prev+span+1):
-                    single.append(i)
-            prev = e
-            span = 0
+def compact_set(elements):
+    """Return the representation of a set with the given integer elements"""
+    elements = sorted(elements)
+    if not elements:
+        return "set()"
+    entries = []
+    def add_range(first, last):
+        r = range(first, last + 1)
+        if len(r) <= 3:
+            # 3 or fewer items are listed individually
+            entries.append(', '.join(str(e) for e in r))
         else:
-            span += 1
-    if span:
-        tuple.append((prev,prev+span+1))
-    else:
-        single.append(prev)
-    if not single and len(tuple) == 1:
-        tuple = "range(%d,%d)" % tuple[0]
-    else:
-        tuple = " + ".join("list(range(%d,%d))" % t for t in tuple)
-    if not single:
-        return "set(%s)" % tuple
-    if not tuple:
-        return "set(%r)" % (single,)
-    return "set(%r + %s)" % (single, tuple)
+            entries.append(f'*{r}')
+    first = last = None
+    for element in elements:
+        if first is None:
+            first = last = element
+        elif element == last + 1:
+            last += 1
+        else:
+            add_range(first, last)
+            first = last = element
+    add_range(first, last)
+    return "{" + ', '.join(entries) + "}"
 
 ############## Read the tables in the RFC #######################
 
