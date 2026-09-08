@@ -4,14 +4,13 @@ import unicodedata as unicodedata_current
 from unicodedata import ucd_3_2_0 as unicodedata_320
 
 categories = defaultdict(set)
+bidirectional = defaultdict(set)
 for i in range(0, 0x110000):
-    categories[unicodedata_320.category(chr(i))].add(i)
+    c = chr(i)
+    categories[unicodedata_320.category(c)].add(i)
+    bidirectional[unicodedata_320.bidirectional(c)].add(i)
 categories = frozendict(categories)
-
-def gen_bidirectional(cats):
-    for i in range(0, 0x110000):
-        if unicodedata_320.bidirectional(chr(i)) in cats:
-            yield i
+bidirectional = frozendict(bidirectional)
 
 def compact_set(elements):
     """Return the representation of a set with the given integer elements"""
@@ -419,7 +418,7 @@ name, table = tables[0]
 del tables[0]
 assert name == "D.1"
 
-RandAL = set(gen_bidirectional(["R","AL"]))
+RandAL = bidirectional["R"] | bidirectional["AL"]
 assert set(table.keys()) == RandAL
 
 print("""
@@ -432,7 +431,7 @@ name, table = tables[0]
 del tables[0]
 assert name == "D.2"
 
-L = set(gen_bidirectional(["L"]))
+L = bidirectional["L"]
 assert set(table.keys()) == L
 
 print("""
