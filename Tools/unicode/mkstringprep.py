@@ -56,6 +56,7 @@ with open("Tools/unicode/data/rfc3454.txt", encoding='utf-8') as data_file:
     data = data_file.readlines()
 
 tables = []
+table_titles = {}
 curname = None
 for l in data:
     l = l.strip()
@@ -64,8 +65,12 @@ for l in data:
     # Skip RFC page breaks
     if l.startswith(("Hoffman & Blanchet", "RFC 3454")):
         continue
+    # Find appendix section titles
+    m = re.fullmatch("([A-Z](.[0-9])+) (.*)", l)
+    if m:
+        table_titles[m[1].replace('.', '').lower()] = m[0]
     # Find start/end lines
-    m = re.match("----- (Start|End) Table ([A-Z](.[0-9])+) -----", l)
+    m = re.fullmatch("----- (Start|End) Table ([A-Z](.[0-9])+) -----", l)
     if m:
         if m.group(1) == "Start":
             if curname:
@@ -112,6 +117,8 @@ for l in data:
             value = None
         table[int(code, 16)] = value
 
+print('#', table_titles)
+
 # Make pop() start with the first one
 tables.reverse()
 
@@ -121,7 +128,12 @@ def pop_table(expected_name):
     assert name == expected_name
     return table
 
-########### Generate compact Python versions of the tables #############
+########### Helpers for printing out Python functions #############
+
+def print_in_table_head(name):
+    print(f'def in_table_{name}(code):')
+    if title := table_titles.get(name):
+        print(f'    {"Lookup in RFC 3454 " + title!r}')
 
 def print_in_table_function(name, table):
     print()
@@ -129,11 +141,11 @@ def print_in_table_function(name, table):
     upper = max(table) + 1
     if len(table) == upper - lower:
         assert set(table) == set(range(lower, upper))
-        print(f'def in_table_{name}(code):')
+        print_in_table_head(name)
         print(f'    return ord(code) in range({lower:#x}, {upper:#x})')
     else:
         print(f'_{name}_set = frozenset({compact_set(table, 20)})')
-        print(f'def in_table_{name}(code):')
+        print_in_table_head(name)
         print(f'    return ord(code) in _{name}_set')
     print()
 
@@ -173,8 +185,8 @@ Cn -= set(range(0xFFFF, 0x110000, 0x10000))
 
 # assert table == Cn
 
-print("""
-def in_table_a1(code):
+print_in_table_head('a1')
+print("""\
     if unicodedata_320.category(code) != 'Cn': return False
     c = ord(code)
     if 0xFDD0 <= c < 0xFDF0: return False
@@ -277,8 +289,8 @@ def map_table_b2(a):
 table = pop_table("C.1.1")
 assert table == {0x20:0x20}
 
-print("""
-def in_table_c11(code):
+print_in_table_head('c11')
+print("""\
     return code == " "
 """)
 
@@ -289,11 +301,12 @@ table = set(table.keys())
 Zs = categories["Zs"] - {0x20}
 assert Zs == table
 
-print("""
-def in_table_c12(code):
+print_in_table_head('c12')
+print("""\
     return unicodedata_320.category(code) == "Zs" and code != " "
-
-def in_table_c11_c12(code):
+""")
+print_in_table_head('c1')
+print("""
     return unicodedata_320.category(code) == "Zs"
 """)
 
@@ -305,8 +318,8 @@ Cc_ascii = Cc & set(range(128))
 table_c21 = set(table_c21.keys())
 assert Cc_ascii == table_c21
 
-print("""
-def in_table_c21(code):
+print_in_table_head('c21')
+print("""\
     return ord(code) < 128 and unicodedata_320.category(code) == "Cc"
 """)
 
@@ -321,14 +334,16 @@ assert len(Cc_nonascii - table_c22) == 0
 specials = list(table_c22 - Cc_nonascii)
 specials.sort()
 
-print("""_c22_specials = """ + compact_set(specials) + """
-def in_table_c22(code):
+print("_c22_specials = " + compact_set(specials))
+print_in_table_head('c22')
+print("""\
     c = ord(code)
     if c < 128: return False
     if unicodedata_320.category(code) == "Cc": return True
     return c in _c22_specials
-
-def in_table_c21_c22(code):
+""")
+print_in_table_head('c2')
+print("""
     return unicodedata_320.category(code) == "Cc" or \\
            ord(code) in c22_specials
 """)
@@ -339,8 +354,8 @@ table = pop_table("C.3")
 Co = categories["Co"]
 assert set(table.keys()) == Co
 
-print("""
-def in_table_c3(code):
+print_in_table_head('c3')
+print("""\
     return unicodedata_320.category(code) == "Co"
 """)
 
@@ -354,8 +369,8 @@ nonchar.update(range(0xFFFF,0x110000,0x10000))
 table = set(table.keys())
 assert table == nonchar
 
-print("""
-def in_table_c4(code):
+print_in_table_head('c4')
+print("""\
     c = ord(code)
     if c < 0xFDD0: return False
     if c < 0xFDF0: return True
@@ -368,8 +383,8 @@ table = pop_table("C.5")
 Cs = categories["Cs"]
 assert set(table.keys()) == Cs
 
-print("""
-def in_table_c5(code):
+print_in_table_head('c5')
+print("""\
     return unicodedata_320.category(code) == "Cs"
 """)
 
@@ -395,8 +410,8 @@ table = pop_table("D.1")
 RandAL = bidirectional["R"] | bidirectional["AL"]
 assert set(table.keys()) == RandAL
 
-print("""
-def in_table_d1(code):
+print_in_table_head('d1')
+print("""\
     return unicodedata_320.bidirectional(code) in ("R","AL")
 """)
 
@@ -406,8 +421,8 @@ table = pop_table("D.2")
 L = bidirectional["L"]
 assert set(table.keys()) == L
 
-print("""
-def in_table_d2(code):
+print_in_table_head('d2')
+print("""\
     return unicodedata_320.bidirectional(code) == "L"
 """)
 
