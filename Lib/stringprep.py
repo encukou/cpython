@@ -15,6 +15,7 @@ assert unicodedata.unidata_version == '17.0.0'
 from unicodedata import ucd_3_2_0 as unicodedata_320
 
 assert unicodedata_320.unidata_version == '3.2.0'
+
 def in_table_a1(code):
     'Lookup in RFC 3454 A.1 Unassigned code points in Unicode 3.2'
     if unicodedata_320.category(code) != 'Cn': return False
@@ -230,18 +231,21 @@ def map_table_b2(a):
     else:
         return al
 
+
 def in_table_c11(code):
     'Lookup in RFC 3454 C.1.1 ASCII space characters'
     return code == " "
+
 
 def in_table_c12(code):
     'Lookup in RFC 3454 C.1.2 Non-ASCII space characters'
     return unicodedata_320.category(code) == "Zs" and code != " "
 
+
 def in_table_c1(code):
     'Lookup in RFC 3454 C.1 Space characters'
-
     return unicodedata_320.category(code) == "Zs"
+
 
 def in_table_c21(code):
     'Lookup in RFC 3454 C.2.1 ASCII control characters'
@@ -249,6 +253,7 @@ def in_table_c21(code):
 
 _c22_specials = {1757, 1807, 6158, 8204, 8205, 8232, 8233, *range(8288, 8292),
     *range(8298, 8304), 65279, *range(65529, 65533), *range(119155, 119163)}
+
 def in_table_c22(code):
     'Lookup in RFC 3454 C.2.2 Non-ASCII control characters'
     c = ord(code)
@@ -256,15 +261,17 @@ def in_table_c22(code):
     if unicodedata_320.category(code) == "Cc": return True
     return c in _c22_specials
 
+
 def in_table_c2(code):
     'Lookup in RFC 3454 C.2 Control characters'
-
     return unicodedata_320.category(code) == "Cc" or \
-           ord(code) in c22_specials
+           ord(code) in _c22_specials
+
 
 def in_table_c3(code):
     'Lookup in RFC 3454 C.3 Private use'
     return unicodedata_320.category(code) == "Co"
+
 
 def in_table_c4(code):
     'Lookup in RFC 3454 C.4 Non-character code points'
@@ -272,6 +279,7 @@ def in_table_c4(code):
     if c < 0xFDD0: return False
     if c < 0xFDF0: return True
     return (ord(code) & 0xFFFF) in (0xFFFE, 0xFFFF)
+
 
 def in_table_c5(code):
     'Lookup in RFC 3454 C.5 Surrogate codes'
@@ -300,9 +308,11 @@ def in_table_c9(code):
     'Lookup in RFC 3454 C.9 Tagging characters'
     return ord(code) in _c9_set
 
+
 def in_table_d1(code):
     'Lookup in RFC 3454 D.1 Characters with bidirectional property "R" or "AL"'
     return unicodedata_320.bidirectional(code) in ("R","AL")
+
 
 def in_table_d2(code):
     'Lookup in RFC 3454 D.2 Characters with bidirectional property "L"'

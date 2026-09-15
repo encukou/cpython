@@ -1,16 +1,8 @@
 import re
+import sys
 from collections import defaultdict
 import unicodedata as unicodedata_current
 from unicodedata import ucd_3_2_0 as unicodedata_320
-
-categories = defaultdict(set)
-bidirectional = defaultdict(set)
-for i in range(0, 0x110000):
-    c = chr(i)
-    categories[unicodedata_320.category(c)].add(i)
-    bidirectional[unicodedata_320.bidirectional(c)].add(i)
-categories = frozendict(categories)
-bidirectional = frozendict(bidirectional)
 
 def compact_set(elements, line_length=0):
     """Return the representation of a set with the given integer elements"""
@@ -135,18 +127,32 @@ def print_in_table_head(name):
     if title := table_titles.get(name):
         print(f'    {"Lookup in RFC 3454 " + title!r}')
 
-def print_in_table_function(name, table):
+def print_in_table_function(name, table, code=None, **ns):
+    print(f'Generating table {name}', file=sys.stderr)
     print()
-    lower = min(table)
-    upper = max(table) + 1
-    if len(table) == upper - lower:
-        assert set(table) == set(range(lower, upper))
+    if code is not None:
         print_in_table_head(name)
-        print(f'    return ord(code) in range({lower:#x}, {upper:#x})')
+        print(code.strip('\n'))
+
+        # Exhaustively verify that the code matches the table
+        print(f'Verifying table {name}', file=sys.stderr)
+        ns = {'unicodedata_320': unicodedata_320, **ns}
+        exec('def func(code):' + code, globals=ns)
+        func = ns['func']
+        for i in range(0x11_0000):
+            c = chr(i)
+            assert func(c) == (i in table), f'{name}: mismatch for {i:#x} {unicodedata_320.name(c, '')}'
     else:
-        print(f'_{name}_set = frozenset({compact_set(table, 20)})')
-        print_in_table_head(name)
-        print(f'    return ord(code) in _{name}_set')
+        lower = min(table)
+        upper = max(table) + 1
+        if len(table) == upper - lower:
+            assert set(table) == set(range(lower, upper))
+            print_in_table_head(name)
+            print(f'    return ord(code) in range({lower:#x}, {upper:#x})')
+        else:
+            print(f'_{name}_set = frozenset({compact_set(table, 20)})')
+            print_in_table_head(name)
+            print(f'    return ord(code) in _{name}_set')
     print()
 
 ########### Generate compact Python versions of the tables #############
@@ -172,21 +178,8 @@ from unicodedata import ucd_3_2_0 as unicodedata_320
 print("assert unicodedata_320.unidata_version == %r" % (unicodedata_320.unidata_version,))
 
 # A.1 is the table of unassigned characters
-# XXX Plane 15 PUA is listed as unassigned in Python.
 table = pop_table("A.1")
-table = set(table.keys())
-Cn = set(categories["Cn"])
-
-# FDD0..FDEF are process internal codes
-Cn -= set(range(0xFDD0, 0xFDF0))
-# not a character
-Cn -= set(range(0xFFFE, 0x110000, 0x10000))
-Cn -= set(range(0xFFFF, 0x110000, 0x10000))
-
-# assert table == Cn
-
-print_in_table_head('a1')
-print("""\
+print_in_table_function('a1', table, """
     if unicodedata_320.category(code) != 'Cn': return False
     c = ord(code)
     if 0xFDD0 <= c < 0xFDF0: return False
@@ -195,7 +188,7 @@ print("""\
 
 # B.1 cannot easily be derived
 table = pop_table("B.1")
-print_in_table_function('b1', table.keys())
+print_in_table_function('b1', table)
 
 # B.2 and B.3 is case folding.
 # It takes CaseFolding.txt into account, which is
@@ -286,91 +279,62 @@ def map_table_b2(a):
 """)
 
 # C.1.1 is a table with a single character
-table = pop_table("C.1.1")
-assert table == {0x20:0x20}
-
-print_in_table_head('c11')
-print("""\
+table = c11_table = pop_table("C.1.1")
+print_in_table_function('c11', table, """
     return code == " "
 """)
 
 # C.1.2 is the rest of all space characters
 table = pop_table("C.1.2")
+table = set(table)
 
-table = set(table.keys())
-Zs = categories["Zs"] - {0x20}
-assert Zs == table
-
-print_in_table_head('c12')
-print("""\
+print_in_table_function('c12', table, """
     return unicodedata_320.category(code) == "Zs" and code != " "
 """)
-print_in_table_head('c1')
-print("""
+print_in_table_function('c1', table | set(c11_table), """
     return unicodedata_320.category(code) == "Zs"
 """)
 
 # C.2.1 ASCII control characters
 table_c21 = pop_table("C.2.1")
-
-Cc = categories["Cc"]
-Cc_ascii = Cc & set(range(128))
-table_c21 = set(table_c21.keys())
-assert Cc_ascii == table_c21
-
-print_in_table_head('c21')
-print("""\
+table_c21 = set(table_c21)
+print_in_table_function('c21', table_c21, """
     return ord(code) < 128 and unicodedata_320.category(code) == "Cc"
 """)
 
 # C.2.2 Non-ASCII control characters. It also includes
 # a number of characters in category Cf.
 table_c22 = pop_table("C.2.2")
+table_c22 = set(table_c22)
 
-Cc_nonascii = Cc - Cc_ascii
-table_c22 = set(table_c22.keys())
-assert len(Cc_nonascii - table_c22) == 0
-
-specials = list(table_c22 - Cc_nonascii)
-specials.sort()
-
+specials = {
+    c for c in table_c22
+    if c > 127 and unicodedata_320.category(chr(c)) != "Cc"
+}
 print("_c22_specials = " + compact_set(specials))
-print_in_table_head('c22')
-print("""\
+
+print_in_table_function('c22', table_c22, """
     c = ord(code)
     if c < 128: return False
     if unicodedata_320.category(code) == "Cc": return True
     return c in _c22_specials
-""")
-print_in_table_head('c2')
-print("""
+""", _c22_specials=specials)
+
+print_in_table_function('c2', table_c21 | table_c22, """
     return unicodedata_320.category(code) == "Cc" or \\
-           ord(code) in c22_specials
-""")
+           ord(code) in _c22_specials
+""", _c22_specials=specials)
 
 # C.3 Private use
 table = pop_table("C.3")
-
-Co = categories["Co"]
-assert set(table.keys()) == Co
-
-print_in_table_head('c3')
-print("""\
+print_in_table_function('c3', table, """
     return unicodedata_320.category(code) == "Co"
 """)
 
 # C.4 Non-character code points, xFFFE, xFFFF
 # plus process internal codes
 table = pop_table("C.4")
-
-nonchar = set(range(0xFDD0,0xFDF0))
-nonchar.update(range(0xFFFE,0x110000,0x10000))
-nonchar.update(range(0xFFFF,0x110000,0x10000))
-table = set(table.keys())
-assert table == nonchar
-
-print_in_table_head('c4')
-print("""\
+print_in_table_function('c4', table, """
     c = ord(code)
     if c < 0xFDD0: return False
     if c < 0xFDF0: return True
@@ -379,50 +343,35 @@ print("""\
 
 # C.5 Surrogate codes
 table = pop_table("C.5")
-
-Cs = categories["Cs"]
-assert set(table.keys()) == Cs
-
-print_in_table_head('c5')
-print("""\
+print_in_table_function('c5', table, """
     return unicodedata_320.category(code) == "Cs"
 """)
 
 # C.6 Inappropriate for plain text
 table = pop_table("C.6")
-print_in_table_function('c6', table.keys())
+print_in_table_function('c6', table)
 
 # C.7 Inappropriate for canonical representation
 table = pop_table("C.7")
-print_in_table_function('c7', table.keys())
+print_in_table_function('c7', table)
 
 # C.8 Change display properties or are deprecated
 table = pop_table("C.8")
-print_in_table_function('c8', table.keys())
+print_in_table_function('c8', table)
 
 # C.9 Tagging characters
 table = pop_table("C.9")
-print_in_table_function('c9', table.keys())
+print_in_table_function('c9', table)
 
 # D.1 Characters with bidirectional property "R" or "AL"
 table = pop_table("D.1")
-
-RandAL = bidirectional["R"] | bidirectional["AL"]
-assert set(table.keys()) == RandAL
-
-print_in_table_head('d1')
-print("""\
+print_in_table_function('d1', table, """
     return unicodedata_320.bidirectional(code) in ("R","AL")
 """)
 
 # D.2 Characters with bidirectional property "L"
 table = pop_table("D.2")
-
-L = bidirectional["L"]
-assert set(table.keys()) == L
-
-print_in_table_head('d2')
-print("""\
+print_in_table_function('d2', table, """
     return unicodedata_320.bidirectional(code) == "L"
 """)
 
