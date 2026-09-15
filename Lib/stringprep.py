@@ -242,13 +242,13 @@ def in_table_c11_c12(code):
 def in_table_c21(code):
     return ord(code) < 128 and unicodedata_320.category(code) == "Cc"
 
-c22_specials = {1757, 1807, 6158, 8204, 8205, 8232, 8233, *range(8288, 8292),
+_c22_specials = {1757, 1807, 6158, 8204, 8205, 8232, 8233, *range(8288, 8292),
     *range(8298, 8304), 65279, *range(65529, 65533), *range(119155, 119163)}
 def in_table_c22(code):
     c = ord(code)
     if c < 128: return False
     if unicodedata_320.category(code) == "Cc": return True
-    return c in c22_specials
+    return c in _c22_specials
 
 def in_table_c21_c22(code):
     return unicodedata_320.category(code) == "Cc" or \
@@ -298,8 +298,8 @@ def in_table_d2(code):
 
 
 def __getattr__(name):
-    if name.endswith('_set'):
-        func_name = 'in_table_' + name.removesuffix('_set')
+    if name.endswith(('_set', '_specials')):
+        func_name = 'in_table_' + name.removesuffix('_set').removesuffix('_specials')
         func = globals().get(func_name)
         if func:
             import warnings

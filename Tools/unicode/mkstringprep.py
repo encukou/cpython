@@ -321,12 +321,12 @@ assert len(Cc_nonascii - table_c22) == 0
 specials = list(table_c22 - Cc_nonascii)
 specials.sort()
 
-print("""c22_specials = """ + compact_set(specials) + """
+print("""_c22_specials = """ + compact_set(specials) + """
 def in_table_c22(code):
     c = ord(code)
     if c < 128: return False
     if unicodedata_320.category(code) == "Cc": return True
-    return c in c22_specials
+    return c in _c22_specials
 
 def in_table_c21_c22(code):
     return unicodedata_320.category(code) == "Cc" or \\
@@ -420,8 +420,8 @@ assert not tables
 
 print("""
 def __getattr__(name):
-    if name.endswith('_set'):
-        func_name = 'in_table_' + name.removesuffix('_set')
+    if name.endswith(('_set', '_specials')):
+        func_name = 'in_table_' + name.removesuffix('_set').removesuffix('_specials')
         func = globals().get(func_name)
         if func:
             import warnings
