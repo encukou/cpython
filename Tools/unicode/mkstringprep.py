@@ -221,11 +221,11 @@ for cp in range(0x110000):
 b3 = sorted(b3_exceptions.items())
 
 print("""
-b3_exceptions = {""" + line_wrap_items((f"{k:#x}:{v!a}" for k, v in b3), 18))
-print("}")
-
-print("""
-b3_exceptions.update({cp: chr(cp) for cp in """ + compact_set(b3_identities, 40) + "})")
+b3_exceptions = frozendict({
+    """ + line_wrap_items((f"{k:#x}:{v!a}" for k, v in b3), 4) + """,
+    **{cp: chr(cp) for cp in """ + compact_set(b3_identities, 32) + """}
+}}
+""")
 
 print("""
 def map_table_b3(code):
