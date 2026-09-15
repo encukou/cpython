@@ -22,10 +22,10 @@ def in_table_a1(code):
     return (c & 0xFFFF) not in (0xFFFE, 0xFFFF)
 
 
-b1_set = {173, 847, 6150, 6155, 6156, 6157, 8203, 8204, 8205, 8288,
-    *range(65024, 65040), 65279}
+_b1_set = frozenset({173, 847, 6150, 6155, 6156, 6157, 8203, 8204, 8205, 8288,
+    *range(65024, 65040), 65279})
 def in_table_b1(code):
-    return ord(code) in b1_set
+    ord(code) in _b1_set
 
 
 b3_exceptions = {0xb5:'\u03bc', 0xdf:'ss', 0x149:'\u02bcn', 0x17f:'s',
@@ -270,24 +270,23 @@ def in_table_c5(code):
     return unicodedata_320.category(code) == "Cs"
 
 
-c6_set = {*range(65529, 65534)}
 def in_table_c6(code):
-    return ord(code) in c6_set
+    ord(code) in range(0xfff9, 0xfffe)
 
 
-c7_set = {*range(12272, 12284)}
 def in_table_c7(code):
-    return ord(code) in c7_set
+    ord(code) in range(0x2ff0, 0x2ffc)
 
 
-c8_set = {832, 833, 8206, 8207, *range(8234, 8239), *range(8298, 8304)}
+_c8_set = frozenset({832, 833, 8206, 8207, *range(8234, 8239),
+    *range(8298, 8304)})
 def in_table_c8(code):
-    return ord(code) in c8_set
+    ord(code) in _c8_set
 
 
-c9_set = {917505, *range(917536, 917632)}
+_c9_set = frozenset({917505, *range(917536, 917632)})
 def in_table_c9(code):
-    return ord(code) in c9_set
+    ord(code) in _c9_set
 
 
 def in_table_d1(code):
