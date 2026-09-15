@@ -409,8 +409,31 @@ assert set(table.keys()) == L
 print("""
 def in_table_d2(code):
     return unicodedata_320.bidirectional(code) == "L"
-""", end="")
+""")
 
 
 # All tables should be included now
 assert not tables
+
+
+########### Backwards compatibility #############
+
+print("""
+def __getattr__(name):
+    if name.endswith('_set'):
+        func_name = 'in_table_' + name.removesuffix('_set')
+        func = globals().get(func_name)
+        if func:
+            import warnings
+            set = {i for i in range(0x11_0000) if func(chr(i))}
+            globals()[name] = set
+            warnings._deprecated(
+                'stringprep.' + name,
+                remove=(3, 21),
+                message=f'{name} and other undocumented stringprep constants '
+                    + 'will be removed in Python {remove}. '
+                    + f'Use stringprep.{func_name}() instead.',
+                )
+            return set
+    raise AttributeError(name)
+""", end="")

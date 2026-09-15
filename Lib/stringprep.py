@@ -25,7 +25,7 @@ def in_table_a1(code):
 _b1_set = frozenset({173, 847, 6150, 6155, 6156, 6157, 8203, 8204, 8205, 8288,
     *range(65024, 65040), 65279})
 def in_table_b1(code):
-    ord(code) in _b1_set
+    return ord(code) in _b1_set
 
 
 b3_exceptions = {0xb5:'\u03bc', 0xdf:'ss', 0x149:'\u02bcn', 0x17f:'s',
@@ -271,22 +271,22 @@ def in_table_c5(code):
 
 
 def in_table_c6(code):
-    ord(code) in range(0xfff9, 0xfffe)
+    return ord(code) in range(0xfff9, 0xfffe)
 
 
 def in_table_c7(code):
-    ord(code) in range(0x2ff0, 0x2ffc)
+    return ord(code) in range(0x2ff0, 0x2ffc)
 
 
 _c8_set = frozenset({832, 833, 8206, 8207, *range(8234, 8239),
     *range(8298, 8304)})
 def in_table_c8(code):
-    ord(code) in _c8_set
+    return ord(code) in _c8_set
 
 
 _c9_set = frozenset({917505, *range(917536, 917632)})
 def in_table_c9(code):
-    ord(code) in _c9_set
+    return ord(code) in _c9_set
 
 
 def in_table_d1(code):
@@ -295,3 +295,22 @@ def in_table_d1(code):
 
 def in_table_d2(code):
     return unicodedata_320.bidirectional(code) == "L"
+
+
+def __getattr__(name):
+    if name.endswith('_set'):
+        func_name = 'in_table_' + name.removesuffix('_set')
+        func = globals().get(func_name)
+        if func:
+            import warnings
+            set = {i for i in range(0x11_0000) if func(chr(i))}
+            globals()[name] = set
+            warnings._deprecated(
+                'stringprep.' + name,
+                remove=(3, 21),
+                message=f'{name} and other undocumented stringprep constants '
+                    + 'will be removed in Python {remove}. '
+                    + f'Use stringprep.{func_name}() instead.',
+                )
+            return set
+    raise AttributeError(name)
