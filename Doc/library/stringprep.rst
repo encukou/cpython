@@ -32,8 +32,9 @@ As a result, these tables are exposed as functions, not as data structures.
 There are two kinds of tables in the RFC: sets and mappings. For a set,
 :mod:`!stringprep` provides the "characteristic function", i.e. a function that
 returns ``True`` if the parameter is part of the set. For mappings, it provides the
-mapping function: given the key, it returns the associated value. Below is a
-list of all functions available in the module.
+mapping function: given the key, it returns the associated value, or ``None``
+if the codepoint is not in the mapping.
+Below is a list of all functions available in the module.
 
 
 .. function:: in_table_a1(code)
