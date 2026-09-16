@@ -462,30 +462,7 @@ def convertdir(dir, dirprefix='', nameprefix='', comments=1):
             print('* conversion failed: %s' % why)
             raise
 
-def rewritepythondir(dir, dirprefix='', comments=1):
-
-    mapnames = os.listdir(dir)
-    for mapname in mapnames:
-        if not mapname.endswith('.mapping'):
-            continue
-        name = mapname[:-len('.mapping')]
-        codefile = name + '.py'
-        print('converting %s to %s' % (mapname,
-                                       dirprefix + codefile))
-        try:
-            with open(os.path.join(dir, mapname), 'rb') as f:
-                map = marshal.load(f)
-            if not map:
-                print('* map is empty; skipping')
-            else:
-                pymap(mapname, map, dirprefix + codefile,name,comments)
-        except ValueError as why:
-            print('* conversion failed: %s' % why)
-
 if __name__ == '__main__':
 
     import sys
-    if 1:
-        convertdir(*sys.argv[1:])
-    else:
-        rewritepythondir(*sys.argv[1:])
+    convertdir(*sys.argv[1:])
