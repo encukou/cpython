@@ -13,7 +13,7 @@ RM = /bin/rm
 
 ### Generic targets
 
-all:	distclean mappings codecs
+all: codecs
 
 codecs:	misc windows iso apple ebcdic custom-mappings cjk
 
@@ -22,12 +22,14 @@ codecs:	misc windows iso apple ebcdic custom-mappings cjk
 mappings:
 	ncftpget -R ftp.unicode.org . Public/MAPPINGS
 
+MAPPINGS: mappings
+
 ### Codecs
 
 build/:
 	mkdir build
 
-misc:	build/
+misc:	MAPPINGS build/
 	$(PYTHON) gencodec.py MAPPINGS/VENDORS/MISC/ build/
 	$(RM) build/atarist.*
 	$(RM) build/us_ascii_quotes.*
@@ -38,16 +40,16 @@ misc:	build/
 custom-mappings:	build/
 	$(PYTHON) gencodec.py python-mappings/ build/
 
-windows:	build/
+windows:	MAPPINGS build/
 	$(PYTHON) gencodec.py MAPPINGS/VENDORS/MICSFT/WINDOWS/ build/
 	$(RM) build/cp9*
 	$(RM) -f build/readme.*
 
-iso:	build/
+iso:	MAPPINGS build/
 	$(PYTHON) gencodec.py MAPPINGS/ISO8859/ build/ iso
 	$(RM) -f build/isoreadme.*
 
-apple:	build/
+apple:	MAPPINGS build/
 	$(PYTHON) gencodec.py MAPPINGS/VENDORS/APPLE/ build/ mac_
 	$(RM) build/mac_dingbats.*
 	$(RM) build/mac_japanese.*
@@ -68,11 +70,11 @@ apple:	build/
 	$(RM) build/mac_keyboard.*
 	$(RM) -f build/mac_readme.*
 
-ebcdic:	build/
+ebcdic:	MAPPINGS build/
 	$(PYTHON) gencodec.py MAPPINGS/VENDORS/MICSFT/EBCDIC/ build/
 	$(RM) -f build/readme.*
 
-cjk:	build/
+cjk:	MAPPINGS build/
 	$(PYTHON) gencjkcodecs.py build/
 
 ### Cleanup
@@ -82,3 +84,5 @@ clean:
 
 distclean:	clean
 	$(RM) -rf MAPPINGS/
+
+.PHONY: all mappings codecs misc windows iso apple ebcdic custom-mappings cjk clean distclean

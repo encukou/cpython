@@ -133,6 +133,8 @@ PCbuild/obj/
 PCbuild/win32/
 PCbuild/win32t/
 Tools/unicode/data/
+Tools/unicode/build/
+Tools/unicode/MAPPINGS/
 /autom4te.cache
 /build/
 /builddir/
