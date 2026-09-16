@@ -55,6 +55,16 @@ _BC_WEIRD_ALIGN_CODECS = {
     'mac_iceland', 'mac_roman', 'mac_romanian', 'mac_turkish',
     'tis_620',
 }
+_BC_NO_SPACES = {
+    'cp037', 'cp1006', 'cp1026', 'cp1140', 'cp1250', 'cp1251',
+    'cp1252', 'cp1253', 'cp1254', 'cp1255', 'cp1256', 'cp1257',
+    'cp1258', 'cp273', 'cp424', 'cp500', 'cp856', 'cp874', 'cp875',
+    'iso8859_1', 'iso8859_10', 'iso8859_11', 'iso8859_13', 'iso8859_14',
+    'iso8859_15', 'iso8859_16', 'iso8859_2', 'iso8859_3', 'iso8859_4',
+    'iso8859_5', 'iso8859_6', 'iso8859_7', 'iso8859_8', 'iso8859_9', 'koi8_r',
+    'koi8_u', 'mac_croatian', 'mac_cyrillic', 'mac_farsi', 'mac_greek',
+    'mac_iceland', 'mac_roman', 'mac_romanian', 'mac_turkish', 'tis_620',
+}
 
 
 def parsecodes(codes, len=len, range=range):
@@ -311,8 +321,13 @@ def codegen(name, map, encodingname, comments=1):
     else:
         suffix = 'map'
 
+    if encodingname in _BC_NO_SPACES:
+        sp = ''
+    else:
+        sp = ' '
+
     l = [
-        '''\
+        f'''\
 """ Python Character Mapping Codec %s generated from '%s' with gencodec.py.
 
 """#"
@@ -323,27 +338,27 @@ import codecs
 
 class Codec(codecs.Codec):
 
-    def encode(self, input, errors='strict'):
-        return codecs.charmap_encode(input, errors, encoding_%s)
+    def encode(self,{sp}input,{sp}errors='strict'):
+        return codecs.charmap_encode(input,{sp}errors,{sp}encoding_%s)
 
-    def decode(self, input, errors='strict'):
-        return codecs.charmap_decode(input, errors, decoding_%s)
+    def decode(self,{sp}input,{sp}errors='strict'):
+        return codecs.charmap_decode(input,{sp}errors,{sp}decoding_%s)
 ''' % (encodingname, name, suffix, suffix)]
-    l.append('''\
+    l.append(f'''\
 class IncrementalEncoder(codecs.IncrementalEncoder):
     def encode(self, input, final=False):
-        return codecs.charmap_encode(input, self.errors, encoding_%s)[0]
+        return codecs.charmap_encode(input,{sp}self.errors,{sp}encoding_%s)[0]
 
 class IncrementalDecoder(codecs.IncrementalDecoder):
     def decode(self, input, final=False):
-        return codecs.charmap_decode(input, self.errors, decoding_%s)[0]''' %
+        return codecs.charmap_decode(input,{sp}self.errors,{sp}decoding_%s)[0]''' %
         (suffix, suffix))
 
-    l.append('''
-class StreamWriter(Codec, codecs.StreamWriter):
+    l.append(f'''
+class StreamWriter(Codec,{sp}codecs.StreamWriter):
     pass
 
-class StreamReader(Codec, codecs.StreamReader):
+class StreamReader(Codec,{sp}codecs.StreamReader):
     pass
 
 ### encodings module API
@@ -374,9 +389,9 @@ def getregentry():
 
     # Add encoding map
     if decoding_table_code:
-        l.append('''
+        l.append(f'''
 ### Encoding table
-encoding_table = codecs.charmap_build(decoding_table)
+encoding_table{sp}={sp}codecs.charmap_build(decoding_table)
 ''')
     else:
         l.append('''
