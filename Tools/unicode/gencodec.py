@@ -75,10 +75,10 @@ _BC_NO_FINAL_NEWLINE = {
     'iso8859_4', 'iso8859_5', 'iso8859_6', 'iso8859_7', 'iso8859_8',
     'iso8859_9', 'koi8_r', 'koi8_u', 'kz1048', 'mac_croatian', 'mac_cyrillic',
     'mac_farsi', 'mac_greek', 'mac_iceland', 'mac_roman', 'mac_romanian',
-    'mac_turkish', 'tis_620',
+    'mac_turkish', 'tis_620', 'iso8859_1',
 }
 _BC_NO_WIDEN = {
-    'cp037', 'cp500',
+    'cp037', 'cp500', 'iso8859_1',
 }
 
 
