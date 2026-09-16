@@ -20,7 +20,7 @@ codecs:	misc windows iso apple ebcdic custom-mappings cjk
 ### Mappings
 
 mappings:
-	ncftpget -R ftp.unicode.org . Public/MAPPINGS
+	if [ ! -e MAPPINGS ]; then ncftpget -R ftp.unicode.org . Public/MAPPINGS; fi
 
 MAPPINGS: mappings
 
@@ -76,6 +76,12 @@ ebcdic:	MAPPINGS build/
 
 cjk:	MAPPINGS build/
 	$(PYTHON) gencjkcodecs.py build/
+
+### Install
+
+install: codecs
+	cp build/*.py ../../Lib/encodings/
+
 
 ### Cleanup
 
