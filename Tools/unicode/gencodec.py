@@ -65,6 +65,18 @@ _BC_NO_SPACES = {
     'koi8_u', 'mac_croatian', 'mac_cyrillic', 'mac_farsi', 'mac_greek',
     'mac_iceland', 'mac_roman', 'mac_romanian', 'mac_turkish', 'tis_620',
 }
+_BC_NO_FINAL_NEWLINE = {
+    'cp037', 'cp1006', 'cp1026', 'cp1140', 'cp1250', 'cp1251', 'cp1252', 'cp1253',
+    'cp1254', 'cp1255', 'cp1256', 'cp1257', 'cp1258', 'cp273', 'cp424', 'cp500',
+    'cp856', 'cp874', 'cp875', 'euc_kr', 'gb18030', 'hz', 'iso2022_jp',
+    'iso2022_jp_1', 'iso2022_jp_2', 'iso2022_jp_2004', 'iso2022_jp_3',
+    'iso2022_jp_ext', 'iso2022_kr', 'iso8859_10', 'iso8859_11', 'iso8859_13',
+    'iso8859_14', 'iso8859_15', 'iso8859_16', 'iso8859_2', 'iso8859_3',
+    'iso8859_4', 'iso8859_5', 'iso8859_6', 'iso8859_7', 'iso8859_8',
+    'iso8859_9', 'koi8_r', 'koi8_u', 'kz1048', 'mac_croatian', 'mac_cyrillic',
+    'mac_farsi', 'mac_greek', 'mac_iceland', 'mac_roman', 'mac_romanian',
+    'mac_turkish', 'tis_620',
+}
 
 
 def parsecodes(codes, len=len, range=range):
@@ -399,8 +411,9 @@ encoding_table{sp}={sp}codecs.charmap_build(decoding_table)
 ''')
         l.extend(encoding_map_code)
 
-    # Final new-line
-    l.append('')
+    if encodingname not in _BC_NO_FINAL_NEWLINE:
+        # Final new-line
+        l.append('')
 
     return '\n'.join(l).expandtabs()
 
