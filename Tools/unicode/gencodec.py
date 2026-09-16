@@ -277,6 +277,7 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2, encodingname
 
     # Create table code
     maxchar = 0
+    start = True
     for key in range(maxkey + 1):
         if key not in table:
             mapvalue = MISSING_CODE
@@ -292,6 +293,13 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2, encodingname
             else:
                 mapchar = chr(mapvalue)
         maxchar = max(maxchar, ord(mapchar))
+        if start:
+            if key == ord(mapchar):
+                continue
+            else:
+                if key:
+                    append(f"    ''.join(chr(x) for x in range({key:#x})) +")
+                start = False
         if mapcomment and comments:
             line = ('    %a \t#  %s -> %s' % (mapchar,
                                               hexrepr(key, key_precision),
@@ -302,9 +310,13 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2, encodingname
             append(line)
         else:
             append('    %a' % mapchar)
+    if start:
+        append(f"    ''.join(chr(x) for x in range({maxkey+1:#x})) +")
 
     if maxchar < 256 and encodingname not in _BC_NO_WIDEN:
         append('    %a \t## Widen to UCS2 for optimization' % UNI_UNDEFINED)
+    elif start:
+        append("    ''")
     append(')')
     return l
 

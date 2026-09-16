@@ -923,6 +923,10 @@ static PyObject *
 _codecs_charmap_build_impl(PyObject *module, PyObject *map)
 /*[clinic end generated code: output=bb073c27031db9ac input=d91a91d1717dbc6d]*/
 {
+    if (!PyUnicode_Check(map) || (PyUnicode_GET_LENGTH(map) != 256)) {
+        PyErr_BadArgument();
+        return NULL;
+    }
     return PyUnicode_BuildEncodingMap(map);
 }
 

@@ -45,10 +45,7 @@ def getregentry():
 ### Decoding Table
 
 decoding_table = (
-    '\x00'     #  0x00 -> NULL
-    '\x01'     #  0x01 -> START OF HEADING
-    '\x02'     #  0x02 -> START OF TEXT
-    '\x03'     #  0x03 -> END OF TEXT
+    ''.join(chr(x) for x in range(0x4)) +
     '\x9c'     #  0x04 -> CONTROL
     '\t'       #  0x05 -> HORIZONTAL TABULATION
     '\x86'     #  0x06 -> CONTROL
