@@ -43,6 +43,20 @@ mapRE = re.compile(r'((?:0x[0-9a-fA-F]+\+?)+)'
                    r'\s*'
                    r'(#.+)?')
 
+_BC_WEIRD_ALIGN_CODECS = {
+    'cp037', 'cp1006', 'cp1026', 'cp1140', 'cp1250', 'cp1251',
+    'cp1252', 'cp1253', 'cp1254', 'cp1255', 'cp1256', 'cp1257',
+    'cp1258', 'cp424', 'cp500', 'cp856', 'cp874', 'cp875',
+    'iso8859_1', 'iso8859_10', 'iso8859_11', 'iso8859_13',
+    'iso8859_14', 'iso8859_15', 'iso8859_16', 'iso8859_2',
+    'iso8859_3', 'iso8859_4', 'iso8859_5', 'iso8859_6',
+    'iso8859_7', 'iso8859_8', 'iso8859_9', 'koi8_r', 'koi8_u',
+    'mac_croatian', 'mac_cyrillic', 'mac_farsi', 'mac_greek',
+    'mac_iceland', 'mac_roman', 'mac_romanian', 'mac_turkish',
+    'tis_620',
+}
+
+
 def parsecodes(codes, len=len, range=range):
 
     """ Converts code combinations to either a single code integer
@@ -207,7 +221,7 @@ def python_mapdef_code(varname, map, comments=1, precisions=(2, 4)):
 
     return l
 
-def python_tabledef_code(varname, map, comments=1, key_precision=2):
+def python_tabledef_code(varname, map, comments=1, key_precision=2, encodingname=None):
 
     l = []
     append = l.append
@@ -254,9 +268,13 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2):
                 mapchar = chr(mapvalue)
         maxchar = max(maxchar, ord(mapchar))
         if mapcomment and comments:
-            append('    %a \t#  %s -> %s' % (mapchar,
-                                            hexrepr(key, key_precision),
-                                            mapcomment))
+            line = ('    %a \t#  %s -> %s' % (mapchar,
+                                              hexrepr(key, key_precision),
+                                              mapcomment))
+            line = line.expandtabs()
+            if encodingname in _BC_WEIRD_ALIGN_CODECS:
+                line = line.replace(' #', '#', 1)
+            append(line)
         else:
             append('    %a' % mapchar)
 
@@ -280,7 +298,8 @@ def codegen(name, map, encodingname, comments=1):
     decoding_table_code = python_tabledef_code(
         'decoding_table',
         map,
-        comments=comments)
+        comments=comments,
+        encodingname=encodingname)
     encoding_map_code = python_mapdef_code(
         'encoding_map',
         codecs.make_encoding_map(map),
