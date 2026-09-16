@@ -77,6 +77,9 @@ _BC_NO_FINAL_NEWLINE = {
     'mac_farsi', 'mac_greek', 'mac_iceland', 'mac_roman', 'mac_romanian',
     'mac_turkish', 'tis_620',
 }
+_BC_NO_WIDEN = {
+    'cp037', 'cp500',
+}
 
 
 def parsecodes(codes, len=len, range=range):
@@ -300,7 +303,7 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2, encodingname
         else:
             append('    %a' % mapchar)
 
-    if maxchar < 256:
+    if maxchar < 256 and encodingname not in _BC_NO_WIDEN:
         append('    %a \t## Widen to UCS2 for optimization' % UNI_UNDEFINED)
     append(')')
     return l
