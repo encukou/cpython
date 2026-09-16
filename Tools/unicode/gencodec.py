@@ -135,6 +135,21 @@ def hexrepr(t, precision=4):
         print('* failed to convert %r: %s' % (t, why))
         raise
 
+def sortkey(item):
+    """A key for sorted() that accepts mixed types, like Python2
+
+    Only handles the types needed by this script.
+    """
+    if isinstance(item, tuple):
+        return 'tuple', [sortkey(x) for x in item]
+    elif isinstance(item, int):
+        return 'int', item
+    elif isinstance(item, str):
+        return 'str', item
+    elif item is None:
+        return 'None', item
+    raise TypeError(item)  # not implemented
+
 def python_mapdef_code(varname, map, comments=1, precisions=(2, 4)):
 
     l = []
@@ -151,7 +166,7 @@ def python_mapdef_code(varname, map, comments=1, precisions=(2, 4)):
         splits = 0
         identity = 0
 
-    mappings = sorted(map.items())
+    mappings = sorted(map.items(), key=sortkey)
     i = 0
     key_precision, value_precision = precisions
     for mapkey, mapvalue in mappings:
@@ -199,7 +214,7 @@ def python_tabledef_code(varname, map, comments=1, key_precision=2):
     append('%s = (' % varname)
 
     # Analyze map and create table dict
-    mappings = sorted(map.items())
+    mappings = sorted(map.items(), key=sortkey)
     table = {}
     maxkey = 255
     if 'IDENTITY' in map:
