@@ -1886,6 +1886,7 @@ class TestTemporaryDirectory(BaseTestCase):
             os.chmod(dir1, 0o500)
             unlink = os.unlink
             def hook(path, *, dir_fd=None):
+                print('hook', path)
                 try:
                     return unlink(path, dir_fd=dir_fd)
                 except PermissionError:
@@ -1893,15 +1894,44 @@ class TestTemporaryDirectory(BaseTestCase):
                         os.rename(dir1, dir1 + '_moved')
                         os.symlink(target, dir1)
                     raise
+            import traceback
+            armed = 1
+            indent = 0
+            @sys.addaudithook
+            def ahook(event, args):
+                nonlocal armed
+                if a := armed:
+                    armed = 0
+                    print(' ' * indent + '\N{ESC}[33m', event, args, '\N{ESC}[m')
+#                    traceback.print_stack(limit=3)
+                    armed = a
+            def tracefunc(frame, event, arg):
+                nonlocal indent
+                if event in {'return', }:
+                    indent -= 1
+                if event != 'line':
+                    print(' ' * indent + '\N{ESC}[31m', event + '\N{ESC}[m', frame, arg)
+                if event == 'call':
+                    indent += 1
+                    for local, val in frame.f_locals.items():
+                        print(' ' * indent, local, repr(val)[:90])
+                return tracefunc
             try:
                 with mock.patch('os.unlink', hook):
                     with contextlib.suppress(OSError):
+                        sys.settrace(tracefunc)
                         d1.cleanup()
             finally:
                 if os.path.islink(dir1):
                     os.unlink(dir1)
                     os.rename(dir1 + '_moved', dir1)
-                os.chmod(dir1, 0o700)
+                os.system(f'ls -R {d1.name}')
+                try:
+                    if os.path.exists(dir1):
+                        os.chmod(dir1, 0o700)
+                finally:
+                    armed = 0
+                    sys.settrace(None)
                 d1.cleanup()
 
             self.assertTrue(os.path.exists(target_file))
