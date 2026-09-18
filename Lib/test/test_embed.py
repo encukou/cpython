@@ -279,7 +279,10 @@ class EmbeddingTests(EmbeddingTestsMixin, unittest.TestCase):
                          "<module 'embedded_ext' (static-extension)>\n"
                          "embedded_ext.executed='yes'\n"
                          "ascii(mp.__name__)=\"'m\\\\xf6dul_mp'\" mp.executed='yes'\n"
-                         "SystemError: 'initialization of m\\xf6dul_sp "
+                         # The error contains the ASCII-only (punycode) name,
+                         # which is less than ideal, but fine.
+                         # PyInit is soft-deprecated, after all.
+                         "SystemError: 'initialization of mdul_sp_90a "
                          "did not return PyModuleDef'\n"
                          )
 
