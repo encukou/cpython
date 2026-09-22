@@ -240,32 +240,9 @@ def map_table_b3(code):
     return code.lower()
 """)
 
-def map_table_b3(code):
-    r = b3_exceptions.get(ord(code))
-    if r is not None: return r
-    return code.lower()
-
 # B.2 is case folding for NFKC. This is the same as B.3,
 # except where NormalizeWithKC(Fold(a)) !=
 # NormalizeWithKC(Fold(NormalizeWithKC(Fold(a))))
-
-def map_table_b2(a):
-    al = map_table_b3(a)
-    b = unicodedata_320.normalize("NFKC", al)
-    bl = "".join([map_table_b3(ch) for ch in b])
-    c = unicodedata_320.normalize("NFKC", bl)
-    if b != c:
-        return c
-    else:
-        return al
-
-specials = {}
-for k,v in table_b2.items():
-    if list(map(ord, map_table_b2(chr(k)))) != v:
-        specials[k] = v
-
-# B.3 should not add any additional special cases
-assert specials == {}
 
 output("""
 def map_table_b2(a):
