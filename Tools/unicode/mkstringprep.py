@@ -176,8 +176,8 @@ from unicodedata import ucd_3_2_0 as unicodedata_320
 output("assert unicodedata_320.unidata_version == %r" % (unicodedata_320.unidata_version,))
 
 # A.1 is the table of unassigned characters
-table = pop_table("A.1")
-output_in_table_function('a1', table, """
+table_a1 = pop_table("A.1")
+output_in_table_function('a1', table_a1, """
     if unicodedata_320.category(code) != 'Cn': return False
     c = ord(code)
     if 0xFDD0 <= c < 0xFDF0: return False
@@ -218,7 +218,8 @@ for cp in range(0x110000):
     if (unicodedata_current.category(ch) != "Cn"
             and ch.lower() != ch
             and cp not in table_b2
-            and cp not in table_b3):
+            and cp not in table_b3
+            and cp not in table_a1):
         b3_identities.append(cp)
 
 b3 = sorted(b3_exceptions.items())
@@ -234,6 +235,8 @@ output("""
 def map_table_b3(code):
     r = b3_exceptions.get(ord(code))
     if r is not None: return r
+    if in_table_a1(code):
+        return code
     return code.lower()
 """)
 
