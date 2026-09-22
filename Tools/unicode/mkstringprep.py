@@ -286,7 +286,7 @@ output_in_table_function('c11', table, """
 """)
 
 # C.1.2 is the rest of all space characters
-table = pop_table("C.1.2")
+table = c12_table = pop_table("C.1.2")
 table = set(table)
 
 output_in_table_function('c12', table, """
@@ -410,21 +410,28 @@ result = ''.join(results)
 namespace = {}
 exec(result, namespace)
 
+def check(name, func, want_func):
+    print(f'Exhaustively verifying {func.__name__} against {name}', file=sys.stderr)
+    try:
+        for i in range(0x11_0000):
+            c = chr(i)
+            got = func(c)
+            expected = want_func(i)
+            assert got == expected, f'{i:#x} {got} != {expected}'
+            if i % 12345 == 0:
+                print(f'{i:#x} {i/0x11_0000:.0%}',
+                    end='\r', flush=True, file=sys.stderr)
+    finally:
+        print(' ' * 15, end='\r', file=sys.stderr, flush=True)
+
 for name, table in orig_tables:
     identifier = name.lower().replace('.', '')
     if func := namespace.get('in_table_' + identifier):
         assert ('map_table_' + identifier) not in namespace
-        want = table.__contains__
+        want_func = table.__contains__
     else:
         func = namespace['map_table_' + identifier]
-        want = lambda i: ''.join(chr(c) for c in table.get(i, [i]))
-
-    print(f'Exhaustively verifying table {name} to {func.__name__}', file=sys.stderr)
-    for i in range(0x11_0000):
-        c = chr(i)
-        got = func(c)
-        expected = want(i)
-        assert got == expected, f'{i:#x} {got} != {expected}'
-        if i % 12345 == 0:
-            print(f'{i:#x} {i/0x11_0000:.0%}', end='\r', flush=True, file=sys.stderr)
-    print(f'              ', end='\r', file=sys.stderr, flush=True)
+        want_func = lambda i: ''.join(chr(c) for c in table.get(i, [i]))
+    check('table ' + name, func, want_func)
+check('section C.1', namespace['in_table_c1'], lambda i: (i in c11_table) or (i in c12_table))
+check('section C.2', namespace['in_table_c2'], lambda i: (i in table_c21) or (i in table_c22))
