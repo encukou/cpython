@@ -2949,7 +2949,7 @@ precedence remains the same:
     >>> order_mock.get_value()
     'third'
 
-If :attr:`~Mock.side_effect` is exhausted, the order of precedence will not
+If :attr:`~Mock.side_effect` is :term:`exhausted`, the order of precedence will not
 cause a value to be obtained from the successors. Instead, ``StopIteration``
 exception is raised.
 
