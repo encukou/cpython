@@ -13,7 +13,7 @@ import os
 import contextlib
 
 from test import support
-from test.support.script_helper import assert_python_ok
+from test.support.script_helper import assert_python_ok, assert_python_failure
 
 try:
     import _testcapi
@@ -919,6 +919,26 @@ class ErrorHandlingTests(LazyImportTestCase):
         """)
         proc = assert_python_ok("-c", code)
         self.assertIn(b"error: boom", proc.out)
+
+    def test_baseexception_in_spec_initializing(self):
+        """Test a raising spec._initializing"""
+        code = textwrap.dedent("""
+            import sys
+            import types
+
+            class Spec:
+                @property
+                def _initializing(self):
+                    raise BaseException("boom")
+
+            module = types.ModuleType("cached_spec")
+            module.__spec__ = Spec()
+            module.attr = 1
+            sys.modules["cached_spec"] = module
+            lazy from cached_spec import attr
+        """)
+        proc = assert_python_failure("-c", code, NO_COLOR='1')
+        self.assertIn(b"BaseException: boom", proc.err)
 
 
 @support.requires_subprocess()
