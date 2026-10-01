@@ -225,6 +225,7 @@ lazy_import_path(PyLazyImportObject *m)
     return PyUnicode_Substring(m->lz_from, 0, dot);
 }
 
+// A user-friendly name for use in repr and error messages
 static PyObject *
 lazy_import_name(PyLazyImportObject *m)
 {
@@ -352,6 +353,25 @@ _PyLazyImport_IsResolving(PyThreadState *tstate, PyObject *op)
     return active;
 }
 
+// Discard from sys.lazy_modules.
+static int
+lazy_import_discard(PyThreadState *tstate, PyLazyImportObject *m) {
+    PyObject *name = NULL;
+    if (PyLazyImport_CheckExact(m->lz_from)) {
+        name = lazy_import_path(m);
+    }
+    else {
+        name = Py_NewRef(m->lz_from);
+    }
+    if (name == NULL) {
+        return -1;
+    }
+
+    int rc = _PyImport_DiscardLazyModule(tstate->interp, name);
+    Py_DECREF(name);
+    return rc;
+}
+
 static PyObject *
 lazy_import_resolve_impl(PyThreadState *tstate, PyObject *lazy_import,
                          PyObject **imported_module)
@@ -452,13 +472,8 @@ done:
         lazy_import_add_exception_cause(tstate, lz);
     }
     assert(obj == NULL || !PyLazyImport_CheckExact(obj));
-    if (obj != NULL) {
-        PyObject *name = lazy_import_name(lz);
-        if (name == NULL ||
-            _PyImport_DiscardLazyModule(tstate->interp, name) < 0) {
-            Py_CLEAR(obj);
-        }
-        Py_XDECREF(name);
+    if (obj != NULL && (lazy_import_discard(tstate, lz) < 0)) {
+        Py_CLEAR(obj);
     }
     if (resolving != NULL) {
         // A failed set resize can leave the placeholder inserted. Removing by
