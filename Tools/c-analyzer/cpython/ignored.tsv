@@ -48,7 +48,8 @@ Objects/unicodeobject.c	_init_global_state	initialized	-
 Modules/getbuildinfo.c	-	buildinfo	-
 Modules/getbuildinfo.c	-	initialized	-
 Python/getversion.c	-	initialized	-
-Python/getversion.c	-	version	-
+Python/getversion.c	-	static_version	-
+Python/getversion.c	-	heap_version	-
 
 ## public C-API - set during first init
 Python/bootstrap_hash.c	-	_Py_HashSecret_Initialized	-
@@ -778,6 +779,7 @@ Modules/expat/xmlrole.c	-	condSect1	-
 Modules/expat/xmlrole.c	-	condSect2	-
 Modules/expat/xmlrole.c	-	declClose	-
 Modules/expat/xmlrole.c	-	error	-
+Python/preconfig.c	-	Py_UTF8Mode	-
 
 ## other
 Modules/_io/_iomodule.c	-	_PyIO_Module	-
