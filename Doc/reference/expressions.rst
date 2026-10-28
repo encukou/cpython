@@ -1331,9 +1331,9 @@ For example::
    3.0
 
 At runtime, the primary expression is evaluated, and the result's
-:meth:`~object.__getattribute__` method is called to to produce
+:meth:`~object.__getattribute__` :term:`special method` is called to to produce
 the attribute of the given name.
-By default, the :meth:`~object.__getattribute__` method looks attributes up
+By default, :meth:`!__getattribute__` looks attributes up
 in several places, such as the object's :term:`instance dictionary`,
 its type's attributes and descriptors, and the type's
 :meth:`~object.__getattr__` method, if any.
@@ -1346,8 +1346,31 @@ and it can return a differerent object each time.
 To customize the behavior of attribute references on a class you define,
 it is typically easier to add a descriptor (for example, using :class:`property`)
 or to override :meth:`~object.__getattr__`, rather than override
-:meth:`~object.__getattribute__` itself.
+:meth:`!__getattribute__` itself.
 See :ref:`attribute-access` for details.
+
+Attribute references may also be used as targets in
+:ref:`assignment <assignment>` or :ref:`deletion <del>` statements.
+In these cases, the interpreter will call an object's
+:meth:`~object.__setattr__` or :meth:`~object.__delattr__`
+:term:`special method`, respectively,
+instead of :meth:`~object.__getattribute__`.
+
+.. code-block::
+
+   >>> from types import SimpleNamespace
+   >>> obj = SimpleNamespace()
+
+   >>> obj.color = 'green'  # set the `color` attribute on `obj`
+   >>> obj.color
+   'green'
+   >>> obj
+   namespace(color='green')
+
+   >>> del obj.color  # delete the `color` attribute on `obj`
+   >>> obj
+   namespace()
+
 
 The formal grammar of attribute references is:
 
