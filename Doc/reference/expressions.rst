@@ -1285,12 +1285,24 @@ Primaries
 
 .. index:: single: primary
 
-Primaries represent the most tightly bound operations of the language. Their
-syntax is:
+Primaries represent the most tightly bound operations of the language.
+They are:
 
-.. productionlist:: python-grammar
+- Bare :ref:`atoms <atoms>`
+- :ref:`Attribute references <attribute-references>`, such as ``math.pi``
+- :ref:`Subscriptions and slicings <subscriptions>`, such as ``names[0]``
+- :ref:`Calls <calls>`, such as ``print()``
+
+The formal syntax of primaries is:
+
+.. grammar-snippet::
+   :group: python-grammar
+
    primary: `atom` | `attributeref` | `subscription` | `call`
 
+
+.. index::
+   pair: exception; AttributeError
 
 .. _attribute-references:
 
@@ -1301,30 +1313,48 @@ Attribute references
    pair: attribute; reference
    single: . (dot); attribute reference
 
-An attribute reference is a primary followed by a period and a name:
+An :dfn:`attribute reference` asks an object for an :term:`attribute` --
+a named value associated with that object.
+Syntactically, an attribute reference is a :ref:`primary <primaries>`
+expression followed by a dot (``.``) and an :ref:`identifier <identifiers>`
+that names the attribute.
+For example::
 
-.. productionlist:: python-grammar
+   >>> import math
+
+   >>> # get the `pi` attribute of the `math` module
+   >>> math.pi
+   3.141592653589793
+
+   >>> # get the `real` part of a complex number
+   >>> (3 + 2j).real
+   3.0
+
+At runtime, the primary expression is evaluated, and the result's
+:meth:`~object.__getattribute__` method is called to to produce
+the attribute of the given name.
+By default, the :meth:`~object.__getattribute__` method looks attributes up
+in several places, such as the object's :term:`instance dictionary`,
+its type's attributes and descriptors, and the type's
+:meth:`~object.__getattr__` method, if any.
+Typically, this method returns the same object each time it's called
+with a given object and name, or it raises :exc:`AttributeError` if
+the attribute is not found.
+However, the method is called each time an attribute access is evaluated,
+and it can return a differerent object each time.
+
+To customize the behavior of attribute references on a class you define,
+it is typically easier to add a descriptor (for example, using :class:`property`)
+or to override :meth:`~object.__getattr__`, rather than override
+:meth:`~object.__getattribute__` itself.
+See :ref:`attribute-access` for details.
+
+The formal grammar of attribute references is:
+
+.. grammar-snippet::
+   :group: python-grammar
+
    attributeref: `primary` "." `identifier`
-
-.. index::
-   pair: exception; AttributeError
-   pair: object; module
-   pair: object; list
-
-The primary must evaluate to an object of a type that supports attribute
-references, which most objects do.  This object is then asked to produce the
-attribute whose name is the identifier. The type and value produced is
-determined by the object.  Multiple evaluations of the same attribute
-reference may yield different objects.
-
-This production can be customized by overriding the
-:meth:`~object.__getattribute__` method or the :meth:`~object.__getattr__`
-method.  The :meth:`!__getattribute__` method is called first and either
-returns a value or raises :exc:`AttributeError` if the attribute is not
-available.
-
-If an :exc:`AttributeError` is raised and the object has a :meth:`!__getattr__`
-method, that method is called as a fallback.
 
 .. _subscriptions:
 
