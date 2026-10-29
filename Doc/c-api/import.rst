@@ -309,6 +309,8 @@ The following APIs deal with frozen modules.
    may be provided as frozen modules.
 
 
+.. _capi-builtin-modules:
+
 Built-in modules
 ----------------
 
@@ -324,21 +326,106 @@ in a lookup table.
    - :ref:`Frozen modules <capi-frozen-modules>`: Python (bytecode) modules
      compiled into the interpreter.
 
-The following APIs deal with built-in modules.
+Built-in modules are registered at Python initialization time
+by calling :c:func:`PyInitConfig_AddBuiltinModules` with an array of
+the following structures.
+
+.. c:struct:: PyImport_BuiltinInfo
+
+   .. defined in Include/cpython/import.h
+
+   Structure describing a built-in module.
+   Its definition is::
+
+      typedef struct PyImport_BuiltinInfo {
+         const char *bi_name;
+         uint16_t bi_type;
+         uint16_t bi_flags;
+         union {
+            uint32_t bi_reserved;
+         };
+         union {
+            PySlot *bi_slots;
+            PySlot *(*bi_exportfunc)(void);
+            PyObject* (*bi_initfunc)(void);
+         };
+      } PyImport_BuiltinInfo;
+
+   .. c:member:: const char *bi_name
+
+      Name of the module, as UTF-8 encoded NUL-terminated string.
+      The string must be statically allocated, or otherwise guaranteed to stay
+      valid until after :c:func:`Py_Finalize` finishes.
+
+   .. c:member:: uint16_t bi_type
+
+      The type of the module.
+      Must be set to one of the following values:
+
+      .. c:namespace:: NULL
+
+      .. c:macro:: Py_BUILTINMOD_MODEXPORT
+
+         The :c:member:`~PyImport_BuiltinInfo.bi_exportfunc` member points to
+         an :ref:`export hook <extension-export-hook>`.
+
+      .. c:macro:: Py_BUILTINMOD_SLOTS
+
+         The :c:member:`~PyImport_BuiltinInfo.bi_slots` member points to
+         an array of slots, as would be returned from
+         an :ref:`export hook <extension-export-hook>`.
+         (This means that the array must be statically allocated,
+         or otherwise guaranteed to remain valid and constant until
+         interpreter shutdown.)
+
+      .. c:macro:: Py_BUILTINMOD_INITFUNC
+
+         The :c:member:`~PyImport_BuiltinInfo.bi_initfunc` member points to
+         an old-style :ref:`initialization function <extension-pyinit>`.
+
+      .. c:macro:: Py_BUILTINMOD_END
+
+         Marks the end of an array of :c:struct:`!PyImport_BuiltinInfo`
+         structures.
+         :c:member:`~PyImport_BuiltinInfo.bi_name` must be NULL.
+
+         Defined as zero.
+
+      Note that Python may use other values internally.
+
+   .. c:member:: uint16_t bi_flags
+                 uint32_t bi_reserved
+
+      Reserved. Must be set to zero.
+
+   .. c:member:: PySlot *bi_slots
+                 PySlot *(*bi_exportfunc)(void)
+                 PyObject* (*bi_initfunc)(void)
+
+      See :c:member:`~PyImport_BuiltinInfo.bi_type`.
+      These members are part of an anonymous union.
+
+
+The *inittab*
+.............
+
+The following API is :term:`soft deprecated` in favor of
+:c:func:`PyInitConfig_AddBuiltinModules`.
 
 .. c:function:: int PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 
-   Add a single module to the existing table of built-in modules.  This is a
+   Add a single module to the legacy table of built-in modules.  This is a
    convenience wrapper around :c:func:`PyImport_ExtendInittab`, returning ``-1`` if
    the table could not be extended.  The new module can be imported by the name
    *name*, and uses the function *initfunc* as the initialization function called
    on the first attempted import.  This should be called before
    :c:func:`Py_Initialize`.
 
+   .. soft-deprecated:: next
 
 .. c:struct:: _inittab
 
-   Structure describing a single entry in the list of built-in modules.
+   Structure describing a single entry in the legacy list of built-in modules.
    Programs which
    embed Python may use an array of these structures in conjunction with
    :c:func:`PyImport_ExtendInittab` to provide additional built-in modules.
@@ -352,17 +439,15 @@ The following APIs deal with built-in modules.
 
       Initialization function for a module built into the interpreter.
 
-      Note that the inittab uses "``PyInit``"
-      :ref:`initialization functions <extension-pyinit>`;
-      there is currently no way to include "``PyModExport_``"
-      :ref:`export hooks <extension-export-hook>`.
+   .. soft-deprecated:: next
 
 
 .. c:function:: int PyImport_ExtendInittab(struct _inittab *newtab)
 
-   Add a collection of modules to the table of built-in modules.  The *newtab*
-   array must end with a sentinel entry which contains ``NULL`` for the :c:member:`~_inittab.name`
-   field; failure to provide the sentinel value can result in a memory fault.
+   Add a collection of modules to the legacy table of built-in modules.
+   The *newtab* array must end with a sentinel entry which contains
+   ``NULL`` for the :c:member:`~_inittab.name` field;
+   failure to provide the sentinel value can result in a memory fault.
    Returns ``0`` on success or ``-1`` if insufficient memory could be allocated to
    extend the internal table.  In the event of failure, no modules are added to the
    internal table.  This must be called before :c:func:`Py_Initialize`.
@@ -371,12 +456,17 @@ The following APIs deal with built-in modules.
    :c:func:`PyImport_ExtendInittab` must be called before each Python
    initialization.
 
+   .. soft-deprecated:: next
+
 
 .. c:var:: struct _inittab *PyImport_Inittab
 
-   The table of built-in modules used by Python initialization. Do not use this directly;
+   The legacy table of built-in modules used by Python initialization.
+   Do not use this directly;
    use :c:func:`PyImport_AppendInittab` and :c:func:`PyImport_ExtendInittab`
    instead.
+
+   .. soft-deprecated:: next
 
 
 Lazy import control

@@ -1985,6 +1985,19 @@ class InitConfigTests(EmbeddingTestsMixin, unittest.TestCase):
     def test_initconfig_module(self):
         self.run_embedded_interpreter("test_initconfig_module")
 
+    @support.subTests('n', [-1, 0, 1, 2, 3])
+    def test_initconfig_modules(self, n):
+        out, err = self.run_embedded_interpreter(
+            "test_initconfig_modules", env={'N': str(n)})
+        suffixes = ['_init', '_export', '_slot']
+        if n < 0:
+            n = 3
+        expected = (
+            ['imported: ' + s for s in suffixes[:n]]
+            + ['not found: ' + s for s in suffixes[n:]]
+        )
+        self.assertEqual(out.splitlines(), expected)
+
     def test_get_argc_argv(self):
         self.run_embedded_interpreter("test_get_argc_argv")
         # ignore output

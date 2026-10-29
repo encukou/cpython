@@ -1983,6 +1983,19 @@ static PyObject* init_my_test_extension(void)
     return PyModuleDef_Init(&extension_module);
 }
 
+PyABIInfo_VAR(abi_info);
+PySlot extension_export_slots[] = {
+    PySlot_STATIC_DATA(Py_mod_abi, &abi_info),
+    PySlot_STATIC_DATA(Py_mod_name, "my_test_extension"),
+    PySlot_STATIC_DATA(Py_mod_slots, extension_slots),
+    PySlot_END,
+};
+
+static PySlot *export_my_test_extension(void)
+{
+    return extension_export_slots;
+}
+
 
 static int test_initconfig_module(void)
 {
@@ -2008,6 +2021,85 @@ static int test_initconfig_module(void)
 
     if (PyRun_SimpleString("import my_test_extension") < 0) {
         fprintf(stderr, "unable to import my_test_extension\n");
+        exit(1);
+    }
+
+    Py_Finalize();
+    return 0;
+
+error:
+    {
+        const char *err_msg;
+        (void)PyInitConfig_GetError(config, &err_msg);
+        printf("Python init failed: %s\n", err_msg);
+        exit(1);
+    }
+}
+
+static PyImport_BuiltinInfo test_builtininfos[] = {
+    {
+        .bi_name = "my_test_extension_init",
+        .bi_type = Py_BUILTINMOD_INITFUNC,
+        .bi_initfunc = init_my_test_extension,
+    },
+    {
+        .bi_name = "my_test_extension_export",
+        .bi_type = Py_BUILTINMOD_MODEXPORT,
+        .bi_exportfunc = export_my_test_extension,
+    },
+    {
+        .bi_name = "my_test_extension_slot",
+        .bi_type = Py_BUILTINMOD_SLOTS,
+        .bi_slots = extension_export_slots,
+    },
+    {0}
+};
+
+static int test_initconfig_modules(void)
+{
+    PyInitConfig *config = PyInitConfig_Create();
+    if (config == NULL) {
+        printf("Init allocation error\n");
+        return 1;
+    }
+
+    if (PyInitConfig_SetStr(config, "program_name", PROGRAM_NAME_UTF8) < 0) {
+        goto error;
+    }
+
+    Py_ssize_t n = -1;
+    char *env_N = getenv("N");
+    if (env_N != NULL) {
+        if (*env_N == 0) {
+            printf("$N is empty\n");
+            return 1;
+        }
+        char *end;
+        n = (Py_ssize_t)strtol(env_N, &end, 10);
+        if (*end != 0) {
+            printf("could not convert $N (%s) to int\n", env_N);
+            return 1;
+        }
+    }
+
+    if (PyInitConfig_AddBuiltinModules(config, test_builtininfos, n)) {
+        goto error;
+    }
+
+    if (Py_InitializeFromInitConfig(config) < 0) {
+        goto error;
+    }
+    PyInitConfig_Free(config);
+
+    if (PyRun_SimpleString(
+        "for suffix in ('_init', '_export', '_slot'):\n"
+        "    try:\n"
+        "        __import__('my_test_extension' + suffix)\n"
+        "        print('imported:', suffix)\n"
+        "    except ModuleNotFoundError:\n"
+        "        print('not found:', suffix)\n"
+    ) < 0) {
+        fprintf(stderr, "error!\n");
         exit(1);
     }
 
@@ -3296,6 +3388,7 @@ static struct TestCase TestCases[] = {
     {"test_initconfig_get_api", test_initconfig_get_api},
     {"test_initconfig_exit", test_initconfig_exit},
     {"test_initconfig_module", test_initconfig_module},
+    {"test_initconfig_modules", test_initconfig_modules},
     {"test_run_main", test_run_main},
     {"test_run_main_loop", test_run_main_loop},
     {"test_get_argc_argv", test_get_argc_argv},

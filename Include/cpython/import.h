@@ -2,6 +2,28 @@
 #  error "this header file must not be included directly"
 #endif
 
+// This structure is included in the public documentation
+// (Doc/c-api/import.rst).
+typedef struct PyImport_BuiltinInfo {
+    const char *bi_name;
+    uint16_t bi_type;
+    uint16_t bi_flags;
+    _Py_ANONYMOUS union {
+        uint32_t bi_reserved;
+    };
+    _Py_ANONYMOUS union {
+        PySlot *bi_slots;
+        PySlot *(*bi_exportfunc)(void);
+        PyObject* (*bi_initfunc)(void);
+    };
+} PyImport_BuiltinInfo;
+
+// For PyImport_BuiltinInfo.bi_type:
+#define Py_BUILTINMOD_END 0
+#define Py_BUILTINMOD_SLOTS 1
+#define Py_BUILTINMOD_MODEXPORT 2
+#define Py_BUILTINMOD_INITFUNC 3
+
 struct _inittab {
     const char *name;           /* ASCII encoded string */
     PyObject* (*initfunc)(void);

@@ -64,7 +64,7 @@ is_interpreter_isolated(PyInterpreterState *interp)
 extern struct _inittab _PyImport_Inittab[];
 
 // This is not used after Py_Initialize() is called.
-// (See _PyRuntimeState.imports.inittab.)
+// (See _PyRuntimeState.imports.builtin_module_infos.)
 struct _inittab *PyImport_Inittab = _PyImport_Inittab;
 // When we dynamically allocate a larger table for PyImport_ExtendInittab(),
 // we track the pointer here so we can deallocate it during finalization.
@@ -75,7 +75,7 @@ static struct _inittab *inittab_copy = NULL;
 /* runtime-global import state */
 /*******************************/
 
-#define INITTAB _PyRuntime.imports.inittab
+#define BUILTIN_MOD_INFOS _PyRuntime.imports.builtin_module_infos
 #define LAST_MODULE_INDEX _PyRuntime.imports.last_module_index
 #define EXTENSIONS _PyRuntime.imports.extensions
 
@@ -2079,6 +2079,24 @@ import_find_extension(PyThreadState *tstate,
 }
 
 static PyObject *
+import_run_slots(PyThreadState *tstate, PySlot *slots,
+                 struct _Py_ext_module_loader_info *info,
+                 PyObject *spec)
+{
+    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
+    if (!result) {
+        return NULL;
+    }
+    if (PyModule_Check(result)) {
+        PyModuleObject *mod = (PyModuleObject *)result;
+        if (mod && !mod->md_token) {
+            mod->md_token = slots;
+        }
+    }
+    return result;
+}
+
+static PyObject *
 import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
                      struct _Py_ext_module_loader_info *info,
                      PyObject *spec)
@@ -2102,17 +2120,7 @@ import_run_modexport(PyThreadState *tstate, PyModExportFunction ex0,
             "module export hook for module %R raised unreported exception",
             info->name);
     }
-    PyObject *result = PyModule_FromSlotsAndSpec(slots, spec);
-    if (!result) {
-        return NULL;
-    }
-    if (PyModule_Check(result)) {
-        PyModuleObject *mod = (PyModuleObject *)result;
-        if (mod && !mod->md_token) {
-            mod->md_token = slots;
-        }
-    }
-    return result;
+    return import_run_slots(tstate, slots, info, spec);
 }
 
 static PyObject *
@@ -2477,32 +2485,26 @@ finally:
 
 /* Helper to test for built-in module */
 
-static int
-is_builtin(PyObject *name)
+static PyImport_BuiltinInfo*
+lookup_builtins_entry(PyObject *name)
 {
-    int i;
-    struct _inittab *inittab = INITTAB;
-    for (i = 0; inittab[i].name != NULL; i++) {
-        if (_PyUnicode_EqualToASCIIString(name, inittab[i].name)) {
-            if (inittab[i].initfunc == NULL)
-                return -1;
-            else
-                return 1;
-        }
-    }
-    return 0;
-}
-
-static struct _inittab*
-lookup_inittab_entry(const struct _Py_ext_module_loader_info* info)
-{
-    for (struct _inittab *p = INITTAB; p->name != NULL; p++) {
-        if (_PyUnicode_EqualToASCIIString(info->name, p->name)) {
+    for (PyImport_BuiltinInfo *p = BUILTIN_MOD_INFOS; p->bi_type; p++) {
+        if (PyUnicode_EqualToUTF8(name, p->bi_name)) {
             return p;
         }
     }
     // not found
     return NULL;
+}
+
+static int
+is_builtin(PyObject *name)
+{
+    PyImport_BuiltinInfo *p = lookup_builtins_entry(name);
+    if (p == NULL) {
+        return 0;
+    }
+    return 1;
 }
 
 static PyObject*
@@ -2544,14 +2546,30 @@ create_builtin(
 
     PyModInitFunction p0 = NULL;
     if (initfunc == NULL) {
-        struct _inittab *entry = lookup_inittab_entry(&info);
+        PyImport_BuiltinInfo *entry = lookup_builtins_entry(info.name);
         if (entry == NULL) {
             mod = NULL;
             _PyErr_SetModuleNotFoundError(info.name);
             goto finally;
         }
-
-        p0 = (PyModInitFunction)entry->initfunc;
+        switch (entry->bi_type) {
+            case Py_BUILTINMOD_INITFUNC:
+                p0 = entry->bi_initfunc;
+                break;
+            case Py_BUILTINMOD_MODEXPORT:
+                mod = import_run_modexport(
+                    tstate, entry->bi_exportfunc, &info, spec);
+                goto finally;
+            case Py_BUILTINMOD_SLOTS:
+                mod = import_run_slots(
+                    tstate, entry->bi_slots, &info, spec);
+                goto finally;
+            default:
+                PyErr_Format(PyExc_SystemError,
+                             "module %s uses unknown bi_type %d",
+                             info.name_encoded, (int)entry->bi_type);
+                goto finally;
+        }
     }
     else {
         p0 = initfunc;
@@ -2621,7 +2639,7 @@ PyImport_ExtendInittab(struct _inittab *newtab)
     size_t i, n;
     int res = 0;
 
-    if (INITTAB != NULL) {
+    if (BUILTIN_MOD_INFOS != NULL) {
         Py_FatalError("PyImport_ExtendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2664,7 +2682,7 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 {
     struct _inittab newtab[2];
 
-    if (INITTAB != NULL) {
+    if (BUILTIN_MOD_INFOS != NULL) {
         Py_FatalError("PyImport_AppendInittab() may not be called after Py_Initialize()");
     }
 
@@ -2680,29 +2698,50 @@ PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 /* the internal table */
 
 static int
-init_builtin_modules_table(void)
+init_builtin_modules_table(const PyConfig *config)
 {
-    size_t size;
-    for (size = 0; PyImport_Inittab[size].name != NULL; size++)
-        ;
-    size++;
+    // Combine the inittab and PyConfig.builtin_module_infos
+    assert(config);
 
-    /* Make the copy. */
-    struct _inittab *copied = _PyMem_DefaultRawMalloc(size * sizeof(struct _inittab));
-    if (copied == NULL) {
+    size_t inittab_size;
+    for (inittab_size = 0; PyImport_Inittab[inittab_size].name != NULL; inittab_size++) {
+        /* empty */
+    }
+
+    PyImport_BuiltinInfo *conf_infos = config->_builtin_module_infos;
+    size_t conf_infos_size = config->_builtin_module_infos_size;
+
+    size_t size = conf_infos_size + inittab_size + /* sentinel */ 1;
+
+    PyImport_BuiltinInfo *result = _PyMem_DefaultRawMalloc(
+        size * sizeof(PyImport_BuiltinInfo));
+    if (result == NULL) {
         return -1;
     }
-    memcpy(copied, PyImport_Inittab, size * sizeof(struct _inittab));
-    INITTAB = copied;
+    PyImport_BuiltinInfo *current = result;
+    struct _inittab *tab = PyImport_Inittab;
+    memset(result, 0, inittab_size * sizeof(PyImport_BuiltinInfo));
+    for (; tab->name; tab++, current++) {
+        current->bi_name = tab->name;
+        current->bi_type = Py_BUILTINMOD_INITFUNC;
+        current->bi_initfunc = tab->initfunc;
+    }
+    if (conf_infos_size) {
+        assert(conf_infos);
+        memcpy(current, conf_infos, conf_infos_size * sizeof(PyImport_BuiltinInfo));
+        current += conf_infos_size;
+    }
+    memset(current, 0, sizeof(PyImport_BuiltinInfo));
+    BUILTIN_MOD_INFOS = result;
     return 0;
 }
 
 static void
 fini_builtin_modules_table(void)
 {
-    struct _inittab *inittab = INITTAB;
-    INITTAB = NULL;
-    _PyMem_DefaultRawFree(inittab);
+    PyImport_BuiltinInfo *builtins = BUILTIN_MOD_INFOS;
+    BUILTIN_MOD_INFOS = NULL;
+    _PyMem_DefaultRawFree(builtins);
 }
 
 PyObject *
@@ -2712,9 +2751,9 @@ _PyImport_GetBuiltinModuleNames(void)
     if (list == NULL) {
         return NULL;
     }
-    struct _inittab *inittab = INITTAB;
-    for (Py_ssize_t i = 0; inittab[i].name != NULL; i++) {
-        PyObject *name = PyUnicode_FromString(inittab[i].name);
+    PyImport_BuiltinInfo *builtins = BUILTIN_MOD_INFOS;
+    for (Py_ssize_t i = 0; builtins[i].bi_type; i++) {
+        PyObject *name = PyUnicode_FromString(builtins[i].bi_name);
         if (name == NULL) {
             Py_DECREF(list);
             return NULL;
@@ -4690,12 +4729,12 @@ PyImport_Import(PyObject *module_name)
 /*********************/
 
 PyStatus
-_PyImport_Init(void)
+_PyImport_Init(const PyConfig *config)
 {
-    if (INITTAB != NULL) {
+    if (BUILTIN_MOD_INFOS != NULL) {
         return _PyStatus_ERR("global import state already initialized");
     }
-    if (init_builtin_modules_table() != 0) {
+    if (init_builtin_modules_table(config) != 0) {
         return PyStatus_NoMemory();
     }
     return _PyStatus_OK();

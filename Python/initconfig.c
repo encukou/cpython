@@ -252,7 +252,7 @@ static PyObject* config_get(const PyConfig *config, const PyConfigSpec *spec,
                             int use_sys);
 static void initconfig_free_wstr(wchar_t *member);
 static void initconfig_free_wstr_list(PyWideStringList *list);
-static void initconfig_free_config(const PyConfig *config);
+static void initconfig_free_config(PyConfig *config);
 
 
 /* --- Command line options --------------------------------------- */
@@ -1104,6 +1104,9 @@ PyConfig_Clear(PyConfig *config)
 #endif
 
     _PyWideStringList_Clear(&config->orig_argv);
+
+    CLEAR(config->_builtin_module_infos);
+    config->_builtin_module_infos_size = 0;
 #undef CLEAR
 }
 
@@ -1380,6 +1383,19 @@ _PyConfig_Copy(PyConfig *config, const PyConfig *config2)
         default:
             Py_UNREACHABLE();
         }
+    }
+
+    if (config2->_builtin_module_infos_size) {
+        size_t alloc_size = config2->_builtin_module_infos_size + 1;
+        config->_builtin_module_infos = PyMem_RawMalloc(
+            alloc_size * sizeof(PyImport_BuiltinInfo));
+        if (config->_builtin_module_infos == NULL) {
+            return _PyStatus_NO_MEMORY();
+        }
+        memcpy(config->_builtin_module_infos,
+               config2->_builtin_module_infos,
+               alloc_size * sizeof(PyImport_BuiltinInfo));
+        config->_builtin_module_infos_size = config2->_builtin_module_infos_size;
     }
     return _PyStatus_OK();
 }
@@ -3993,8 +4009,6 @@ _Py_DumpPathConfig(PyThreadState *tstate)
 struct PyInitConfig {
     PyPreConfig preconfig;
     PyConfig config;
-    struct _inittab *inittab;
-    Py_ssize_t inittab_size;
     PyStatus status;
     char *err_msg;
 };
@@ -4028,7 +4042,6 @@ PyInitConfig_Free(PyInitConfig *config)
     }
 
     initconfig_free_config(&config->config);
-    PyMem_RawFree(config->inittab);
     free(config->err_msg);
     free(config);
 }
@@ -4408,7 +4421,7 @@ initconfig_free_wstr_list(PyWideStringList *list)
 
 
 static void
-initconfig_free_config(const PyConfig *config)
+initconfig_free_config(PyConfig *config)
 {
     const PyConfigSpec *spec = PYCONFIG_SPEC;
     for (; spec->name != NULL; spec++) {
@@ -4423,6 +4436,9 @@ initconfig_free_config(const PyConfig *config)
             initconfig_free_wstr_list(member);
         }
     }
+
+    PyMem_RawFree(config->_builtin_module_infos);
+    config->_builtin_module_infos_size = 0;
 }
 
 
@@ -4481,41 +4497,61 @@ PyInitConfig_SetStrList(PyInitConfig *config, const char *name,
 
 
 int
+PyInitConfig_AddBuiltinModules(
+    PyInitConfig *initconfig,
+    const PyImport_BuiltinInfo *infos,
+    Py_ssize_t n)
+{
+    PyConfig *config = &initconfig->config;
+
+    if (n < 0) {
+        for (n = 0; infos[n].bi_type; n++) {
+            /* empty */
+        }
+    }
+    size_t old_size = config->_builtin_module_infos_size;
+    if ((size_t)n > SIZE_MAX / sizeof(PyImport_BuiltinInfo) - 1 - old_size) {
+        initconfig->status = _PyStatus_NO_MEMORY();
+        return -1;
+    }
+    size_t size = sizeof(PyImport_BuiltinInfo) * (old_size + n + 1);
+    PyImport_BuiltinInfo *new_infos = PyMem_RawRealloc(
+        config->_builtin_module_infos, size);
+    if (new_infos == NULL) {
+        initconfig->status = _PyStatus_NO_MEMORY();
+        return -1;
+    }
+    config->_builtin_module_infos = new_infos;
+
+    // Terminator entry
+    PyImport_BuiltinInfo *entry = &config->_builtin_module_infos[old_size + n];
+    entry->bi_name = NULL;
+    entry->bi_type = Py_BUILTINMOD_END;
+
+    // Copy the input
+    entry = &config->_builtin_module_infos[old_size];
+    memcpy(entry, infos, sizeof(PyImport_BuiltinInfo) * n);
+
+    config->_builtin_module_infos_size += n;
+    return 0;
+}
+
+int
 PyInitConfig_AddModule(PyInitConfig *config, const char *name,
                        PyObject* (*initfunc)(void))
 {
-    size_t size = sizeof(struct _inittab) * (config->inittab_size + 2);
-    struct _inittab *new_inittab = PyMem_RawRealloc(config->inittab, size);
-    if (new_inittab == NULL) {
-        config->status = _PyStatus_NO_MEMORY();
-        return -1;
-    }
-    config->inittab = new_inittab;
-
-    struct _inittab *entry = &config->inittab[config->inittab_size];
-    entry->name = name;
-    entry->initfunc = initfunc;
-
-    // Terminator entry
-    entry = &config->inittab[config->inittab_size + 1];
-    entry->name = NULL;
-    entry->initfunc = NULL;
-
-    config->inittab_size++;
-    return 0;
+    PyImport_BuiltinInfo info = {
+        .bi_name = name,
+        .bi_type = Py_BUILTINMOD_INITFUNC,
+        .bi_initfunc = initfunc,
+    };
+    return PyInitConfig_AddBuiltinModules(config, &info, 1);
 }
 
 
 int
 Py_InitializeFromInitConfig(PyInitConfig *config)
 {
-    if (config->inittab_size >= 1) {
-        if (PyImport_ExtendInittab(config->inittab) < 0) {
-            config->status = _PyStatus_NO_MEMORY();
-            return -1;
-        }
-    }
-
     _PyPreConfig_GetConfig(&config->preconfig, &config->config);
 
     config->status = Py_PreInitializeFromArgs(

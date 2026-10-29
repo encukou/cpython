@@ -222,24 +222,52 @@ only implemented when ``Py_InitializeFromInitConfig()`` is called, not by the
    * Set an error in *config* and return ``-1`` on error.
 
 
-Module
-------
+Built-in Module Info
+--------------------
 
-.. c:function:: int PyInitConfig_AddModule(PyInitConfig *config, const char *name, PyObject* (*initfunc)(void))
+.. c:function:: int PyInitConfig_AddBuiltinModules(PyInitConfig *config, const PyImport_BuiltinInfo *infos, Py_ssize_t n_entries)
 
-   Add a built-in extension module to the table of built-in modules.
+   Add built-in extension modules described by the array *infos* to the
+   table of built-in modules.
+   See :c:struct:`PyImport_BuiltinInfo`.
 
-   The new module can be imported by the name *name*, and uses the function
-   *initfunc* as the initialization function called on the first attempted
-   import.
+   *n_entries* is the size of the *infos* array.
+   If *n_entries* is -1, the array is terminated by an entry with
+   :c:member:`~PyImport_BuiltinInfo.bi_type` set to
+   :c:macro:`Py_BUILTINMOD_END`.
 
    * Return ``0`` on success.
    * Set an error in *config* and return ``-1`` on error.
 
-   If Python is initialized multiple times, ``PyInitConfig_AddModule()`` must
+   The information is copied to *config*; the contents of *infos* may be
+   reused or freed after the call.
+
+   If Python is initialized multiple times, ``PyInitConfig_AddBuiltinInfo()`` must
    be called at each Python initialization.
 
-   Similar to the :c:func:`PyImport_AppendInittab` function.
+   .. impl-detail::
+
+      CPython does a simple linear scan of the table of built-in modules on
+      almost every import, so adding a large number of entries
+      will hurt performance.
+      If you have more than a few built-in modules, consider registering
+      a custom :py:attr:`sys.meta_path` hook instead of adding them with
+      this function.
+
+.. c:function:: int PyInitConfig_AddModule(PyInitConfig *config, const char *name, PyObject* (*initfunc)(void))
+
+   Add a single module using an old-style
+   :ref:`initialization function <extension-pyinit>`.
+   Equivalent to the following :c:func:`PyInitConfig_AddBuiltinModules` call::
+
+    PyImport_BuiltinInfo info = {
+        .bi_name = name,
+        .bi_type = Py_BUILTINMOD_INITFUNC,
+        .bi_initfunc = initfunc,
+    };
+    return PyInitConfig_AddBuiltinModules(config, &info, 1);
+
+   .. soft-deprecated:: next
 
 
 Initialize Python

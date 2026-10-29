@@ -252,6 +252,11 @@ typedef struct PyConfig {
     // and only process the option in Py_RunMain() instead of PyConfig_Read().
     // If equals to 0, there is no option.
     int _deferred_cmdline_option;
+
+    // Info about extra built-in modules. There are no getters for these
+    // (yet); modules are added using PyInitConfig_AddBuiltinModules.
+    struct PyImport_BuiltinInfo *_builtin_module_infos;
+    Py_ssize_t _builtin_module_infos_size;
 } PyConfig;
 
 PyAPI_FUNC(void) PyConfig_InitPythonConfig(PyConfig *config);
@@ -334,6 +339,9 @@ PyAPI_FUNC(int) PyInitConfig_SetStrList(PyInitConfig *config,
 PyAPI_FUNC(int) PyInitConfig_AddModule(PyInitConfig *config,
     const char *name,
     PyObject* (*initfunc)(void));
+PyAPI_FUNC(int) PyInitConfig_AddBuiltinModules(PyInitConfig *config,
+     const struct PyImport_BuiltinInfo *infos,
+     Py_ssize_t n_entries);
 
 PyAPI_FUNC(int) Py_InitializeFromInitConfig(PyInitConfig *config);
 
