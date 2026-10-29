@@ -229,6 +229,37 @@ Importing Modules
    finder for this path item. Cache the result in :data:`sys.path_importer_cache`.
    Return a new reference to the finder object.
 
+.. c:function:: PyObject* PyImport_ImportModuleAttr(PyObject *mod_name, PyObject *attr_name)
+
+   Import the module *mod_name* and get its attribute *attr_name*.
+
+   Names must be Python :class:`str` objects.
+
+   Helper function combining :c:func:`PyImport_Import` and
+   :c:func:`PyObject_GetAttr`. For example, it can raise :exc:`ImportError` if
+   the module is not found, and :exc:`AttributeError` if the attribute doesn't
+   exist.
+
+   .. versionadded:: 3.14
+
+.. c:function:: PyObject* PyImport_ImportModuleAttrString(const char *mod_name, const char *attr_name)
+
+   Similar to :c:func:`PyImport_ImportModuleAttr`, but names are UTF-8 encoded
+   strings instead of Python :class:`str` objects.
+
+   .. versionadded:: 3.14
+
+
+.. _capi-frozen-modules:
+
+Frozen modules
+--------------
+
+A :dfn:`frozen` module is written in Python, but not loaded from a file.
+Its :mod:`marshalled <marshal>` code object is typically
+compiled into the interpreter at build time, and registered in a lookup table.
+
+The following APIs deal with frozen modules.
 
 .. c:function:: int PyImport_ImportFrozenModuleObject(PyObject *name)
 
@@ -274,6 +305,26 @@ Importing Modules
    module is imported, it is searched in this table.  Third-party code could play
    tricks with this to provide a dynamically created collection of frozen modules.
 
+   Do not replace or remove existing entries, as parts of the standard library
+   may be provided as frozen modules.
+
+
+Built-in modules
+----------------
+
+A :dfn:`built-in` module is similar to an :ref:`extension module <extension-modules>`,
+but not loaded from a file.
+It is typically compiled into the interpreter at build time, and registered
+in a lookup table.
+
+.. seealso:: Built-in modules are sometimes confused with:
+
+   - :term:`Standard library`: the collection of all modules distributed
+     with Python, including dynamically loaded ones.
+   - :ref:`Frozen modules <capi-frozen-modules>`: Python (bytecode) modules
+     compiled into the interpreter.
+
+The following APIs deal with built-in modules.
 
 .. c:function:: int PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
 
@@ -328,25 +379,8 @@ Importing Modules
    instead.
 
 
-.. c:function:: PyObject* PyImport_ImportModuleAttr(PyObject *mod_name, PyObject *attr_name)
-
-   Import the module *mod_name* and get its attribute *attr_name*.
-
-   Names must be Python :class:`str` objects.
-
-   Helper function combining :c:func:`PyImport_Import` and
-   :c:func:`PyObject_GetAttr`. For example, it can raise :exc:`ImportError` if
-   the module is not found, and :exc:`AttributeError` if the attribute doesn't
-   exist.
-
-   .. versionadded:: 3.14
-
-.. c:function:: PyObject* PyImport_ImportModuleAttrString(const char *mod_name, const char *attr_name)
-
-   Similar to :c:func:`PyImport_ImportModuleAttr`, but names are UTF-8 encoded
-   strings instead of Python :class:`str` objects.
-
-   .. versionadded:: 3.14
+Lazy import control
+-------------------
 
 .. c:function:: PyImport_LazyImportsMode PyImport_GetLazyImportsMode()
 
@@ -395,6 +429,10 @@ Importing Modules
       Make all imports lazy by default.
 
    .. versionadded:: 3.15
+
+
+Low-level APIs
+--------------
 
 .. c:function:: PyObject* PyImport_CreateModuleFromInitfunc(PyObject *spec, PyObject* (*initfunc)(void))
 

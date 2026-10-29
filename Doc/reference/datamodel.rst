@@ -1541,7 +1541,7 @@ Special read-only attributes
        Note: references to global and builtin names are *not* included.
 
    * - .. attribute:: codeobject.co_code
-     - A string representing the sequence of :term:`bytecode` instructions in
+     - :class:`bytes` representing the sequence of :term:`bytecode` instructions in
        the function
 
    * - .. attribute:: codeobject.co_consts
