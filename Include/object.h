@@ -744,18 +744,74 @@ times.
 #endif
 
 
+PyAPI_FUNC(int) PyType_HasFeature(PyTypeObject *type, unsigned long feature);
+#ifndef Py_LIMITED_API
 static inline int
-PyType_HasFeature(PyTypeObject *type, unsigned long feature)
+_PyType_HasFeature_impl(PyTypeObject *type, unsigned long feature)
 {
-    unsigned long flags;
-#ifdef Py_LIMITED_API
-    // PyTypeObject is opaque in the limited C API
-    flags = PyType_GetFlags(type);
-#else
-    flags = type->tp_flags;
-#endif
-    return ((flags & feature) != 0);
+    switch (feature) {
+        case Py_TPFLAGS_INLINE_VALUES:
+            return ((type->tp_flags) & Py_TPFLAGS_INLINE_VALUES) != 0;
+        case Py_TPFLAGS_MANAGED_WEAKREF:
+            return ((type->tp_flags) & Py_TPFLAGS_MANAGED_WEAKREF) != 0;
+        case Py_TPFLAGS_MANAGED_DICT:
+            return ((type->tp_flags) & Py_TPFLAGS_MANAGED_DICT) != 0;
+        case Py_TPFLAGS_SEQUENCE:
+            return ((type->tp_flags) & Py_TPFLAGS_SEQUENCE) != 0;
+        case Py_TPFLAGS_MAPPING:
+            return ((type->tp_flags) & Py_TPFLAGS_MAPPING) != 0;
+        case Py_TPFLAGS_DISALLOW_INSTANTIATION:
+            return ((type->tp_flags) & Py_TPFLAGS_DISALLOW_INSTANTIATION) != 0;
+        case Py_TPFLAGS_IMMUTABLETYPE:
+            return ((type->tp_flags) & Py_TPFLAGS_IMMUTABLETYPE) != 0;
+        case Py_TPFLAGS_HEAPTYPE:
+            return ((type->tp_flags) & Py_TPFLAGS_HEAPTYPE) != 0;
+        case Py_TPFLAGS_BASETYPE:
+            return ((type->tp_flags) & Py_TPFLAGS_BASETYPE) != 0;
+        case Py_TPFLAGS_HAVE_VECTORCALL:
+            return ((type->tp_flags) & Py_TPFLAGS_HAVE_VECTORCALL) != 0;
+        case Py_TPFLAGS_READY:
+            return ((type->tp_flags) & Py_TPFLAGS_READY) != 0;
+        case Py_TPFLAGS_READYING:
+            return ((type->tp_flags) & Py_TPFLAGS_READYING) != 0;
+        case Py_TPFLAGS_HAVE_GC:
+            return ((type->tp_flags) & Py_TPFLAGS_HAVE_GC) != 0;
+        case Py_TPFLAGS_HAVE_STACKLESS_EXTENSION:
+            return ((type->tp_flags) & Py_TPFLAGS_HAVE_STACKLESS_EXTENSION) != 0;
+        case Py_TPFLAGS_METHOD_DESCRIPTOR:
+            return ((type->tp_flags) & Py_TPFLAGS_METHOD_DESCRIPTOR) != 0;
+        case Py_TPFLAGS_VALID_VERSION_TAG:
+            return ((type->tp_flags) & Py_TPFLAGS_VALID_VERSION_TAG) != 0;
+        case Py_TPFLAGS_IS_ABSTRACT:
+            return ((type->tp_flags) & Py_TPFLAGS_IS_ABSTRACT) != 0;
+        case Py_TPFLAGS_ITEMS_AT_END:
+            return ((type->tp_flags) & Py_TPFLAGS_ITEMS_AT_END) != 0;
+        case Py_TPFLAGS_LONG_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_LONG_SUBCLASS) != 0;
+        case Py_TPFLAGS_LIST_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_LIST_SUBCLASS) != 0;
+        case Py_TPFLAGS_TUPLE_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_TUPLE_SUBCLASS) != 0;
+        case Py_TPFLAGS_BYTES_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_BYTES_SUBCLASS) != 0;
+        case Py_TPFLAGS_UNICODE_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_UNICODE_SUBCLASS) != 0;
+        case Py_TPFLAGS_DICT_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_DICT_SUBCLASS) != 0;
+        case Py_TPFLAGS_BASE_EXC_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_BASE_EXC_SUBCLASS) != 0;
+        case Py_TPFLAGS_TYPE_SUBCLASS:
+            return ((type->tp_flags) & Py_TPFLAGS_TYPE_SUBCLASS) != 0;
+        case Py_TPFLAGS_HAVE_FINALIZE:
+            return ((type->tp_flags) & Py_TPFLAGS_HAVE_FINALIZE) != 0;
+        case Py_TPFLAGS_HAVE_VERSION_TAG:
+            return ((type->tp_flags) & Py_TPFLAGS_HAVE_VERSION_TAG) != 0;
+    }
+    // fallback for legacy flags; this should warn
+    return (((type->tp_flags) & feature) != 0);
 }
+#define PyType_HasFeature _PyType_HasFeature_impl
+#endif
 
 #define PyType_FastSubclass(type, flag) PyType_HasFeature((type), (flag))
 

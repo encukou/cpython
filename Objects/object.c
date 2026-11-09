@@ -3560,8 +3560,11 @@ _PyObject_VisitType(PyObject *op, visitproc visit, void *arg)
 #undef Py_SIZE
 #undef Py_IS_TYPE
 #undef Py_SET_SIZE
+#undef PyType_HasFeature
 PyTypeObject* Py_TYPE(PyObject *ob) { return _Py_TYPE_impl(ob); }
 Py_ssize_t Py_REFCNT(PyObject *ob) { return _Py_REFCNT(ob); }
 Py_ssize_t Py_SIZE(PyObject *o) { return _Py_SIZE_impl(o); }
 int Py_IS_TYPE(PyObject *o, PyTypeObject *t) { return _Py_IS_TYPE_impl(o, t); }
 void Py_SET_SIZE(PyVarObject *o, Py_ssize_t s) { _Py_SET_SIZE_impl(o, s); }
+int PyType_HasFeature(PyTypeObject *t, unsigned long f) {
+    return _PyType_HasFeature_impl(t, f); }
