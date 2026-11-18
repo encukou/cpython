@@ -123,13 +123,14 @@ PyAPI_FUNC(Py_ssize_t) Py_REFCNT(PyObject *ob);
 #endif
 
 #ifndef _Py_OPAQUE_PYOBJECT
+static inline int _Py_IsStaticImmortal(PyObject *op)
 static inline Py_ALWAYS_INLINE int _Py_IsImmortal(PyObject *op)
 {
 #if defined(Py_GIL_DISABLED)
     return (_Py_atomic_load_uint32_relaxed(&op->ob_ref_local) ==
             _Py_IMMORTAL_REFCNT_LOCAL);
 #elif SIZEOF_VOID_P > 4
-    return _Py_CAST(int32_t, op->ob_refcnt) < 0;
+    return (_Py_CAST(int32_t, op->ob_refcnt) < 0) || _Py_IsStaticImmortal(op);
 #else
     return op->ob_refcnt >= _Py_IMMORTAL_MINIMUM_REFCNT;
 #endif

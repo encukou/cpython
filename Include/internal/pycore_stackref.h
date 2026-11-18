@@ -484,7 +484,7 @@ static const _PyStackRef PyStackRef_NULL = { .bits = PyStackRef_NULL_BITS };
 #define PyStackRef_False ((_PyStackRef){.bits = ((uintptr_t)&_Py_FalseStruct) | Py_TAG_REFCNT })
 #define PyStackRef_None ((_PyStackRef){.bits = ((uintptr_t)&_Py_NoneStruct) | Py_TAG_REFCNT })
 
-// Checks mask out the deferred bit.
+// Checks mask out the flag bit.
 #define PyStackRef_IsNone(REF) (((REF).bits & ~Py_TAG_REFCNT) == (uintptr_t)&_Py_NoneStruct)
 #define PyStackRef_IsTrue(REF) (((REF).bits & ~Py_TAG_REFCNT) == (uintptr_t)&_Py_TrueStruct)
 #define PyStackRef_IsFalse(REF) (((REF).bits & ~Py_TAG_REFCNT) == (uintptr_t)&_Py_FalseStruct)
@@ -592,11 +592,10 @@ _PyStackRef_FromPyObjectNew(PyObject *obj)
     if (_PyObject_HasDeferredRefcount(obj)) {
         return (_PyStackRef){ .bits = (uintptr_t)obj | Py_TAG_REFCNT };
     }
-#else
+#endif
     if (_Py_IsImmortal(obj)) {
         return (_PyStackRef){ .bits = (uintptr_t)obj | Py_TAG_REFCNT };
     }
-#endif
     _Py_INCREF_MORTAL(obj);
     _PyStackRef ref = (_PyStackRef){ .bits = (uintptr_t)obj };
     PyStackRef_CheckValid(ref);
