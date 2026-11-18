@@ -239,8 +239,11 @@ Built-in Module Info
    * Return ``0`` on success.
    * Set an error in *config* and return ``-1`` on error.
 
-   The information is copied to *config*; the contents of *infos* may be
+   The information is copied to *config*; the *infos* array may be
    reused or freed after the call.
+   (This does not apply to data that pointers in *infos* point to, such as
+   module name strings; see :c:struct:`PyImport_BuiltinInfo` member
+   documentation for details.)
 
    If Python is initialized multiple times, ``PyInitConfig_AddBuiltinInfo()`` must
    be called at each Python initialization.
