@@ -245,8 +245,8 @@ Built-in Module Info
    module name strings; see :c:struct:`PyImport_BuiltinInfo` member
    documentation for details.)
 
-   If Python is initialized multiple times, ``PyInitConfig_AddBuiltinInfo()`` must
-   be called at each Python initialization.
+   If Python is initialized multiple times, ``PyInitConfig_AddBuiltinInfo()``
+   must be called for each :c:struct:`PyInitConfig` separately.
 
    .. impl-detail::
 
