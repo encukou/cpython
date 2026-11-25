@@ -475,6 +475,18 @@ sock.connect(('localhost', {port}))
 # Test classes
 # ============================================================================
 
+class CoroutineWrapper(collections.abc.Coroutine):
+    """A non-native coroutine that wraps another coro"""
+    def __init__(self, coro):
+        self._coro = coro
+    def send(self, value):
+        return self._coro.send(value)
+    def throw(self, *args):
+        return self._coro.throw(*args)
+    def close(self):
+        return self._coro.close()
+    def __await__(self):
+        return self._coro.__await__()
 
 @requires_remote_subprocess_debugging()
 class TestSelfStackTrace(RemoteInspectionTestBase):
@@ -822,23 +834,12 @@ class TestSelfStackTrace(RemoteInspectionTestBase):
     @skip_if_not_supported
     def test_running_task_with_non_native_coroutine(self):
         # gh-159645
-        class Wrapper(collections.abc.Coroutine):
-            def __init__(self, coro):
-                self._coro = coro
-            def send(self, value):
-                return self._coro.send(value)
-            def throw(self, *args):
-                return self._coro.throw(*args)
-            def close(self):
-                return self._coro.close()
-            def __await__(self):
-                return self._coro.__await__()
-
         async def inner():
             return RemoteUnwinder(os.getpid()).get_async_stack_trace()
 
         async def main():
-            return await asyncio.create_task(Wrapper(inner()), name="wrapper")
+            wrapper = CoroutineWrapper(inner())
+            return await asyncio.create_task(wrapper, name="wrapper")
 
         stacks = self._extract_coroutine_funcnames(asyncio.run(main()))
         self.assertEqual(stacks["wrapper"], [])
