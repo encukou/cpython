@@ -1543,6 +1543,61 @@ first (:token:`!single_subscript`) has priority.
 Calls
 -----
 
+A call calls an object (for example, a :term:`function`) with a
+possibly empty series of :term:`arguments <argument>`.
+Syntactically, a call is a :ref:`primary` (the *callable*) followed by
+comma-separated *arguments* enclosed in parentheses.
+The parentheses are necessary even if there are no arguments.
+For example, the following calls :func:`int` with no arguments, creating
+a zero integer::
+
+   >>> int()
+   0
+
+The simplest kind of argument is *positional*, an :term:`expression`.
+At runtime, positional arguments are evaluated and passed to the callable in
+the order they appear in the call.
+For example, the following calls :func:`print` with two positional arguments::
+
+   >>> print("one plus two is:", 1 + 2)
+   one plus two is: 3
+
+Another kind of argument is a *keyword* argument: an :term:`identifier`
+(the argument name) followed by an equal sign and an expression (the argument
+value).
+For example, the following calls :func:`print` with two positional and one
+keyword argument::
+
+   >>> print("one plus two", 1 + 2, sep='=')
+   one plus two=3
+
+Keyword arguments must appear after any positional ones, and their names
+must be unique::
+
+   >>> print(sep='=', "one plus two", 1 + 2)
+     File "<python-input-0>", line 1
+   SyntaxError: positional argument follows keyword argument
+
+   >>> print(sep=',', sep='=')
+     File "<python-input-5>", line 1
+   SyntaxError: keyword argument repeated: sep
+
+At runtime, keyword arguments are evaluated in the order they appear in the
+call, after positional ones, and are passed to the callable using their name.
+The order of keyword arguments is preserved (although many callable objects
+ignore it)::
+
+   >>> dict(first=1, second=2, third=3, fourth=4)
+   {'first': 1, 'second': 2, 'third': 3, 'fourth': 4}
+
+
+
+
+
+
+
+
+
 A call calls a callable object (e.g., a :term:`function`) with a possibly empty
 series of :term:`arguments <argument>`:
 
