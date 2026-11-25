@@ -380,9 +380,11 @@ method_vectorcall_FASTCALL_KEYWORDS_METHOD(
     if (meth == NULL) {
         return NULL;
     }
+    _Py_RANDOMLY_DEIMMORTALIZE_FAST_ARGS(func, args, nargs, kwnames);
     PyObject *result = meth(args[0],
                             ((PyMethodDescrObject *)func)->d_common.d_type,
                             args+1, nargs-1, kwnames);
+    _Py_RANDOMLY_DEIMMORTALIZE(result);
     _Py_LeaveRecursiveCall();
     return result;
 }
@@ -401,7 +403,9 @@ method_vectorcall_FASTCALL(
     if (meth == NULL) {
         return NULL;
     }
+    _Py_RANDOMLY_DEIMMORTALIZE_FAST_ARGS(func, args+1, nargs-1, NULL);
     PyObject *result = meth(args[0], args+1, nargs-1);
+    _Py_RANDOMLY_DEIMMORTALIZE(result);
     _Py_LeaveRecursiveCallTstate(tstate);
     return result;
 }
@@ -420,7 +424,9 @@ method_vectorcall_FASTCALL_KEYWORDS(
     if (meth == NULL) {
         return NULL;
     }
+    _Py_RANDOMLY_DEIMMORTALIZE_FAST_ARGS(func, args+1, nargs-1, kwnames);
     PyObject *result = meth(args[0], args+1, nargs-1, kwnames);
+    _Py_RANDOMLY_DEIMMORTALIZE(result);
     _Py_LeaveRecursiveCallTstate(tstate);
     return result;
 }
@@ -447,7 +453,9 @@ method_vectorcall_NOARGS(
     if (meth == NULL) {
         return NULL;
     }
+    _Py_RANDOMLY_DEIMMORTALIZE(args[0]);
     PyObject *result = _PyCFunction_TrampolineCall(meth, args[0], NULL);
+    _Py_RANDOMLY_DEIMMORTALIZE(result);
     _Py_LeaveRecursiveCallTstate(tstate);
     return result;
 }
@@ -475,7 +483,10 @@ method_vectorcall_O(
     if (meth == NULL) {
         return NULL;
     }
+    _Py_RANDOMLY_DEIMMORTALIZE(args[0]);
+    _Py_RANDOMLY_DEIMMORTALIZE(args[1]);
     PyObject *result = _PyCFunction_TrampolineCall(meth, args[0], args[1]);
+    _Py_RANDOMLY_DEIMMORTALIZE(result);
     _Py_LeaveRecursiveCallTstate(tstate);
     return result;
 }

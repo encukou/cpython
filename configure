@@ -1119,6 +1119,7 @@ enable_gil
 with_pydebug
 with_trace_refs
 enable_pystats
+with_random_deimmortalization
 with_assertions
 enable_optimizations
 with_lto
@@ -1927,6 +1928,9 @@ Optional Packages:
   --with-pydebug          build with Py_DEBUG defined (default is no)
   --with-trace-refs       enable tracing references for debugging purpose
                           (default is no)
+  --with-random-deimmortalization
+                          randomly de-immortalize arguments and return values
+                          of C functions, for testing default is no)
   --with-assertions       build with C assertions enabled (default is no)
   --with-lto=[full|thin|no|yes]
                           enable Link-Time-Optimization in any build (default
@@ -8832,6 +8836,36 @@ then :
 printf "%s\n" "#define Py_STATS 1" >>confdefs.h
 
 
+fi
+
+
+# Check for --with-random-deimmortalization
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for --with-random-deimmortalization" >&5
+printf %s "checking for --with-random-deimmortalization... " >&6; }
+
+# Check whether --with-random-deimmortalization was given.
+if test ${with_random_deimmortalization+y}
+then :
+  withval=$with_random_deimmortalization;
+else case e in #(
+  e) with_random_deimmortalization=no
+ ;;
+esac
+fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $with_random_deimmortalization" >&5
+printf "%s\n" "$with_random_deimmortalization" >&6; }
+
+if test "$with_random_deimmortalization" = "yes"
+then
+
+printf "%s\n" "#define _Py_RANDOM_DEIMMORTALIZATION 1" >>confdefs.h
+
+fi
+
+if test "$disable_gil" = "yes" -a "$with_random_deimmortalization" = "yes";
+then
+  as_fn_error $? "--disable-gil cannot be used with --with-random-deimmortalization" "$LINENO" 5
 fi
 
 # Check for --with-assertions.

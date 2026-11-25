@@ -3145,6 +3145,39 @@ deimmortalize(PyObject *self, PyObject *op)
 }
 #endif
 
+#ifdef _Py_RANDOM_DEIMMORTALIZATION
+/*[clinic input]
+
+_testinternalcapi.set_random_deimmortalization -> object
+
+    rate: int
+    seed: int = -1
+
+Enable or disable random de-immortalization. Used for tests.
+
+If rate is zero, disable random deimmortalization. Otherwise,
+eligible function calls have a 1-in-N chance to de-immortalize their
+arguments and return values.
+[clinic start generated code]*/
+
+static PyObject *
+_testinternalcapi_set_random_deimmortalization_impl(PyObject *module,
+                                                    int rate, int seed)
+/*[clinic end generated code: output=bb47e4216a34a579 input=8de645e0edbabe25]*/
+{
+    _Py_DeimmortalizationRate = rate;
+    if (seed != -1) {
+        // splitmix64, to turn any seed into a well-mixed state
+        uint64_t z = seed + 0x9E3779B97F4A7C15ULL;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+        z ^= z >> 31;
+        _Py_DeimmortalizationState = z ? z : 0x9E3779B97F4A7C15ULL;
+    }
+    Py_RETURN_NONE;
+}
+#endif
+
 static PyObject *
 incref_decref_delayed(PyObject *self, PyObject *op)
 {
@@ -3618,6 +3651,7 @@ static PyMethodDef module_functions[] = {
     {"has_deferred_refcount", has_deferred_refcount, METH_O},
     {"get_tracked_heap_size", get_tracked_heap_size, METH_NOARGS},
     {"is_static_immortal", is_static_immortal, METH_O},
+    _TESTINTERNALCAPI_SET_RANDOM_DEIMMORTALIZATION_METHODDEF
     {"incref_decref_delayed", incref_decref_delayed, METH_O},
     GET_NEXT_DICT_KEYS_VERSION_METHODDEF
 #ifdef __EMSCRIPTEN__

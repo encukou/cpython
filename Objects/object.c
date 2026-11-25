@@ -2817,6 +2817,33 @@ _Py_SetImmortal(PyObject *op)
     _Py_SetImmortalUntracked(op);
 }
 
+#ifdef _Py_RANDOM_DEIMMORTALIZATION
+int _Py_DeimmortalizationRate;
+uint64_t _Py_DeimmortalizationState;
+
+void
+_Py_RandomlyDeimmortalize(PyObject *const *objects, Py_ssize_t n)
+{
+    if (_Py_DeimmortalizationRate > 0) {
+        uint64_t z =  _Py_DeimmortalizationState;
+        for (Py_ssize_t i = 0; i < n; i++) {
+            PyObject *op = objects[i];
+            if (op && _Py_IsImmortal(op)) {
+                // Simple xorshift PRNG. Protected by the GIL.
+                z ^= z << 13;
+                z ^= z >> 7;
+                z ^= z << 17;
+                if (z % _Py_DeimmortalizationRate == 0) {
+                    op->ob_refcnt = _Py_IMMORTAL_MINIMUM_REFCNT - 1 - (z >> 44);
+                    assert(!_Py_IsImmortal(op) || _Py_IsStaticImmortal(op));
+                }
+            }
+        }
+        _Py_DeimmortalizationState = z;
+    }
+}
+#endif
+
 void
 _PyObject_SetDeferredRefcount(PyObject *op)
 {

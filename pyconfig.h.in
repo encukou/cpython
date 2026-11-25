@@ -2176,6 +2176,9 @@
 /* Thread stack size set by the linker (in bytes). */
 #undef _Py_LINKER_THREAD_STACK_SIZE
 
+/* Define to randomly de-immortalize arguments and return values */
+#undef _Py_RANDOM_DEIMMORTALIZATION
+
 /* Define to 1 if the machine stack grows down (default); 0 if it grows up. */
 #undef _Py_STACK_GROWS_DOWN
 

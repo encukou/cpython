@@ -1043,6 +1043,19 @@ static inline Py_ALWAYS_INLINE void _Py_INCREF_MORTAL(PyObject *op)
  * references. */
 PyAPI_FUNC(int) _PyObject_VisitType(PyObject *op, visitproc visit, void *arg);
 
+#ifdef _Py_RANDOM_DEIMMORTALIZATION
+PyAPI_DATA(int) _Py_DeimmortalizationRate;
+PyAPI_DATA(uint64_t) _Py_DeimmortalizationState;
+PyAPI_FUNC(void) _Py_RandomlyDeimmortalize(PyObject *const *objects, Py_ssize_t n);
+#define _Py_RANDOMLY_DEIMMORTALIZE(op) _Py_RandomlyDeimmortalize(&op, 1)
+#define _Py_RANDOMLY_DEIMMORTALIZE_FAST_ARGS(self, args, nargs, kwnames) \
+     (_Py_RandomlyDeimmortalize(&self, 1), \
+      _Py_RandomlyDeimmortalize(args, nargs))
+#else
+#define _Py_RANDOMLY_DEIMMORTALIZE(op)
+#define _Py_RANDOMLY_DEIMMORTALIZE_FAST_ARGS(self, args, nargs, kwnames)
+#endif
+
 #ifdef __cplusplus
 }
 #endif

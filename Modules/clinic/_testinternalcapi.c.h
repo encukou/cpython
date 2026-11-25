@@ -399,4 +399,88 @@ get_next_dict_keys_version(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
     return get_next_dict_keys_version_impl(module);
 }
-/*[clinic end generated code: output=ecb5d7ac85b153fa input=a9049054013a1b77]*/
+
+#if defined(_Py_RANDOM_DEIMMORTALIZATION)
+
+PyDoc_STRVAR(_testinternalcapi_set_random_deimmortalization__doc__,
+"set_random_deimmortalization($module, /, rate, seed=-1)\n"
+"--\n"
+"\n"
+"Enable or disable random de-immortalization. Used for tests.\n"
+"\n"
+"If rate is zero, disable random deimmortalization. Otherwise,\n"
+"eligible function calls have a 1-in-N chance to de-immortalize their\n"
+"arguments and return values.");
+
+#define _TESTINTERNALCAPI_SET_RANDOM_DEIMMORTALIZATION_METHODDEF    \
+    {"set_random_deimmortalization", _PyCFunction_CAST(_testinternalcapi_set_random_deimmortalization), METH_FASTCALL|METH_KEYWORDS, _testinternalcapi_set_random_deimmortalization__doc__},
+
+static PyObject *
+_testinternalcapi_set_random_deimmortalization_impl(PyObject *module,
+                                                    int rate, int seed);
+
+static PyObject *
+_testinternalcapi_set_random_deimmortalization(PyObject *module, PyObject *const *args, Py_ssize_t nargs, PyObject *kwnames)
+{
+    PyObject *return_value = NULL;
+    #if defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_MODULE)
+
+    #define NUM_KEYWORDS 2
+    static struct {
+        PyGC_Head _this_is_not_used;
+        PyObject_VAR_HEAD
+        Py_hash_t ob_hash;
+        PyObject *ob_item[NUM_KEYWORDS];
+    } _kwtuple = {
+        .ob_base = PyVarObject_HEAD_INIT(&PyTuple_Type, NUM_KEYWORDS)
+        .ob_hash = -1,
+        .ob_item = { &_Py_ID(rate), &_Py_ID(seed), },
+    };
+    #undef NUM_KEYWORDS
+    #define KWTUPLE (&_kwtuple.ob_base.ob_base)
+
+    #else  // !Py_BUILD_CORE
+    #  define KWTUPLE NULL
+    #endif  // !Py_BUILD_CORE
+
+    static const char * const _keywords[] = {"rate", "seed", NULL};
+    static _PyArg_Parser _parser = {
+        .keywords = _keywords,
+        .fname = "set_random_deimmortalization",
+        .kwtuple = KWTUPLE,
+    };
+    #undef KWTUPLE
+    PyObject *argsbuf[2];
+    Py_ssize_t noptargs = nargs + (kwnames ? PyTuple_GET_SIZE(kwnames) : 0) - 1;
+    int rate;
+    int seed = -1;
+
+    args = _PyArg_UnpackKeywords(args, nargs, NULL, kwnames, &_parser,
+            /*minpos*/ 1, /*maxpos*/ 2, /*minkw*/ 0, /*varpos*/ 0, argsbuf);
+    if (!args) {
+        goto exit;
+    }
+    rate = PyLong_AsInt(args[0]);
+    if (rate == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+    if (!noptargs) {
+        goto skip_optional_pos;
+    }
+    seed = PyLong_AsInt(args[1]);
+    if (seed == -1 && PyErr_Occurred()) {
+        goto exit;
+    }
+skip_optional_pos:
+    return_value = _testinternalcapi_set_random_deimmortalization_impl(module, rate, seed);
+
+exit:
+    return return_value;
+}
+
+#endif /* defined(_Py_RANDOM_DEIMMORTALIZATION) */
+
+#ifndef _TESTINTERNALCAPI_SET_RANDOM_DEIMMORTALIZATION_METHODDEF
+    #define _TESTINTERNALCAPI_SET_RANDOM_DEIMMORTALIZATION_METHODDEF
+#endif /* !defined(_TESTINTERNALCAPI_SET_RANDOM_DEIMMORTALIZATION_METHODDEF) */
+/*[clinic end generated code: output=97d9f5e95843ffdd input=a9049054013a1b77]*/

@@ -5,6 +5,7 @@ import os
 import random
 import signal
 import sys
+import sysconfig
 import unittest
 from test import support
 from test.support.os_helper import TESTFN_UNDECODABLE, FS_NONASCII
@@ -159,3 +160,10 @@ def setup_tests(runtests: RunTests) -> None:
     # results are printed, such as with -W, they get color.
     if can_colorize(file=sys.stdout):
         os.environ['FORCE_COLOR'] = "1"
+
+    if sysconfig.get_config_var('_Py_RANDOM_DEIMMORTALIZATION'):
+        import _testinternalcapi
+        _testinternalcapi.set_random_deimmortalization(
+            int(os.environ.get('PYTHON_DEIMMORTALIZATION_CHANCE', 1)),
+            int(os.environ.get('PYTHON_DEIMMORTALIZATION_SEED', 0)),
+        )

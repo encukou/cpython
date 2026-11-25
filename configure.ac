@@ -2031,6 +2031,27 @@ AS_VAR_IF([enable_pystats], [yes], [
   AC_DEFINE([Py_STATS], [1], [Define if you want to enable internal statistics gathering.])
 ])
 
+
+# Check for --with-random-deimmortalization
+AC_MSG_CHECKING([for --with-random-deimmortalization])
+AC_ARG_WITH([random-deimmortalization],
+  [AS_HELP_STRING([--with-random-deimmortalization],
+                  [randomly de-immortalize arguments and return values of C functions, for testing default is no)])],
+  [], [with_random_deimmortalization=no]
+)
+AC_MSG_RESULT([$with_random_deimmortalization])
+
+if test "$with_random_deimmortalization" = "yes"
+then
+  AC_DEFINE([_Py_RANDOM_DEIMMORTALIZATION], [1],
+            [Define to randomly de-immortalize arguments and return values])
+fi
+
+if test "$disable_gil" = "yes" -a "$with_random_deimmortalization" = "yes";
+then
+  AC_MSG_ERROR([--disable-gil cannot be used with --with-random-deimmortalization])
+fi
+
 # Check for --with-assertions.
 # This allows enabling assertions without Py_DEBUG.
 assertions='false'
